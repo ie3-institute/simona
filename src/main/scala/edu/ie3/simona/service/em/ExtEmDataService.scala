@@ -12,15 +12,14 @@ import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
+import edu.ie3.simona.service.{DataTimeType, ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.{
   FIRST_TICK_IN_SIMULATION,
   INIT_SIM_TICK,
@@ -162,9 +161,9 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
           serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
 
         if emServiceRegistration.parentEm.isEmpty then {
-          emServiceRegistration.requestingActor ! FlexActivation(
-            INIT_SIM_TICK,
-            PowerLimit,
+          emServiceRegistration.requestingActor ! FlexInit(
+            FlexType.PowerLimit,
+            DataTimeType.Current,
           )
         }
 

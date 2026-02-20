@@ -21,6 +21,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexType,
 }
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
@@ -212,7 +213,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       val flexOptions =
         wecModel
           .flexModels(FlexType.EnergyBoundaries)
-          .determineFlexOptions(state)
+          .determineFlexOptions(state, DataTimeType.Current)
 
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>

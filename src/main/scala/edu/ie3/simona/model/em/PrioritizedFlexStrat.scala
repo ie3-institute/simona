@@ -19,7 +19,6 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.Power
 
@@ -33,9 +32,6 @@ import java.util.UUID
   */
 final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     extends EmModelStrat[PowerLimitFlexOptions] {
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
 
   /** Only heat pumps, battery storages, charging stations and PVs/WECs (if
     * enabled) are controlled by this strategy

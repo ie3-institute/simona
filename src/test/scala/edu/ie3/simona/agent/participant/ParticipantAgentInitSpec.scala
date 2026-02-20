@@ -56,8 +56,6 @@ class ParticipantAgentInitSpec
 
   given simulationStart: ZonedDateTime = defaultSimulationStart
 
-  given FlexType = FlexType.PowerLimit
-
   given SimulationParameters = SimulationParameters(
     3600,
     Each(1e-14),
@@ -235,7 +233,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -299,7 +297,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -521,7 +519,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -603,7 +601,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(

@@ -9,14 +9,10 @@ package edu.ie3.simona.service.em
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
-import edu.ie3.simona.api.data.model.em.{
-  EmSetPoint,
-  ExtendedFlexOptionsResult,
-  FlexOptionRequest,
-}
+import edu.ie3.simona.api.data.model.em
+import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.*
-import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -27,19 +23,15 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexActivation,
-  FlexCompletion,
-  IssuePowerControl,
-  ProvideFlexOptions,
-}
-import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -55,8 +47,6 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.RichOption
-import edu.ie3.simona.util.CollectionUtils.asJava
 
 class ExtEmDataServiceSpec
     extends ScalaTestWithActorTestKit
@@ -68,8 +58,6 @@ class ExtEmDataServiceSpec
 
   private val emptyControlled = List.empty[UUID].asJava
 
-  private val emAgentSupUUID =
-    UUID.fromString("d797fe9c-e4af-49a3-947d-44f81933887e")
   private val emAgent1UUID =
     UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30")
   private val emAgent2UUID =
@@ -193,7 +181,7 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
@@ -249,7 +237,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent1.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent1.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
@@ -261,7 +251,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent2.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent2.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
@@ -283,7 +275,7 @@ class ExtEmDataServiceSpec
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(emService))
       emService ! Activation(0)
 
-      emAgent1.expectMessage(FlexActivation(0, PowerLimit))
+      emAgent1.expectMessage(FlexActivation(0))
       emAgent2.expectNoMessage()
 
       scheduler.expectMessage(Completion(emService))
@@ -365,7 +357,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent1.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent1.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
@@ -377,7 +371,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent2.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent2.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
