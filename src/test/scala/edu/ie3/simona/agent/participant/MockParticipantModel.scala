@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.{PrimaryData, SecondaryData}
-import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.simona.service.{Data, DataTimeType, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
@@ -167,7 +167,8 @@ object MockParticipantModel {
   object MockPowerLimitFlexModel extends ParticipantFlexModel[MockState] {
 
     override def determineFlexOptions(
-        state: MockState
+        state: MockState,
+        dataTimeType: DataTimeType,
     ): FlexOptions = {
       val additionalP = state.additionalP.getOrElse(zeroKW)
       PowerLimitFlexOptions(

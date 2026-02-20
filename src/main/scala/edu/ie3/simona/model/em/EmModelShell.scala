@@ -10,15 +10,13 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
-import edu.ie3.simona.ontology.messages.flex.{
-  EnergyBoundariesFlexOptions,
-  FlexOptions,
-  FlexOptionsExtra,
-  FlexType,
-  PowerLimitFlexOptions,
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexInit,
+  IssueFlexControl,
 }
+import edu.ie3.simona.ontology.messages.flex.*
 import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.DataTimeType
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -47,6 +45,14 @@ final case class EmModelShell[FO <: FlexOptions](
     */
   def identifier: String =
     s"EmModel[$id/$uuid]"
+
+  /** Returns the data time type of the model strategy.
+    *
+    * @return
+    *   The data time type.
+    */
+  def getDataTimeType: DataTimeType =
+    modelStrategy.getServiceRegistrationData.dataTimeType
 
   /** Returns the type of flex options that are expected by the energy
     * management model as input and by the aggregation model as input and
@@ -218,6 +224,24 @@ final case class EmModelShell[FO <: FlexOptions](
       dateTime,
     )
 
+  /** Validates the initialization message regarding flex type and data time
+    * type. For now, both types have to be identical, respectively, but more
+    * sophisticated validation can be implemented at a later time.
+    *
+    * @param msg
+    *   The received [[FlexInit]] message.
+    */
+  def validateInit(msg: FlexInit): Unit = {
+    if msg.flexType != getFlexType then
+      throw new CriticalFailureException(
+        s"$identifier: Flex type of parent ${msg.flexType} and our flex type $getFlexType do not match!"
+      )
+
+    if msg.dataTimeType != getDataTimeType then
+      throw new CriticalFailureException(
+        s"$identifier: Data time type of parent ${msg.dataTimeType} and our data time type $getDataTimeType do not match!"
+      )
+  }
 }
 
 object EmModelShell {
