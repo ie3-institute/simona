@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexOptions,
 }
+import edu.ie3.simona.service.DataTimeType
 
 import scala.collection.immutable.SortedMap
 
@@ -35,7 +36,10 @@ class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
     determineStates: S => SortedMap[Long, S],
 ) extends ParticipantFlexModel[S] {
 
-  override def determineFlexOptions(state: S): FlexOptions = {
+  override def determineFlexOptions(
+      state: S,
+      dateTimeType: DataTimeType,
+  ): FlexOptions = {
 
     val powerMap = determineStates(state).map { case (tick, tickState) =>
       val (op: OperatingPoint, _) = model.determineOperatingPoint(tickState)

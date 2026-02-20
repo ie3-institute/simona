@@ -46,7 +46,6 @@ class EmServiceBaseCoreSpec
   "An EmServiceBaseCore" should {
     // logger used by some methods
     given Logger = LoggerFactory.getLogger(classOf[EmServiceBaseCore])
-    given ZonedDateTime = simonaConfig.simona.time.simStartTime
     given Power = Watts(1e-3)
 
     "handle registration of parentless em agent correctly" in {
@@ -117,7 +116,7 @@ class EmServiceBaseCoreSpec
       val (updatedCore, msgToExt) = core.handleExtMessage(0L, flexRequests)
 
       // the agent should receive a flex option request
-      emAgent.expectMessage(FlexActivation(0L, PowerLimit))
+      emAgent.expectMessage(FlexActivation(0L))
 
       // we should have no message for the external simulation
       msgToExt shouldBe None
@@ -157,7 +156,7 @@ class EmServiceBaseCoreSpec
 
       // the agent should receive a flex option request
       // since the agent cannot handle the set point currently
-      emAgent.expectMessage(FlexActivation(0L, PowerLimit))
+      emAgent.expectMessage(FlexActivation(0L))
 
       // we should have no message for the external simulation
       msgToExt shouldBe None
