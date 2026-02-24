@@ -7,23 +7,16 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.actor.SimonaActorNaming
-import edu.ie3.simona.agent.grid.GridAgent.{failFast, idle}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.congestion.{
-  CongestionManagementParams,
-  DCMAlgorithm,
-}
+import edu.ie3.simona.agent.grid.congestion.DCMAlgorithm
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
   GridAgentInitData,
 }
-import edu.ie3.simona.agent.grid.powerflow.{DBFSAlgorithm, PowerFlowParams}
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,

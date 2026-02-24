@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.input.container.{
@@ -25,22 +25,19 @@ import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.exceptions.agent.SystemParticipantException
 import edu.ie3.simona.model.InputModelContainer
 import edu.ie3.simona.model.InputModelContainer.{
   SimpleInputContainer,
   WithHeatInputContainer,
 }
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexResponse
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
+import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
-import org.slf4j.Logger
 import squants.Each
 
 import java.time.ZonedDateTime
@@ -52,7 +49,7 @@ import scala.jdk.OptionConverters.RichOptional
   *
   * @since 2019-07-18
   */
-object ParticipantAgentBuilder {
+object ParticipantAgentFactory {
 
   final case class BuildData(
       simonaConfig: SimonaConfig.Simona,
@@ -317,7 +314,7 @@ object ParticipantAgentBuilder {
     }
   }
 
-  private[grid] def buildParticipantActor(
+  private def buildParticipantActor(
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
       participantInputModel: SystemParticipantInput,
       maybeControllingEm: Option[ActorRef[FlexResponse]],
@@ -327,19 +324,10 @@ object ParticipantAgentBuilder {
       ctx: ActorContext[?],
   ): ActorRef[ParticipantAgent.Request] = {
 
-    val serviceMap: Map[ServiceType, ActorRef[ServiceMessage]] =
-      Seq(
-        Some(ServiceType.WeatherService -> environmentRefs.weather),
-        Some(ServiceType.LoadProfileService -> environmentRefs.loadProfiles),
-        environmentRefs.evDataService.map(ref =>
-          ServiceType.EvMovementService -> ref
-        ),
-      ).flatten.toMap
-
     given ParticipantRefs = ParticipantRefs(
       environmentRefs.primaryServiceProxy,
       environmentRefs.resultProxy,
-      serviceMap,
+      environmentRefs.serviceMap,
     )
 
     given SimulationParameters = SimulationParameters(
@@ -432,7 +420,7 @@ object ParticipantAgentBuilder {
               maybeControllingEm,
             )
           case None =>
-            throw new SystemParticipantException(
+            throw new CriticalFailureException(
               s"Unable to find thermal island grid for heat pump '${input.getUuid}' with thermal bus '${input.getThermalBus.getUuid}'."
             )
         }

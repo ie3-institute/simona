@@ -122,6 +122,17 @@ object GridAgentData {
     lazy val superiorGridNodeUuids: Set[UUID] =
       superiorConnections.values.flatten.toSet
 
+    /** Updates the init data to incorporate the inferior grid.
+      * @param reference
+      *   The actor reference of the inferior grid.
+      * @param nodes
+      *   All nodes of the higher side of the transformers that connect this
+      *   grid to the inferior grid.
+      * @param subgridNo
+      *   The number of the inferior grid.
+      * @return
+      *   The updated init data.
+      */
     def registerInferior(
         reference: GridAgentRef,
         nodes: Set[UUID],
@@ -140,6 +151,17 @@ object GridAgentData {
         )
     }
 
+    /** Updates the init data to incorporate the superior grid.
+      * @param reference
+      *   The actor reference of the superior grid.
+      * @param nodes
+      *   All nodes of the higher side of the transformers that connect this
+      *   grid to the superior grid.
+      * @param subgridNo
+      *   The number of the superior grid.
+      * @return
+      *   The updated init data.
+      */
     def registerSuperior(
         reference: GridAgentRef,
         nodes: Set[UUID],
@@ -158,6 +180,12 @@ object GridAgentData {
         )
     }
 
+    /** Updates the init data to incorporate connected assets.
+      * @param nodeToParticipants
+      *   A map: node uuid to set of participant actor references.
+      * @return
+      *   The updated init data.
+      */
     def registerParticipants(
         nodeToParticipants: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]
     ): GridAgentInitData = {
@@ -315,6 +343,13 @@ object GridAgentData {
     lazy val inferiorGridNodeUuids: Set[UUID] = gridEnv.inferiorNodeUuids
     lazy val superiorGridNodeUuids: Set[UUID] = gridEnv.superiorNodeUuids
 
+    /** Method to try looking up the subgrid number of the superior grid based
+      * on the given node uuid.
+      * @param node
+      *   The uuid of one of the connecting nodes.
+      * @return
+      *   An option for the number.
+      */
     def getSuperiorSubgridNumber(node: UUID): Option[Int] =
       gridEnv.superiorGridIds.get(node)
 
@@ -335,6 +370,10 @@ object GridAgentData {
         _.values.exists(_.exists(_.isInstanceOf[FailedPowerFlow]))
       )
 
+    /** Method for clearing the stored asset power.
+      * @return
+      *   The updated state data.
+      */
     def clearAssetPower: GridAgentBaseData =
       copy(receivedValueStore = receivedValueStore.clearAssetPower)
 

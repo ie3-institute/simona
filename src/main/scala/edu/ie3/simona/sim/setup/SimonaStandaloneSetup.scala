@@ -14,17 +14,15 @@ import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   CompleteInitialization,
-  CreateGridAgent,
   RegisterParticipants,
 }
 import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
-import edu.ie3.simona.agent.grid.{
-  GridAgent,
-  GridAgentCoordinator,
-  ParticipantAgentBuilder,
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFactory,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
@@ -78,14 +76,9 @@ class SimonaStandaloneSetup(
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): Iterable[ActorRef[GridAgent.Message]] = {
-
     val cfg = simonaConfig.simona
 
-    /* extract and prepare refSystem information from config */
-    val (configRefSystems, configVoltageLimits) =
-      GridConfigParser.parse(cfg.gridConfig)
-
-    val nodeToAssets = ParticipantAgentBuilder.buildSystemParticipants(
+    val nodeToAssets = ParticipantAgentFactory.buildSystemParticipants(
       grid.getSystemParticipants,
       thermalGridsByThermalBus.map { case (bus, thermalGrid) =>
         bus.getUuid -> thermalGrid
@@ -95,7 +88,7 @@ class SimonaStandaloneSetup(
 
     cfg.powerflow
       .map { pfConfig =>
-        val (subgridToRef, nodeToSubgrid, _) =
+        val (subgridToRef, nodeToSubgrid) =
           GridAgentCoordinator.createGridAgents(
             grid,
             pfConfig.resolution.toSeconds,
@@ -301,10 +294,9 @@ class SimonaStandaloneSetup(
   }
 }
 
-/** Companion object to provide [[SetupHelper]] methods for
-  * [[SimonaStandaloneSetup]]
+/** Companion object for [[SimonaStandaloneSetup]]
   */
-object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
+object SimonaStandaloneSetup extends LazyLogging {
 
   def apply(
       typeSafeConfig: Config,

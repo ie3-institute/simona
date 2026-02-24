@@ -29,30 +29,40 @@ import java.util.UUID
   */
 object GridAgentMessages {
 
-  /** GridAgent initialization data can only be constructed once all GridAgent
-    * actors are created. Thus, we need an extra initialization message.
-    *
-    * @param gridAgentInitData
-    *   The initialization data.
+  /** Message to register in inferior grid.
+    * @param gridRef
+    *   The actor reference of the inferior grid.
+    * @param nodes
+    *   All nodes of the higher side of the transformers that connect this grid
+    *   to the inferior grid.
+    * @param subgridNo
+    *   The number of the inferior grid.
     */
-  final case class CreateGridAgent(
-      gridAgentInitData: GridAgentInitData,
-      unlockKey: ScheduleKey,
-      onlyOneSubGrid: Boolean = false,
-  ) extends GridAgent.InternalRequest
-
   final case class RegisterInferiorGrid(
       gridRef: GridAgentRef,
       nodes: Set[UUID],
       subgridNo: Int,
   ) extends GridAgent.InternalRequest
 
+  /** Message to register in superior grid.
+    * @param gridRef
+    *   The actor reference of the superior grid.
+    * @param nodes
+    *   All nodes of the higher side of the transformers that connect this grid
+    *   to the superior grid.
+    * @param subgridNo
+    *   The number of the superior grid.
+    */
   final case class RegisterSuperiorGrid(
       gridRef: GridAgentRef,
       nodes: Set[UUID],
       subgridNo: Int,
   ) extends GridAgent.InternalRequest
 
+  /** Message to register assets.
+    * @param nodeToAssets
+    *   A map: node uuid to set of participant actor references.
+    */
   final case class RegisterParticipants(
       nodeToAssets: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]
   ) extends GridAgent.InternalRequest

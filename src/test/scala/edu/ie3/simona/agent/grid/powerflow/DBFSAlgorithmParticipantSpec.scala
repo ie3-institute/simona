@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -17,9 +18,14 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
 }
-import edu.ie3.simona.agent.grid.{GridAgent, ParticipantAgentBuilder}
-import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
+  ParticipantRefs,
+  SimulationParameters,
+}
+import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
+import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -30,25 +36,22 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationFailedMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.simona.test.helper.ActorContextMokka
-import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
+import edu.ie3.simona.util.ConfigUtil.{NotifierIdentifier, OutputConfigUtil}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.apache.pekko.actor.typed.{ActorRef, Behavior, Props}
-import org.mockito.ArgumentMatchers.{any, anyString}
-import org.mockito.Mockito.when
-import org.mockito.invocation.InvocationOnMock
-import org.mockito.stubbing.Answer
+import org.apache.pekko.actor.typed.ActorRef
+import squants.Each
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
@@ -60,7 +63,6 @@ class DBFSAlgorithmParticipantSpec
     with DBFSMockGridAgents
     with ConfigTestData
     with DbfsTestGridWithParticipants
-    with ActorContextMokka
     with TestSpawnerTyped {
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
@@ -101,13 +103,15 @@ class DBFSAlgorithmParticipantSpec
   )
 
   "Test participant" should {
-    val ctx = getMock[ParticipantAgent.Request]
 
-    val nodeToAssets = ParticipantAgentBuilder.buildSystemParticipants(
-      hvGridContainer.getSystemParticipants,
-      Map.empty,
-      simonaConfig.simona,
-    )(using environmentRefs, ctx)
+    given ParticipantRefs = ParticipantRefs(
+      primaryService.ref,
+      resultProxy.ref,
+      environmentRefs.serviceMap,
+    )
+
+    given SimulationParameters =
+      SimulationParameters(+3600, Each(1e-14), startTime, endTime)
 
     val gridModel = GridModel(
       hvGridContainer,
@@ -133,28 +137,42 @@ class DBFSAlgorithmParticipantSpec
         1000,
       )
 
+      // create load agent
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
+      val loadAgent = testKit.spawn(
+        ParticipantAgentInit(
+          SimpleInputContainer(load1),
+          LoadRuntimeConfig(),
+          OutputConfigUtil
+            .participants(simonaConfig.simona.output.participant)
+            .getOrDefault(NotifierIdentifier.Load),
+          Left(scheduler.ref),
+          key,
+        ),
+        name = "test_load",
+      )
+
+      val nodeToAssets: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
+        Map(node1.getUuid -> Set(loadAgent))
+
+      val loadActivation = scheduler.expectMessageType[ScheduleActivation]
+      loadActivation.tick shouldBe INIT_SIM_TICK
+      loadActivation.actor shouldBe loadAgent
+
+      // register load
       gridAgentWithParticipants ! RegisterParticipants(nodeToAssets)
 
       gridAgentWithParticipants ! CompleteInitialization(false)
 
-      val loadAgent = scheduler
-        .receiveMessages(3)
-        .flatMap {
-          case ScheduleActivation(_, PRE_INIT_TICK, None) =>
-            // participant schedule lock
-            None
-          case ScheduleActivation(actor, INIT_SIM_TICK, Some(_)) =>
-            // load agent
-            Some(actor)
-          case ScheduleActivation(_, 3600, _) =>
-            // GridAgent
-            None
-          case other =>
-            fail(s"Unexpected scheduler message $other")
-        }
-        .headOption
-        .value
+      // the grid agent will be scheduled for tick 3600
+      scheduler.expectMessage(
+        ScheduleActivation(gridAgentWithParticipants, 3600)
+      )
 
+      // init load
       loadAgent ! Activation(INIT_SIM_TICK)
 
       val serviceRegistrationMsg = primaryService

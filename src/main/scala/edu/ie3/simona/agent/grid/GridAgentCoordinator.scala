@@ -13,44 +13,47 @@ import edu.ie3.datamodel.models.input.container.{
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.congestion.{
-  CongestionManagementParams,
-  Congestions,
-}
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
   GridAgentRef,
 }
 import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
-import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.GridConfigParser.{
   ConfigRefSystems,
   ConfigVoltageLimits,
 }
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
-import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
 import squants.electro.Kilovolts
 
-import java.time.ZonedDateTime
 import java.util.UUID
-import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
+import scala.jdk.CollectionConverters.SetHasAsScala
 
 object GridAgentCoordinator {
 
+  /** Method to create the grid agents.
+    * @param grid
+    *   The grid container with sub grids.
+    * @param resolution
+    *   The power flow resolution.
+    * @param pfParams
+    *   The power flow parameters.
+    * @param cfg
+    *   The simona config.
+    * @param context
+    *   THe actor context for spawning grid agents.
+    * @param environmentRefs
+    *   The environment references.
+    * @return
+    *   A map: subgrid number to reference and a map: node uuid to subgrid.
+    */
   def createGridAgents(
       grid: JointGridContainer,
       resolution: Long,
@@ -62,7 +65,6 @@ object GridAgentCoordinator {
   ): (
       Map[Int, GridAgentRef],
       Map[UUID, Int],
-      Set[GridAgentRef],
   ) = {
 
     /* get the grid */
@@ -86,31 +88,43 @@ object GridAgentCoordinator {
     )
 
     /* Create all agents and map the sub grid id to their actor references */
-    val (subGridToActorRefMap, actorRefToNodes) = buildRefMaps(
+    val (subGridToActorRefMap, actorRefToNodes) = createGridAgents(
       subGrids,
       context,
       pfParams,
     )
 
     // register inferior grids
-    val superiorGrids = actorRefToNodes.flatMap {
-      case (actorRef, couplingNodes) =>
-        // register inferior grid by providing the superior grid with the coupling nodes
-        couplingNodes.groupBy(nodeToSubgrid).foreach {
-          case (subgridNo, nodes) =>
-            val superiorGrid = subGridToActorRefMap(subgridNo)
+    actorRefToNodes.flatMap { case (actorRef, couplingNodes) =>
+      // register inferior grid by providing the superior grid with the coupling nodes
+      couplingNodes.groupBy(nodeToSubgrid).foreach { case (subgridNo, nodes) =>
+        val superiorGrid = subGridToActorRefMap(subgridNo)
 
-            superiorGrid ! RegisterInferiorGrid(actorRef, nodes, subgridNo)
-            actorRef ! RegisterSuperiorGrid(superiorGrid, nodes, subgridNo)
-        }
+        superiorGrid ! RegisterInferiorGrid(actorRef, nodes, subgridNo)
+        actorRef ! RegisterSuperiorGrid(superiorGrid, nodes, subgridNo)
+      }
 
-        Option.when(couplingNodes.isEmpty)(actorRef)
-    }.toSet
+      Option.when(couplingNodes.isEmpty)(actorRef)
+    }
 
-    (subGridToActorRefMap, nodeToSubgrid, superiorGrids)
+    (subGridToActorRefMap, nodeToSubgrid)
   }
 
-  def buildRefMaps(
+  /** Method to create a map from subgrid number to grid agent reference and a
+    * map of grid agent reference to coupling nodes with the superior grid.
+    * @param subGrids
+    *   A sequence of subgrid container.
+    * @param context
+    *   The actor context for spawning grid agents.
+    * @param pfParams
+    *   The parameter for the power flow.
+    * @param constantData
+    *   The grid agent constant data.
+    * @return
+    *   A map: subgrid number to reference and a map: reference to coupling
+    *   nodes.
+    */
+  private def createGridAgents(
       subGrids: Iterable[SubGridContainer],
       context: ActorContext[?],
       pfParams: PowerFlowParams,
@@ -213,7 +227,17 @@ object GridAgentCoordinator {
     refSystem
   }
 
-  def getVoltageLimits(
+  /** Searches for the voltage limits to be used with the given
+    * [[SubGridContainer]] within the information provided by config.
+    *
+    * @param configVoltageLimits
+    *   Collection of voltage limits definitions from config.
+    * @param subGridContainer
+    *   Container model for the respective sub grid.
+    * @return
+    *   The voltage limits to use.
+    */
+  private def getVoltageLimits(
       configVoltageLimits: ConfigVoltageLimits,
       subGridContainer: SubGridContainer,
   ): VoltageLimits = configVoltageLimits
