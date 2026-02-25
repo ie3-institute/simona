@@ -185,7 +185,13 @@ class PvModelSpec
       val flexOptions =
         pvModel
           .flexModels(FlexType.EnergyBoundaries)
-          .determineFlexOptions(state, DataTimeType.Current)
+          .determineFlexOptions(
+            state,
+            DataTimeType.CurrentAndForecast(
+              forecastLength = Hours(4),
+              forecastResolution = Hours(1),
+            ),
+          )
 
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>

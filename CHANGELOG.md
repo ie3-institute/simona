@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Provide extra functionality for `EnergyBoundariesFlexOptions` [#1670](https://github.com/ie3-institute/simona/issues/1670)
 - Implemented EnergyPriceService [#1586](https://github.com/ie3-institute/simona/issues/1586)
 - Implemented forecast for `LoadProfileService` [#1704](https://github.com/ie3-institute/simona/issues/1704)
+- Implemented energy boundaries flex options for load model [#1705](https://github.com/ie3-institute/simona/issues/1705)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
