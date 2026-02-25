@@ -80,6 +80,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified Option handling in PowerFlowSupport [#1701](https://github.com/ie3-institute/simona/issues/1701)
 - Removed lowest SOC, added departure SOC target for EVs [#1096](https://github.com/ie3-institute/simona/issues/1096)
 - Adapted EM initialization protocol [#1669](https://github.com/ie3-institute/simona/issues/1669)
+- Updated the publications and references with new publications [#1707](https://github.com/ie3-institute/simona/issues/1707)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
