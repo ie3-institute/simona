@@ -13,9 +13,11 @@ import edu.ie3.datamodel.models.input.system.{
   PvInput,
   StorageInput,
 }
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.helper.TableDrivenHelper
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.mockito.Mockito.when
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatestplus.mockito.MockitoSugar
@@ -46,8 +48,6 @@ class PrioritizedFlexStratSpec
     val st = UUID.fromString("0-0-0-0-4")
     val storageInputModel = mock[StorageInput]
     when(storageInputModel.getUuid).thenReturn(st)
-
-    val emInputModel = mock[EmInput]
 
     "determine flex control dependent on flex options" in {
       val strat = PrioritizedFlexStrat(curtailRegenerative = false)
@@ -138,7 +138,7 @@ class PrioritizedFlexStratSpec
               PowerLimitFlexOptions(
                 Kilowatts(pvPower),
                 Kilowatts(pvPower),
-                Kilowatts(0d),
+                zeroKW,
               ),
             ),
             (
@@ -152,7 +152,7 @@ class PrioritizedFlexStratSpec
             (
               storageInputModel,
               PowerLimitFlexOptions(
-                Kilowatts(0d),
+                zeroKW,
                 Kilowatts(storageMin),
                 Kilowatts(storageMax),
               ),
@@ -249,7 +249,7 @@ class PrioritizedFlexStratSpec
               PowerLimitFlexOptions(
                 Kilowatts(pvPower),
                 Kilowatts(pvPower),
-                Kilowatts(0d),
+                zeroKW,
               ),
             ),
             (
@@ -263,7 +263,7 @@ class PrioritizedFlexStratSpec
             (
               storageInputModel,
               PowerLimitFlexOptions(
-                Kilowatts(0d),
+                zeroKW,
                 Kilowatts(storageMin),
                 Kilowatts(storageMax),
               ),
@@ -273,7 +273,7 @@ class PrioritizedFlexStratSpec
           val actualResults =
             strat.determineFlexControl(
               flexOptions,
-              Kilowatts(0d),
+              zeroKW,
               currentTick = 0L,
               Seq.empty,
             )
@@ -305,12 +305,10 @@ class PrioritizedFlexStratSpec
         (false, pvInputModel, true),
         (false, evcsInputModel, false),
         (false, storageInputModel, false),
-        (false, emInputModel, false),
         (true, loadInputModel, true),
         (true, pvInputModel, false),
         (true, evcsInputModel, false),
         (true, storageInputModel, false),
-        (true, emInputModel, false),
       )
 
       forAll(cases) {
@@ -331,6 +329,28 @@ class PrioritizedFlexStratSpec
             flexOptionsOut shouldBe flexOptionsIn
           }
       }
+    }
+
+    "throw exception if EMs are part of inferior assets" in {
+
+      val flexStrat = PrioritizedFlexStrat(curtailRegenerative = false)
+      val emInputModel = mock[EmInput]
+      val flexOptions = PowerLimitFlexOptions.zero(0L)
+
+      intercept[CriticalFailureException] {
+        flexStrat.determineFlexControl(
+          Iterable((emInputModel, flexOptions)),
+          zeroKW,
+          currentTick = 0L,
+          receivedData = Seq.empty,
+        )
+      }
+
+      intercept[CriticalFailureException] {
+        flexStrat
+          .adaptFlexOptions(emInputModel, flexOptions)
+      }
+
     }
 
   }
