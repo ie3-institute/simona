@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.em
 
-import edu.ie3.datamodel.models.input.AssetInput
+import edu.ie3.datamodel.models.input.{AssetInput, EmInput}
 import edu.ie3.datamodel.models.input.system.{
   EvcsInput,
   HpInput,
@@ -37,7 +37,12 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     * enabled) are controlled by this strategy
     */
   private val controllableAssets: Seq[Class[? <: AssetInput]] =
-    Seq(classOf[HpInput], classOf[StorageInput], classOf[EvcsInput]) ++ Option
+    Seq(
+      classOf[HpInput],
+      classOf[StorageInput],
+      classOf[EvcsInput],
+      classOf[EmInput],
+    ) ++ Option
       .when(curtailRegenerative)(Seq(classOf[PvInput], classOf[WecInput]))
       .getOrElse(Seq.empty)
 

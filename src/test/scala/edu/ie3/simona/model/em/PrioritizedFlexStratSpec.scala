@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.em
 
+import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.input.system.{
   EvcsInput,
   LoadInput,
@@ -45,6 +46,8 @@ class PrioritizedFlexStratSpec
     val st = UUID.fromString("0-0-0-0-4")
     val storageInputModel = mock[StorageInput]
     when(storageInputModel.getUuid).thenReturn(st)
+
+    val emInputModel = mock[EmInput]
 
     "determine flex control dependent on flex options" in {
       val strat = PrioritizedFlexStrat(curtailRegenerative = false)
@@ -302,10 +305,12 @@ class PrioritizedFlexStratSpec
         (false, pvInputModel, true),
         (false, evcsInputModel, false),
         (false, storageInputModel, false),
+        (false, emInputModel, false),
         (true, loadInputModel, true),
         (true, pvInputModel, false),
         (true, evcsInputModel, false),
         (true, storageInputModel, false),
+        (true, emInputModel, false),
       )
 
       forAll(cases) {
