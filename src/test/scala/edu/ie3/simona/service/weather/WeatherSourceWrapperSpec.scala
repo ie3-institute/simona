@@ -18,22 +18,22 @@ import edu.ie3.datamodel.models.timeseries.individual.{
 }
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  EMPTY_WEATHER_DATA,
-  WeightedCoordinates,
-}
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.service.weather.WeatherSourceSpec.DummyIdCoordinateSource
-import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
+import edu.ie3.simona.service.weather.WeatherSourceWrapper.{
+  WeightSum,
+  ZERO_WEATHER_DATA,
+}
 import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.Point
-import tech.units.indriya.ComparableQuantity
-import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
+import squants.{Temperature, Velocity}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -236,7 +236,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weightedWeather) match {
         case WeatherData(_, _, temp, _) =>
-          temp shouldBe EMPTY_WEATHER_DATA.temp
+          temp shouldBe ZERO_WEATHER_DATA.temp
       }
     }
 
@@ -445,7 +445,7 @@ object WeatherSourceWrapperSpec {
     }
 
     val weightedWeather =
-      weatherData.zip(weights).foldLeft(EMPTY_WEATHER_DATA) {
+      weatherData.zip(weights).foldLeft(ZERO_WEATHER_DATA) {
         case (
               currentSum,
               (
@@ -460,7 +460,7 @@ object WeatherSourceWrapperSpec {
             windVel = currentSum.windVel + windVel * wVelWeight,
           )
       }
-    val weightSum = weights.foldLeft(WeightSum.EMPTY_WEIGHT_SUM) {
+    val weightSum = weights.foldLeft(WeightSum.ZERO_WEIGHT_SUM) {
       case (currentSum, currentWeight) =>
         currentSum.add(
           currentWeight._1,
