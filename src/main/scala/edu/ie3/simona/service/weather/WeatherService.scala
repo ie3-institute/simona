@@ -21,6 +21,7 @@ import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
@@ -49,15 +50,13 @@ object WeatherService extends SimonaService {
 
   /** Container storing registered actors for a coordinate.
     *
-    * @param registeredActors
-    *   A map of weather data type to registered actors.
+    * @param registrantsMap
+    *   A map of data time type to registered actors.
     * @param coordinateWeights
     *   Weights mapping surrounding coordinates onto the registered coordinate.
     */
-  final case class CoordinateData(
-      registeredActors: Map[DataTimeType, Set[
-        ActorRef[ServiceMessage.Response]
-      ]],
+  final case class RegistrantsContainer(
+      registrantsMap: Map[DataTimeType, Set[ActorRef[ServiceMessage.Response]]],
       coordinateWeights: WeightedCoordinates,
   )
 
@@ -65,7 +64,7 @@ object WeatherService extends SimonaService {
     *
     * @param weatherSource
     *   The weather source to retrieve information from.
-    * @param coordinateData
+    * @param registeredAgents
     *   A map of the requested coords to their receiving actor references.
     * @param activationTicks
     *   A queue of future ticks that the service will be activated at.
@@ -76,7 +75,7 @@ object WeatherService extends SimonaService {
     */
   final case class WeatherBaseStateData(
       weatherSource: WeatherSource,
-      coordinateData: Map[Coordinate, CoordinateData] = Map.empty,
+      registeredAgents: Map[Coordinate, RegistrantsContainer] = Map.empty,
       activationTicks: ActivationTickQueue,
       startDateTime: ZonedDateTime,
       amountOfInterpolationCoords: Int = 4,
@@ -171,7 +170,7 @@ object WeatherService extends SimonaService {
     * @param coordinate
     *   The coordinate of the agent to be registered.
     * @param dataTimeType
-    *   The weather data type that the agent wants to receive.
+    *   The data time type that the agent wants to receive data for.
     * @param serviceStateData
     *   The current service state data of this service.
     * @param ctx
@@ -195,64 +194,74 @@ object WeatherService extends SimonaService {
       coordinate.longitude,
     )
 
-    // collate the provided coordinates into a single entity
-    val registrationResponse = serviceStateData.activationTicks.nextTick
-      .map(RegistrationSuccessfulMessage(ctx.self, _))
-      .getOrElse(RegistrationFailedMessage(ctx.self))
-
-    serviceStateData.coordinateData.get(coordinate) match {
-      case None =>
-        /* The coordinate itself is not known yet. Try to figure out, which weather coordinates are relevant */
-        serviceStateData.weatherSource.getWeightedCoordinates(
-          coordinate,
-          serviceStateData.amountOfInterpolationCoords,
-        ) match {
-          case Success(weightedCoordinates) =>
-            agentToBeRegistered ! registrationResponse
-
-            val coordinateData = CoordinateData(
-              registeredActors = Map(dataTimeType -> Set(agentToBeRegistered)),
-              coordinateWeights = weightedCoordinates,
-            )
-
-            /* Enhance the mapping from agent coordinate to requesting actor's ActorRef as well as the necessary
-             * weather coordinates for later averaging. */
-            serviceStateData.copy(
-              coordinateData =
-                serviceStateData.coordinateData + (coordinate -> coordinateData)
-            )
-          case Failure(exception) =>
-            ctx.log.error(
-              s"Unable to obtain necessary information to register for coordinate $coordinate.",
-              exception,
-            )
-            agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
-            serviceStateData
-        }
-
-      case Some(coordinateData) =>
-        val registeredActors =
-          coordinateData.registeredActors.getOrElse(dataTimeType, Set.empty)
-
-        if registeredActors.contains(agentToBeRegistered) then
+    getRegistrantsContainer(coordinate) match {
+      case Success(registrants) =>
+        if registrants.registrantsMap.contains(
+            dataTimeType,
+            agentToBeRegistered,
+          )
+        then
           ctx.log.warn(
             "Sending actor {} is already registered",
             agentToBeRegistered,
           )
-        else agentToBeRegistered ! registrationResponse
+        else {
+          val registrationResponse = serviceStateData.activationTicks.nextTick
+            .map(RegistrationSuccessfulMessage(ctx.self, _))
+            .getOrElse(RegistrationFailedMessage(ctx.self))
 
-        val adaptedCoordinateData = coordinateData.copy(registeredActors =
-          coordinateData.registeredActors +
-            (dataTimeType -> registeredActors.incl(agentToBeRegistered))
+          agentToBeRegistered ! registrationResponse
+        }
+
+        val updatedRegistrants =
+          registrants.copy(registrantsMap =
+            registrants.registrantsMap.added(dataTimeType, agentToBeRegistered)
+          )
+
+        serviceStateData.copy(registeredAgents =
+          serviceStateData.registeredAgents
+            .updated(coordinate, updatedRegistrants)
         )
-
-        serviceStateData.copy(
-          coordinateData =
-            serviceStateData.coordinateData + (coordinate -> adaptedCoordinateData)
+      case Failure(exception) =>
+        ctx.log.error(
+          s"Unable to register for coordinate $coordinate.",
+          exception,
         )
-
+        agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
+        serviceStateData
     }
   }
+
+  /** Retrieves or creates the [[RegistrantsContainer]] for given coordinate.
+    */
+  private def getRegistrantsContainer(coordinate: Coordinate)(using
+      serviceStateData: WeatherBaseStateData
+  ): Try[RegistrantsContainer] =
+    serviceStateData.registeredAgents.get(coordinate) match {
+      case None =>
+        serviceStateData.weatherSource
+          .getWeightedCoordinates(
+            coordinate,
+            serviceStateData.amountOfInterpolationCoords,
+          )
+          .transform(
+            weightedCoordinates =>
+              Success(
+                RegistrantsContainer(
+                  registrantsMap = Map.empty,
+                  coordinateWeights = weightedCoordinates,
+                )
+              ),
+            exception =>
+              Failure(
+                InvalidRegistrationRequestException(
+                  s"Unable to obtain necessary information to register for coordinate $coordinate.",
+                  exception,
+                )
+              ),
+          )
+      case Some(container) => Success(container)
+    }
 
   override protected def announceInformation(tick: Long)(using
       serviceStateData: WeatherBaseStateData,
@@ -270,10 +279,10 @@ object WeatherService extends SimonaService {
     // get the weather and send it to the subscribed agents
     // no sanity check needed here as we can assume that we always have weather available
     // when we announce it. Otherwise, the registration would have failed already!
-    updatedStateData.coordinateData.foreach { case (_, coordinateData) =>
-      val coordinateWeights = coordinateData.coordinateWeights
+    updatedStateData.registeredAgents.foreach { case (_, container) =>
+      val coordinateWeights = container.coordinateWeights
 
-      coordinateData.registeredActors.foreach { case (dataTimeType, actors) =>
+      container.registrantsMap.foreach { case (dataTimeType, actors) =>
         val weatherData = dataTimeType match {
           case DataTimeType.Current =>
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
