@@ -48,7 +48,7 @@ object GridAgentCoordinator {
     * @param cfg
     *   The simona config.
     * @param context
-    *   THe actor context for spawning grid agents.
+    *   The actor context for spawning grid agents.
     * @param environmentRefs
     *   The environment references.
     * @return
