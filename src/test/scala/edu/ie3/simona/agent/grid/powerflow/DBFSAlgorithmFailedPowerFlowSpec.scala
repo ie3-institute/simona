@@ -4,24 +4,27 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentConstantData,
+  GridAgentInitData,
+}
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
@@ -29,7 +32,6 @@ import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -83,40 +85,53 @@ class DBFSAlgorithmFailedPowerFlowSpec
     evDataService = None,
   )
 
+  given GridAgentConstantData = GridAgentConstantData(
+    environmentRefs,
+    simonaConfig.simona,
+    3600,
+    startTime,
+    endTime,
+    CongestionManagementParams(false),
+  )
+
   "A GridAgent actor in center position with async test" should {
 
     // since the grid agent is stopped after a failed power flow
     // we need to initialize the agent for each test
     def initAndGoToSimulateGrid: ActorRef[GridAgent.Message] = {
-      val centerGridAgent =
-        testKit.spawn(GridAgent(environmentRefs, simonaConfig))
-
-      val gridAgentInitData =
-        GridAgentInitData(
-          hvGridContainerPF,
-          Seq.empty[ThermalGrid],
-          Set(11),
-          Map(inferiorGridAgent.ref -> inferiorGridAgent.nodeUuids.toSet),
-          Map(supNodeA.getUuid -> 1000),
-          Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet),
-          RefSystem("2000 MVA", "110 kV"),
-          VoltageLimits(0.9, 1.1),
-        )
-
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
-
-      centerGridAgent ! CreateGridAgent(
-        gridAgentInitData,
-        key,
+      val gridModel = GridModel(
+        hvGridContainerPF,
+        RefSystem("2000 MVA", "110 kV"),
+        VoltageLimits(0.9, 1.1),
+        startTime,
+        endTime,
+        simonaConfig.simona,
       )
+
+      val gridAgentInitData = GridAgentInitData(
+        gridModel,
+        PowerFlowParams(simonaConfig.simona.powerflow.value),
+      )
+
+      val centerGridAgent = testKit.spawn(GridAgent(gridAgentInitData))
+
+      centerGridAgent ! RegisterInferiorGrid(
+        inferiorGridAgent.ref,
+        inferiorGridAgent.nodeUuids.toSet,
+        11,
+      )
+      centerGridAgent ! RegisterSuperiorGrid(
+        superiorGridAgent.ref,
+        superiorGridAgent.nodeUuids.toSet,
+        1000,
+      )
+
+      centerGridAgent ! CompleteInitialization(false)
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
       scheduleActivationMsg.tick shouldBe 3600
-      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      scheduleActivationMsg.unlockKey shouldBe None
 
       // send init data to agent
       centerGridAgent ! Activation(3600)
@@ -155,7 +170,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
         superiorGridAgent.expectSlackVoltageRequest(sweepNo)
 
       // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculation
-      // we simulate this behaviour now by doing the same for our inferior grid agent
+      // we simulate this behavior now by doing the same for our inferior grid agent
       inferiorGridAgent.requestSlackVoltage(centerGridAgent, sweepNo)
 
       // as we are in the first sweep, provided slack voltage should be equal
@@ -323,41 +338,36 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val hvGridAgent =
         InferiorGA(TestProbe("HvGridAgent"), Seq(supNodeA.getUuid))
 
-      val slackGridAgent: ActorRef[GridAgent.Message] = testKit.spawn(
-        GridAgent(
-          environmentRefs,
-          simonaConfig, // stopOnFailure is enabled
-        )
+      val gridModel = GridModel(
+        ehvGridContainer,
+        RefSystem("5000 MVA", "380 kV"),
+        VoltageLimits(0.9, 1.1),
+        startTime,
+        endTime,
+        simonaConfig.simona,
+      )
+
+      val gridAgentInitData = GridAgentInitData(
+        gridModel,
+        PowerFlowParams(simonaConfig.simona.powerflow.value),
+      )
+
+      val slackGridAgent = testKit.spawn(GridAgent(gridAgentInitData))
+
+      slackGridAgent ! RegisterInferiorGrid(
+        hvGridAgent.ref,
+        hvGridAgent.nodeUuids.toSet,
+        1,
       )
 
       val sweepNo = 0
 
-      val subnetGatesToActorRef =
-        ehvSubGridGates.map(_ -> hvGridAgent.ref).toMap
-
-      val gridAgentInitData =
-        GridAgentInitData(
-          ehvGridContainer,
-          Seq.empty[ThermalGrid],
-          Set(1),
-          Map(hvGridAgent.ref -> hvGridAgent.nodeUuids.toSet),
-          Map.empty,
-          Map.empty,
-          RefSystem("5000 MVA", "380 kV"),
-          VoltageLimits(0.9, 1.1),
-        )
-
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
-
-      slackGridAgent ! CreateGridAgent(gridAgentInitData, key)
+      slackGridAgent ! CompleteInitialization(false)
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
       scheduleActivationMsg.tick shouldBe 3600
-      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      scheduleActivationMsg.unlockKey shouldBe None
 
       // send init data to agent
       slackGridAgent ! Activation(3600)
