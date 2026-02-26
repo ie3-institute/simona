@@ -4,15 +4,16 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
-
-import java.util.UUID
+package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
-import edu.ie3.simona.agent.grid.SweepValueStore.SweepValueStoreData
+import edu.ie3.simona.agent.grid.powerflow.{DBFSAlgorithm, SweepValueStore}
+import edu.ie3.simona.agent.grid.powerflow.SweepValueStore.SweepValueStoreData
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.NodeModel
+
+import java.util.UUID
 
 /** Value store holding all that should be stored after each sweep of the
   * [[DBFSAlgorithm]] to be used by the next sweep.

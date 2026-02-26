@@ -478,7 +478,7 @@ object SimonaSimSpec {
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
-    override def gridAgents(
+    override def gridAgents(using
         context: ActorContext[?],
         environmentRefs: EnvironmentRefs,
     ): Iterable[ActorRef[GridAgent.Message]] = Iterable.empty

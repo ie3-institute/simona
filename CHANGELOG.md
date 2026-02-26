@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create trait for secondary service registration, to be used by EmAgent as well [#1635](https://github.com/ie3-institute/simona/issues/1635)
 - Provide extra functionality for `EnergyBoundariesFlexOptions` [#1670](https://github.com/ie3-institute/simona/issues/1670)
 - Implemented EnergyPriceService [#1586](https://github.com/ie3-institute/simona/issues/1586)
+- Implemented forecast for `LoadProfileService` [#1704](https://github.com/ie3-institute/simona/issues/1704)
 - Added secondary data provision handling in EmAgent [#1652](https://github.com/ie3-institute/simona/issues/1652)
 
 ### Changed
@@ -81,6 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified Option handling in PowerFlowSupport [#1701](https://github.com/ie3-institute/simona/issues/1701)
 - Removed lowest SOC, added departure SOC target for EVs [#1096](https://github.com/ie3-institute/simona/issues/1096)
 - Adapted EM initialization protocol [#1669](https://github.com/ie3-institute/simona/issues/1669)
+- Updated the publications and references with new publications [#1707](https://github.com/ie3-institute/simona/issues/1707)
+- Refactor initialization of `GridAgent` [#1686](https://github.com/ie3-institute/simona/issues/1686)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -99,6 +102,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed shadowJar reference.conf not being merged [#1575](https://github.com/ie3-institute/simona/issues/1575)
 - Fixed `CHANGELOG` entry for #1607 [#1609](https://github.com/ie3-institute/simona/issues/1609)
 - Fixed HP model returning current tick as the next activation [#1622](https://github.com/ie3-institute/simona/issues/1622)
+- Disallowed EMs as inferiors of `PrioritizedFlexStrat` [#1712](https://github.com/ie3-institute/simona/issues/1712)
+- Fixed log spamming during night time due to no solar irradiance [#984](https://github.com/ie3-institute/simona/issues/984)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
