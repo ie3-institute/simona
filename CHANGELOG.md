@@ -35,6 +35,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Create trait for secondary service registration, to be used by EmAgent as well [#1635](https://github.com/ie3-institute/simona/issues/1635)
 - Provide extra functionality for `EnergyBoundariesFlexOptions` [#1670](https://github.com/ie3-institute/simona/issues/1670)
 - Implemented EnergyPriceService [#1586](https://github.com/ie3-institute/simona/issues/1586)
+- Implemented forecast for `LoadProfileService` [#1704](https://github.com/ie3-institute/simona/issues/1704)
 - Implemented energy boundaries flex options for EVCS [#1682](https://github.com/ie3-institute/simona/issues/1682)
 
 ### Changed
@@ -100,6 +101,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed shadowJar reference.conf not being merged [#1575](https://github.com/ie3-institute/simona/issues/1575)
 - Fixed `CHANGELOG` entry for #1607 [#1609](https://github.com/ie3-institute/simona/issues/1609)
 - Fixed HP model returning current tick as the next activation [#1622](https://github.com/ie3-institute/simona/issues/1622)
+- Disallowed EMs as inferiors of `PrioritizedFlexStrat` [#1712](https://github.com/ie3-institute/simona/issues/1712)
+- Fixed log spamming during night time due to no solar irradiance [#984](https://github.com/ie3-institute/simona/issues/984)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

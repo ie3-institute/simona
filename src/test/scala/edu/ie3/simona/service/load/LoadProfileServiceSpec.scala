@@ -18,7 +18,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.Data.SecondaryData.LoadData
+import edu.ie3.simona.service.Data.SecondaryData.{LoadData, SecondarySeriesData}
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
@@ -31,6 +31,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.time.Hours
 
 import scala.language.implicitConversions
 
@@ -44,12 +45,14 @@ class LoadProfileServiceSpec
 
   private val sourceDefinition: Datasource = Datasource()
 
-  private val invalidLoadProfile = new LoadProfile {
+  private val invalidLoadProfile: LoadProfile = new LoadProfile {
     override def getKey: String = "invalid"
   }
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
-  private val agent = TestProbe[ParticipantAgent.Message]("agent")
+
+  private val agent1 = TestProbe[ParticipantAgent.Message]("agent")
+  private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
   // build the load profile service
   private val loadProfileService = testKit.spawn(
@@ -57,7 +60,7 @@ class LoadProfileServiceSpec
   )
 
   "A load profile service" should {
-    "receive correct completion message after initialisation" in {
+    "send correct completion message after initialisation" in {
       val key =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
       scheduler
@@ -83,23 +86,23 @@ class LoadProfileServiceSpec
 
     "announce failed load profile registration on invalid load profile" in {
       loadProfileService ! SecondaryServiceRegistrationMessage(
-        agent.ref,
+        agent1.ref,
         DataTimeType.Current,
         invalidLoadProfile,
       )
 
-      agent.expectMessage(RegistrationFailedMessage(loadProfileService))
+      agent1.expectMessage(RegistrationFailedMessage(loadProfileService))
     }
 
     "announce, that a load profile is registered" in {
       /* The successful registration stems from the test above */
       loadProfileService ! SecondaryServiceRegistrationMessage(
-        agent.ref,
+        agent1.ref,
         DataTimeType.Current,
         BdewStandardLoadProfile.G0,
       )
 
-      agent.expectMessage(
+      agent1.expectMessage(
         RegistrationSuccessfulMessage(
           loadProfileService,
           0L,
@@ -113,15 +116,41 @@ class LoadProfileServiceSpec
       )
     }
 
-    "recognize, that a valid coordinate yet is registered" in {
-      /* The successful registration stems from the test above */
+    "announce, that a valid coordinate is registered for forecast data" in {
       loadProfileService ! SecondaryServiceRegistrationMessage(
-        agent.ref,
+        agent2.ref,
+        DataTimeType.CurrentAndForecast(
+          forecastLength = Hours(6),
+          forecastResolution = Hours(1),
+        ),
+        BdewStandardLoadProfile.H0,
+      )
+
+      agent2.expectMessage(
+        RegistrationSuccessfulMessage(
+          loadProfileService,
+          0L,
+          Some(
+            ProfileLoadFactoryData(
+              Some(Watts(268.6)),
+              Some(KilowattHours(1000)),
+            )
+          ),
+        )
+      )
+
+      agent1.expectNoMessage()
+    }
+
+    "recognize that agent is already registered" in {
+      loadProfileService ! SecondaryServiceRegistrationMessage(
+        agent1.ref,
         DataTimeType.Current,
         BdewStandardLoadProfile.G0,
       )
 
-      agent.expectNoMessage()
+      agent1.expectNoMessage()
+      agent2.expectNoMessage()
     }
 
     "send out correct load profile information upon activity start trigger and request the triggering for the next tick" in {
@@ -131,7 +160,7 @@ class LoadProfileServiceSpec
       val activationMsg = scheduler.expectMessageType[Completion]
       activationMsg.newTick shouldBe Some(900)
 
-      agent.expectMessage(
+      agent1.expectMessage(
         DataProvision(
           0,
           loadProfileService,
@@ -139,6 +168,19 @@ class LoadProfileServiceSpec
           Some(900L),
         )
       )
+
+      agent2.expectMessageType[DataProvision] match {
+        case DataProvision(tick, serviceRef, data, nextTick) =>
+          tick shouldBe 0L
+          serviceRef shouldBe loadProfileService
+          data match {
+            case SecondarySeriesData(series) =>
+              series.size shouldBe 7
+            case unexpected =>
+              fail(s"Received unexpected data $unexpected")
+          }
+          nextTick shouldBe Some(900L)
+      }
 
     }
 
@@ -149,7 +191,7 @@ class LoadProfileServiceSpec
       val activationMsg = scheduler.expectMessageType[Completion]
       activationMsg.newTick shouldBe Some(1800)
 
-      agent.expectMessage(
+      agent1.expectMessage(
         DataProvision(
           900,
           loadProfileService,
