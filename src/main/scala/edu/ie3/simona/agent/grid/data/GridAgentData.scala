@@ -14,7 +14,6 @@ import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.NodeToReceivedPower
-import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import edu.ie3.simona.agent.grid.powerflow.{
   DBFSAlgorithm,
   PowerFlowParams,
@@ -31,6 +30,7 @@ import edu.ie3.simona.util.ConfigUtil.{
   ParticipantConfigUtil,
 }
 import edu.ie3.simona.util.{ConfigUtil, ReceiveDataMap}
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -132,18 +132,11 @@ object GridAgentData {
         reference: GridAgentRef,
         nodes: Set[UUID],
         subgridNo: Int,
-    ): GridAgentInitData = inferiorConnections.get(reference) match {
-      case Some(value) =>
-        copy(
-          inferiorConnections = inferiorConnections.added(reference, nodes),
-          refToSubgrid = refToSubgrid.updated(reference, subgridNo),
-        )
-      case None =>
-        copy(
-          inferiorConnections = inferiorConnections.added(reference, nodes),
-          refToSubgrid = refToSubgrid.updated(reference, subgridNo),
-        )
-    }
+    ): GridAgentInitData =
+      copy(
+        inferiorConnections = inferiorConnections.added(reference, nodes),
+        refToSubgrid = refToSubgrid.updated(reference, subgridNo),
+      )
 
     /** Updates the init data to incorporate the superior grid.
       * @param reference
@@ -160,18 +153,11 @@ object GridAgentData {
         reference: GridAgentRef,
         nodes: Set[UUID],
         subgridNo: Int,
-    ): GridAgentInitData = superiorConnections.get(reference) match {
-      case Some(value) =>
-        copy(
-          superiorConnections = superiorConnections.added(reference, nodes),
-          refToSubgrid = refToSubgrid.updated(reference, subgridNo),
-        )
-      case None =>
-        copy(
-          superiorConnections = superiorConnections.added(reference, nodes),
-          refToSubgrid = refToSubgrid.updated(reference, subgridNo),
-        )
-    }
+    ): GridAgentInitData =
+      copy(
+        superiorConnections = superiorConnections.added(reference, nodes),
+        refToSubgrid = refToSubgrid.updated(reference, subgridNo),
+      )
 
     /** Updates the init data to incorporate connected assets.
       * @param nodeToParticipants
