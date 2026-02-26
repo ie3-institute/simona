@@ -14,6 +14,7 @@ import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.NodeToReceivedPower
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import edu.ie3.simona.agent.grid.powerflow.{
   DBFSAlgorithm,
   PowerFlowParams,
@@ -110,17 +111,11 @@ object GridAgentData {
       gridModel: GridModel,
       powerFlowParams: PowerFlowParams,
       refToSubgrid: Map[GridAgentRef, Int] = Map.empty,
-      inferiorConnections: Map[GridAgentRef, Set[UUID]] = Map.empty,
-      superiorConnections: Map[GridAgentRef, Set[UUID]] = Map.empty,
-      nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
+      inferiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty,
+      superiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty,
+      nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]] =
         Map.empty,
   ) extends GridAgentData {
-
-    lazy val inferiorGridNodeUuids: Set[UUID] =
-      inferiorConnections.values.flatten.toSet
-
-    lazy val superiorGridNodeUuids: Set[UUID] =
-      superiorConnections.values.flatten.toSet
 
     /** Updates the init data to incorporate the inferior grid.
       * @param reference
@@ -140,13 +135,12 @@ object GridAgentData {
     ): GridAgentInitData = inferiorConnections.get(reference) match {
       case Some(value) =>
         copy(
-          inferiorConnections =
-            inferiorConnections.updated(reference, value ++ nodes),
+          inferiorConnections = inferiorConnections.added(reference, nodes),
           refToSubgrid = refToSubgrid.updated(reference, subgridNo),
         )
       case None =>
         copy(
-          inferiorConnections = inferiorConnections.updated(reference, nodes),
+          inferiorConnections = inferiorConnections.added(reference, nodes),
           refToSubgrid = refToSubgrid.updated(reference, subgridNo),
         )
     }
@@ -169,13 +163,12 @@ object GridAgentData {
     ): GridAgentInitData = superiorConnections.get(reference) match {
       case Some(value) =>
         copy(
-          superiorConnections =
-            superiorConnections.updated(reference, value ++ nodes),
+          superiorConnections = superiorConnections.added(reference, nodes),
           refToSubgrid = refToSubgrid.updated(reference, subgridNo),
         )
       case None =>
         copy(
-          superiorConnections = superiorConnections.updated(reference, nodes),
+          superiorConnections = superiorConnections.added(reference, nodes),
           refToSubgrid = refToSubgrid.updated(reference, subgridNo),
         )
     }
@@ -187,7 +180,7 @@ object GridAgentData {
       *   The updated init data.
       */
     def registerParticipants(
-        nodeToParticipants: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]
+        nodeToParticipants: MultiMap[UUID, ActorRef[ParticipantAgent.Request]]
     ): GridAgentInitData = {
       val updated = nodeToParticipants.map { case (node, assets) =>
         nodeToAssetAgents.get(node) match {
@@ -245,9 +238,9 @@ object GridAgentData {
 
     def apply(
         gridModel: GridModel,
-        inferiorConnections: Map[GridAgentRef, Set[UUID]],
-        superiorConnections: Map[GridAgentRef, Set[UUID]],
-        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
+        inferiorConnections: MultiMap[GridAgentRef, UUID],
+        superiorConnections: MultiMap[GridAgentRef, UUID],
+        nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]],
         refToSubgrid: Map[GridAgentRef, Int],
         powerFlowParams: PowerFlowParams,
         actorName: String,
@@ -334,10 +327,10 @@ object GridAgentData {
 
     val isSuperior: Boolean = gridEnv.superiorConnections.isEmpty
 
-    lazy val inferiorGridRefs: Map[GridAgentRef, Set[UUID]] =
+    lazy val inferiorGridRefs: MultiMap[GridAgentRef, UUID] =
       gridEnv.inferiorConnections
 
-    lazy val superiorGridRefs: Map[GridAgentRef, Set[UUID]] =
+    lazy val superiorGridRefs: MultiMap[GridAgentRef, UUID] =
       gridEnv.superiorConnections
 
     lazy val inferiorGridNodeUuids: Set[UUID] = gridEnv.inferiorNodeUuids

@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.model.grid.GridModel
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.{MultiMap, valueSet}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -33,14 +34,14 @@ import java.util.UUID
   */
 final case class GridEnvironment(
     gridModel: GridModel,
-    inferiorConnections: Map[GridAgentRef, Set[UUID]],
-    superiorConnections: Map[GridAgentRef, Set[UUID]],
-    nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
+    inferiorConnections: MultiMap[GridAgentRef, UUID],
+    superiorConnections: MultiMap[GridAgentRef, UUID],
+    nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]],
     refToSubgrid: Map[GridAgentRef, Int],
     superiorGridIds: Map[UUID, Int],
 ) {
 
-  def inferiorNodeUuids: Set[UUID] = inferiorConnections.values.flatten.toSet
+  def inferiorNodeUuids: Set[UUID] = inferiorConnections.valueSet
 
-  def superiorNodeUuids: Set[UUID] = superiorConnections.values.flatten.toSet
+  def superiorNodeUuids: Set[UUID] = superiorConnections.valueSet
 }

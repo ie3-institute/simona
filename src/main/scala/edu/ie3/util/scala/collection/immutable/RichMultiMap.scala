@@ -10,18 +10,34 @@ package edu.ie3.util.scala.collection.immutable
   */
 object RichMultiMap {
 
-  extension [K, V](map: Map[K, Set[V]]) {
+  type MultiMap[K, V] = Map[K, Set[V]]
+
+  extension [K, V](map: MultiMap[K, V]) {
 
     /** Tests if given value is contained in the set for given key.
       */
     def contains(key: K, value: V): Boolean =
       map.get(key).exists(_.contains(value))
 
+    /** Returns all values as a single sequence.
+      */
+    def valueAsSeq: Seq[V] = map.values.flatten.toSeq
+
+    /** Returns all values as a single set.
+      */
+    def valueSet: Set[V] = map.values.flatten.toSet
+
     /** Adds given value to the set of given key. Creates a new set, if such
       * does not exist for the key.
       */
     def added(key: K, value: V): Map[K, Set[V]] =
       map.updated(key, getOrEmptySet(key).incl(value))
+
+    /** Adds given values to the set of given key. Creates a new set, if such
+      * does not exist for the key.
+      */
+    def added(key: K, values: Iterable[V]): Map[K, Set[V]] =
+      map.updated(key, getOrEmptySet(key) ++ values)
 
     /** Removes given value from the set of given key. Removes the updated set,
       * if it is empty after removal.
