@@ -101,6 +101,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `CHANGELOG` entry for #1607 [#1609](https://github.com/ie3-institute/simona/issues/1609)
 - Fixed HP model returning current tick as the next activation [#1622](https://github.com/ie3-institute/simona/issues/1622)
 - Disallowed EMs as inferiors of `PrioritizedFlexStrat` [#1712](https://github.com/ie3-institute/simona/issues/1712)
+- Fixed log spamming during night time due to no solar irradiance [#984](https://github.com/ie3-institute/simona/issues/984)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
