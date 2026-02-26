@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex

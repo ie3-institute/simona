@@ -6,16 +6,14 @@
 
 package edu.ie3.simona.agent.participant
 
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantGridAdapter.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import squants.energy.Megawatts
-import squants.{Dimensionless, Each, Energy, Power}
+import squants.{Dimensionless, Energy, Power}
 
 import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success}
@@ -32,8 +30,6 @@ import scala.util.{Failure, Success}
   * preliminarily used, until the next communication with the grid establishes a
   * proper new voltage valid for the new time frame.
   *
-  * @param gridAgent
-  *   The actor reference to the [[GridAgent]].
   * @param expectedRequestTick
   *   The tick at which next power request is expected.
   * @param nodalVoltage
@@ -47,7 +43,6 @@ import scala.util.{Failure, Success}
   *   recalculate reactive power.
   */
 final case class ParticipantGridAdapter(
-    gridAgent: ActorRef[GridAgent.Message],
     nodalVoltage: Dimensionless,
     private val expectedRequestTick: Long,
     private val tickToPower: SortedMap[Long, ComplexPower],
@@ -194,12 +189,10 @@ object ParticipantGridAdapter {
   )
 
   def apply(
-      gridAgentRef: ActorRef[GridAgent.Message],
       expectedRequestTick: Long,
       requestVoltageDeviationTolerance: Dimensionless,
   ): ParticipantGridAdapter =
     new ParticipantGridAdapter(
-      gridAgent = gridAgentRef,
       nodalVoltage = onePU,
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
