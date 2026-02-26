@@ -101,7 +101,7 @@ We're following the git-flow approach to release new versions. The following ste
       - ISSUE_NUMBER is the number of the issue created above
       - RELEASE_Version would be e.g. 2.1.0
    2. Merge dev-branch into the rel-Branch
-6. Update the version number:
+5. Update the version number:
    1. Update the `version.properties` to new version number
    2. Update `CITATION.cff`
       - Adapt new version number
@@ -109,22 +109,22 @@ We're following the git-flow approach to release new versions. The following ste
    3. Update the version number in readthedocs
       - Adapt the version number in the `conf.py` file
       - Adapt the version number in `Getting Started`.
-7. Adapt the *changelog*:
+6. Adapt the *changelog*:
    1. Change headline from `Unreleased` into the new version (e.g. 2.1.0)
    2. Add a new `Unreleased` section
    3. Adapt the from-till dates of the versions in the bottom part of the changelog
-8. Push the PR
+7. Push the PR
    - Keep in mind that you would like to merge into main, not dev.
-9. Get a Reviewer who Merge your release PR
+8. Get a Reviewer who Merge your release PR
 
 ### Release on Maven Central
-10. After your Branch has been merged, one of the Repository-Admins needs to confirm the release within MavenCentral.
+9. After your Branch has been merged, one of the Repository-Admins needs to confirm the release within MavenCentral.
    1. Visit [Maven Central Publishing](https://central.sonatype.com/publishing/deployments). If everything worked fine, the new release should be available under 'Deployments'. Else, check the CI-Pipeline for any errors.
    2. Finally check the Deployment:
       - Are all necessary files there?
       - Is the deployment valid?
    3. If so, publish. Else, choose 'drop'.
-11. Final steps at Github
+10. Final steps at Github
    1. Create a new Tags and create the Release also there
       1. Hint: Intellij -> Git -> Select 'Main-Branch' -> Choose commit
       2. Push Tags to Github
