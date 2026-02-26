@@ -4,17 +4,22 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
-import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentConstantData,
+  GridAgentInitData,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -76,41 +81,45 @@ class DBFSAlgorithmSupGridSpec
     evDataService = None,
   )
 
+  given GridAgentConstantData = GridAgentConstantData(
+    environmentRefs,
+    simonaConfig.simona,
+    3600,
+    startTime,
+    endTime,
+    CongestionManagementParams(false),
+  )
+
   "A GridAgent actor in superior position with async test" should {
-    val superiorGridAgentFSM: ActorRef[GridAgent.Message] = testKit.spawn(
-      GridAgent(
-        environmentRefs,
-        simonaConfig,
-      )
+    val gridModel = GridModel(
+      ehvGridContainer,
+      RefSystem("5000 MVA", "380 kV"),
+      VoltageLimits(0.9, 1.1),
+      startTime,
+      endTime,
+      simonaConfig.simona,
     )
 
+    val gridAgentInitData = GridAgentInitData(
+      gridModel,
+      PowerFlowParams(simonaConfig.simona.powerflow.value),
+    )
+
+    val superiorGridAgentFSM = testKit.spawn(GridAgent(gridAgentInitData))
+
     s"initialize itself when it receives an init activation" in {
-      val subnetGatesToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]] =
-        ehvSubGridGates.map(gate => gate -> hvGrid.ref).toMap
+      superiorGridAgentFSM ! RegisterInferiorGrid(
+        hvGrid.ref,
+        Set(supNodeA.getUuid),
+        1,
+      )
 
-      val gridAgentInitData =
-        GridAgentInitData(
-          ehvGridContainer,
-          Seq.empty[ThermalGrid],
-          Set(1),
-          Map(hvGrid.ref -> Set(supNodeA.getUuid)),
-          Map.empty,
-          Map.empty,
-          RefSystem("5000 MVA", "380 kV"),
-          VoltageLimits(0.9, 1.1),
-        )
-
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
-
-      superiorGridAgentFSM ! CreateGridAgent(gridAgentInitData, key)
+      superiorGridAgentFSM ! CompleteInitialization(false)
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
       scheduleActivationMsg.tick shouldBe 3600
-      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      scheduleActivationMsg.unlockKey shouldBe None
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
