@@ -75,7 +75,7 @@ class ExtResultProviderSpec
 
       // requesting results from the result provider
       connection.sendExtMsg(
-        new RequestResultEntities(3600L, List(dummyInputModel).asJava)
+        new RequestResultEntities(3600L, List(dummyInputModel).asJava, false)
       )
 
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(provider.ref))
