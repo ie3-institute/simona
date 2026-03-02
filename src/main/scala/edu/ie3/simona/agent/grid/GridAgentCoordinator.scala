@@ -11,32 +11,415 @@ import edu.ie3.datamodel.models.input.container.{
   SubGridContainer,
 }
 import edu.ie3.datamodel.utils.ContainerUtils
+import edu.ie3.simona.agent.DataInputHandler.ReceivedData
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
+  DoCongestionManagement,
+  FinishStep,
+}
+import edu.ie3.simona.agent.grid.congestion.{
+  CongestionManagementParams,
+  Congestions,
+}
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  AwaitingData,
   GridAgentConstantData,
   GridAgentInitData,
   GridAgentRef,
 }
 import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.GridConfigParser.{
   ConfigRefSystems,
   ConfigVoltageLimits,
 }
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
+import edu.ie3.simona.event.ResultEvent
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.util.ReceiveDataMap
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.PowerSystemUnits
-import org.apache.pekko.actor.typed.ActorRef
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 import squants.electro.Kilovolts
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.SetHasAsScala
 
+/** Agent that sits between the scheduler and the grid agents and coordinates
+  * all grid agents.
+  */
 object GridAgentCoordinator {
+
+  type Message = Activation | Request
+
+  /** A request that is sent to the [[GridAgentCoordinator]].
+    */
+  sealed trait Request
+
+  /** Message send to the coordinator to register assets.
+    * @param nodeToAssets
+    *   A map: node uuid to set of participant references.
+    */
+  final case class RegisterAssets(
+      nodeToAssets: MultiMap[UUID, ActorRef[ParticipantAgent.Request]]
+  ) extends Request
+
+  /** Message to inform the coordinator that a subgrid has been initialized.
+    * @param gridRef
+    *   Reference of the initialized grid.
+    */
+  final case class FinishedInitialization(gridRef: GridAgentRef) extends Request
+
+  /** Message to provide power flow results to the coordinator.
+    * @param gridAgent
+    *   Reference of the grid.
+    * @param results
+    *   An option for the power flow results.
+    */
+  final case class PowerFlowResults(
+      gridAgent: GridAgentRef,
+      results: Option[PowerFlowResultEvent],
+  ) extends Request
+
+  /** Message to provide congestions information to the coordinator.
+    * @param gridAgent
+    *   Reference of the grid.
+    * @param congestions
+    *   Information regarding congestions in the subgrid.
+    */
+  final case class CongestionResult(
+      gridAgent: GridAgentRef,
+      congestions: Congestions,
+  ) extends Request
+
+  /** @param scheduler
+    *   Reference of the scheduler.
+    * @param congestionManagementParams
+    *   Parameters for the congestion management.
+    * @param resultProxy
+    *   Reference of the result service proxy.
+    * @param simStartTime
+    *   The start time of the simulation.
+    * @param currentTick
+    *   The current tick in the simulation.
+    * @param resolution
+    *   That is used for the power flow. If no power flow should be carried out,
+    *   this value is set to [[None]].
+    * @param gridAgentsRef
+    *   A set of all grid agent references.
+    * @param superiorGrids
+    *   A set of references of all slack grid agents.
+    * @param nodeToSubgrid
+    *   A map: node uuid to subgrid number.
+    */
+  final case class StateData(
+      scheduler: ActorRef[SchedulerMessage],
+      congestionManagementParams: CongestionManagementParams,
+      resultProxy: ActorRef[ResultEvent],
+      simStartTime: ZonedDateTime,
+      currentTick: Long = INIT_SIM_TICK,
+      resolution: Option[Long] = None,
+      gridAgentsRef: Set[GridAgentRef] = Set.empty,
+      superiorGrids: Set[GridAgentRef] = Set.empty,
+      nodeToSubgrid: Map[UUID, Int] = Map.empty,
+  ) {
+
+    /** Returns an option for the next tick.
+      */
+    def maybeNextTick: Option[Long] = resolution.map(_ + currentTick)
+
+    /** Method to create [[AwaitingData]] that waits for all references.
+      * @tparam T
+      *   Type of the awaited data.
+      * @return
+      *   A [[ReceiveDataMap]].
+      */
+    def awaitingData[T]: AwaitingData[T] = ReceiveDataMap(gridAgentsRef)
+
+    /** Method to inform all grid agents.
+      * @param msg
+      *   Message to send to the agents.
+      */
+    def informGridAgents(msg: GridAgent.Message): Unit =
+      gridAgentsRef.foreach(_ ! msg)
+
+    /** Method to inform all grid agents.
+      * @param msgBuilder
+      *   Builder that uses a reference to build the message that should be
+      *   send.
+      */
+    def informGridAgents(msgBuilder: GridAgentRef => GridAgent.Message): Unit =
+      gridAgentsRef.foreach(ref => ref ! msgBuilder(ref))
+  }
+
+  def apply(
+      config: SimonaConfig,
+      grid: JointGridContainer,
+  )(using environmentRefs: EnvironmentRefs): Behavior[Message] =
+    Behaviors.setup { ctx =>
+      val cfg = config.simona
+      val scheduler = environmentRefs.scheduler
+
+      val congestionManagementParams =
+        CongestionManagementParams(cfg.congestionManagement.enableDetection)
+
+      val stateData = StateData(
+        scheduler,
+        congestionManagementParams,
+        environmentRefs.resultProxy,
+        cfg.time.simStartTime,
+      )
+
+      cfg.powerflow match {
+        case Some(pfConfig) =>
+          // we need to perform powerflow calculations
+          // -> creating grid agents
+          val resolution = pfConfig.resolution.toSeconds
+
+          val (subgridToRef, nodeToSubgrid, superiorGrids) = createGridAgents(
+            grid,
+            resolution,
+            PowerFlowParams(pfConfig),
+            cfg,
+          )(using ctx, environmentRefs)
+
+          initializing(
+            stateData.copy(
+              resolution = Some(resolution),
+              gridAgentsRef = subgridToRef.values.toSet,
+              superiorGrids = superiorGrids,
+              nodeToSubgrid = nodeToSubgrid,
+            ),
+            subgridToRef.values.toSet,
+            subgridToRef,
+          )
+
+        case None =>
+          // no power flow configured
+          // -> creating no agents
+          initializing(stateData)
+      }
+    }
+
+  /** Initialization behavior of the [[GridAgentCoordinator]].
+    * @param stateData
+    *   The state data of the coordinator.
+    * @param toInitialize
+    *   The agents that are not initialized yet.
+    * @param subgridToRef
+    *   A map: subgrid number to grid agent reference.
+    * @return
+    *   A new behavior.
+    */
+  def initializing(
+      stateData: StateData,
+      toInitialize: Set[GridAgentRef] = Set.empty,
+      subgridToRef: Map[Int, GridAgentRef] = Map.empty,
+  ): Behavior[Message] = Behaviors.receive {
+    case (_, RegisterAssets(nodeToAssets)) if subgridToRef.nonEmpty =>
+      val nodeToSubgrid = stateData.nodeToSubgrid
+      val onlyOneSubgrid = subgridToRef.size == 1
+
+      nodeToAssets
+        .foldLeft(
+          Map.empty[Int, MultiMap[UUID, ActorRef[ParticipantAgent.Request]]]
+        ) { case (res, (node, assets)) =>
+          val subgrid = nodeToSubgrid(node)
+
+          res.get(subgrid) match {
+            case Some(value) =>
+              res.updated(subgrid, value.updated(node, assets))
+            case None =>
+              res.updated(subgrid, Map(node -> assets))
+          }
+        }
+        .foreach { case (subgrid, nodeToAssets) =>
+          subgridToRef(subgrid) ! RegisterParticipants(nodeToAssets)
+        }
+
+      // complete grid agent initialization
+      stateData.informGridAgents(CompleteInitialization(onlyOneSubgrid))
+
+      Behaviors.same
+
+    case (ctx, FinishedInitialization(gridRef)) =>
+      val updated = toInitialize.excl(gridRef)
+
+      if updated.isEmpty then {
+        // inform scheduler to schedule the next power flow calculation
+        stateData.resolution.foreach { nextTick =>
+          stateData.scheduler ! ScheduleActivation(ctx.self, nextTick)
+        }
+
+        idle(stateData)
+
+      } else {
+        initializing(stateData, updated, subgridToRef)
+      }
+
+    case (_, _) =>
+      // we sent no activation request to the scheduler
+      // -> no power flow calculations
+      idle(stateData)
+  }
+
+  /** Idle behavior of the [[GridAgentCoordinator]].
+    * @param stateData
+    *   The state data of the coordinator.
+    * @return
+    *   A new behavior.
+    */
+  private def idle(stateData: StateData): Behavior[Message] =
+    Behaviors.receivePartial { case (_, activation: Activation) =>
+      // informing all grid agents
+      stateData.informGridAgents(activation)
+
+      awaitGridSimulation(
+        stateData.copy(currentTick = activation.tick),
+        stateData.awaitingData,
+      )
+    }
+
+  /** Behavior that waits for finished grid simulations.
+    * @param stateData
+    *   The state data of the coordinator.
+    * @param awaitingData
+    *   Map that stores the already received data.
+    * @return
+    *   A new behavior.
+    */
+  private def awaitGridSimulation(
+      stateData: StateData,
+      awaitingData: AwaitingData[Option[PowerFlowResultEvent]],
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (ctx, PowerFlowResults(gridAgent, results)) =>
+      val updated = awaitingData.addData(gridAgent, results)
+
+      if updated.nonComplete then {
+        // still waiting for results
+        awaitGridSimulation(stateData, updated)
+
+      } else if stateData.congestionManagementParams.detectionEnabled then {
+        // handle congestion management
+        val currentTick = stateData.currentTick
+        val results = updated.receivedData
+
+        // inform the grid agents to start the congestion management
+        stateData.informGridAgents(ref =>
+          DoCongestionManagement(currentTick, results(ref))
+        )
+
+        // waiting for results
+        awaitCongestionResults(
+          stateData,
+          ReceiveDataMap(stateData.superiorGrids),
+        )
+
+      } else {
+        // no congestion management is configured
+        val resultProxy = stateData.resultProxy
+        updated.values.flatten.foreach(res => resultProxy ! res)
+
+        stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
+
+        idle(stateData)
+      }
+  }
+
+  /** Behavior that waits for finished congestion detection.
+    *
+    * @param stateData
+    *   The state data of the coordinator.
+    * @param awaitingData
+    *   Map that stores the already received data.
+    * @return
+    *   A new behavior.
+    */
+  private def awaitCongestionResults(
+      stateData: StateData,
+      awaitingData: AwaitingData[Congestions],
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (ctx, CongestionResult(gridAgent, congestions)) =>
+      val updated = awaitingData.addData(gridAgent, congestions)
+
+      if updated.nonComplete then {
+        // we are still waiting for responses
+        awaitCongestionResults(stateData, updated)
+
+      } else {
+        // all congestion received
+        val allCongestions = Congestions.none.combine(updated.values)
+
+        // checking for any congestion in the complete grid
+        if !allCongestions.hasCongestion then {
+          ctx.log.info(
+            s"No congestions found. Finishing the congestion management."
+          )
+
+          stateData.superiorGrids.foreach(_ ! FinishStep)
+          finishTick(stateData, stateData.awaitingData)
+
+        } else {
+          ctx.log.debug(
+            s"Congestion overall: $allCongestions"
+          )
+
+          val timestamp =
+            stateData.simStartTime.plusSeconds(stateData.currentTick)
+
+          ctx.log.info(
+            s"There were some congestions that could not be resolved for timestamp: $timestamp."
+          )
+
+          stateData.superiorGrids.foreach(_ ! FinishStep)
+          finishTick(stateData, stateData.awaitingData)
+        }
+      }
+  }
+
+  /** Method to finish the current tick.
+    * @param stateData
+    *   The state data of the coordinator.
+    * @param awaitingData
+    *   Map that stores the already received data.
+    * @return
+    *   A new behavior.
+    */
+  private def finishTick(
+      stateData: StateData,
+      awaitingData: AwaitingData[Option[PowerFlowResultEvent]],
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (ctx, PowerFlowResults(gridAgent, results)) =>
+      val updated = awaitingData.addData(gridAgent, results)
+
+      if updated.nonComplete then {
+        // still waiting for results
+        awaitGridSimulation(stateData, updated)
+      } else {
+        // no congestion management is configured
+        val resultProxy = stateData.resultProxy
+        updated.values.flatten.foreach(res => resultProxy ! res)
+
+        stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
+
+        idle(stateData)
+      }
+  }
+
+  // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+  // setup methods
 
   /** Method to create the grid agents.
     * @param grid
@@ -52,19 +435,21 @@ object GridAgentCoordinator {
     * @param environmentRefs
     *   The environment references.
     * @return
-    *   A map: subgrid number to reference and a map: node uuid to subgrid.
+    *   A map: subgrid number to reference, a map: node uuid to subgrid and a
+    *   set of references of slack grid agents.
     */
-  def createGridAgents(
+  private def createGridAgents(
       grid: JointGridContainer,
       resolution: Long,
       pfParams: PowerFlowParams,
       cfg: SimonaConfig.Simona,
   )(using
-      context: ActorContext[?],
+      context: ActorContext[Message],
       environmentRefs: EnvironmentRefs,
   ): (
       Map[Int, GridAgentRef],
       Map[UUID, Int],
+      Set[GridAgentRef],
   ) = {
 
     /* get the grid */
@@ -79,12 +464,12 @@ object GridAgentCoordinator {
     }.toMap
 
     given GridAgentConstantData = GridAgentConstantData(
+      context.self,
       environmentRefs,
       cfg,
       resolution,
       cfg.time.simStartTime,
       cfg.time.simEndTime,
-      CongestionManagementParams(cfg.congestionManagement.enableDetection),
     )
 
     /* Create all agents and map the sub grid id to their actor references */
@@ -95,19 +480,21 @@ object GridAgentCoordinator {
     )
 
     // register inferior grids
-    actorRefToNodes.flatMap { case (actorRef, couplingNodes) =>
-      // register inferior grid by providing the superior grid with the coupling nodes
-      couplingNodes.groupBy(nodeToSubgrid).foreach { case (subgridNo, nodes) =>
-        val superiorGrid = subGridToActorRefMap(subgridNo)
+    val superiorGrids = actorRefToNodes.flatMap {
+      case (actorRef, couplingNodes) =>
+        // register inferior grid by providing the superior grid with the coupling nodes
+        couplingNodes.groupBy(nodeToSubgrid).foreach {
+          case (subgridNo, nodes) =>
+            val superiorGrid = subGridToActorRefMap(subgridNo)
 
-        superiorGrid ! RegisterInferiorGrid(actorRef, nodes, subgridNo)
-        actorRef ! RegisterSuperiorGrid(superiorGrid, nodes, subgridNo)
-      }
+            superiorGrid ! RegisterInferiorGrid(actorRef, nodes, subgridNo)
+            actorRef ! RegisterSuperiorGrid(superiorGrid, nodes, subgridNo)
+        }
 
-      Option.when(couplingNodes.isEmpty)(actorRef)
-    }
+        Option.when(couplingNodes.isEmpty)(actorRef)
+    }.toSet
 
-    (subGridToActorRefMap, nodeToSubgrid)
+    (subGridToActorRefMap, nodeToSubgrid, superiorGrids)
   }
 
   /** Method to create a map from subgrid number to grid agent reference and a
@@ -124,9 +511,9 @@ object GridAgentCoordinator {
     *   A map: subgrid number to reference and a map: reference to coupling
     *   nodes.
     */
-  private def createGridAgents(
+  private[grid] def createGridAgents(
       subGrids: Iterable[SubGridContainer],
-      context: ActorContext[?],
+      context: ActorContext[Message],
       pfParams: PowerFlowParams,
   )(using
       constantData: GridAgentConstantData

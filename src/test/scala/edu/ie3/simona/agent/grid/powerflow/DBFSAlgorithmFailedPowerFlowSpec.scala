@@ -7,7 +7,11 @@
 package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  FinishedInitialization,
+  PowerFlowResults,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -65,6 +69,8 @@ class DBFSAlgorithmFailedPowerFlowSpec
   private val loadProfileService =
     TestProbe[LoadProfileService.Message]("loadProfileService")
 
+  private val gridAgentCoordinator: TestProbe[GridAgentCoordinator.Message] =
+    TestProbe("gridAgentCoordinator")
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
     Seq(supNodeA.getUuid),
@@ -86,12 +92,12 @@ class DBFSAlgorithmFailedPowerFlowSpec
   )
 
   given GridAgentConstantData = GridAgentConstantData(
+    gridAgentCoordinator.ref,
     environmentRefs,
     simonaConfig.simona,
     3600,
     startTime,
     endTime,
-    CongestionManagementParams(false),
   )
 
   "A GridAgent actor in center position with async test" should {
@@ -128,16 +134,16 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       centerGridAgent ! CompleteInitialization(false)
 
+      // mock scheduling behavior
+      gridAgentCoordinator
+        .expectMessageType[FinishedInitialization]
+        .gridRef shouldBe centerGridAgent
+      scheduler ! ScheduleActivation(gridAgentCoordinator.ref, 3600)
+
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
       scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe None
-
-      // send init data to agent
-      centerGridAgent ! Activation(3600)
-
-      // we expect a completion message
-      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
 
       centerGridAgent
     }
@@ -235,7 +241,14 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
-      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
+      // after all grids have received a FinishGridSimulationTrigger, the coordinator should receive the power flow results
+      gridAgentCoordinator
+        .expectMessageType[PowerFlowResults]
+        .gridAgent shouldBe centerGridAgent
+
+      // the grid agent coordinator sends a completion message to the scheduler
+      scheduler ! Completion(gridAgentCoordinator.ref, Some(7200))
+
       scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
 
       resultProxy.expectNoMessage()
@@ -322,7 +335,14 @@ class DBFSAlgorithmFailedPowerFlowSpec
       // should receive a FinishGridSimulationTrigger
       inferiorGridAgent.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
-      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
+      // after all grids have received a FinishGridSimulationTrigger, the coordinator should receive the power flow results
+      gridAgentCoordinator
+        .expectMessageType[PowerFlowResults]
+        .gridAgent shouldBe centerGridAgent
+
+      // the grid agent coordinator sends a completion message to the scheduler
+      scheduler ! Completion(gridAgentCoordinator.ref, Some(7200))
+
       scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
 
       resultProxy.expectNoMessage()
@@ -362,18 +382,19 @@ class DBFSAlgorithmFailedPowerFlowSpec
 
       val sweepNo = 0
 
-      slackGridAgent ! CompleteInitialization(false)
+      // finish the initialization
+      slackGridAgent ! CompleteInitialization(onlyOneSubGrid = false)
+
+      // mock scheduling behavior
+      gridAgentCoordinator
+        .expectMessageType[FinishedInitialization]
+        .gridRef shouldBe slackGridAgent
+      scheduler ! ScheduleActivation(gridAgentCoordinator.ref, 3600)
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
       scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe None
-
-      // send init data to agent
-      slackGridAgent ! Activation(3600)
-
-      // we expect a completion message
-      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
 
       // send the start grid simulation trigger
       slackGridAgent ! Activation(3600)

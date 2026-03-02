@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented forecast for `LoadProfileService` [#1704](https://github.com/ie3-institute/simona/issues/1704)
 - Include necessary updates of version in docs and adaptions into `rtd/releaseProcess` [#1716](https://github.com/ie3-institute/simona/issues/1716)
 - Implemented energy boundaries flex options for EVCS [#1682](https://github.com/ie3-institute/simona/issues/1682)
+- Added `GridAgentCoordinator` [#1617](https://github.com/ie3-institute/simona/issues/1617)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)

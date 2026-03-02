@@ -12,22 +12,17 @@ import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessages.{
-  CompleteInitialization,
-  RegisterParticipants,
-}
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
-import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.RegisterAssets
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
-import edu.ie3.simona.agent.participant.{
-  ParticipantAgent,
-  ParticipantAgentFactory,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentFactory
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
-import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
+import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
+import edu.ie3.simona.ontology.messages.ResultMessage.{
+  RequestResult,
+  ResultResponse,
+}
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -49,6 +44,7 @@ import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.slf4j.Logger
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
@@ -75,53 +71,29 @@ class SimonaStandaloneSetup(
   override def gridAgents(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
-  ): Iterable[ActorRef[GridAgent.Message]] = {
-    val cfg = simonaConfig.simona
+  ): ActorRef[GridAgentCoordinator.Message] = {
+    given Logger = context.log
 
-    val nodeToAssets = ParticipantAgentFactory.buildSystemParticipants(
+    // build participants
+    val thermalIslandGridsByBusId = thermalGridsByThermalBus.map {
+      case (bus, thermalGrid) => thermalGrid.bus().getUuid -> thermalGrid
+    }
+
+    val nodeToParticipants = ParticipantAgentFactory.buildSystemParticipants(
       grid.getSystemParticipants,
-      thermalGridsByThermalBus.map { case (bus, thermalGrid) =>
-        bus.getUuid -> thermalGrid
-      },
-      cfg,
+      thermalIslandGridsByBusId,
+      simonaConfig.simona,
     )
 
-    cfg.powerflow
-      .map { pfConfig =>
-        val (subgridToRef, nodeToSubgrid) =
-          GridAgentCoordinator.createGridAgents(
-            grid,
-            pfConfig.resolution.toSeconds,
-            PowerFlowParams(pfConfig),
-            cfg,
-          )
+    /* spawn the grid agent coordinator */
+    val coordinator = context.spawn(
+      GridAgentCoordinator(simonaConfig, grid),
+      "GridAgentCoordinator",
+    )
 
-        nodeToAssets
-          .foldLeft(
-            Map.empty[Int, Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]]
-          ) { case (res, (node, assets)) =>
-            val subgrid = nodeToSubgrid(node)
+    coordinator ! RegisterAssets(nodeToParticipants)
 
-            res.get(subgrid) match {
-              case Some(value) =>
-                res.updated(subgrid, value.updated(node, assets))
-              case None =>
-                res.updated(subgrid, Map(node -> assets))
-            }
-          }
-          .foreach { case (subgrid, nodeToAssets) =>
-            subgridToRef(subgrid) ! RegisterParticipants(nodeToAssets)
-          }
-
-        val refs = subgridToRef.values
-
-        // finish initialization of grid agents
-        val onlyOneSubgrid = refs.size == 1
-        refs.foreach(_ ! CompleteInitialization(onlyOneSubgrid))
-
-        refs
-      }
-      .getOrElse(Iterable.empty[GridAgentRef])
+    coordinator
   }
 
   override def primaryServiceProxy(

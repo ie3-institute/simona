@@ -1006,10 +1006,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
-    constantData.environmentRefs.scheduler ! Completion(
-      ctx.self,
-      Some(currentTick),
-    )
+    // we need an activation for the next tick
+    ctx.self ! Activation(currentTick)
 
     simulateGrid(gridAgentBaseData, currentTick)
   }

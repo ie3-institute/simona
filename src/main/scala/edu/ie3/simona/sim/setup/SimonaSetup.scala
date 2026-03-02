@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.input.container.{
 }
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentCoordinator
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
@@ -238,27 +238,10 @@ trait SimonaSetup {
     * @param environmentRefs
     *   EnvironmentRefs to use.
     * @return
-    *   The actor references of all GridAgents.
+    *   The reference to the [[GridAgentCoordinator]].
     */
   def gridAgents(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
-  ): Iterable[ActorRef[GridAgent.Message]]
-
-  /** SIMONA links sub grids connected by a three winding transformer a bit
-    * different. Therefore, the internal node has to be set as superior node.
-    * All other gates are left unchanged.
-    */
-  protected val modifySubGridGateForThreeWindingSupport
-      : SubGridGate => SubGridGate =
-    (gate: SubGridGate) =>
-      gate.link match {
-        case transformer: Transformer3WInput =>
-          new SubGridGate(
-            transformer,
-            transformer.getNodeInternal,
-            gate.inferiorNode,
-          )
-        case _ => gate
-      }
+  ): ActorRef[GridAgentCoordinator.Message]
 }
