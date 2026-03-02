@@ -7,11 +7,18 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  RegisterAssets,
+  StateData,
+}
+import edu.ie3.simona.agent.grid.GridAgentMessages.RegisterParticipants
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentConstantData,
   GridAgentRef,
 }
 import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.service.load.LoadProfileService
@@ -26,9 +33,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.Behavior
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.mockito.Mockito.when
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.scalatestplus.mockito.MockitoSugar
 
 import java.util.UUID
@@ -79,6 +84,72 @@ class GridAgentCoordinatorSpec
 
   "The GridAgentCoordinator" should {
 
+    "create no grid agents if no power flow is configured" in {
+      val cfgWithoutPf = simonaConfig.simona.copy(powerflow = None)
+
+      val coordinator = testKit.spawn(
+        GridAgentCoordinator(
+          cfgWithoutPf,
+          Seq(ehvGridContainer, hvGridContainer),
+        )
+      )
+
+      // no grid agent is spawned and the scheduler will receive no schedule activation message
+      scheduler.expectNoMessage()
+    }
+
+    "handles assets correctly" in {
+      val subgrid1 = TestProbe[GridAgent.Message]("grid1")
+      val subgrid2 = TestProbe[GridAgent.Message]("grid2")
+
+      val participant11 = TestProbe[ParticipantAgent.Request]("participant11")
+      val participant12 = TestProbe[ParticipantAgent.Request]("participant12")
+      val participant21 = TestProbe[ParticipantAgent.Request]("participant21")
+      val participant31 = TestProbe[ParticipantAgent.Request]("participant31")
+
+      val node11 = UUID.randomUUID()
+      val node12 = UUID.randomUUID()
+      val node21 = UUID.randomUUID()
+      val node31 = UUID.randomUUID()
+
+      val nodeToSubgrid =
+        Map(node11 -> 1, node12 -> 1, node21 -> 2, node31 -> 3)
+      val nodeToAssets = Map(
+        node11 -> Set(participant11.ref),
+        node12 -> Set(participant12.ref),
+        node21 -> Set(participant21.ref),
+        node31 -> Set(participant31.ref),
+      )
+
+      val stateData = StateData(
+        scheduler.ref,
+        CongestionManagementParams(false),
+        resultProxy.ref,
+        startTime,
+        gridAgentsRef = Set(subgrid1.ref, subgrid2.ref),
+        nodeToSubgrid = nodeToSubgrid,
+      )
+
+      BehaviorTestKit(
+        GridAgentCoordinator.initializing(
+          stateData,
+          Set.empty,
+          Map(1 -> subgrid1.ref, 2 -> subgrid2.ref),
+        )
+      ).run(RegisterAssets(nodeToAssets))
+
+      // participant 31 should not be registered
+      subgrid1
+        .expectMessageType[RegisterParticipants]
+        .nodeToAssets shouldBe Map(
+        node11 -> Set(participant11.ref),
+        node12 -> Set(participant12.ref),
+      )
+      subgrid2
+        .expectMessageType[RegisterParticipants]
+        .nodeToAssets shouldBe Map(node21 -> Set(participant21.ref))
+    }
+
     "build reference maps correctly" in {
       var (subgridToRef, refToNodes) =
         (Map.empty[Int, GridAgentRef], Map.empty[GridAgentRef, Set[UUID]])
@@ -87,7 +158,7 @@ class GridAgentCoordinatorSpec
         BehaviorTestKit(Behaviors.setup[GridAgentCoordinator.Message] { ctx =>
           val (_subgridToRef, _refToNodes) =
             GridAgentCoordinator.createGridAgents(
-              Iterable(hvGridContainer, ehvGridContainer),
+              Seq(hvGridContainer, ehvGridContainer),
               ctx,
               PowerFlowParams(cfg.powerflow.value),
             )

@@ -85,9 +85,12 @@ class SimonaStandaloneSetup(
       simonaConfig.simona,
     )
 
+    // get the subgrids
+    val subgrids = grid.getSubGridTopologyGraph.vertexSet.asScala.toSeq
+
     /* spawn the grid agent coordinator */
     val coordinator = context.spawn(
-      GridAgentCoordinator(simonaConfig, grid),
+      GridAgentCoordinator(simonaConfig.simona, subgrids),
       "GridAgentCoordinator",
     )
 

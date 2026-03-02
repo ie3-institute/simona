@@ -6,12 +6,8 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.datamodel.models.input.container.{
-  JointGridContainer,
-  SubGridContainer,
-}
+import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.utils.ContainerUtils
-import edu.ie3.simona.agent.DataInputHandler.ReceivedData
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
@@ -165,34 +161,33 @@ object GridAgentCoordinator {
   }
 
   def apply(
-      config: SimonaConfig,
-      grid: JointGridContainer,
+      config: SimonaConfig.Simona,
+      subgrids: Seq[SubGridContainer],
   )(using environmentRefs: EnvironmentRefs): Behavior[Message] =
     Behaviors.setup { ctx =>
-      val cfg = config.simona
       val scheduler = environmentRefs.scheduler
 
       val congestionManagementParams =
-        CongestionManagementParams(cfg.congestionManagement.enableDetection)
+        CongestionManagementParams(config.congestionManagement.enableDetection)
 
       val stateData = StateData(
         scheduler,
         congestionManagementParams,
         environmentRefs.resultProxy,
-        cfg.time.simStartTime,
+        config.time.simStartTime,
       )
 
-      cfg.powerflow match {
+      config.powerflow match {
         case Some(pfConfig) =>
           // we need to perform powerflow calculations
           // -> creating grid agents
           val resolution = pfConfig.resolution.toSeconds
 
           val (subgridToRef, nodeToSubgrid, superiorGrids) = createGridAgents(
-            grid,
+            subgrids,
             resolution,
             PowerFlowParams(pfConfig),
-            cfg,
+            config,
           )(using ctx, environmentRefs)
 
           initializing(
@@ -223,7 +218,7 @@ object GridAgentCoordinator {
     * @return
     *   A new behavior.
     */
-  def initializing(
+  private[grid] def initializing(
       stateData: StateData,
       toInitialize: Set[GridAgentRef] = Set.empty,
       subgridToRef: Map[Int, GridAgentRef] = Map.empty,
@@ -246,7 +241,9 @@ object GridAgentCoordinator {
           }
         }
         .foreach { case (subgrid, nodeToAssets) =>
-          subgridToRef(subgrid) ! RegisterParticipants(nodeToAssets)
+          subgridToRef
+            .get(subgrid)
+            .foreach(_ ! RegisterParticipants(nodeToAssets))
         }
 
       // complete grid agent initialization
@@ -281,7 +278,7 @@ object GridAgentCoordinator {
     * @return
     *   A new behavior.
     */
-  private def idle(stateData: StateData): Behavior[Message] =
+  private[grid] def idle(stateData: StateData): Behavior[Message] =
     Behaviors.receivePartial { case (_, activation: Activation) =>
       // informing all grid agents
       stateData.informGridAgents(activation)
@@ -422,8 +419,8 @@ object GridAgentCoordinator {
   // setup methods
 
   /** Method to create the grid agents.
-    * @param grid
-    *   The grid container with sub grids.
+    * @param subgrids
+    *   A sequence of subgrid containers.
     * @param resolution
     *   The power flow resolution.
     * @param pfParams
@@ -439,7 +436,7 @@ object GridAgentCoordinator {
     *   set of references of slack grid agents.
     */
   private def createGridAgents(
-      grid: JointGridContainer,
+      subgrids: Seq[SubGridContainer],
       resolution: Long,
       pfParams: PowerFlowParams,
       cfg: SimonaConfig.Simona,
@@ -451,15 +448,7 @@ object GridAgentCoordinator {
       Map[UUID, Int],
       Set[GridAgentRef],
   ) = {
-
-    /* get the grid */
-    val subGridTopologyGraph = grid.getSubGridTopologyGraph
-
-    val subGrids = subGridTopologyGraph
-      .vertexSet()
-      .asScala
-
-    val nodeToSubgrid = subGrids.flatMap {
+    val nodeToSubgrid = subgrids.flatMap {
       _.getRawGrid.getNodes.asScala.map(node => node.getUuid -> node.getSubnet)
     }.toMap
 
@@ -474,7 +463,7 @@ object GridAgentCoordinator {
 
     /* Create all agents and map the sub grid id to their actor references */
     val (subGridToActorRefMap, actorRefToNodes) = createGridAgents(
-      subGrids,
+      subgrids,
       context,
       pfParams,
     )
@@ -499,7 +488,7 @@ object GridAgentCoordinator {
 
   /** Method to create a map from subgrid number to grid agent reference and a
     * map of grid agent reference to coupling nodes with the superior grid.
-    * @param subGrids
+    * @param subgrids
     *   A sequence of subgrid container.
     * @param context
     *   The actor context for spawning grid agents.
@@ -512,7 +501,7 @@ object GridAgentCoordinator {
     *   nodes.
     */
   private[grid] def createGridAgents(
-      subGrids: Iterable[SubGridContainer],
+      subgrids: Seq[SubGridContainer],
       context: ActorContext[Message],
       pfParams: PowerFlowParams,
   )(using
@@ -529,7 +518,7 @@ object GridAgentCoordinator {
     val (configRefSystems, configVoltageLimits) =
       GridConfigParser.parse(cfg.gridConfig)
 
-    val (numberToRef, refToCouplingNodes) = subGrids.map { subGridContainer =>
+    val (numberToRef, refToCouplingNodes) = subgrids.map { subGridContainer =>
       /* Prepare the subgrid container for the agents by adapting the transformer high voltage nodes to be slacks */
       val updatedSubGridContainer =
         ContainerUtils.withTrafoNodeAsSlack(subGridContainer)
