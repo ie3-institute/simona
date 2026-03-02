@@ -11,7 +11,7 @@ import edu.ie3.simona.api.ontology.{
   DataMessageFromExt,
   ScheduleDataServiceMessage,
 }
-import edu.ie3.simona.api.data.ExtSimAdapterData
+import edu.ie3.simona.api.data.connection.ExtSimDataConnection
 import edu.ie3.simona.api.ontology.simulation.{
   ActivationMessage,
   ControlResponseMessageFromExt,
@@ -57,7 +57,7 @@ class ExtSimAdapterSpec
       val lock = TestProbe[ScheduleLock.Message]("lock")
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs, null, null)
+      val extData = new ExtSimDataConnection(extSimAdapter)
 
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
@@ -74,7 +74,7 @@ class ExtSimAdapterSpec
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs, null, null)
+      val extData = new ExtSimDataConnection(extSimAdapter)
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
 
@@ -84,12 +84,7 @@ class ExtSimAdapterSpec
 
       extSimAdapter ! Activation(INIT_SIM_TICK)
 
-      awaitCond(
-        !extData.receiveMessageQueue.isEmpty,
-        max = 3.seconds,
-      )
-      extData.receiveMessageQueue.size() shouldBe 1
-      extData.receiveMessageQueue.take() shouldBe new ActivationMessage(
+      extData.receive() shouldBe new ActivationMessage(
         INIT_SIM_TICK
       )
       scheduler.expectNoMessage()
@@ -110,7 +105,7 @@ class ExtSimAdapterSpec
       val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
 
       val extSimAdapter = testKit.spawn(ExtSimAdapter(scheduler.ref))
-      val extData = new ExtSimAdapterData(extSimAdapter, mainArgs, null, null)
+      val extData = new ExtSimDataConnection(extSimAdapter)
       val dataService = TestProbe[DataMessageFromExt]("dataService")
 
       extSimAdapter ! ExtSimAdapter.Create(extData, key1)
@@ -121,12 +116,7 @@ class ExtSimAdapterSpec
 
       extSimAdapter ! Activation(INIT_SIM_TICK)
 
-      awaitCond(
-        !extData.receiveMessageQueue.isEmpty,
-        max = 3.seconds,
-      )
-      extData.receiveMessageQueue.size() shouldBe 1
-      extData.receiveMessageQueue.take()
+      extData.receive()
 
       extSimAdapter ! new ScheduleDataServiceMessage(dataService.ref)
 
@@ -142,7 +132,7 @@ class ExtSimAdapterSpec
     "terminate the external simulation and itself when told to" in {
       forAll(Table("simSuccessful", true, false)) { (simSuccessful: Boolean) =>
         val probe = TestProbe[ControlResponseMessageFromExt]("probe")
-        val extData = new ExtSimAdapterData(probe.ref, mainArgs, null, null)
+        val extData = new ExtSimDataConnection(probe.ref)
 
         val extSimAdapter = BehaviorTestKit(
           ExtSimAdapter.receiveIdle(
@@ -157,12 +147,7 @@ class ExtSimAdapterSpec
 
         extSimAdapter.run(Stop(simSuccessful))
 
-        awaitCond(
-          !extData.receiveMessageQueue.isEmpty,
-          max = 3.seconds,
-        )
-        extData.receiveMessageQueue.size() shouldBe 1
-        extData.receiveMessageQueue.take() shouldBe new TerminationMessage(
+        extData.receive() shouldBe new TerminationMessage(
           simSuccessful
         )
 
