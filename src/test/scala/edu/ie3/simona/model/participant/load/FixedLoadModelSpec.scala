@@ -8,10 +8,18 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.FixedState
+import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
+  FlexType,
+}
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
+import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import squants.Power
 import squants.energy.Watts
+import squants.time.Hours
 
 class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
 
@@ -51,6 +59,50 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
         }
 
       }
+    }
+
+    "calculate forecast flex power series correctly" in {
+      val model = FixedLoadModel
+        .Factory(
+          loadInput,
+          LoadRuntimeConfig(),
+        )
+        .create()
+
+      // parameters are not relevant here
+      val dataTimeType = DataTimeType.CurrentAndForecast(
+        forecastLength = Hours(1),
+        forecastResolution = Hours(12),
+      )
+
+      val flexOptions =
+        model
+          .flexModels(FlexType.EnergyBoundaries)
+          .determineFlexOptions(FixedState(tick = 0L), dataTimeType)
+
+      flexOptions match {
+        case EnergyBoundariesFlexOptions(boundaries) =>
+          boundaries should have size 1
+
+          val assetBoundaries = boundaries.headOption.value
+
+          val energyLimits = assetBoundaries.energyLimits
+          energyLimits should have size 1
+          energyLimits.headOption.value shouldBe (
+            0L -> new ClosedInterval(
+              zeroKWh,
+              zeroKWh,
+            )
+          )
+
+          assetBoundaries.powerLimits shouldBe new ClosedInterval(
+            model.pRated,
+            model.pRated,
+          )
+
+        case unexpected => fail(s"Received unexpected flex options $unexpected")
+      }
+
     }
 
   }
