@@ -19,7 +19,6 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.Power
 
@@ -33,9 +32,6 @@ import java.util.UUID
   */
 final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     extends EmModelStrat[PowerLimitFlexOptions] {
-
-  override def getRequiredSecondaryServices: Iterable[ServiceType] =
-    Iterable.empty
 
   /** Only heat pumps, battery storages, charging stations and PVs/WECs (if
     * enabled) are controlled by this strategy
@@ -70,6 +66,14 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       currentTick: Long,
       receivedData: Seq[SecondaryData],
   ): Seq[(UUID, Power)] = {
+
+    flexOptions.foreach {
+      case (_: SystemParticipantInput, _) =>
+      case _ =>
+        throw new CriticalFailureException(
+          s"Only system participant are allowed as controlled assets of this strategy."
+        )
+    }
 
     val totalRefPower =
       flexOptions
@@ -221,6 +225,13 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       assetInput: AssetInput,
       flexOptions: PowerLimitFlexOptions,
   ): PowerLimitFlexOptions = {
+    assetInput match {
+      case _: SystemParticipantInput =>
+      case _ =>
+        throw new CriticalFailureException(
+          s"Only system participant are allowed as controlled assets of this strategy."
+        )
+    }
     if controllableAssets.contains(assetInput.getClass) then flexOptions
     else {
       // device is not controllable by this EmAgent

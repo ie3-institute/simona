@@ -11,6 +11,7 @@ import edu.ie3.simona.agent.DataInputHandler
 import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, ProvidedPowerResponse}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModelShell
+import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.ServiceMessage.{DataMessage, DirectAgentRequest}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
@@ -27,19 +28,6 @@ import squants.{Dimensionless, Each}
 object ParticipantAgent {
 
   type Message = Request | ActivationRequest | ServiceMessage.Response
-
-  type ActivationRequest = Activation | FlexRequest
-
-  /** Extension method for the `Activation` and `FlexRequest` types to retrieve
-    * the tick associated with the activation.
-    */
-  extension (activation: ActivationRequest) {
-    def tick: Long =
-      activation match {
-        case a: Activation  => a.tick
-        case f: FlexRequest => f.tick
-      }
-  }
 
   sealed trait Request
 
@@ -308,7 +296,7 @@ object ParticipantAgent {
               )
               (shellWithOP, gridAdapterWithResult)
 
-            case FlexActivation(tick, flexType, force) =>
+            case FlexActivation(tick, force) =>
               val shellWithFlex =
                 if force || isCalculationRequired(
                     shell,
@@ -316,15 +304,15 @@ object ParticipantAgent {
                     activation,
                   ) || !data.modelShell.hasFlexOptions
                 then {
-                  val newShell = shell.updateFlexOptions(tick, flexType)
+                  val newShell = shell.updateFlexOptions(tick)
                   data.resultHandler.maybeSend(
-                    newShell.determineFlexOptionsResult(tick, flexType)
+                    newShell.determineFlexOptionsResult(tick)
                   )
                   newShell
                 } else {
                   // inform result proxy not to wait for results
                   data.resultHandler.sendNoResult(data.modelShell.uuid, tick)
-                  
+
                   shell
                 }
 
@@ -379,6 +367,10 @@ object ParticipantAgent {
               )
 
               (shellWithOP, gridAdapterWithResult)
+            case unexpected =>
+              throw new CriticalFailureException(
+                s"Unexpected activation message $unexpected."
+              )
           }
         }
         .get

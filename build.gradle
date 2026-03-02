@@ -7,7 +7,7 @@ plugins {
   id "com.github.ben-manes.versions" version '0.53.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '9.3.1' // fat jar
+  id 'com.gradleup.shadow' version '9.3.2' // fat jar
   id "org.sonarqube" version "7.2.2.6593" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
@@ -134,7 +134,7 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.5'
+  implementation 'com.typesafe:config:1.4.6'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"

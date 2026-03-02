@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.evcs
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
@@ -93,7 +94,8 @@ class EvcsPowerLimitFlexModelSpec
             )
 
             flexModel.determineFlexOptions(
-              EvcsState(Seq(ev), currentTick)
+              EvcsState(Seq(ev), currentTick),
+              DataTimeType.Current,
             ) match {
               case PowerLimitFlexOptions(
                     refPower,
@@ -168,7 +170,8 @@ class EvcsPowerLimitFlexModelSpec
             )
 
             flexModel.determineFlexOptions(
-              EvcsState(Seq(evA, evB), currentTick)
+              EvcsState(Seq(evA, evB), currentTick),
+              DataTimeType.Current,
             ) match {
               case PowerLimitFlexOptions(
                     refPower,
@@ -230,7 +233,8 @@ class EvcsPowerLimitFlexModelSpec
             )
 
             flexModel.determineFlexOptions(
-              EvcsState(Seq(ev), currentTick)
+              EvcsState(Seq(ev), currentTick),
+              DataTimeType.Current,
             ) match {
               case PowerLimitFlexOptions(
                     refPower,
@@ -305,7 +309,8 @@ class EvcsPowerLimitFlexModelSpec
             )
 
             flexModel.determineFlexOptions(
-              EvcsState(Seq(evA, evB), currentTick)
+              EvcsState(Seq(evA, evB), currentTick),
+              DataTimeType.Current,
             ) match {
               case PowerLimitFlexOptions(
                     refPower,
@@ -332,7 +337,8 @@ class EvcsPowerLimitFlexModelSpec
       )
 
       flexModel.determineFlexOptions(
-        EvcsState(Seq(ev1), currentTick)
+        EvcsState(Seq(ev1), currentTick),
+        DataTimeType.Current,
       ) match {
         case PowerLimitFlexOptions(
               refPower,

@@ -12,7 +12,6 @@ import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.util.CollectionUtils.asJava
@@ -145,7 +144,7 @@ final case class EmServiceBaseCore(
       val flexRequests = provideEmData.flexRequests.asScala.flatMap {
         case (uuid, request) =>
           agents.get(uuid).map { ref =>
-            ref ! FlexActivation(tick, PowerLimit)
+            ref ! FlexActivation(tick)
 
             uuid -> request.disaggregated
           }
@@ -175,7 +174,7 @@ final case class EmServiceBaseCore(
               case Some(ref) =>
                 // activate the necessary em agent, this is needed, because an em agent needs to know
                 // its current flex option to properly handle the given set point
-                ref ! FlexActivation(tick, PowerLimit)
+                ref ! FlexActivation(tick)
               case None =>
                 log.warn(s"Received entity: $entity")
             }

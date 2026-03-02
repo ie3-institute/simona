@@ -4,9 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka

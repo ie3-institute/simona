@@ -33,7 +33,7 @@ trait CongestedComponentsTestData
     with NodeInputTestData
     with DbfsTestGrid {
 
-  val endTime: ZonedDateTime = startTime.plusHours(2)
+  override val endTime: ZonedDateTime = startTime.plusHours(2)
 
   val trafoType3W = new Transformer3WTypeInput(
     UUID.randomUUID(),
@@ -82,7 +82,7 @@ trait CongestedComponentsTestData
       defaultVoltageLimits,
       startTime,
       endTime,
-      simonaConfig,
+      simonaConfig.simona,
     )
 
     val transformerModel1 = TransformerModel(

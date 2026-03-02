@@ -93,10 +93,11 @@ trait CongestionTestBaseData
   protected implicit val constantData: GridAgentConstantData =
     GridAgentConstantData(
       environmentRefs,
-      simonaConfig,
+      simonaConfig.simona,
       3600,
       startTime,
       endTime,
+      CongestionManagementParams(true),
     )
 
   def behaviorWithContextAndBuffer(
@@ -132,7 +133,6 @@ trait CongestionTestBaseData
     val cmParams = CongestionManagementParams(detectionEnabled = true)
 
     when(data.isSuperior).thenReturn(isSuperior)
-    when(data.congestionManagementParams).thenReturn(cmParams)
     when(data.inferiorGridRefs).thenReturn(map)
     when(data.superiorGridNodeUuids).thenReturn(Set.empty)
 

@@ -8,6 +8,7 @@ package edu.ie3.simona.exceptions.agent
 
 /** Exception that should be used whenever an exception occurs in
   * [[edu.ie3.simona.agent.grid.DBFSAlgorithm]]
+  *
   * @param message
   *   specific error message
   */
@@ -16,14 +17,6 @@ class DBFSAlgorithmException(message: String) extends Exception(message) {
   def this(message: String, cause: Throwable) = {
     this(message)
     initCause(cause)
-  }
-
-  def this(cause: Throwable) = {
-    this(Option(cause).map(_.toString).orNull, cause)
-  }
-
-  def this() = {
-    this(null: String)
   }
 
 }

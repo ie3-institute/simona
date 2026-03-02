@@ -22,6 +22,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -58,8 +59,6 @@ class EmAgentSpec
 
   given simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
-
-  given FlexType = FlexType.PowerLimit
 
   // Testing tolerances
   given Power = Kilowatts(1e-10)
@@ -99,8 +98,10 @@ class EmAgentSpec
       emAgent ! Activation(INIT_SIM_TICK)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -664,11 +665,13 @@ class EmAgentSpec
       parentEmAgent.expectNoMessage()
 
       /* TICK -1 */
-      emAgent ! FlexActivation(INIT_SIM_TICK)
+      emAgent ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(

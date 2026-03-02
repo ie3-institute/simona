@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.*
 import edu.ie3.simona.agent.{DataInputHandler, SecondaryServiceRegistration}
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
@@ -15,13 +14,44 @@ import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.InputModelContainer
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  AdditionalFactoryData,
+  ModelState,
+  ParticipantModelFactory,
+}
+import edu.ie3.simona.model.participant.{
+  ParticipantModelInit,
+  ParticipantModelShell,
+}
+import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryRegistrationSuccessfulMessage,
+  PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.model.participant.ParticipantModel.{AdditionalFactoryData, ModelState, ParticipantModelFactory}
 import edu.ie3.simona.model.participant.{ParticipantModelInit, ParticipantModelShell}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.ServiceMessage.{PrimaryRegistrationSuccessfulMessage, PrimaryServiceRegistrationMessage, RegistrationFailedMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.{
+  DataTimeType,
+  ServiceRegistrationData,
+  ServiceType,
+}
+import edu.ie3.simona.util.InputUtils.identifier
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.results.ResultServiceProxy.{ExpectResult, NoResult}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -44,8 +74,6 @@ object ParticipantAgentInit
 
   /** Container class that gathers references to relevant actors.
     *
-    * @param gridAgent
-    *   Reference to the grid agent.
     * @param primaryServiceProxy
     *   Reference to the primary service proxy.
     * @param resultServiceProxy
@@ -54,10 +82,9 @@ object ParticipantAgentInit
     *   References to services by service type.
     */
   final case class ParticipantRefs(
-                                    gridAgent: ActorRef[GridAgent.Message],
-                                    primaryServiceProxy: ActorRef[ServiceMessage],
-                                    resultServiceProxy: ActorRef[ResultEvent | ExpectResult | NoResult],
-                                    services: Map[ServiceType, ActorRef[ServiceMessage]],
+      primaryServiceProxy: ActorRef[ServiceMessage],
+      resultServiceProxy: ActorRef[ResultEvent | ExpectResult],
+      services: Map[ServiceType, ActorRef[ServiceMessage]],
   )
 
   /** Container class that holds parameters related to the simulation.
@@ -152,20 +179,43 @@ object ParticipantAgentInit
 
     case (ctx, activation: ActivationRequest)
         if activation.tick == INIT_SIM_TICK =>
+      val (flexType, dataTimeType) = activation match {
+        case _: Activation =>
+          // If we're not EM-controlled, we're only interested in calculating
+          // for the current point in simulation time
+          (None, DataTimeType.Current)
+        case FlexInit(ft, timeType) =>
+          (Some(ft), timeType)
+        case _ =>
+          throw new CriticalFailureException(
+            s"${inputContainer.electricalInputModel.identifier}: Unexpected initial activation $activation"
+          )
+      }
+
       // first, check whether we're just supposed to replay primary data time series
       participantRefs.primaryServiceProxy ! PrimaryServiceRegistrationMessage(
         ctx.self,
         inputContainer.electricalInputModel.getUuid,
       )
 
-      waitingForPrimaryProxy
+      waitingForPrimaryProxy(flexType, dataTimeType)
 
   }
 
   /** Waits for the primary proxy to respond, which decides whether this
     * participant uses model calculations or just replays primary data.
+    *
+    * @param flexType
+    *   The flexibility type that the controlling EM demands flex options for,
+    *   if applicable.
+    * @param dataTimeType
+    *   The data time type of flex options (if applicable) and operating points
+    *   to be calculated.
     */
-  private def waitingForPrimaryProxy(using
+  private def waitingForPrimaryProxy(
+      flexType: Option[FlexType],
+      dataTimeType: DataTimeType,
+  )(using
       inputContainer: InputModelContainer[? <: SystemParticipantInput],
       participantRefs: ParticipantRefs,
       simulationParams: SimulationParameters,
@@ -192,6 +242,7 @@ object ParticipantAgentInit
           runtimeConfig,
           primaryDataExtra,
         ),
+        flexType.map((_, dataTimeType)),
         inputContainer.electricalInputModel,
         expectedFirstData,
         ctx.self,
@@ -218,6 +269,7 @@ object ParticipantAgentInit
       val completionBehavior = (mf, expectedServices) =>
         completeInitialization(
           mf,
+          flexType.map((_, dataTimeType)),
           inputContainer.electricalInputModel,
           expectedServices,
           ctx.self,
@@ -227,7 +279,10 @@ object ParticipantAgentInit
         inputContainer.electricalInputModel,
         factoryUpdater,
         completionBehavior,
-        modelFactory.getRequiredSecondaryServices,
+        ServiceRegistrationData(
+          modelFactory.getRequiredSecondaryServices,
+          dataTimeType,
+        ),
         participantRefs.services,
       )
   }
@@ -237,6 +292,7 @@ object ParticipantAgentInit
     */
   private def completeInitialization(
       modelFactory: ParticipantModelFactory[? <: ModelState],
+      flexParams: Option[(FlexType, DataTimeType)],
       participantInput: SystemParticipantInput,
       expectedData: Map[ActorRef[ServiceMessage], Long],
       self: ActorRef[Message],
@@ -249,6 +305,7 @@ object ParticipantAgentInit
 
     val modelShell = ParticipantModelShell.create(
       modelFactory,
+      flexParams,
       participantInput.getOperationTime,
       simulationParams.simulationStart,
       simulationParams.simulationEnd,
@@ -262,7 +319,7 @@ object ParticipantAgentInit
     dataCompletedTick.foreach { dataCompleted =>
       if dataCompleted > firstTick then
         throw new CriticalFailureException(
-          s"${modelShell.identifier}: Input data will only be fully received at tick $dataCompleted. " +
+          s"${modelShell.getIdentifier}: Input data will only be fully received at tick $dataCompleted. " +
             s"It needs to be available with operation start $firstTick though."
         )
     }
@@ -282,7 +339,6 @@ object ParticipantAgentInit
       modelShell,
       inputHandler,
       ParticipantGridAdapter(
-        participantRefs.gridAgent,
         simulationParams.expectedPowerRequestTick,
         simulationParams.requestVoltageDeviationTolerance,
       ),

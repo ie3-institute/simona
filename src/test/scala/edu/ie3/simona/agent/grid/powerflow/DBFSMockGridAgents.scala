@@ -4,8 +4,9 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
