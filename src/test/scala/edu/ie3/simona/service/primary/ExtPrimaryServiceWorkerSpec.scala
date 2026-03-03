@@ -148,7 +148,7 @@ class ExtPrimaryServiceWorkerSpec
 
       service ! Activation(INIT_SIM_TICK)
 
-      service ! SecondaryServiceRegistrationMessage(
+      service ! PrimaryServiceRegistrationMessage(
         systemParticipant.ref,
         invalidUuid,
       )
