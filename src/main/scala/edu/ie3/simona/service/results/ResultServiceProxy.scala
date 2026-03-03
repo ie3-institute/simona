@@ -33,7 +33,8 @@ import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
 
-  type Message = ResultEvent | RequestResult | ExpectResult | NoResult | AddListener | DelayedStopHelper.StoppingMsg
+  type Message = ResultEvent | RequestResult | ExpectResult | NoResult |
+    AddListener | DelayedStopHelper.StoppingMsg
 
   /** Message send to the [[ResultServiceProxy]]. This message will inform the
     * proxy which assets will provide results for the specified tick.
@@ -51,12 +52,14 @@ object ResultServiceProxy {
       waitForSetPoint: Boolean = false,
   )
 
-  /**
-   * Message to inform the result service not to wait for result from the specified model for the given tick.
-   *
-   * @param uuid Of the model that will not provide results.
-   * @param tick For which no result will be provided.
-   */
+  /** Message to inform the result service not to wait for result from the
+    * specified model for the given tick.
+    *
+    * @param uuid
+    *   Of the model that will not provide results.
+    * @param tick
+    *   For which no result will be provided.
+    */
   final case class NoResult(uuid: UUID, tick: Long)
 
   /** Method for adding a listener to the proxy.
@@ -147,13 +150,14 @@ object ResultServiceProxy {
       }
     }
 
-    def debugWaitingFor(uuid: Iterable[UUID], tick: Long, log: Logger): Unit = uuid.foreach { uuid =>
-      if waitingForResults.get(uuid).exists(_ <= tick) then {
-        log.warn(s"$uuid waiting for tick: ${waitingForResults(uuid)}")
-      } else {
-        log.warn(s"$uuid waiting for setpoint.")
+    def debugWaitingFor(uuid: Iterable[UUID], tick: Long, log: Logger): Unit =
+      uuid.foreach { uuid =>
+        if waitingForResults.get(uuid).exists(_ <= tick) then {
+          log.warn(s"$uuid waiting for tick: ${waitingForResults(uuid)}")
+        } else {
+          log.warn(s"$uuid waiting for setpoint.")
+        }
       }
-    }
 
     /** Method for updating the tick of the state data.
       *
@@ -195,15 +199,15 @@ object ResultServiceProxy {
           } else updated
       }
     }
-    
+
     def stopWaitingForResult(uuid: UUID, tick: Long): ResultServiceStateData = {
-      val updated =  waitingForResults.get(uuid) match {
+      val updated = waitingForResults.get(uuid) match {
         case Some(value) if value <= tick =>
           waitingForResults.removed(uuid)
-        case _ => 
+        case _ =>
           waitingForResults
       }
-      
+
       copy(waitingForResults = updated)
     }
 
@@ -329,10 +333,10 @@ object ResultServiceProxy {
 
       case (ctx, NoResult(uuid, tick)) =>
         ctx.log.info(s"Stop waiting for result: $uuid ($tick)")
-        
+
         // un-stash received requests
         buffer.unstashAll(idle(stateData.stopWaitingForResult(uuid, tick)))
-        
+
       case (_, requestResultMessage: RequestResult) =>
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick

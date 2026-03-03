@@ -34,10 +34,24 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationFailedMessage,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexType
-import edu.ie3.simona.model.participant.ParticipantModel.{AdditionalFactoryData, ModelState, ParticipantModelFactory}
-import edu.ie3.simona.model.participant.{ParticipantModelInit, ParticipantModelShell}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
-import edu.ie3.simona.ontology.messages.ServiceMessage.{PrimaryRegistrationSuccessfulMessage, PrimaryServiceRegistrationMessage, RegistrationFailedMessage}
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  AdditionalFactoryData,
+  ModelState,
+  ParticipantModelFactory,
+}
+import edu.ie3.simona.model.participant.{
+  ParticipantModelInit,
+  ParticipantModelShell,
+}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryRegistrationSuccessfulMessage,
+  PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -53,7 +67,10 @@ import edu.ie3.simona.service.{
 }
 import edu.ie3.simona.util.InputUtils.identifier
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.simona.service.results.ResultServiceProxy.{ExpectResult, NoResult}
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
@@ -83,7 +100,7 @@ object ParticipantAgentInit
     */
   final case class ParticipantRefs(
       primaryServiceProxy: ActorRef[ServiceMessage],
-      resultServiceProxy: ActorRef[ResultEvent | ExpectResult],
+      resultServiceProxy: ActorRef[ResultEvent | ExpectResult | NoResult],
       services: Map[ServiceType, ActorRef[ServiceMessage]],
   )
 

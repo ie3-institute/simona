@@ -218,7 +218,7 @@ final case class EmServiceBaseCore(
       val uuids = uncontrolled
         .filter { uuid => nextActivation(uuid) == internalTick }
         .map { uuid =>
-          uuidToAgent(uuid) ! FlexActivation(tick, PowerLimit)
+          uuidToAgent(uuid) ! FlexActivation(tick)
           uuid
         }
 

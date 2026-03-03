@@ -8,14 +8,25 @@ package edu.ie3.simona.agent.participant
 
 import breeze.numerics.{pow, sqrt}
 import edu.ie3.simona.agent.DataInputHandler
-import edu.ie3.simona.agent.grid.GridAgentMessages.{AssetPowerChangedMessage, AssetPowerUnchangedMessage, ProvidedPowerResponse}
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  AssetPowerChangedMessage,
+  AssetPowerUnchangedMessage,
+  ProvidedPowerResponse,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModelShell
 import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
-import edu.ie3.simona.ontology.messages.ServiceMessage.{DataMessage, DirectAgentRequest}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataMessage,
+  DirectAgentRequest,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage, ServiceMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.util.scala.Scope
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}

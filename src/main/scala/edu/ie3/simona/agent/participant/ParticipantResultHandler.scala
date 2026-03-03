@@ -7,13 +7,23 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.{FlexOptionsResult, SystemParticipantResult}
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  SystemParticipantResult,
+}
 import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent, ThermalResultEvent}
+import edu.ie3.simona.event.ResultEvent.{
+  FlexOptionsResultEvent,
+  ParticipantResultEvent,
+  ThermalResultEvent,
+}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.service.results.ResultServiceProxy.{ExpectResult, NoResult}
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -60,7 +70,8 @@ final case class ParticipantResultHandler(
       resultProxy ! FlexOptionsResultEvent(result)
     }
 
-  def sendNoResult(uuid: UUID, tick: Long): Unit = resultProxy ! NoResult(uuid, tick)
+  def sendNoResult(uuid: UUID, tick: Long): Unit =
+    resultProxy ! NoResult(uuid, tick)
 
   def informProxy(
       uuid: UUID,

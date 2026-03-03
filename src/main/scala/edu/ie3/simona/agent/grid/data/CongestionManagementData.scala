@@ -163,7 +163,6 @@ object CongestionManagementData {
   def empty(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      nextTick: Long,
   ): CongestionManagementData = apply(
     gridAgentBaseData,
     currentTick,

@@ -155,7 +155,6 @@ case class EmCommunicationCore(
     override val allFlexOptions: Map[UUID, FlexOptions] = Map.empty,
     emStates: Map[UUID, EmAgentState] = Map.empty,
     disaggregated: Map[UUID, Boolean] = Map.empty,
-    requestedFlexType: Map[UUID, FlexType] = Map.empty,
     currentSetPoint: Map[UUID, Power] = Map.empty,
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
@@ -247,11 +246,7 @@ case class EmCommunicationCore(
             // update the em state
             emStates(uuid).setReceivedRequest()
 
-            agent ! FlexActivation(
-              tick,
-              requestedFlexType.getOrElse(uuid, FlexType.PowerLimit),
-              true,
-            )
+            agent ! FlexActivation(tick, true)
 
             val count = uuidToInferior(uuid).size
 
@@ -329,11 +324,7 @@ case class EmCommunicationCore(
                 // update the em state
                 emStates(receiver).setReceivedRequest()
 
-                agent ! FlexActivation(
-                  tick,
-                  requestedFlexType.getOrElse(receiver, FlexType.PowerLimit),
-                  true,
-                )
+                agent ! FlexActivation(tick, true)
 
                 val count = max(
                   Try {
@@ -515,7 +506,7 @@ case class EmCommunicationCore(
 
           // should no longer wait for internal data
           data.keys.foreach(emStates(_).setWaitingForInternal(false))
-          //log.warn(s"Updated EmStates (options): $emStates")
+          // log.warn(s"Updated EmStates (options): $emStates")
 
           (
             copy(
@@ -562,7 +553,6 @@ case class EmCommunicationCore(
           (
             copy(
               completions = ReceiveDataMap.empty,
-              requestedFlexType = Map.empty,
               allFlexOptions = Map.empty,
               currentSetPoint = Map.empty,
               expectDataFrom = ReceiveMultiDataMap.empty,
@@ -599,7 +589,7 @@ case class EmCommunicationCore(
     val sender = uuidToParent(receiverUuid) // the controlling em
 
     val updated = flexRequest match {
-      case FlexActivation(tick, flexType, _) =>
+      case FlexActivation(tick, _) =>
         // update the em state => waiting for external flex option provision
         emStates(sender).addSendRequest(receiverUuid)
 
@@ -665,7 +655,7 @@ case class EmCommunicationCore(
 
       // should no longer wait for internal data
       data.keys.foreach { uuid => emStates(uuid).setWaitingForInternal(false) }
-      //log.warn(s"Updated EmStates (request): $emStates")
+      // log.warn(s"Updated EmStates (request): $emStates")
 
       (
         copy(expectDataFrom = ReceiveMultiDataMap.empty),

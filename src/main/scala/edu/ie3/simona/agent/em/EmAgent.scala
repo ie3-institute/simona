@@ -16,7 +16,11 @@ import edu.ie3.simona.event.ResultEvent.{
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelShell
-import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
+import edu.ie3.simona.ontology.messages.AgentMessage.{
+  ActivationRequest,
+  force,
+  tick,
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -125,6 +129,7 @@ object EmAgent {
       msg: ActivationRequest,
   ): Behavior[Message] = {
     val tick = msg.tick
+    val force = msg.force
 
     val flexOptionsCore = if force then {
       core.gotoTick(tick).activateAll(tick)
