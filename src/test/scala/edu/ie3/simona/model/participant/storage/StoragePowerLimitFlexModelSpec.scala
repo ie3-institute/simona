@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant.storage
 
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.StorageInputTestData
 import squants.energy.{KilowattHours, Kilowatts}
@@ -61,7 +62,7 @@ class StoragePowerLimitFlexModelSpec
             tick,
           )
 
-          storageModel.determineFlexOptions(state) match {
+          storageModel.determineFlexOptions(state, DataTimeType.Current) match {
             case result: PowerLimitFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))
@@ -103,7 +104,7 @@ class StoragePowerLimitFlexModelSpec
             tick,
           )
 
-          storageModel.determineFlexOptions(state) match {
+          storageModel.determineFlexOptions(state, DataTimeType.Current) match {
             case result: PowerLimitFlexOptions =>
               result.ref should approximate(Kilowatts(pRef))
               result.min should approximate(Kilowatts(pMin))

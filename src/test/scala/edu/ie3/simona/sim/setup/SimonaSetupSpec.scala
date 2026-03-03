@@ -120,7 +120,7 @@ class SimonaSetupSpec
     "This is a dummy setup"
   )
 
-  override def gridAgents(
+  override def gridAgents(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): Iterable[ActorRef[GridAgent.Message]] =

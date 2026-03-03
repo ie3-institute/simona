@@ -162,6 +162,25 @@ object EnergyBoundariesFlexOptions
 
   object AssetEnergyBoundaries {
 
+    /** Creating energy boundaries for a power that is assumed to remain
+      * constant over the forecasted time horizon.
+      *
+      * @param constantPower
+      *   The constant power.
+      * @return
+      *   The [[AssetEnergyBoundaries]].
+      */
+    def apply(
+        constantPower: Power,
+        currentTick: Long,
+    ): AssetEnergyBoundaries = {
+      AssetEnergyBoundaries(
+        energyLimits =
+          SortedMap(currentTick -> new ClosedInterval(zeroKWh, zeroKWh)),
+        powerLimits = new ClosedInterval(constantPower, constantPower),
+      )
+    }
+
     /** Creating energy boundaries for a fixed power time series. Assumes
       * equidistant power series entries - otherwise, results are not defined!
       *

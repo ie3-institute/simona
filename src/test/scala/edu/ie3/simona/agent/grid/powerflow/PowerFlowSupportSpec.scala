@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
@@ -22,6 +22,13 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.agent.grid.powerflow.{
+  PowerFlowParams,
+  PowerFlowSupport,
+  ReceivedValuesStore,
+  SweepValueStore,
+}
+import edu.ie3.simona.agent.grid.{GridAgent, GridResultsSupport}
 import edu.ie3.simona.config.SimonaConfig.Simona
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.model.grid.{
@@ -428,7 +435,7 @@ class PowerFlowSupportSpec
         VoltageLimits(0.9, 1.1),
         time.startDateTime,
         time.endDateTime,
-        simonaConfig,
+        simonaConfig.simona,
       )
 
     val withEHV: (GridModel, ReceivedValuesStore) = {

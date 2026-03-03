@@ -13,7 +13,10 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.flex.ParticipantInflexiblePowerLimitFlexModel
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantConstantEnergyLimitFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -43,7 +46,8 @@ class FixedFeedInModel(
   override val flexModels
       : Map[FlexType, ParticipantFlexModel[ParticipantModel.FixedState]] =
     Map(
-      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> ParticipantConstantEnergyLimitFlexModel(this),
     )
 
   override def determineOperatingPoint(

@@ -12,6 +12,7 @@ import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
 import edu.ie3.datamodel.models.profile.{LoadProfile, StandardLoadProfile}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   AdditionalFactoryData,
@@ -19,17 +20,26 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantInflexibleEnergyLimitFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
+}
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
-import edu.ie3.simona.service.Data.SecondaryData.{LoadData, LoadDataFunction}
+import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.service.Data.SecondaryData.{
+  LoadData,
+  LoadDataFunction,
+  SecondarySeriesData,
+}
 import edu.ie3.simona.service.ServiceType.LoadProfileService
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.ApparentPower
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.energy.Energy
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
 class ProfileLoadModel(
     override val uuid: UUID,
@@ -41,10 +51,25 @@ class ProfileLoadModel(
     val referenceScalingFactor: Double,
 ) extends LoadModel[LoadModelState] {
 
+  override val flexModels: Map[FlexType, ParticipantFlexModel[LoadModelState]] =
+    Map(
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
+        this,
+        _.toStateSeries,
+      ),
+    )
+
   override def determineOperatingPoint(
       state: LoadModelState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
-    val averagePower = state.averagePower
+    val (_, averagePower) = state.powerData
+      .maxBefore(state.tick + 1)
+      .getOrElse(
+        throw new CriticalFailureException(
+          s"No power data available for current tick ${state.tick}"
+        )
+      )
 
     (
       ActivePowerOperatingPoint(averagePower * referenceScalingFactor),
@@ -82,12 +107,24 @@ class ProfileLoadModel(
     receivedData
       .collectFirst {
         case loadData: LoadData =>
-          loadData.averagePower
+          SortedMap(state.tick -> loadData.averagePower)
 
         case loadFunction: LoadDataFunction =>
-          loadFunction.powerSupplier()
+          SortedMap(state.tick -> loadFunction.powerSupplier())
+
+        case SecondarySeriesData(series) =>
+          series.map {
+            case (tick, loadData: LoadData) =>
+              tick -> loadData.averagePower
+            case (tick, loadFunction: LoadDataFunction) =>
+              tick -> loadFunction.powerSupplier()
+            case (_, unexpectedData) =>
+              throw new CriticalFailureException(
+                s"Unexpected secondary data $unexpectedData"
+              )
+          }
       }
-      .map(avgPower => state.copy(averagePower = avgPower))
+      .map(newData => state.copy(powerData = newData))
       .getOrElse(state)
   }
 }
@@ -96,13 +133,56 @@ object ProfileLoadModel {
 
   /** Holds all relevant data for profile load model calculation
     *
-    * @param averagePower
-    *   the average power for the current interval
+    * @param powerData
+    *   A map of tick to corresponding power. For regular calculations of the
+    *   operating point, only power for the current tick is used. For forecasts,
+    *   the map needs to contain further power values for future ticks.
     */
   final case class LoadModelState(
       override val tick: Long,
-      averagePower: Power,
-  ) extends ModelState
+      powerData: SortedMap[Long, Power] = SortedMap.empty,
+  ) extends ModelState {
+
+    /** Creates states for forecast calculation given the current state.
+      *
+      * @return
+      *   States for forecast calculation.
+      */
+    def toStateSeries: SortedMap[Long, LoadModelState] = {
+      powerData.map { case (dataTick, _) =>
+        val tickState = LoadModelState(
+          dataTick,
+          powerData,
+        )
+
+        dataTick -> tickState
+      }
+    }
+
+  }
+
+  object LoadModelState {
+
+    /** Convenience constructor for creating a state for regular operating point
+      * calculation at the current point in simulation time.
+      *
+      * @param tick
+      *   The current tick.
+      * @param avgPower
+      *   The average power for the given tick.
+      * @return
+      *   A state for calculation at the current point in simulation time.
+      */
+    def apply(
+        tick: Long,
+        avgPower: Power,
+    ): LoadModelState =
+      LoadModelState(
+        tick,
+        SortedMap(tick -> avgPower),
+      )
+
+  }
 
   /** Hold additional data for some load model factories.
     * @param maxPower
@@ -143,7 +223,7 @@ object ProfileLoadModel {
     override def getInitialState(
         tick: Long,
         simulationTime: ZonedDateTime,
-    ): LoadModelState = LoadModelState(tick, zeroKW)
+    ): LoadModelState = LoadModelState(tick)
 
     override def create(): ProfileLoadModel = {
       val loadProfile = input.getLoadProfile match {

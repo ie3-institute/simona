@@ -4,25 +4,28 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentInitData
+import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentConstantData,
+  GridAgentInitData,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
@@ -30,7 +33,6 @@ import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -98,46 +100,65 @@ class DBFSAlgorithmCenGridSpec
     evDataService = None,
   )
 
+  given GridAgentConstantData = GridAgentConstantData(
+    environmentRefs,
+    simonaConfig.simona,
+    3600,
+    startTime,
+    endTime,
+    CongestionManagementParams(false),
+  )
+
   "A GridAgent actor in center position with async test" should {
 
-    val centerGridAgent =
-      testKit.spawn(GridAgent(environmentRefs, simonaConfig))
+    val gridModel = GridModel(
+      hvGridContainer,
+      RefSystem("2000 MVA", "110 kV"),
+      VoltageLimits(0.9, 1.1),
+      startTime,
+      endTime,
+      simonaConfig.simona,
+    )
+
+    val gridAgentInitData = GridAgentInitData(
+      gridModel,
+      PowerFlowParams(simonaConfig.simona.powerflow.value),
+    )
+
+    val centerGridAgent = testKit.spawn(GridAgent(gridAgentInitData))
 
     s"initialize itself when it receives an init activation" in {
 
       // this subnet has 1 superior grid (ehv) and 3 inferior grids (mv). Map the gates to test probes accordingly
-      val inferiorConnections =
-        Set(inferiorGrid11, inferiorGrid12, inferiorGrid13)
-          .map(agent => agent.ref -> agent.nodeUuids.toSet)
-          .toMap
-      val superiorConnections =
-        Map(superiorGridAgent.ref -> superiorGridAgent.nodeUuids.toSet)
-
-      val gridAgentInitData =
-        GridAgentInitData(
-          hvGridContainer,
-          Seq.empty[ThermalGrid],
-          Set(11, 12, 13),
-          inferiorConnections,
-          Map(supNodeA.getUuid -> 1000, supNodeB.getUuid -> 1000),
-          superiorConnections,
-          RefSystem("2000 MVA", "110 kV"),
-          VoltageLimits(0.9, 1.1),
-        )
-
-      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
-
-      centerGridAgent ! CreateGridAgent(
-        gridAgentInitData,
-        key,
+      centerGridAgent ! RegisterInferiorGrid(
+        inferiorGrid11.ref,
+        inferiorGrid11.nodeUuids.toSet,
+        11,
       )
+      centerGridAgent ! RegisterInferiorGrid(
+        inferiorGrid12.ref,
+        inferiorGrid12.nodeUuids.toSet,
+        12,
+      )
+      centerGridAgent ! RegisterInferiorGrid(
+        inferiorGrid13.ref,
+        inferiorGrid13.nodeUuids.toSet,
+        13,
+      )
+
+      centerGridAgent ! RegisterSuperiorGrid(
+        superiorGridAgent.ref,
+        superiorGridAgent.nodeUuids.toSet,
+        1000,
+      )
+
+      // finish initialization
+      centerGridAgent ! CompleteInitialization(false)
 
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
       scheduleActivationMsg.tick shouldBe 3600
-      scheduleActivationMsg.unlockKey shouldBe Some(key)
+      scheduleActivationMsg.unlockKey shouldBe None
     }
 
     s"go to SimulateGrid when it receives an activity start trigger" in {
@@ -180,7 +201,7 @@ class DBFSAlgorithmCenGridSpec
         superiorGridAgent.expectSlackVoltageRequest(firstSweepNo)
 
       // normally the inferior grid agents ask for the slack voltage as well to run their power flow calculations
-      // we simulate this behaviour now by doing the same for our three inferior grid agents
+      // we simulate this behavior now by doing the same for our three inferior grid agents
       inferiorGrid11.requestSlackVoltage(centerGridAgent, firstSweepNo)
 
       inferiorGrid12.requestSlackVoltage(centerGridAgent, firstSweepNo)

@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -53,8 +52,6 @@ class ParticipantAgentInitSpec
 
   given simulationStart: ZonedDateTime = defaultSimulationStart
 
-  given FlexType = FlexType.PowerLimit
-
   given SimulationParameters = SimulationParameters(
     3600,
     Each(1e-14),
@@ -84,12 +81,10 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -133,12 +128,10 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -191,12 +184,10 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -229,7 +220,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -254,12 +245,10 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -292,7 +281,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -341,13 +330,11 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -409,13 +396,11 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -472,13 +457,11 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -511,7 +494,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -553,13 +536,11 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -592,7 +573,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
