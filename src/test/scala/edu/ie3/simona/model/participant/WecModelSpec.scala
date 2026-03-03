@@ -213,7 +213,13 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       val flexOptions =
         wecModel
           .flexModels(FlexType.EnergyBoundaries)
-          .determineFlexOptions(state, DataTimeType.Current)
+          .determineFlexOptions(
+            state,
+            DataTimeType.CurrentAndForecast(
+              forecastLength = Hours(12),
+              forecastResolution = Hours(1),
+            ),
+          )
 
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>

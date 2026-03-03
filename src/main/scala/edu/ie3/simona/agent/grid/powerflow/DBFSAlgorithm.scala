@@ -4,7 +4,7 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
 
 import breeze.linalg.DenseVector
 import breeze.math.Complex
@@ -15,17 +15,18 @@ import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewto
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridAgent.{afterPowerFlow, unsupported}
-import edu.ie3.simona.agent.grid.data.GridAgentData.{
-  GridAgentBaseData,
-  GridAgentConstantData,
-  PowerFlowDoneData,
-}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.agent.grid.{GridAgent, GridResultsSupport}
 import edu.ie3.simona.agent.grid.data.GridAgentData
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentConstantData,
+  PowerFlowDoneData,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   GridSimulationFinished,
@@ -50,7 +51,7 @@ import java.util.UUID
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * forward backward sweep (DBFS) algorithm execution. It is considered to be
-  * the standard behaviour of a [[GridAgent]].
+  * the standard behavior of a [[GridAgent]].
   */
 trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 

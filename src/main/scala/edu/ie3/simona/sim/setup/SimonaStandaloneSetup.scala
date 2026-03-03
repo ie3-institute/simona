@@ -12,8 +12,17 @@ import edu.ie3.datamodel.graph.SubGridTopologyGraph
 import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
+import edu.ie3.simona.agent.grid.GridAgentMessages.{
+  CompleteInitialization,
+  RegisterParticipants,
+}
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
+import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFactory,
+}
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
@@ -63,78 +72,56 @@ class SimonaStandaloneSetup(
 
   override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
-  override def gridAgents(
+  override def gridAgents(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): Iterable[ActorRef[GridAgent.Message]] = {
+    val cfg = simonaConfig.simona
 
-    /* get the grid */
-    val subGridTopologyGraph = grid.getSubGridTopologyGraph
-
-    /* extract and prepare refSystem information from config */
-    val (configRefSystems, configVoltageLimits) =
-      GridConfigParser.parse(simonaConfig.simona.gridConfig)
-
-    /* Create all agents and map the sub grid id to their actor references */
-    val subGridToActorRefMap = buildSubGridToActorRefMap(
-      subGridTopologyGraph,
-      context,
-      environmentRefs,
+    val nodeToAssets = ParticipantAgentFactory.buildSystemParticipants(
+      grid.getSystemParticipants,
+      thermalGridsByThermalBus.map { case (bus, thermalGrid) =>
+        bus.getUuid -> thermalGrid
+      },
+      cfg,
     )
 
-    val keys = ScheduleLock.multiKey(
-      context,
-      environmentRefs.scheduler,
-      PRE_INIT_TICK,
-      subGridTopologyGraph.vertexSet().size,
-    )
-
-    /* build the initialization data */
-    val subGrids = subGridTopologyGraph
-      .vertexSet()
-      .asScala
-
-    val onlyOneSubGrid = subGrids.size == 1
-
-    subGrids
-      .zip(keys)
-      .map { case (subGridContainer, key) =>
-        /* Get all connections to superior and inferior sub grids */
-        val subGridGates =
-          Set.from(
-            subGridTopologyGraph
-              .edgesOf(subGridContainer)
-              .asScala
-              .map(modifySubGridGateForThreeWindingSupport)
+    cfg.powerflow
+      .map { pfConfig =>
+        val (subgridToRef, nodeToSubgrid) =
+          GridAgentCoordinator.createGridAgents(
+            grid,
+            pfConfig.resolution.toSeconds,
+            PowerFlowParams(pfConfig),
+            cfg,
           )
-        val currentSubGrid = subGridContainer.getSubnet
-        val currentActorRef = subGridToActorRefMap.getOrElse(
-          currentSubGrid,
-          throw new GridAgentInitializationException(
-            "Was asked to setup agent for sub grid " + currentSubGrid + ", but did not found it's actor reference."
-          ),
-        )
-        val thermalGrids =
-          getThermalGrids(subGridContainer, thermalGridsByThermalBus)
 
-        /* build the grid agent data and check for its validity */
-        val gridAgentInitData = SimonaStandaloneSetup.buildGridAgentInitData(
-          subGridContainer,
-          subGridToActorRefMap,
-          subGridGates,
-          configRefSystems,
-          configVoltageLimits,
-          thermalGrids,
-        )
+        nodeToAssets
+          .foldLeft(
+            Map.empty[Int, Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]]
+          ) { case (res, (node, assets)) =>
+            val subgrid = nodeToSubgrid(node)
 
-        currentActorRef ! CreateGridAgent(
-          gridAgentInitData,
-          key,
-          onlyOneSubGrid,
-        )
+            res.get(subgrid) match {
+              case Some(value) =>
+                res.updated(subgrid, value.updated(node, assets))
+              case None =>
+                res.updated(subgrid, Map(node -> assets))
+            }
+          }
+          .foreach { case (subgrid, nodeToAssets) =>
+            subgridToRef(subgrid) ! RegisterParticipants(nodeToAssets)
+          }
 
-        currentActorRef
+        val refs = subgridToRef.values
+
+        // finish initialization of grid agents
+        val onlyOneSubgrid = refs.size == 1
+        refs.foreach(_ ! CompleteInitialization(onlyOneSubgrid))
+
+        refs
       }
+      .getOrElse(Iterable.empty[GridAgentRef])
   }
 
   override def primaryServiceProxy(
@@ -242,7 +229,13 @@ class SimonaStandaloneSetup(
     val jars = ExtSimLoader.scanInputFolder(extSimPath)
     val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
 
-    setupExtSim(extLinks, args, typeSafeConfig, grid)(using
+    setupExtSim(
+      extLinks,
+      args,
+      typeSafeConfig,
+      grid,
+      resultFileHierarchy.runOutputDir,
+    )(using
       context,
       scheduler,
       resultProxy,
@@ -305,51 +298,11 @@ class SimonaStandaloneSetup(
         )
     )
   }
-
-  def buildSubGridToActorRefMap(
-      subGridTopologyGraph: SubGridTopologyGraph,
-      context: ActorContext[?],
-      environmentRefs: EnvironmentRefs,
-  ): Map[Int, ActorRef[GridAgent.Message]] = {
-    subGridTopologyGraph
-      .vertexSet()
-      .asScala
-      .map(subGridContainer => {
-        val gridAgentRef =
-          context.spawn(
-            GridAgent(
-              environmentRefs,
-              simonaConfig,
-            ),
-            subGridContainer.getSubnet.toString,
-          )
-        subGridContainer.getSubnet -> gridAgentRef
-      })
-      .toMap
-  }
-
-  /** Get all thermal grids, that apply for the given grid container
-    * @param grid
-    *   The grid container to assess
-    * @param thermalGridByBus
-    *   Mapping from thermal bus to thermal grid
-    * @return
-    *   A sequence of applicable thermal grids
-    */
-  private def getThermalGrids(
-      grid: GridContainer,
-      thermalGridByBus: Map[ThermalBusInput, ThermalGrid],
-  ): Seq[ThermalGrid] = {
-    grid.getSystemParticipants.getHeatPumps.asScala
-      .flatten(using hpInput => thermalGridByBus.get(hpInput.getThermalBus))
-      .toSeq
-  }
 }
 
-/** Companion object to provide [[SetupHelper]] methods for
-  * [[SimonaStandaloneSetup]]
+/** Companion object for [[SimonaStandaloneSetup]]
   */
-object SimonaStandaloneSetup extends LazyLogging with SetupHelper {
+object SimonaStandaloneSetup extends LazyLogging {
 
   def apply(
       typeSafeConfig: Config,

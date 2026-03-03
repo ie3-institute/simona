@@ -17,6 +17,7 @@ import edu.ie3.datamodel.models.result.connector.{
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.agent.grid.powerflow.SweepValueStore
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
   PowerFlowCaseB,

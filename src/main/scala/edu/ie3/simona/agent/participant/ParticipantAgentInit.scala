@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.system.SystemParticipantInput
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.*
 import edu.ie3.simona.agent.{DataInputHandler, SecondaryServiceRegistration}
 import edu.ie3.simona.config.RuntimeConfig.BaseRuntimeConfig
@@ -72,8 +71,6 @@ object ParticipantAgentInit
 
   /** Container class that gathers references to relevant actors.
     *
-    * @param gridAgent
-    *   Reference to the grid agent.
     * @param primaryServiceProxy
     *   Reference to the primary service proxy.
     * @param resultServiceProxy
@@ -82,7 +79,6 @@ object ParticipantAgentInit
     *   References to services by service type.
     */
   final case class ParticipantRefs(
-      gridAgent: ActorRef[GridAgent.Message],
       primaryServiceProxy: ActorRef[ServiceMessage],
       resultServiceProxy: ActorRef[ResultEvent | ExpectResult | NoResult],
       services: Map[ServiceType, ActorRef[ServiceMessage]],
@@ -340,7 +336,6 @@ object ParticipantAgentInit
       modelShell,
       inputHandler,
       ParticipantGridAdapter(
-        participantRefs.gridAgent,
         simulationParams.expectedPowerRequestTick,
         simulationParams.requestVoltageDeviationTolerance,
       ),

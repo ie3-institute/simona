@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -85,13 +84,11 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -135,13 +132,11 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -194,13 +189,11 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -258,13 +251,11 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
@@ -346,14 +337,12 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -415,14 +404,12 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -479,14 +466,12 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
@@ -561,14 +546,12 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
         val resultServiceProxy =
           createTestProbe[ResultEvent | ExpectResult | NoResult]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
           resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
