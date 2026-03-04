@@ -21,6 +21,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
+import edu.ie3.simona.ontology.messages.ServiceMessage.DataMessage
 import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{
@@ -112,6 +113,9 @@ object EmAgent {
     case (_, msg: ActivationRequest) =>
       activate(emData, modelShell, inputHandler, core, msg)
 
+    case (_, msg: DataMessage) =>
+      inactive(emData, modelShell, inputHandler.handleDataMessage(msg), core)
+
   }
 
   private def activate(
@@ -163,81 +167,106 @@ object EmAgent {
         provideFlex.flexOptions,
       )
 
-      if updatedCore.isComplete then {
+      maybeDetermineFlex(emData, modelShell, inputHandler, updatedCore)
 
-        val allFlexOptions = updatedCore.getFlexOptions
+    case msg: DataMessage =>
+      val updatedInputHandler = inputHandler.handleDataMessage(msg)
 
-        val updatedModelShell =
-          modelShell.updateAggregatedFlexOptions(allFlexOptions)
-
-        if emData.outputConfig.flexResult then {
-          val flexResult = updatedModelShell.determineResults(
-            flexOptionsCore.activeTick.toDateTime(using
-              emData.simulationStartDate
-            )
-          )
-
-          emData.listener ! FlexOptionsResultEvent(flexResult)
-        }
-
-        emData.parent match {
-          case Right(parentEm) =>
-            // provide aggregate flex options to parent
-            parentEm ! ProvideFlexOptions(
-              updatedModelShell.uuid,
-              updatedModelShell.getFlexOptions,
-            )
-
-            awaitingFlexCtrl(
-              emData,
-              updatedModelShell,
-              inputHandler,
-              updatedCore,
-            )
-
-          case Left(_) =>
-            // We're not em-controlled ourselves,
-            // always desire to come as close as possible to 0 kW
-            val setPower = zeroKW
-
-            val flexControl =
-              updatedModelShell.determineFlexControl(
-                allFlexOptions,
-                setPower,
-                flexOptionsCore.activeTick,
-              )
-
-            val (allFlexMsgs, newCore) = updatedCore
-              .handleFlexCtrl(flexControl)
-              .fillInMissingIssueCtrl()
-              .complete()
-
-            allFlexMsgs.foreach { case (actor, msg) =>
-              actor ! msg
-            }
-
-            awaitingCompletions(
-              emData,
-              updatedModelShell,
-              inputHandler,
-              newCore,
-            )
-        }
-
-      } else {
-        // more flex options expected
-        awaitingFlexOptions(
-          emData,
-          modelShell,
-          inputHandler,
-          updatedCore,
-        )
-      }
+      maybeDetermineFlex(
+        emData,
+        modelShell,
+        updatedInputHandler,
+        flexOptionsCore,
+      )
 
     /* We do not need to handle ScheduleFlexRequests here, since active agents
        can schedule themselves with their completions and inactive agents should
        be sleeping right now
      */
+  }
+
+  private def maybeDetermineFlex(
+      emData: EmData,
+      modelShell: EmModelShell[?],
+      inputHandler: DataInputHandler,
+      flexOptionsCore: EmDataCore.AwaitingFlexOptions,
+  ): Behavior[Message] = {
+    // we need the expected secondary data to be received here
+    // even if we're em-controlled in order to make things not too complicated
+    if flexOptionsCore.isComplete && inputHandler.allMessagesReceived(
+        flexOptionsCore.activeTick
+      )
+    then {
+
+      val allFlexOptions = flexOptionsCore.getFlexOptions
+
+      val updatedModelShell =
+        modelShell.updateAggregatedFlexOptions(allFlexOptions)
+
+      if emData.outputConfig.flexResult then {
+        val flexResult = updatedModelShell.determineResults(
+          flexOptionsCore.activeTick.toDateTime(using
+            emData.simulationStartDate
+          )
+        )
+
+        emData.listener ! FlexOptionsResultEvent(flexResult)
+      }
+
+      emData.parent match {
+        case Right(parentEm) =>
+          // provide aggregate flex options to parent
+          parentEm ! ProvideFlexOptions(
+            updatedModelShell.uuid,
+            updatedModelShell.getFlexOptions,
+          )
+
+          awaitingFlexCtrl(
+            emData,
+            updatedModelShell,
+            inputHandler,
+            flexOptionsCore,
+          )
+
+        case Left(_) =>
+          // We're not em-controlled ourselves,
+          // always desire to come as close as possible to 0 kW
+          val setPower = zeroKW
+
+          val flexControl =
+            updatedModelShell.determineFlexControl(
+              allFlexOptions,
+              setPower,
+              flexOptionsCore.activeTick,
+              inputHandler.getSecondaryData,
+            )
+
+          val (allFlexMsgs, newCore) = flexOptionsCore
+            .handleFlexCtrl(flexControl)
+            .fillInMissingIssueCtrl()
+            .complete()
+
+          allFlexMsgs.foreach { case (actor, msg) =>
+            actor ! msg
+          }
+
+          awaitingCompletions(
+            emData,
+            updatedModelShell,
+            inputHandler,
+            newCore,
+          )
+      }
+
+    } else {
+      // more flex options expected
+      awaitingFlexOptions(
+        emData,
+        modelShell,
+        inputHandler,
+        flexOptionsCore,
+      )
+    }
   }
 
   /** Behavior of an [[EmAgent]] waiting for a flex control message to be
@@ -271,6 +300,7 @@ object EmAgent {
           receivedFlexOptions,
           setPointActivePower,
           flexCtrl.tick,
+          inputHandler.getSecondaryData,
         )
 
       val (allFlexMsgs, newCore) = flexOptionsCore
@@ -362,6 +392,8 @@ object EmAgent {
       }
     }
 
+    // we do not take possible next data ticks into consideration,
+    // as we don't need to be activated only for secondary data
     emData.parent.fold(
       _ ! Completion(
         self,
