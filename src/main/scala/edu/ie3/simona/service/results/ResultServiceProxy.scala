@@ -393,7 +393,7 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
-      val (allResults, changedResults, notUpdated) =
+      val (updatedResultStore, changedResults, notUpdated) =
         (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
           .foldLeft(
             stateData.results,
@@ -432,11 +432,12 @@ object ResultServiceProxy {
       stateData.notifyListener(changedResults.groupBy(_.getInputModel))
 
       stateData.copy(
-        results = allResults,
+        results = updatedResultStore,
         threeWindingResults = updatedThreeWindingResults,
         waitingForResults =
-          stateData.waitingForResults.removedAll(allResults.keys),
-        withoutUpdate = stateData.withoutUpdate -- allResults.keys ++ notUpdated,
+          stateData.waitingForResults.removedAll(updatedResultStore.keys),
+        withoutUpdate =
+          stateData.withoutUpdate -- updatedResultStore.keys ++ notUpdated,
       )
 
     case ParticipantResultEvent(systemParticipantResult) =>

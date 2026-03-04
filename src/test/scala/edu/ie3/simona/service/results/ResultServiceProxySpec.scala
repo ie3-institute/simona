@@ -27,7 +27,6 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 class ResultServiceProxySpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
-    with ConfigTestData
     with PowerFlowResultData
     with ThreeWindingResultTestData {
 
