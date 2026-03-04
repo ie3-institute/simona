@@ -27,7 +27,8 @@ import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
-import org.slf4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
+import squants.energy.PowerConversions.PowerNumeric
 import squants.{Dimensionless, Energy, Power, Time}
 
 import java.util.UUID
@@ -47,15 +48,16 @@ import scala.collection.immutable.SortedMap
   * @param objectiveFactory
   *   The factory creating asset variables and the optimization objective to
   *   use.
-  * @param logger
-  *   The logger to use.
   */
 final case class OptimizedFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
     objectiveFactory: ObjectiveFactory[? <: AssetStepVars],
-    logger: Logger,
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
+
+  private val logger: Logger = LoggerFactory.getLogger(
+    s"${classOf[OptimizedFlexStrat].getSimpleName}(${objectiveFactory.getClass.getSimpleName})"
+  )
 
   override def getServiceRegistrationData: ServiceRegistrationData = {
     ServiceRegistrationData(
@@ -115,27 +117,21 @@ final case class OptimizedFlexStrat(
     // we're only interested in the solutions for the current time step
     val assetCtrl = assetVars.map {
       case AssetVarContainer(assetUuid, assetVars) =>
-        val setPoint = assetVars
-          .map {
-            // Taking only the first result for set points
-            _.headOption
-              .getOrElse(
-                throw new CriticalFailureException(
-                  s"Empty results for asset $assetUuid"
-                )
-              ) match {
-              case (_, res) =>
-                // Operating point of first result
-                res.getOperationResult
-            }
+        val setPoint = assetVars.map {
+          // Taking only the first result for set points
+          _.headOption
+            .getOrElse(
+              throw new CriticalFailureException(
+                s"Empty results for asset $assetUuid"
+              )
+            ) match {
+            case (_, res) =>
+              // Operating point of first result
+              res.getOperationResult
           }
+        }
           // Add up solutions for all asset assigned to the same UUID
-          .reduceOption(_ + _)
-          .getOrElse(
-            throw new CriticalFailureException(
-              s"No results present for asset $assetUuid"
-            )
-          )
+          .sum
         assetUuid -> setPoint
     }
 
