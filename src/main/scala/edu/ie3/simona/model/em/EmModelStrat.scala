@@ -100,7 +100,7 @@ object EmModelStrat {
 
   def parseOptimizingModel
       : PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
-    // todo a lot of these parameters should be configurable
+    // todo a lot of these parameters should be configurable -> issue #1725
 
     val objectiveFunction
         : PartialFunction[String, ObjectiveFactory[? <: AssetStepVars]] = {
