@@ -68,7 +68,7 @@ class SimonaStandaloneSetup(
 
   override def logOutputDir: Path = resultFileHierarchy.logOutputDir
 
-  override def gridAgents(using
+  override def gridAgentCoordinator(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): ActorRef[GridAgentCoordinator.Message] = {

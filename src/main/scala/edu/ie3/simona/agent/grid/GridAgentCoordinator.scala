@@ -82,7 +82,8 @@ object GridAgentCoordinator {
     * @param gridAgent
     *   Reference of the grid.
     * @param results
-    *   An option for the power flow results.
+    *   An option for the power flow results. In case of a failed power flow the
+    *   results will be empty.
     */
   final case class PowerFlowResults(
       gridAgent: GridAgentRef,
@@ -119,6 +120,8 @@ object GridAgentCoordinator {
     *   A set of references of all slack grid agents.
     * @param nodeToSubgrid
     *   A map: node uuid to subgrid number.
+    * @param hasRunCongestionManagement
+    *   A boolean flag to determine if the congestion management was run.
     */
   final case class StateData(
       scheduler: ActorRef[SchedulerMessage],
@@ -130,7 +133,11 @@ object GridAgentCoordinator {
       gridAgentsRef: Set[GridAgentRef] = Set.empty,
       superiorGrids: Set[GridAgentRef] = Set.empty,
       nodeToSubgrid: Map[UUID, Int] = Map.empty,
+      hasRunCongestionManagement: Boolean = false,
   ) {
+
+    def runCongestionManagement: Boolean =
+      congestionManagementParams.detectionEnabled && !hasRunCongestionManagement
 
     /** Returns an option for the next tick.
       */
@@ -142,7 +149,7 @@ object GridAgentCoordinator {
       * @return
       *   A [[ReceiveDataMap]].
       */
-    def awaitingData[T]: AwaitingData[T] = ReceiveDataMap(gridAgentsRef)
+    def createAwaitingData[T]: AwaitingData[T] = ReceiveDataMap(gridAgentsRef)
 
     /** Method to inform all grid agents.
       * @param msg
@@ -154,7 +161,7 @@ object GridAgentCoordinator {
     /** Method to inform all grid agents.
       * @param msgBuilder
       *   Builder that uses a reference to build the message that should be
-      *   send.
+      *   sent.
       */
     def informGridAgents(msgBuilder: GridAgentRef => GridAgent.Message): Unit =
       gridAgentsRef.foreach(ref => ref ! msgBuilder(ref))
@@ -278,16 +285,24 @@ object GridAgentCoordinator {
     * @return
     *   A new behavior.
     */
-  private[grid] def idle(stateData: StateData): Behavior[Message] =
-    Behaviors.receivePartial { case (_, activation: Activation) =>
-      // informing all grid agents
-      stateData.informGridAgents(activation)
-
-      awaitGridSimulation(
-        stateData.copy(currentTick = activation.tick),
-        stateData.awaitingData,
-      )
+  private[grid] def idle(stateData: StateData): Behavior[Message] = {
+    Behaviors.receivePartial { case (_, Activation(tick)) =>
+      initPowerFlow(stateData, tick)
     }
+  }
+
+  private def initPowerFlow(
+      stateData: StateData,
+      tick: Long,
+  ): Behavior[Message] = {
+    // informing all grid agents
+    stateData.informGridAgents(DoPowerFlowTrigger(tick))
+
+    awaitGridSimulation(
+      stateData.copy(currentTick = tick),
+      stateData.createAwaitingData,
+    )
+  }
 
   /** Behavior that waits for finished grid simulations.
     * @param stateData
@@ -308,7 +323,7 @@ object GridAgentCoordinator {
         // still waiting for results
         awaitGridSimulation(stateData, updated)
 
-      } else if stateData.congestionManagementParams.detectionEnabled then {
+      } else if stateData.runCongestionManagement then {
         // handle congestion management
         val currentTick = stateData.currentTick
         val results = updated.receivedData
@@ -320,18 +335,12 @@ object GridAgentCoordinator {
 
         // waiting for results
         awaitCongestionResults(
-          stateData,
+          stateData.copy(hasRunCongestionManagement = true),
           ReceiveDataMap(stateData.superiorGrids),
         )
 
       } else {
-        // no congestion management is configured
-        val resultProxy = stateData.resultProxy
-        updated.values.flatten.foreach(res => resultProxy ! res)
-
-        stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
-
-        idle(stateData)
+        finishTick(stateData, updated.values.flatten, ctx)
       }
   }
 
@@ -366,7 +375,7 @@ object GridAgentCoordinator {
           )
 
           stateData.superiorGrids.foreach(_ ! FinishStep)
-          finishTick(stateData, stateData.awaitingData)
+          initPowerFlow(stateData, stateData.currentTick)
 
         } else {
           ctx.log.debug(
@@ -381,7 +390,7 @@ object GridAgentCoordinator {
           )
 
           stateData.superiorGrids.foreach(_ ! FinishStep)
-          finishTick(stateData, stateData.awaitingData)
+          initPowerFlow(stateData, stateData.currentTick)
         }
       }
   }
@@ -389,30 +398,22 @@ object GridAgentCoordinator {
   /** Method to finish the current tick.
     * @param stateData
     *   The state data of the coordinator.
-    * @param awaitingData
-    *   Map that stores the already received data.
     * @return
     *   A new behavior.
     */
   private def finishTick(
       stateData: StateData,
-      awaitingData: AwaitingData[Option[PowerFlowResultEvent]],
-  ): Behavior[Message] = Behaviors.receivePartial {
-    case (ctx, PowerFlowResults(gridAgent, results)) =>
-      val updated = awaitingData.addData(gridAgent, results)
+      results: Iterable[PowerFlowResultEvent],
+      ctx: ActorContext[Message],
+  ): Behavior[Message] = {
 
-      if updated.nonComplete then {
-        // still waiting for results
-        awaitGridSimulation(stateData, updated)
-      } else {
-        // no congestion management is configured
-        val resultProxy = stateData.resultProxy
-        updated.values.flatten.foreach(res => resultProxy ! res)
+    // no congestion management is configured
+    val resultProxy = stateData.resultProxy
+    results.foreach(res => resultProxy ! res)
 
-        stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
+    stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
 
-        idle(stateData)
-      }
+    idle(stateData)
   }
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

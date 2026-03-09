@@ -63,5 +63,5 @@ object Congestions {
       congestedComponents.transformer2Ws.nonEmpty || congestedComponents.transformer3Ws.nonEmpty,
     )
 
-  def none: Congestions = Congestions(false, false, false)
+  lazy val none: Congestions = Congestions(false, false, false)
 }

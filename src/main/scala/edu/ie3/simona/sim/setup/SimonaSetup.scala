@@ -231,7 +231,8 @@ trait SimonaSetup {
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage]
 
-  /** Creates all the needed grid agents.
+  /** Creates the grid agent coordinator which will create and coordinate all
+    * grid agents.
     *
     * @param context
     *   Actor context to use.
@@ -240,7 +241,7 @@ trait SimonaSetup {
     * @return
     *   The reference to the [[GridAgentCoordinator]].
     */
-  def gridAgents(using
+  def gridAgentCoordinator(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): ActorRef[GridAgentCoordinator.Message]

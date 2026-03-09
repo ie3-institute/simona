@@ -142,7 +142,7 @@ class DBFSAlgorithmSupGridSpec
           Seq(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
         // send the start grid simulation trigger
-        superiorGridAgent ! Activation(3600)
+        superiorGridAgent ! DoPowerFlowTrigger(3600)
 
         for sweepNo <- 0 to 1 do {
 
@@ -245,7 +245,7 @@ class DBFSAlgorithmSupGridSpec
           Seq(UUID.fromString("9fe5fa33-6d3b-4153-a829-a16f4347bc4e"))
 
         // send the start grid simulation trigger
-        superiorGridAgent ! Activation(3600)
+        superiorGridAgent ! DoPowerFlowTrigger(3600)
 
         // go on with testing the sweep behaviour
         for sweepNo <- 0 to maxNumberOfTestSweeps do {

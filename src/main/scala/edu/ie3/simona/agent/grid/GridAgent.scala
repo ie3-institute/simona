@@ -111,15 +111,17 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Message],
   ): Behavior[Message] = Behaviors.receivePartial {
-    case (ctx, activation: Activation) =>
+    case (ctx, doPowerFlowTrigger: DoPowerFlowTrigger) =>
       // inform the result proxy that this grid agent will send new results
       constantData.environmentRefs.resultProxy ! ExpectResult(
         gridAgentBaseData.assets,
-        activation.tick,
+        doPowerFlowTrigger.tick,
       )
 
-      ctx.self ! activation
-      buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
+      ctx.self ! doPowerFlowTrigger
+      buffer.unstashAll(
+        simulateGrid(gridAgentBaseData, doPowerFlowTrigger.tick)
+      )
 
     case (ctx, DoCongestionManagement(currentTick, results)) =>
       startCongestionManagement(

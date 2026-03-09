@@ -128,7 +128,7 @@ object SimonaSim {
 
         /* start grid agents  */
         val gridAgentCoordinator =
-          simonaSetup.gridAgents(using ctx, environmentRefs)
+          simonaSetup.gridAgentCoordinator(using ctx, environmentRefs)
 
         val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,

@@ -20,13 +20,13 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.{GridAgent, GridResultsSupport}
 import edu.ie3.simona.agent.grid.data.GridAgentData
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
   PowerFlowDoneData,
 }
+import edu.ie3.simona.agent.grid.{GridAgent, GridResultsSupport}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.agent.participant.ParticipantAgent.{
   GridSimulationFinished,
@@ -35,8 +35,6 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
 import org.apache.pekko.actor.typed.scaladsl.{
@@ -78,7 +76,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // first part of the grid simulation, same for all gridAgents on all levels
         // we start with a forward-sweep by requesting the data from our child assets and grids (if any)
         case (
-              activation: Activation,
+              _: DoPowerFlowTrigger,
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           log.debug(
@@ -108,7 +106,8 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             gridAgentBaseData.superiorGridRefs,
           )
 
-          simulateGrid(gridAgentBaseData, activation.tick)
+          // the tick should not have changed
+          simulateGrid(gridAgentBaseData, currentTick)
 
         // if we receive power values as response on our request, we process them here
         case (
@@ -488,7 +487,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       (message, gridAgentData) match {
         // main method for power flow calculations
         case (
-              DoPowerFlowTrigger(currentTick, _),
+              DoPowerFlowTrigger(currentTick),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           log.debug(
@@ -888,10 +887,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // we want to answer the requests from our parent
         buffer.unstashAll(simulateGrid(powerFlowDoneData, currentTick))
       } else {
-        ctx.self ! DoPowerFlowTrigger(
-          currentTick,
-          gridAgentBaseData.currentSweepNo,
-        )
+        ctx.self ! DoPowerFlowTrigger(currentTick)
 
         handlePowerFlowCalculations(gridAgentBaseData, currentTick)
       }
@@ -1007,7 +1003,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
     // we need an activation for the next tick
-    ctx.self ! Activation(currentTick)
+    ctx.self ! DoPowerFlowTrigger(currentTick)
 
     simulateGrid(gridAgentBaseData, currentTick)
   }

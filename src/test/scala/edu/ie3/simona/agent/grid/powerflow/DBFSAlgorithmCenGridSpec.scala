@@ -179,7 +179,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! Activation(3600)
+      centerGridAgent ! DoPowerFlowTrigger(3600)
 
       resultProxy.expectMessageType[ExpectResult] match {
         case ExpectResult(assets, tick, waitForSetPoint) =>

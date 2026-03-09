@@ -204,7 +204,7 @@ class DBFSAlgorithmParticipantSpec
 
       // send the start grid simulation trigger
       // the gird agent should send a RequestAssetPowerMessage to the load agent
-      gridAgentWithParticipants ! Activation(3600)
+      gridAgentWithParticipants ! DoPowerFlowTrigger(3600)
 
       // we expect a request for voltage values of our slack node
       // (voltages are requested by our agent under test from the superior grid)

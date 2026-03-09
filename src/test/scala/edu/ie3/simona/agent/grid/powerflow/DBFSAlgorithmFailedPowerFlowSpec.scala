@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
   FinishedInitialization,
   PowerFlowResults,
@@ -17,11 +16,11 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
 }
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -154,7 +153,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val sweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! Activation(3600)
+      centerGridAgent ! DoPowerFlowTrigger(3600)
 
       resultProxy.expectMessageType[ExpectResult] match {
         case ExpectResult(assets, tick, waitForSetPoint) =>
@@ -263,7 +262,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       val sweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! Activation(3600)
+      centerGridAgent ! DoPowerFlowTrigger(3600)
 
       resultProxy.expectMessageType[ExpectResult] match {
         case ExpectResult(assets, tick, waitForSetPoint) =>
@@ -397,7 +396,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
       scheduleActivationMsg.unlockKey shouldBe None
 
       // send the start grid simulation trigger
-      slackGridAgent ! Activation(3600)
+      slackGridAgent ! DoPowerFlowTrigger(3600)
 
       resultProxy.expectMessageType[ExpectResult] match {
         case ExpectResult(assets, tick, waitForSetPoint) =>
