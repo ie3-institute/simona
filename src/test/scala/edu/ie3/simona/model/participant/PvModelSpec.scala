@@ -46,6 +46,7 @@ class PvModelSpec
 
   // testing tolerances
   private given Power = Watts(1e-6)
+  private given ApparentPower = Kilovoltamperes(1e-6)
   private given Energy = WattHours(1e-6)
 
   // build the NodeInputModel (which defines the location of the pv input model)
@@ -86,9 +87,6 @@ class PvModelSpec
 
   // build the PvModel
   val pvModel: PvModel = PvModel.Factory(pvInput).create()
-
-  private implicit val apparentPowerTolerance: ApparentPower =
-    Kilovoltamperes(1e-10)
 
   "A PV Model" should {
 
@@ -185,7 +183,13 @@ class PvModelSpec
       val flexOptions =
         pvModel
           .flexModels(FlexType.EnergyBoundaries)
-          .determineFlexOptions(state, DataTimeType.Current)
+          .determineFlexOptions(
+            state,
+            DataTimeType.CurrentAndForecast(
+              forecastLength = Hours(4),
+              forecastResolution = Hours(1),
+            ),
+          )
 
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>

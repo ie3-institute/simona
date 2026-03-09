@@ -14,6 +14,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   NoDataProvision,
 }
 import edu.ie3.simona.service.Data
+import edu.ie3.simona.service.Data.SecondaryData
 import org.apache.pekko.actor.typed.ActorRef
 
 /** This class holds received data, knows what data is expected and can thus
@@ -121,6 +122,18 @@ final case class DataInputHandler(
     */
   def getData: Seq[Data] =
     receivedData.values.map(_.data).toSeq
+
+  /** Returns all received secondary data.
+    *
+    * @return
+    *   The received secondary data.
+    */
+  def getSecondaryData: Seq[SecondaryData] =
+    receivedData.values.flatMap {
+      case ReceivedData(data: SecondaryData, _) =>
+        Some(data)
+      case _ => None
+    }.toSeq
 
 }
 
