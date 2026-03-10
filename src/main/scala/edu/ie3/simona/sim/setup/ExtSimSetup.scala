@@ -82,7 +82,7 @@ object ExtSimSetup {
   ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
     case (extSimSetupData, (extLink, index)) =>
       // external simulation always needs at least an ExtSimAdapter
-      implicit val extSimAdapter: ActorRef[ExtSimAdapter.Request] =
+      given extSimAdapter: ActorRef[ExtSimAdapter.Request] =
         context.spawn(
           ExtSimAdapter(scheduler),
           s"ExtSimAdapter-$index",
@@ -98,6 +98,7 @@ object ExtSimSetup {
         extLink.setup(setUpData)
         extLink.getExtSimulation
       }.map { extSimulation =>
+        // sets the data connection and the setup data explicitly
         extSimulation.setDataConnection(extSimDataConnection)
         extSimulation.setSetupData(setUpData)
 
