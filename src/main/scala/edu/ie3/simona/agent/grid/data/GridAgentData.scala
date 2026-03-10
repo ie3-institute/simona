@@ -51,6 +51,8 @@ object GridAgentData {
   /** Class holding some [[GridAgent]] values that can be considered constant
     * across simulation time.
     *
+    * @param gridAgentCoordinator
+    *   The reference of the grid agent coordinator.
     * @param environmentRefs
     *   Containing actor references, that are relevant for the environment of
     *   the grid agent.
@@ -63,16 +65,14 @@ object GridAgentData {
     *   Start time of the simulation.
     * @param simEndTime
     *   Send time of the simulation.
-    * @param congestionManagementParams
-    *   The parameters for the congestion management.
     */
   final case class GridAgentConstantData(
+      gridAgentCoordinator: ActorRef[GridAgentCoordinator.Message],
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig.Simona,
       resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
-      congestionManagementParams: CongestionManagementParams,
   ) {
     def notifyListeners(event: ResultEvent): Unit =
       environmentRefs.resultProxy ! event
