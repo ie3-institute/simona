@@ -180,7 +180,7 @@ object EmAgent {
 
       maybeDetermineFlex(emData, modelShell, inputHandler, updatedCore)
 
-    case msg: DataMessage =>
+    case (ctx, msg: DataMessage) =>
       val updatedInputHandler = inputHandler.handleDataMessage(msg)
 
       maybeDetermineFlex(
@@ -278,10 +278,6 @@ object EmAgent {
         flexOptionsCore,
       )
     }
-
-    case (ctx, unhandled) =>
-      ctx.log.warn(s"Unhandled (awaiting options): $unhandled")
-      Behaviors.same
   }
 
   /** Behavior of an [[EmAgent]] waiting for a flex control message to be

@@ -73,6 +73,7 @@ object ExtSimSetup {
       args: Array[String],
       config: Config,
       grid: JointGridContainer,
+      inputBaseDirectory: Path,
       outputBaseDirectory: Path,
   )(using
       context: ActorContext[?],
@@ -90,8 +91,7 @@ object ExtSimSetup {
 
       // creating the data connection
       val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-
-      val setUpData = new SetupData(args, config, grid, outputBaseDirectory)
+      val setUpData = new SetupData(args, config, grid, inputBaseDirectory, outputBaseDirectory)
 
       Try {
         // sets up the external simulation

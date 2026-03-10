@@ -65,6 +65,8 @@ trait SimonaSetup {
       simonaConfig.simona.input.grid.datasource
     )
 
+  lazy val baseInputPath: Path = Path.of(simonaConfig.simona.input.baseInputDir)
+  
   /** Directory of the log output.
     */
   def logOutputDir: Path
