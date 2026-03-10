@@ -749,7 +749,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         gridAgentBaseData.powerFlowParams,
       )(using ctx.log) match {
         case validResult: ValidNewtonRaphsonPFResult =>
-          val updatedGridAgentBaseData: GridAgentBaseData = gridAgentBaseData
+          val updatedGridAgentBaseData = gridAgentBaseData
             .storeSweepDataAndClearReceiveMaps(validResult)
             .copy(currentSweepNo = currentSweepNo + 1)
 
@@ -759,10 +759,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             ctx.log.debug(
               "Sweep value store is empty. Starting a second sweep ..."
             )
-            goToSimulateGridForNextSweepWith(
-              updatedGridAgentBaseData,
-              currentTick,
-            )
+
+            // we need a trigger to start the next power flow simulation
+            ctx.self ! DoPowerFlowTrigger(currentTick)
+            simulateGrid(updatedGridAgentBaseData, currentTick)
+
           } else {
             ctx.log.debug(
               "Sweep value store is not empty. Check for deviation ..."
@@ -809,10 +810,11 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
                   "Deviation between the last two sweeps: {}",
                   deviation,
                 )
-                goToSimulateGridForNextSweepWith(
-                  updatedGridAgentBaseData,
-                  currentTick,
-                )
+
+                // we need a trigger to start the next power flow simulation
+                ctx.self ! DoPowerFlowTrigger(currentTick)
+                simulateGrid(updatedGridAgentBaseData, currentTick)
+
               case None => // we're done
                 ctx.log.debug("We found a result! :-)")
 
@@ -978,34 +980,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       ctx.log.error("Stopping because of failed power flow.")
       Behaviors.stopped
     } else simulateGrid(gridAgentBaseData, currentTick)
-  }
-
-  /** Normally only reached by the superior (dummy) agent!
-    *
-    * Triggers a [[Behavior]] transition to [[simulateGrid]], informs the
-    * [[edu.ie3.simona.scheduler.Scheduler]] about the finish of this sweep and
-    * requests a new trigger for itself for a new sweep
-    *
-    * @param gridAgentBaseData
-    *   the [[GridAgentBaseData]] that should be used in the next sweep in
-    *   [[simulateGrid]]
-    * @param currentTick
-    *   current tick the agent is in
-    * @return
-    *   a behavior transition to [[simulateGrid]]
-    */
-  private def goToSimulateGridForNextSweepWith(
-      gridAgentBaseData: GridAgentBaseData,
-      currentTick: Long,
-  )(using
-      ctx: ActorContext[GridAgent.Message],
-      constantData: GridAgentConstantData,
-      buffer: StashBuffer[GridAgent.Message],
-  ): Behavior[GridAgent.Message] = {
-    // we need an activation for the next tick
-    ctx.self ! DoPowerFlowTrigger(currentTick)
-
-    simulateGrid(gridAgentBaseData, currentTick)
   }
 
   /** Triggers an execution of the pekko `ask` pattern for all power values of
