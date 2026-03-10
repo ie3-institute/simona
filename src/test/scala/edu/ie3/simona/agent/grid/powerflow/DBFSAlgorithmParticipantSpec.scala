@@ -7,7 +7,11 @@
 package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  FinishedInitialization,
+  PowerFlowResults,
+}
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -75,8 +79,10 @@ class DBFSAlgorithmParticipantSpec
     TestProbe[WeatherService.Message]("weatherService")
   private val loadProfileService =
     TestProbe[LoadProfileService.Message]("loadProfileService")
+  private val gridAgentCoordinator: TestProbe[GridAgentCoordinator.Message] =
+    TestProbe("gridAgentCoordinator")
 
-  private given environmentRefs: EnvironmentRefs = EnvironmentRefs(
+  private val environmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
@@ -89,12 +95,12 @@ class DBFSAlgorithmParticipantSpec
   )
 
   given GridAgentConstantData = GridAgentConstantData(
+    gridAgentCoordinator.ref,
     environmentRefs,
     simonaConfig.simona,
     3600,
     startTime,
     endTime,
-    CongestionManagementParams(false),
   )
 
   private val superiorGridAgent = SuperiorGA(
@@ -167,12 +173,11 @@ class DBFSAlgorithmParticipantSpec
 
       gridAgentWithParticipants ! CompleteInitialization(false)
 
-      // the grid agent will be scheduled for tick 3600
-      scheduler.expectMessage(
-        ScheduleActivation(gridAgentWithParticipants, 3600)
-      )
+      // mock scheduling behavior
+      gridAgentCoordinator
+        .expectMessageType[FinishedInitialization]
+        .gridRef shouldBe gridAgentWithParticipants
 
-      // init load
       loadAgent ! Activation(INIT_SIM_TICK)
 
       val serviceRegistrationMsg = primaryService
@@ -193,22 +198,13 @@ class DBFSAlgorithmParticipantSpec
 
     }
 
-    s"go to SimulateGrid when it receives an activity start trigger" in {
-
-      // send init data to agent
-      gridAgentWithParticipants ! Activation(3600)
-
-      // we expect a completion message
-      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
-    }
-
     s"check the request asset power message indirectly" in {
 
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
       // the gird agent should send a RequestAssetPowerMessage to the load agent
-      gridAgentWithParticipants ! Activation(3600)
+      gridAgentWithParticipants ! DoPowerFlowTrigger(3600)
 
       // we expect a request for voltage values of our slack node
       // (voltages are requested by our agent under test from the superior grid)
@@ -292,6 +288,14 @@ class DBFSAlgorithmParticipantSpec
       // normally the superior grid agent would send a FinishGridSimulationTrigger to the inferior grid agent after the convergence
       // (here we do it by hand)
       gridAgentWithParticipants ! FinishGridSimulationTrigger(3600L)
+
+      // after all grids have received a FinishGridSimulationTrigger, the coordinator should receive no power flow results
+      gridAgentCoordinator
+        .expectMessageType[PowerFlowResults]
+        .gridAgent shouldBe gridAgentWithParticipants
+
+      // the grid agent coordinator sends a completion message to the scheduler
+      scheduler ! Completion(gridAgentCoordinator.ref, Some(7200))
 
       scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
     }

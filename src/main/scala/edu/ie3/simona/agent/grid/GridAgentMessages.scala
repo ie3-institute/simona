@@ -79,7 +79,7 @@ object GridAgentMessages {
     * @param tick
     *   Current tick.
     */
-  final case class DoPowerFlowTrigger(tick: Long, currentSweepNo: Int)
+  final case class DoPowerFlowTrigger(tick: Long)
       extends GridAgent.InternalRequest
 
   /** Trigger used inside of [[DBFSAlgorithm]] to activate the superior grid
