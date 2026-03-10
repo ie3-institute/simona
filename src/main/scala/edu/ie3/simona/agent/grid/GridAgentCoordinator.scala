@@ -374,9 +374,6 @@ object GridAgentCoordinator {
             s"No congestions found. Finishing the congestion management."
           )
 
-          stateData.superiorGrids.foreach(_ ! FinishStep)
-          initPowerFlow(stateData, stateData.currentTick)
-
         } else {
           ctx.log.debug(
             s"Congestion overall: $allCongestions"
@@ -388,10 +385,10 @@ object GridAgentCoordinator {
           ctx.log.info(
             s"There were some congestions that could not be resolved for timestamp: $timestamp."
           )
-
-          stateData.superiorGrids.foreach(_ ! FinishStep)
-          initPowerFlow(stateData, stateData.currentTick)
         }
+
+        stateData.superiorGrids.foreach(_ ! FinishStep)
+        initPowerFlow(stateData, stateData.currentTick)
       }
   }
 
