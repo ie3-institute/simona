@@ -112,7 +112,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       buffer: StashBuffer[Message],
   ): Behavior[Message] = Behaviors.receivePartial {
     case (ctx, doPowerFlowTrigger: DoPowerFlowTrigger) =>
-      if activation.tick >= constantData.resolution then {
+      if doPowerFlowTrigger.tick >= constantData.resolution then {
         // inform the result proxy that this grid agent will send new results
         constantData.environmentRefs.resultProxy ! ExpectResult(
           gridAgentBaseData.assets,
