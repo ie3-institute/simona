@@ -12,6 +12,7 @@ import edu.ie3.simona.agent.grid.GridAgent.{
   finishCongestionManagement,
   unsupported,
 }
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.CongestionResult
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
 import edu.ie3.simona.agent.grid.congestion.Congestions
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.*
@@ -131,35 +132,16 @@ trait CongestionDetection {
     // updating the state data with received data from inferior grids
     val updatedData = awaitingData.addData(response.sender, response.value)
 
-    if stateData.gridAgentBaseData.isSuperior then {
-      // if we are the superior grid, we find the next behavior
-
+    if stateData.gridAgentBaseData.isSuperior && updatedData.isComplete then {
       val updatedCongestions = stateData.congestions.combine(updatedData.values)
 
-      // checking for any congestion in the complete grid
-      if !updatedCongestions.hasCongestion then {
-        ctx.log.info(
-          s"No congestions found. Finishing the congestion management."
-        )
+      constantData.gridAgentCoordinator ! CongestionResult(
+        ctx.self,
+        updatedCongestions,
+      )
 
-        ctx.self ! FinishStep
-        checkForCongestion(stateData, updatedData)
-      } else {
-        ctx.log.debug(
-          s"Congestion overall: $updatedCongestions"
-        )
-
-        val timestamp =
-          constantData.simStartTime.plusSeconds(stateData.currentTick)
-
-        ctx.log.info(
-          s"There were some congestions that could not be resolved for timestamp: $timestamp."
-        )
-
-        ctx.self ! FinishStep
-        checkForCongestion(stateData, updatedData)
-      }
-
+      ctx.self ! FinishStep
+      checkForCongestion(stateData, updatedData)
     } else {
       // un-stash all messages
       buffer.unstashAll(checkForCongestion(stateData, updatedData))

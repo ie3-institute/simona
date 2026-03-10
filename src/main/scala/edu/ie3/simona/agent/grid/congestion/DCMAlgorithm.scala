@@ -52,13 +52,9 @@ trait DCMAlgorithm extends CongestionDetection {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Message],
   ): Behavior[Message] = {
-
-    // get result or build empty data
-    val congestionManagementData = results
-      .map(res => CongestionManagementData(gridAgentBaseData, currentTick, res))
-      .getOrElse(
-        CongestionManagementData.empty(gridAgentBaseData, currentTick)
-      )
+    // build the state data
+    val congestionManagementData =
+      CongestionManagementData(gridAgentBaseData, currentTick, results)
 
     ctx.self ! StartStep
     GridAgent.checkForCongestion(
