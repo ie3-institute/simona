@@ -16,7 +16,6 @@ import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
 
 import scala.concurrent.Await
-import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 /** Run a standalone simulation of simona
   *
@@ -47,8 +46,8 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
       config = simonaSetup.typeSafeConfig,
     )
 
-    given Scheduler = simonaSim.scheduler
-    given Timeout = simonaSetup.timeout
+    implicit val scheduler: Scheduler = simonaSim.scheduler
+    implicit val timeout: Timeout = simonaSetup.timeout
 
     // run the simulation
     val terminated = simonaSim.ask[SimonaEnded](ref => SimonaSim.Start(ref))
