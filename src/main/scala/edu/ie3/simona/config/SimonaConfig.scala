@@ -112,6 +112,7 @@ object SimonaConfig {
       powerflow: Option[Simona.Powerflow] = None,
       runtime: RuntimeConfig = RuntimeConfig(),
       simulationName: String,
+      simulationTimeout: FiniteDuration = 3.hours,
       time: Simona.Time,
   ) derives ConfigConvert
   object Simona {

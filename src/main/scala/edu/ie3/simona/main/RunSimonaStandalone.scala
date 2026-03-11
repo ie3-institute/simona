@@ -16,15 +16,13 @@ import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
 
 import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.duration.{DurationInt, FiniteDuration}
 
 /** Run a standalone simulation of simona
   *
   * @since 01.07.20
   */
 object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
-
-  override implicit val timeout: Timeout = Timeout(12.hours)
 
   override def setup(args: Array[String]): SimonaStandaloneSetup = {
     // get the config and prepare it with the provided args
@@ -49,12 +47,13 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
       config = simonaSetup.typeSafeConfig,
     )
 
-    implicit val scheduler: Scheduler = simonaSim.scheduler
+    given Scheduler = simonaSim.scheduler
+    given Timeout = simonaSetup.timeout
 
     // run the simulation
     val terminated = simonaSim.ask[SimonaEnded](ref => SimonaSim.Start(ref))
 
-    Await.result(terminated, timeout.duration) match {
+    Await.result(terminated, simonaSetup.simulationTimeout) match {
       case SimonaEnded(successful) =>
         simonaSim.terminate()
 

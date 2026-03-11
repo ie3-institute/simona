@@ -8,10 +8,7 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
-import edu.ie3.datamodel.models.input.container.{
-  JointGridContainer,
-  ThermalGrid,
-}
+import edu.ie3.datamodel.models.input.container.{JointGridContainer, ThermalGrid}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
@@ -28,9 +25,11 @@ import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.sim.SimonaSim
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import org.apache.pekko.util.Timeout
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
+import scala.concurrent.duration.FiniteDuration
 
 /** Trait that can be used to set up a customized simona simulation by providing
   * implementations for all setup information required by a
@@ -44,6 +43,9 @@ import java.time.ZonedDateTime
 trait SimonaSetup {
 
   val simonaConfig: SimonaConfig
+  
+  lazy val simulationTimeout: FiniteDuration = simonaConfig.simona.simulationTimeout
+  lazy val timeout: Timeout = Timeout(simulationTimeout)
 
   /** Main arguments of the executable. May be used to pass additional
     * configuration parameters to the setup e.g. for external simulation
