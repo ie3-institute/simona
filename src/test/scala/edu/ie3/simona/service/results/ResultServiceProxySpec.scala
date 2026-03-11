@@ -17,8 +17,8 @@ import edu.ie3.simona.ontology.messages.ResultMessage.{
   ResultResponse,
 }
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.result.PowerFlowResultData
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -222,7 +222,7 @@ class ResultServiceProxySpec
       val resultProvider = TestProbe[ResultResponse]("listener")
 
       val resultProxy =
-        spawn(ResultServiceProxy(Seq(listener.ref), dummyTime, 10))
+        spawn(ResultServiceProxy(Seq(listener.ref), startTime, 10))
 
       resultProxy ! PowerFlowResultEvent(
         Seq(dummyNodeResult),
@@ -261,7 +261,6 @@ class ResultServiceProxySpec
         Seq(dummyNodeResultModel),
         3600L,
         resultProvider.ref,
-        false,
       )
 
       // also request unchanged results
