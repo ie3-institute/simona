@@ -17,11 +17,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexType,
-  FlexibilityMessage,
-  PowerLimitFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -31,7 +27,7 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import squants.Power
 
-import java.util.UUID
+import java.util.{OptionalLong, UUID}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
@@ -213,8 +209,7 @@ case class EmCommunicationCore(
         // deactivate agents by sending an IssueNoControl message
         // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
 
-        val nextTick: java.util.Optional[java.lang.Long] =
-          if emStates.exists(_._2.isActivated) then {
+        val nextTick: OptionalLong = if emStates.exists(_._2.isActivated) then {
             requestEmCompletion.maybeNextTick
           } else getMaybeNextTick
 

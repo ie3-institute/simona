@@ -10,11 +10,7 @@ import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  EmFlexMessage,
-  EmServiceRegistration,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{EmFlexMessage, EmServiceRegistration, ServiceResponseMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -26,9 +22,9 @@ import squants.Power
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
-import java.util.{Optional, UUID}
+import java.util.{Optional, OptionalLong, UUID}
 import javax.measure.quantity.Power as PsdmPower
-import scala.jdk.OptionConverters.{RichOption, RichOptional}
+import scala.jdk.OptionConverters.{RichOption, RichOptional, RichOptionalLong}
 
 /** Trait for all em service cores.
   */
@@ -62,10 +58,12 @@ trait EmServiceCore {
     def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
   }
 
-  given Conversion[Optional[java.lang.Long], Option[Long]] =
-    (x: Optional[java.lang.Long]) => x.toScala.map(Long2long)
-  given Conversion[Option[Long], Optional[java.lang.Long]] =
-    (x: Option[Long]) => x.map(long2Long).toJava
+  given Conversion[OptionalLong, Option[Long]] =
+    (x: OptionalLong) => x.toScala
+  given Conversion[Option[Long], OptionalLong] = {
+      case Some(value) => OptionalLong.of(value)
+      case None => OptionalLong.empty
+    }
 
   /** Method to handle a registration message.
     *

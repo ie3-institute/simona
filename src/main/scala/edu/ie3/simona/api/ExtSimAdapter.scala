@@ -91,7 +91,7 @@ object ExtSimAdapter {
         // when multiple triggers have been sent, a completion message
         // always refers to the oldest tick
 
-        val newTick = extCompl.nextActivation().toScala.map(Long2long)
+        val newTick = extCompl.nextActivation().toScala
 
         scheduler ! Completion(ctx.self, newTick)
         ctx.log.debug(
