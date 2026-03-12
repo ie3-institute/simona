@@ -203,11 +203,9 @@ final case class EmServiceBaseCore(
       } else {
         log.info(s"Request to finish for tick '$tick' received.")
 
-        val nextTick = getMaybeNextTick
-
         (
           this,
-          Some(new EmCompletion(nextTick)),
+          Some(new EmCompletion(getMaybeNextTick(tick))),
         )
       }
 
@@ -328,35 +326,22 @@ final case class EmServiceBaseCore(
               msg.requestAtTick.map(uuid -> _)
             }
 
-          /*
-          val expectedCompletions = nextTick match {
-            case Some(t) =>
-              val keys = updatedNextActivation.filter { case (_, activation) =>
-                activation == t
-              }.keySet
-              ReceiveDataMap[UUID, FlexCompletion](keys)
-            case None =>
-              updated
-          }
-           */
+          val updatedStateData = copy(
+            completions = ReceiveDataMap.empty,
+            disaggregated = Map.empty,
+            sendOptionsToExt = false,
+            canHandleSetPoints = false,
+            nextActivation = updatedNextActivation,
+            internal = Set.empty,
+          )
 
           val msgToExt = if internal.nonEmpty then {
-            Some(new EmCompletion(updatedNextActivation.values.minOption))
+            Some(new EmCompletion(updatedStateData.getMaybeNextTick(tick)))
           } else extMsgOption
 
           log.info(s"Em service completed for tick: $tick")
 
-          (
-            copy(
-              completions = ReceiveDataMap.empty,
-              disaggregated = Map.empty,
-              sendOptionsToExt = false,
-              canHandleSetPoints = false,
-              nextActivation = updatedNextActivation,
-              internal = Set.empty,
-            ),
-            msgToExt,
-          )
+          (updatedStateData, msgToExt)
 
         } else {
           log.debug(s"Missing completion for: ${updated.getExpectedKeys}")

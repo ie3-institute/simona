@@ -8,7 +8,10 @@ package edu.ie3.simona.sim.setup
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
-import edu.ie3.datamodel.models.input.container.{JointGridContainer, ThermalGrid}
+import edu.ie3.datamodel.models.input.container.{
+  JointGridContainer,
+  ThermalGrid,
+}
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgent
@@ -43,8 +46,9 @@ import scala.concurrent.duration.FiniteDuration
 trait SimonaSetup {
 
   val simonaConfig: SimonaConfig
-  
-  lazy val simulationTimeout: FiniteDuration = simonaConfig.simona.simulationTimeout
+
+  lazy val simulationTimeout: FiniteDuration =
+    simonaConfig.simona.simulationTimeout
   lazy val timeout: Timeout = Timeout(simulationTimeout)
 
   /** Main arguments of the executable. May be used to pass additional
@@ -68,7 +72,7 @@ trait SimonaSetup {
     )
 
   lazy val baseInputPath: Path = Path.of(simonaConfig.simona.input.baseInputDir)
-  
+
   /** Directory of the log output.
     */
   def logOutputDir: Path

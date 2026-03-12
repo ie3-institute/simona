@@ -91,7 +91,13 @@ object ExtSimSetup {
 
       // creating the data connection
       val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-      val setUpData = new SetupData(args, config, grid, inputBaseDirectory, outputBaseDirectory)
+      val setUpData = new SetupData(
+        args,
+        config,
+        grid,
+        inputBaseDirectory,
+        outputBaseDirectory,
+      )
 
       Try {
         // sets up the external simulation

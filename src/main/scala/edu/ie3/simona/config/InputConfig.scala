@@ -22,10 +22,11 @@ import java.util.UUID
 import scala.deriving.Mirror
 
 /** Input configuration for simona.
- * @param baseInputDir
- * The base input directory for file based inputs (default: ./input).
+  * @param baseInputDir
+  *   The base input directory for file based inputs (default: ./input).
   * @param extSimDir
-  *   Option for the directory, where external simulation are placed in (default: None).
+  *   Option for the directory, where external simulation are placed in
+  *   (default: None).
   * @param grid
   *   Mainly the source for grid data.
   * @param loadProfile

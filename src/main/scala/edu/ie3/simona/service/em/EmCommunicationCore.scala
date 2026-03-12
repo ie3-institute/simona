@@ -9,18 +9,19 @@ package edu.ie3.simona.service.em
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
-import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.data.model.em.*
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, FlexibilityMessage, PowerLimitFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.{
+  FlexibilityMessage,
+  PowerLimitFlexOptions,
+}
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
-import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import org.apache.pekko.actor.typed.ActorRef
@@ -210,8 +211,8 @@ case class EmCommunicationCore(
         // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
 
         val nextTick: OptionalLong = if emStates.exists(_._2.isActivated) then {
-            requestEmCompletion.maybeNextTick
-          } else getMaybeNextTick
+          requestEmCompletion.maybeNextTick
+        } else getMaybeNextTick(tick)
 
         (
           this,
@@ -553,7 +554,7 @@ case class EmCommunicationCore(
               expectDataFrom = ReceiveMultiDataMap.empty,
               nextActivation = nextActivation ++ additionalActivation,
             ),
-            Some(new EmCompletion(getMaybeNextTick)),
+            Some(new EmCompletion(getMaybeNextTick(tick))),
           )
         } else {
           val msgToExt = getMsgToExtOption

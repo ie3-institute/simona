@@ -8,14 +8,20 @@ package edu.ie3.simona.service.primary
 
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.api.ontology.DataMessageFromExt
-import edu.ie3.simona.api.ontology.primary.{PrimaryDataMessageFromExt, ProvidePrimaryData}
+import edu.ie3.simona.api.ontology.primary.{
+  PrimaryDataMessageFromExt,
+  ProvidePrimaryData,
+}
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.RichValue
-import edu.ie3.simona.service.ServiceStateData.{InitializeServiceStateData, ServiceBaseStateData}
+import edu.ie3.simona.service.ServiceStateData.{
+  InitializeServiceStateData,
+  ServiceBaseStateData,
+}
 import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext

@@ -122,9 +122,12 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         ctx.self,
         Some(activation.tick),
       )
-      
+
       // inform the result proxy that this grid agent will send new results
-      constantData.environmentRefs.resultProxy ! ExpectResult(gridAgentBaseData.assets, activation.tick)
+      constantData.environmentRefs.resultProxy ! ExpectResult(
+        gridAgentBaseData.assets,
+        activation.tick,
+      )
 
       buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
 
