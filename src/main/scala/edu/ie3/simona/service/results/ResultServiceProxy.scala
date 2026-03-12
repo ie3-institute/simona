@@ -191,6 +191,14 @@ object ResultServiceProxy {
       }
     }
 
+    /** Method used to stop waiting for results.
+      * @param uuid
+      *   Of the entity for which we no longer need to wait for results.
+      * @param tick
+      *   For which we no longer need to wait for the result.
+      * @return
+      *   A copy of the state data with update information.
+      */
     def stopWaitingForResult(uuid: UUID, tick: Long): ResultServiceStateData = {
       val updated = waitingForResults.get(uuid) match {
         case Some(value) if value <= tick =>
