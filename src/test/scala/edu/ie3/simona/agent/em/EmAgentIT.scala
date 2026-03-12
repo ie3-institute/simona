@@ -288,9 +288,10 @@ class EmAgentIT
           ExpectResult(pvInput.getUuid, 7200, true)
         )
 
-        // we receive update messages, since new set points were provided
         resultServiceProxy.receiveMessages(3) should contain allOf (
+          // expect no result, since we are still waiting for a new set point
           NoResult(storageInput.getUuid, 7200),
+          // we expect results, since we received new set points
           ExpectResult(pvInput.getUuid, 7200),
           ExpectResult(storageInput.getUuid, 7200)
         )
