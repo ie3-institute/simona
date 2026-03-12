@@ -54,6 +54,9 @@ Scala and uses pekko as its main library for concurrent calculation and to repre
 - Bao, Johannes (ReCoDE)
 - Hohmann, Julian (HoLa)
 
+#### 4. Generation
+- Staudt, Marius (ReCoDE)
+
 ### Scientific Assistants
 - Krause, Mia
 - Peter, Sebastian
