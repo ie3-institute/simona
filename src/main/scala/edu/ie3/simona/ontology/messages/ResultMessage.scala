@@ -22,11 +22,15 @@ object ResultMessage {
     *   For which results are requested.
     * @param replyTo
     *   The actor that should receive the results.
+    * @param sendUnchangedResults
+    *   If [[true]] results that have not changed are included in the
+    *   [[ResultResponse]].
     */
   final case class RequestResult(
       requestedResults: Seq[UUID],
       tick: Long,
       replyTo: ActorRef[ResultResponse],
+      sendUnchangedResults: Boolean = false,
   )
 
   /** Response message that is sent to a listener or

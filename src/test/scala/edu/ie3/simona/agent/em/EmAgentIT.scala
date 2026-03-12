@@ -26,7 +26,10 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
@@ -91,7 +94,7 @@ class EmAgentIT
     "having load, pv and storage agents connected" should {
       "be initialized correctly and run through some activations" in {
         val resultServiceProxy =
-          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
+          TestProbe[ResultEvent | ExpectResult | NoResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -285,8 +288,10 @@ class EmAgentIT
           ExpectResult(pvInput.getUuid, 7200, true)
         )
 
-        // we receive update messages, since new set points were provided
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+        resultServiceProxy.receiveMessages(3) should contain allOf (
+          // expect no result, since we are still waiting for a new set point
+          NoResult(storageInput.getUuid, 7200),
+          // we expect results, since we received new set points
           ExpectResult(pvInput.getUuid, 7200),
           ExpectResult(storageInput.getUuid, 7200)
         )
@@ -376,7 +381,7 @@ class EmAgentIT
     "having load, pv and heat pump agents connected" should {
       "be initialized correctly and run through some activations" in {
         val resultServiceProxy =
-          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
+          TestProbe[ResultEvent | ExpectResult | NoResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
@@ -942,7 +947,7 @@ class EmAgentIT
     "having a pv and a load agent connected" should {
       "have correct values also for agents with limited operation time" in {
         val resultServiceProxy =
-          TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
+          TestProbe[ResultEvent | ExpectResult | NoResult]("ResultServiceProxy")
         val primaryServiceProxy =
           TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
         val weatherService = TestProbe[WeatherService.Message]("WeatherService")
