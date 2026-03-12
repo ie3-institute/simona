@@ -25,10 +25,14 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
-import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.Coordinate
@@ -82,7 +86,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
 
         val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
           primaryServiceProxy = primaryService.ref,
@@ -129,7 +133,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
 
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
           primaryServiceProxy = primaryService.ref,
@@ -185,7 +189,7 @@ class ParticipantAgentInitSpec
         val em = createTestProbe[FlexResponse]()
 
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
           primaryServiceProxy = primaryService.ref,
@@ -246,7 +250,7 @@ class ParticipantAgentInitSpec
         val em = createTestProbe[FlexResponse]()
 
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
           primaryServiceProxy = primaryService.ref,
@@ -331,7 +335,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
 
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
@@ -397,7 +401,7 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
 
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
@@ -458,7 +462,7 @@ class ParticipantAgentInitSpec
         val em = createTestProbe[FlexResponse]()
 
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
@@ -537,7 +541,7 @@ class ParticipantAgentInitSpec
         val em = createTestProbe[FlexResponse]()
 
         val primaryService = createTestProbe[Any]()
-        val resultServiceProxy = createTestProbe[ResultEvent | ExpectResult]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(

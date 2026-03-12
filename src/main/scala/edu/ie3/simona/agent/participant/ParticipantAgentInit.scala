@@ -41,7 +41,10 @@ import edu.ie3.simona.ontology.messages.{
   ServiceMessage,
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import edu.ie3.simona.service.{
   DataTimeType,
   ServiceRegistrationData,
@@ -77,7 +80,7 @@ object ParticipantAgentInit
     */
   final case class ParticipantRefs(
       primaryServiceProxy: ActorRef[ServiceMessage],
-      resultServiceProxy: ActorRef[ResultEvent | ExpectResult],
+      resultServiceProxy: ActorRef[ResultEvent | ExpectResult | NoResult],
       services: Map[ServiceType, ActorRef[ServiceMessage]],
   )
 

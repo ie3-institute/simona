@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapted EM initialization protocol [#1669](https://github.com/ie3-institute/simona/issues/1669)
 - Updated the publications and references with new publications [#1707](https://github.com/ie3-institute/simona/issues/1707)
 - Refactor initialization of `GridAgent` [#1686](https://github.com/ie3-institute/simona/issues/1686)
+- Update `README.md` and `AUTHORS.md` [#1728](https://github.com/ie3-institute/simona/issues/1728)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -109,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed HP model returning current tick as the next activation [#1622](https://github.com/ie3-institute/simona/issues/1622)
 - Disallowed EMs as inferiors of `PrioritizedFlexStrat` [#1712](https://github.com/ie3-institute/simona/issues/1712)
 - Fixed log spamming during night time due to no solar irradiance [#984](https://github.com/ie3-institute/simona/issues/984)
+- Fixed handling of power flow results in `ResultServiceProxy` [#1679](https://github.com/ie3-institute/simona/issues/1679)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
