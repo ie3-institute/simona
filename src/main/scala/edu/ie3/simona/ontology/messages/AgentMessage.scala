@@ -27,6 +27,11 @@ object AgentMessage {
         case f: FlexRequest => f.tick
       }
 
+    def disaggregated: Boolean = activation match {
+      case f: FlexActivation => f.disaggregated
+      case _                 => false
+    }
+
     def force: Boolean = activation match {
       case f: FlexActivation => f.force
       case _                 => false

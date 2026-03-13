@@ -7,6 +7,7 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -46,6 +47,11 @@ final case class EnergyBoundariesFlexOptions(
       energyBoundaries
         .map(_.powerLimits.getUpper)
         .sum,
+    )
+
+  override def toExt(recipient: UUID, model: UUID): em.FlexOptions =
+    throw new FlexException(
+      "Converting EnergyBoundariesFlexOptions to external model is not supported yet."
     )
 }
 

@@ -10,11 +10,12 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
+import edu.ie3.simona.ontology.messages.flex.*
+import edu.ie3.simona.ontology.messages.flex.FlexOptions.TYPE
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexInit,
   IssueFlexControl,
 }
-import edu.ie3.simona.ontology.messages.flex.*
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.DataTimeType
 import squants.Power
@@ -31,8 +32,9 @@ final case class EmModelShell[FO <: FlexOptions](
     id: String,
     modelStrategy: EmModelStrat[FO],
     aggregateFlex: EmAggregateFlex[FO],
+    sentDisaggregatedFlex: Boolean = false,
     private val modelToAssetInput: Map[UUID, AssetInput] = Map.empty,
-    private val flexOptions: Option[FO] = None,
+    private val flexOptions: Option[DisaggregatedFlexOptions[FO]] = None,
     private val flexOptionsExtra: FlexOptionsExtra[FO],
 ) {
 
@@ -64,19 +66,44 @@ final case class EmModelShell[FO <: FlexOptions](
   def getFlexType: FlexType =
     flexOptionsExtra.flexType
 
-  /** Returns the current flex options, if present, or throws a
+  /** Method to get the current flex options.
+    * @return
+    *   The current flex options in an aggregated or disaggregated form
+    *   depending on the state of [[sentDisaggregatedFlex]].
+    */
+  def getFlexOptions: TYPE[FO] =
+    if sentDisaggregatedFlex then getDisaggregatedFlexOptions
+    else getAggregatedFlexOptions
+
+  /** Returns the current disaggregated flex options, if present, or throws a
     * [[CriticalFailureException]]. Only call this if you are certain the flex
     * options have been set.
     *
     * @return
-    *   The flex options.
+    *   The disaggregated flex options.
     */
-  def getFlexOptions: FO =
+  def getDisaggregatedFlexOptions: DisaggregatedFlexOptions[FO] =
     flexOptions.getOrElse(
       throw new CriticalFailureException(
-        s"$identifier: Flex options have not been calculated!"
+        s"$identifier: Flex options are not been present!"
       )
     )
+
+  /** Returns the current aggregated flex options, if present, or throws a
+    * [[CriticalFailureException]]. Only call this if you are certain the flex
+    * options have been set.
+    *
+    * @return
+    *   The aggregated flex options.
+    */
+  def getAggregatedFlexOptions: FO = {
+    val flexOptions = getDisaggregatedFlexOptions.disaggregated.map {
+      case (uuid, fo) =>
+        modelToAssetInput(uuid) -> fo
+    }
+
+    aggregateFlex.aggregateFlexOptions(flexOptions)
+  }
 
   /** Adds an asset controlled by this EM to the model shell.
     *
@@ -95,14 +122,14 @@ final case class EmModelShell[FO <: FlexOptions](
       modelToAssetInput = modelToAssetInput.updated(modelUuid, assetInput)
     )
 
-  /** Updates the aggregated flex options of this EM.
+  /** Updates the flex options of this EM.
     *
     * @param allFlexOptions
     *   The current flex options of controlled assets.
     * @return
     *   An updated model shell with current flex options.
     */
-  def updateAggregatedFlexOptions(
+  def updateFlexOptions(
       allFlexOptions: Iterable[
         (UUID, FlexOptions)
       ]
@@ -121,13 +148,10 @@ final case class EmModelShell[FO <: FlexOptions](
         val updatedFlexOptions =
           modelStrategy.adaptFlexOptions(assetInput, typedFlexOptions)
 
-        assetInput -> updatedFlexOptions
+        modelUuid -> updatedFlexOptions
     }
 
-    val aggregatedFlex =
-      aggregateFlex.aggregateFlexOptions(updatedAllFlexOptions)
-
-    copy(flexOptions = Some(aggregatedFlex))
+    copy(flexOptions = Some(DisaggregatedFlexOptions(updatedAllFlexOptions)))
   }
 
   /** Determines and returns the power set point for this EM given an
@@ -139,7 +163,7 @@ final case class EmModelShell[FO <: FlexOptions](
     *   The power set point.
     */
   def determineFlexPower(flexCtrl: IssueFlexControl): Power =
-    flexOptionsExtra.determineFlexPower(getFlexOptions, flexCtrl)
+    flexOptionsExtra.determineFlexPower(getAggregatedFlexOptions, flexCtrl)
 
   /** Determines and returns the flexibility control messages for the controlled
     * assets given their flex options and a target power.
@@ -219,7 +243,7 @@ final case class EmModelShell[FO <: FlexOptions](
     */
   def determineResults(dateTime: ZonedDateTime): FlexOptionsResult =
     flexOptionsExtra.createResult(
-      getFlexOptions,
+      getAggregatedFlexOptions,
       uuid,
       dateTime,
     )

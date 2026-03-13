@@ -18,6 +18,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelShell
 import edu.ie3.simona.ontology.messages.AgentMessage.{
   ActivationRequest,
+  disaggregated,
   force,
   tick,
 }
@@ -133,7 +134,11 @@ object EmAgent {
       msg: ActivationRequest,
   ): Behavior[Message] = {
     val tick = msg.tick
+    val disaggregated = msg.disaggregated
     val force = msg.force
+
+    val updatedModelShell =
+      modelShell.copy(sentDisaggregatedFlex = disaggregated)
 
     val flexOptionsCore = if force then {
       core.gotoTick(tick).activateAll(tick)
@@ -144,22 +149,25 @@ object EmAgent {
     msg match {
       case flexInit: FlexInit =>
         // validate initialization message
-        modelShell.validateInit(flexInit)
+        updatedModelShell.validateInit(flexInit)
       case _ =>
       // no validation to do
     }
 
-    val activationMsg = msg.tick match {
+    val activationMsg = tick match {
       case INIT_SIM_TICK =>
-        FlexInit(modelShell.getFlexType, modelShell.getDataTimeType)
-      case _ => FlexActivation(msg.tick, force)
+        FlexInit(
+          updatedModelShell.getFlexType,
+          updatedModelShell.getDataTimeType,
+        )
+      case _ => FlexActivation(tick, disaggregated, force)
     }
 
     toActivate.foreach(_ ! activationMsg)
 
     newCore.fold(
-      awaitingFlexOptions(emData, modelShell, inputHandler, _),
-      awaitingCompletions(emData, modelShell, inputHandler, _),
+      awaitingFlexOptions(emData, updatedModelShell, inputHandler, _),
+      awaitingCompletions(emData, updatedModelShell, inputHandler, _),
     )
   }
 
@@ -211,8 +219,7 @@ object EmAgent {
 
       val allFlexOptions = flexOptionsCore.getFlexOptions
 
-      val updatedModelShell =
-        modelShell.updateAggregatedFlexOptions(allFlexOptions)
+      val updatedModelShell = modelShell.updateFlexOptions(allFlexOptions)
 
       if emData.outputConfig.flexResult then {
         val flexResult = updatedModelShell.determineResults(

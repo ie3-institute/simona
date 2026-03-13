@@ -307,7 +307,7 @@ object ParticipantAgent {
               )
               (shellWithOP, gridAdapterWithResult)
 
-            case FlexActivation(tick, force) =>
+            case FlexActivation(tick, _, force) =>
               val shellWithFlex =
                 if force || isCalculationRequired(
                     shell,
