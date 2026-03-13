@@ -311,7 +311,7 @@ final case class EmServiceBaseCore(
             nextActivation = updatedNextActivation,
             internal = Set.empty,
           )
-          */
+           */
 
           val expectedCompletions = nextTick match {
             case Some(t) =>
@@ -327,6 +327,8 @@ final case class EmServiceBaseCore(
             Some(new EmCompletion(updatedNextActivation.values.minOption))
           } else extMsgOption
 
+          log.info(s"Em service completed for tick: $tick")
+
           (
             copy(
               completions = expectedCompletions,
@@ -337,14 +339,6 @@ final case class EmServiceBaseCore(
             ),
             msgToExt,
           )
-
-          val msgToExt = if internal.nonEmpty then {
-            Some(new EmCompletion(updatedStateData.getMaybeNextTick(tick)))
-          } else extMsgOption
-
-          log.info(s"Em service completed for tick: $tick")
-
-          (updatedStateData, msgToExt)
 
         } else {
           log.debug(s"Missing completion for: ${updated.getExpectedKeys}")
@@ -407,6 +401,5 @@ object EmServiceBaseCore {
     core.uuidToParent,
     core.completions,
     core.nextActivation,
-    core.allFlexOptions,
   )
 }

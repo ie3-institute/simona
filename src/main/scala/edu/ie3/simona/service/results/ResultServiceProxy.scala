@@ -97,18 +97,19 @@ object ResultServiceProxy {
     *   simultaneously.)
     */
   private final case class ResultServiceStateData(
-      listeners: Seq[ActorRef[ResultResponse]],
-      simStartTime: ZonedDateTime,
-      currentTick: Long = INIT_SIM_TICK,
-      threeWindingResults: Map[
+                                                   listeners: Seq[ActorRef[ResultResponse]],
+                                                   simStartTime: ZonedDateTime,
+                                                   currentTick: Long = INIT_SIM_TICK,
+                                                   threeWindingResults: Map[
         Transformer3wKey,
         AggregatedTransformer3wResult,
       ] = Map.empty,
-      results: Map[UUID, Map[Class[? <: ResultEntity], ResultEntity]] =
+                                                   results: Map[UUID, Map[Class[? <: ResultEntity], ResultEntity]] =
         Map.empty,
-      waitingForResults: Map[UUID, Long] = Map.empty,
-      withoutUpdate: Set[UUID] = Set.empty,
-      requiresSetPoint: Set[UUID] = Set.empty,
+                                                   waitingForResults: Map[UUID, Long] = Map.empty,
+                                                   withoutUpdate: Set[UUID] = Set.empty,
+                                                   wasRequested: Set[UUID] = Set.empty,
+                                                   requiresSetPoint: Set[UUID] = Set.empty,
   ) extends ServiceBaseStateData {
 
     /** This method is used to forward results to all known listeners.
@@ -150,15 +151,6 @@ object ResultServiceProxy {
       }
     }
 
-    def debugWaitingFor(uuid: Iterable[UUID], tick: Long, log: Logger): Unit =
-      uuid.foreach { uuid =>
-        if waitingForResults.get(uuid).exists(_ <= tick) then {
-          log.warn(s"$uuid waiting for tick: ${waitingForResults(uuid)}")
-        } else {
-          log.warn(s"$uuid waiting for setpoint.")
-        }
-      }
-
     /** Method for updating the tick of the state data.
       *
       * @param tick
@@ -167,7 +159,12 @@ object ResultServiceProxy {
       *   A copy of the state data with update information.
       */
     def updateTick(tick: Long): ResultServiceStateData =
-      copy(currentTick = tick)
+      copy(currentTick = tick, wasRequested = Set.empty)
+
+    def markAsRequested(uuids: Iterable[UUID])(using log: Logger): ResultServiceStateData = {
+      log.warn(s"Marked as requested: $uuids")
+      copy(wasRequested = wasRequested ++ uuids)
+    }
 
     /** Method for adding a [[ExpectResult]] information.
       *
@@ -253,16 +250,17 @@ object ResultServiceProxy {
           (results.updated(uuid, Map(result.getClass -> result)), true)
       }
 
-      val updated = if hasResultChanged then {
-        withoutUpdate.excl(uuid)
+      val (updated, updatedWasRequested) = if hasResultChanged then {
+        (withoutUpdate.excl(uuid), wasRequested.excl(uuid))
       } else {
-        withoutUpdate.incl(uuid)
+        (withoutUpdate.incl(uuid), wasRequested)
       }
 
       copy(
         results = updatedResults,
         waitingForResults = updatedWaitingForResults,
         requiresSetPoint = requiresSetPoint.excl(uuid),
+        wasRequested = updatedWasRequested,
         withoutUpdate = updated,
       )
     }
@@ -281,7 +279,7 @@ object ResultServiceProxy {
         sendUnchangedResults: Boolean,
     ): Map[UUID, List[ResultEntity]] = {
       uuids.flatMap { uuid =>
-        if !withoutUpdate.contains(uuid) || sendUnchangedResults then {
+        if !withoutUpdate.contains(uuid) || !wasRequested.contains(uuid) || sendUnchangedResults then {
           // we only sent result, if either there was an update or we explicitly requested to send unchanged results
           results.get(uuid).map(res => uuid -> res.values.toList)
         } else None
@@ -343,24 +341,24 @@ object ResultServiceProxy {
         // un-stash received requests
         buffer.unstashAll(idle(stateData.stopWaitingForResult(uuid, tick)))
 
-      case (_, requestResultMessage: RequestResult) =>
+      case (ctx, requestResultMessage: RequestResult) =>
         val requestedResults = requestResultMessage.requestedResults
         val tick = requestResultMessage.tick
 
         if stateData.isWaiting(requestedResults, tick) then {
 
           buffer.stash(requestResultMessage)
+          Behaviors.same
         } else {
 
-          requestResultMessage.replyTo ! ResultResponse(
-            stateData.getResults(
-              requestedResults,
-              requestResultMessage.sendUnchangedResults,
-            )
+          val results = stateData.getResults(
+            requestedResults,
+            requestResultMessage.sendUnchangedResults,
           )
-        }
 
-        Behaviors.same
+          requestResultMessage.replyTo ! ResultResponse(results)
+          idle(stateData.markAsRequested(results.keys)(using ctx.log))
+        }
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
         DelayedStopHelper.handleMsg((ctx, msg))
@@ -445,16 +443,21 @@ object ResultServiceProxy {
 
           }
 
+      val groupedChangedResults = changedResults.groupBy(_.getInputModel)
+
       // notify listener
-      stateData.notifyListener(changedResults.groupBy(_.getInputModel))
+      stateData.notifyListener(groupedChangedResults)
+
+      val changedKeys = groupedChangedResults.keys
 
       stateData.copy(
         results = updatedResultStore,
         threeWindingResults = updatedThreeWindingResults,
         waitingForResults =
           stateData.waitingForResults.removedAll(updatedResultStore.keys),
+        wasRequested = stateData.wasRequested -- changedKeys,
         withoutUpdate =
-          stateData.withoutUpdate -- updatedResultStore.keys ++ notUpdated,
+          stateData.withoutUpdate -- changedKeys ++ notUpdated,
       )
 
     case ParticipantResultEvent(systemParticipantResult) =>

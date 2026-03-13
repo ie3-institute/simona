@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   DoCongestionManagement,
   FinishStep,
+  GotoIdle,
 }
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
@@ -387,8 +388,8 @@ object GridAgentCoordinator {
           )
         }
 
-        stateData.superiorGrids.foreach(_ ! FinishStep)
-        initPowerFlow(stateData, stateData.currentTick)
+        stateData.superiorGrids.foreach(_ ! GotoIdle)
+        awaitGridSimulation(stateData, stateData.createAwaitingData)
       }
   }
 
@@ -410,7 +411,7 @@ object GridAgentCoordinator {
 
     stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
 
-    idle(stateData)
+    idle(stateData.copy(hasRunCongestionManagement = false))
   }
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
