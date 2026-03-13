@@ -46,6 +46,16 @@ object QuantityConversionUtils {
       Quantities.getQuantity(quantity.toEach, PU)
   }
 
+  extension (value: squants.Power) {
+    def toQuantity: ComparableQuantity[Power] =
+      Quantities.getQuantity(value.toMegawatts, MEGAWATT)
+  }
+
+  extension (value: squants.Energy) {
+    def toQuantity: ComparableQuantity[Energy] =
+      Quantities.getQuantity(value.toMegawattHours, MEGAWATTHOUR)
+  }
+
   /** Extension for [[ComparableQuantity]] of type [[ElectricPotential]] that
     * allows conversion into a [[squants.electro.ElectricPotential]] squants
     * quantity.

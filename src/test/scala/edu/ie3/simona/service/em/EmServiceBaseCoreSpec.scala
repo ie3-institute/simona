@@ -7,10 +7,10 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.em.ProvideEmData
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexActivation,
   IssueFlexControl,
@@ -23,18 +23,15 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.slf4j.{Logger, LoggerFactory}
-import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.energy.{Kilowatts, Power, Watts}
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -60,10 +57,8 @@ class EmServiceBaseCoreSpec
 
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent)
       updatedCore.flexOptions shouldBe ReceiveDataMap.empty
-      updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.uuidToInferior shouldBe Map.empty
-      updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe None
@@ -89,10 +84,8 @@ class EmServiceBaseCoreSpec
 
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent)
       updatedCore.flexOptions shouldBe ReceiveDataMap.empty
-      updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.uuidToInferior shouldBe Map(parentEmUuid -> Set(emUuid))
-      updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe None
@@ -115,8 +108,8 @@ class EmServiceBaseCoreSpec
 
       val (updatedCore, msgToExt) = core.handleExtMessage(0L, flexRequests)
 
-      // the agent should receive a flex option request
-      emAgent.expectMessage(FlexActivation(0L))
+      // the agent should receive a flex option request for disaggregated
+      emAgent.expectMessage(FlexActivation(0L, true))
 
       // we should have no message for the external simulation
       msgToExt shouldBe None
@@ -124,12 +117,8 @@ class EmServiceBaseCoreSpec
       // check updated state of the core
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
       updatedCore.flexOptions shouldBe ReceiveDataMap(Set(emUuid))
-      updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.uuidToInferior shouldBe Map.empty
-      updatedCore.disaggregated shouldBe Map(
-        emUuid -> true
-      ) // since we requested disaggregated flex options
       updatedCore.sendOptionsToExt shouldBe true // since we received a flex option request
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe None
@@ -164,10 +153,8 @@ class EmServiceBaseCoreSpec
       // check updated state of the core
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
       updatedCore.flexOptions shouldBe ReceiveDataMap(Set(emUuid))
-      updatedCore.allFlexOptions shouldBe empty
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.uuidToInferior shouldBe Map.empty
-      updatedCore.disaggregated shouldBe Map.empty
       updatedCore.sendOptionsToExt shouldBe false // since we didn't receive a flex option request
       updatedCore.canHandleSetPoints shouldBe false
       updatedCore.setPointOption shouldBe Some(
@@ -193,27 +180,17 @@ class EmServiceBaseCoreSpec
       }
 
       // we should have no message for the external simulation, since we have not received a request
-      msgToExt shouldBe None
+      msgToExt2 shouldBe None
 
       // check updated state of the core
       coreAfterFlexOptionProvision.uuidToAgent shouldBe Map(
         emUuid -> emAgent.ref
       )
       coreAfterFlexOptionProvision.flexOptions shouldBe ReceiveDataMap.empty // empty, since we received all flex options
-      coreAfterFlexOptionProvision.allFlexOptions shouldBe Map(
-        emUuid -> new em.PowerLimitFlexOptions(
-          emUuid,
-          emUuid,
-          0.asMegaWatt,
-          0.asMegaWatt,
-          0.asMegaWatt,
-        )
-      )
       coreAfterFlexOptionProvision.completions shouldBe ReceiveDataMap(
         Set(emUuid)
       )
       coreAfterFlexOptionProvision.uuidToInferior shouldBe Map.empty
-      coreAfterFlexOptionProvision.disaggregated shouldBe Map.empty
       coreAfterFlexOptionProvision.sendOptionsToExt shouldBe false // since we didn't receive a flex option request
       coreAfterFlexOptionProvision.canHandleSetPoints shouldBe true // since all agents have provided flex options
       coreAfterFlexOptionProvision.setPointOption shouldBe None // empty, since we handled the data
