@@ -7,7 +7,11 @@
 package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  FinishedInitialization,
+  PowerFlowResults,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -72,6 +76,9 @@ class DBFSAlgorithmCenGridSpec
   private val loadProfileService =
     TestProbe[LoadProfileService.Message]("loadProfileService")
 
+  private val gridAgentCoordinator: TestProbe[GridAgentCoordinator.Message] =
+    TestProbe("gridAgentCoordinator")
+
   private val superiorGridAgent = SuperiorGA(
     TestProbe("superiorGridAgent_1000"),
     Seq(supNodeA.getUuid, supNodeB.getUuid),
@@ -88,7 +95,7 @@ class DBFSAlgorithmCenGridSpec
     Seq(node3.getUuid, node4.getUuid),
   )
 
-  private val environmentRefs = EnvironmentRefs(
+  private val environmentRefs: EnvironmentRefs = EnvironmentRefs(
     scheduler = scheduler.ref,
     runtimeEventListener = runtimeEvents.ref,
     primaryServiceProxy = primaryService.ref,
@@ -101,12 +108,12 @@ class DBFSAlgorithmCenGridSpec
   )
 
   given GridAgentConstantData = GridAgentConstantData(
+    gridAgentCoordinator.ref,
     environmentRefs,
     simonaConfig.simona,
     3600,
     startTime,
     endTime,
-    CongestionManagementParams(false),
   )
 
   "A GridAgent actor in center position with async test" should {
@@ -155,17 +162,16 @@ class DBFSAlgorithmCenGridSpec
       // finish initialization
       centerGridAgent ! CompleteInitialization(false)
 
+      // mock scheduling behavior
+      gridAgentCoordinator
+        .expectMessageType[FinishedInitialization]
+        .gridRef shouldBe centerGridAgent
+      scheduler ! ScheduleActivation(gridAgentCoordinator.ref, 3600)
+
       val scheduleActivationMsg =
         scheduler.expectMessageType[ScheduleActivation]
       scheduleActivationMsg.tick shouldBe 3600
       scheduleActivationMsg.unlockKey shouldBe None
-    }
-
-    s"go to SimulateGrid when it receives an activity start trigger" in {
-
-      centerGridAgent ! Activation(3600)
-
-      scheduler.expectMessageType[Completion].newTick shouldBe Some(3600)
     }
 
     s"start the simulation when activation is sent" in {
@@ -173,7 +179,7 @@ class DBFSAlgorithmCenGridSpec
       val firstSweepNo = 0
 
       // send the start grid simulation trigger
-      centerGridAgent ! Activation(3600)
+      centerGridAgent ! DoPowerFlowTrigger(3600)
 
       resultProxy.expectMessageType[ExpectResult] match {
         case ExpectResult(assets, tick, waitForSetPoint) =>
@@ -456,7 +462,13 @@ class DBFSAlgorithmCenGridSpec
 
       inferiorGrid13.gaProbe.expectMessage(FinishGridSimulationTrigger(3600))
 
-      // after all grids have received a FinishGridSimulationTrigger, the scheduler should receive a Completion
+      // after all grids have received a FinishGridSimulationTrigger, the grid agent coordinator should receive the results
+      val pfResults = gridAgentCoordinator.expectMessageType[PowerFlowResults]
+      pfResults.gridAgent shouldBe centerGridAgent
+
+      // the grid agent coordinator will send the results to the result proxy and a Completion to the scheduler
+      pfResults.results.foreach(resultProxy ! _)
+      scheduler ! Completion(gridAgentCoordinator.ref, Some(7200))
       scheduler.expectMessageType[Completion].newTick shouldBe Some(7200)
 
       val resultMessage = resultProxy.expectMessageType[ResultEvent]

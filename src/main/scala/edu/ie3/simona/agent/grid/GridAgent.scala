@@ -7,7 +7,12 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.actor.SimonaActorNaming
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  FinishedInitialization,
+  PowerFlowResults,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.DoCongestionManagement
 import edu.ie3.simona.agent.grid.congestion.DCMAlgorithm
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
@@ -18,10 +23,6 @@ import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.typed.scaladsl.{
@@ -88,14 +89,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         actorName,
       )
 
-      val resolution = constantData.resolution
-
-      if resolution != Long.MaxValue then {
-        constantData.environmentRefs.scheduler ! ScheduleActivation(
-          ctx.self,
-          resolution,
-        )
-      }
+      constantData.gridAgentCoordinator ! FinishedInitialization(ctx.self)
 
       idle(gridAgentBaseData)
   }
@@ -117,19 +111,25 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Message],
   ): Behavior[Message] = Behaviors.receivePartial {
-    case (ctx, activation: Activation) =>
-      constantData.environmentRefs.scheduler ! Completion(
-        ctx.self,
-        Some(activation.tick),
-      )
-
+    case (ctx, doPowerFlowTrigger: DoPowerFlowTrigger) =>
       // inform the result proxy that this grid agent will send new results
       constantData.environmentRefs.resultProxy ! ExpectResult(
         gridAgentBaseData.assets,
-        activation.tick,
+        doPowerFlowTrigger.tick,
       )
 
-      buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
+      ctx.self ! doPowerFlowTrigger
+      buffer.unstashAll(
+        simulateGrid(gridAgentBaseData, doPowerFlowTrigger.tick)
+      )
+
+    case (ctx, DoCongestionManagement(currentTick, results)) =>
+      startCongestionManagement(
+        gridAgentBaseData,
+        currentTick,
+        results,
+        ctx,
+      )
 
     case (_, msg: Message) =>
       // needs to be set here to handle if the messages arrive too early
@@ -177,13 +177,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           )
       }
 
-    // check if congestion management is enabled
-    if constantData.congestionManagementParams.detectionEnabled then {
-      startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
-    } else {
-      // clean up agent and go back to idle
-      gotoIdle(gridAgentBaseData, nextTick, results, ctx)
-    }
+    // clean up agent and go back to idle
+    gotoIdle(gridAgentBaseData, nextTick, results, ctx)
   }
 
   /** Method that will clean up the [[GridAgentBaseData]] and go to the
@@ -214,20 +209,16 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[Message] = {
 
-    // notify listener about the results
-    results.foreach(constantData.notifyListeners)
+    constantData.gridAgentCoordinator ! PowerFlowResults(
+      ctx.self,
+      results,
+    )
 
     // do my cleanup stuff
     ctx.log.debug("Doing my cleanup stuff")
 
     // / clean copy of the gridAgentBaseData
     val cleanedGridAgentBaseData = gridAgentBaseData.clean
-
-    // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-    constantData.environmentRefs.scheduler ! Completion(
-      ctx.self,
-      Some(nextTick),
-    )
 
     // return to Idle
     buffer.unstashAll(idle(cleanedGridAgentBaseData))

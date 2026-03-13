@@ -17,8 +17,8 @@ import edu.ie3.simona.ontology.messages.ResultMessage.{
   ResultResponse,
 }
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.result.PowerFlowResultData
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -27,11 +27,12 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 class ResultServiceProxySpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
-    with ConfigTestData
     with PowerFlowResultData
     with ThreeWindingResultTestData {
 
   "The ResultServiceProxy" should {
+
+    val startTime = dummyTime.minusHours(1)
 
     val allExpected = Seq(
       dummyNodeResultModel,
@@ -260,7 +261,6 @@ class ResultServiceProxySpec
         Seq(dummyNodeResultModel),
         3600L,
         resultProvider.ref,
-        false,
       )
 
       // also request unchanged results
@@ -334,28 +334,6 @@ class ResultServiceProxySpec
 
       listener.expectMessageType[ResultResponse].results shouldBe Map(
         dummyPvResult.getInputModel -> List(dummyPvResult)
-      )
-    }
-
-    "correctly filter unchanged results" in {
-      val oldResults: Map[Class[? <: ResultEntity], ResultEntity] = Seq(
-        dummyNodeResult,
-        dummyNodeCongestionResult,
-      ).map(res => res.getClass -> res).toMap
-
-      val results = Seq(
-        dummyNodeResultPlusHour,
-        dummyNodeResult2,
-        dummyNodeCongestionResultPlusHour,
-        dummyLineResult,
-      )
-
-      val changedResults =
-        ResultServiceProxy.filterUnchangedResults(results, oldResults)
-
-      changedResults shouldBe Map(
-        classOf[NodeResult] -> dummyNodeResult2,
-        classOf[LineResult] -> dummyLineResult,
       )
     }
 

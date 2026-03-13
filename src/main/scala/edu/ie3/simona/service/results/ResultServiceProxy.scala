@@ -200,6 +200,14 @@ object ResultServiceProxy {
       }
     }
 
+    /** Method used to stop waiting for results.
+      * @param uuid
+      *   Of the entity for which we no longer need to wait for results.
+      * @param tick
+      *   For which we no longer need to wait for the result.
+      * @return
+      *   A copy of the state data with update information.
+      */
     def stopWaitingForResult(uuid: UUID, tick: Long): ResultServiceStateData = {
       val updated = waitingForResults.get(uuid) match {
         case Some(value) if value <= tick =>
@@ -331,9 +339,7 @@ object ResultServiceProxy {
         // un-stash received requests
         buffer.unstashAll(idle(updatedStateData))
 
-      case (ctx, NoResult(uuid, tick)) =>
-        ctx.log.info(s"Stop waiting for result: $uuid ($tick)")
-
+      case (_, NoResult(uuid, tick)) =>
         // un-stash received requests
         buffer.unstashAll(idle(stateData.stopWaitingForResult(uuid, tick)))
 
@@ -404,7 +410,7 @@ object ResultServiceProxy {
           stateData.threeWindingResults,
         )
 
-      val (allResults, changedResults, notUpdated) =
+      val (updatedResultStore, changedResults, notUpdated) =
         (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults ++ congestionResults)
           .foldLeft(
             stateData.results,
@@ -443,11 +449,12 @@ object ResultServiceProxy {
       stateData.notifyListener(changedResults.groupBy(_.getInputModel))
 
       stateData.copy(
-        results = allResults,
+        results = updatedResultStore,
         threeWindingResults = updatedThreeWindingResults,
         waitingForResults =
-          stateData.waitingForResults.removedAll(allResults.keys),
-        withoutUpdate = stateData.withoutUpdate -- allResults.keys ++ notUpdated,
+          stateData.waitingForResults.removedAll(updatedResultStore.keys),
+        withoutUpdate =
+          stateData.withoutUpdate -- updatedResultStore.keys ++ notUpdated,
       )
 
     case ParticipantResultEvent(systemParticipantResult) =>
