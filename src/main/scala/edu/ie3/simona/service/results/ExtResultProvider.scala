@@ -26,6 +26,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 import edu.ie3.simona.ontology.messages.ServiceMessage.ScheduleServiceActivation
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.CollectionUtils.asJava
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
@@ -54,6 +55,7 @@ object ExtResultProvider {
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[RequestResult],
       connection: ExtResultDataConnection,
+      lastTick: Long,
       extMessage: Option[ResultDataMessageFromExt] = None,
   )
 
@@ -74,7 +76,8 @@ object ExtResultProvider {
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[RequestResult],
   ): Behavior[Message | DataMessageFromExt | Activation] = {
-    val stateData = ProviderState(scheduler, resultProxy, connection)
+    val stateData =
+      ProviderState(scheduler, resultProxy, connection, INIT_SIM_TICK)
 
     provider(stateData)
   }
@@ -125,15 +128,20 @@ object ExtResultProvider {
 
         extMsg match {
           case requestResultEntities: RequestResultEntities =>
+            val tick = requestResultEntities.tick
+            val threshold = Option.when(
+              !requestResultEntities.sendUnchangedResults
+            )(stateData.lastTick)
+
             // request results from result proxy
             stateData.resultProxy ! RequestResult(
               requestResultEntities.requestedResults.asScala.toSeq,
               requestResultEntities.tick,
               ctx.self,
-              requestResultEntities.sendUnchangedResults,
+              threshold,
             )
 
-            Behaviors.same
+            provider(stateData.copy(lastTick = tick))
           case other =>
             ctx.log.warn(s"Cannot handle external result message: $other")
             Behaviors.same

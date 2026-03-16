@@ -81,10 +81,6 @@ object EmCommunicationCore {
       awaitedFlexOptions.add(request)
     }
 
-    def addSendRequests(requests: Seq[UUID]): Unit = {
-      awaitedFlexOptions.addAll(requests)
-    }
-
     def handleReceivedFlexOption(flexOption: UUID): Unit = {
       awaitedFlexOptions.remove(flexOption)
 
@@ -240,7 +236,7 @@ case class EmCommunicationCore(
             // update the em state
             emStates(uuid).setReceivedRequest()
 
-            agent ! FlexActivation(tick, request.disaggregated)
+            agent ! FlexActivation(tick, request.disaggregated, true)
 
             val count = uuidToInferior(uuid).size
 
@@ -313,7 +309,7 @@ case class EmCommunicationCore(
                 // update the em state
                 emStates(receiver).setReceivedRequest()
 
-                agent ! FlexActivation(tick, request.disaggregated)
+                agent ! FlexActivation(tick, request.disaggregated, true)
 
                 val count = max(
                   Try {
@@ -377,21 +373,14 @@ case class EmCommunicationCore(
         }
       }.toMap
 
-      val updatedExpectDataFrom = expectDataFrom.addExpectedKeys(mapping)
-
-      // log.warn(s"ExpectDataFrom: $updatedExpectDataFrom, Changes: $mapping")
-
       // check if we need to wait for internal answers
-      val msgToExt = getMsgToExtOption
+      val msgToExt = None
 
       // update state data
       val newState = copy(
-        expectDataFrom = updatedExpectDataFrom,
+        expectDataFrom = expectDataFrom.addExpectedKeys(mapping),
         completions = completions.addExpectedKeys(mapping.keySet),
       )
-
-      // log.warn(s"EmStates: ${newState.emStates}")
-      // log.warn(s"Message to ext: $msgToExt")
 
       (newState, msgToExt)
 
@@ -438,7 +427,6 @@ case class EmCommunicationCore(
 
           // should no longer wait for internal data
           data.keys.foreach(emStates(_).setWaitingForInternal(false))
-          // log.warn(s"Updated EmStates (options): $emStates")
 
           (
             copy(expectDataFrom = updatedExpectDataFrom),
@@ -456,8 +444,6 @@ case class EmCommunicationCore(
             requestAtNextActivation,
             requestAtTick,
           ) if tick != INIT_SIM_TICK =>
-        // log.warn(s"Em states: $emStates")
-
         // the completion can be sent directly to the receiver, since it's not used by the external communication
         uuidToAgent(receiverUuid) ! completion
         emStates(sender).setWaitingForInternal(false)
@@ -466,7 +452,7 @@ case class EmCommunicationCore(
 
         if updatedData.isComplete then {
           emStates.foreach(_._2.clear())
-          // log.warn(s"Cleared EmStates: $emStates")
+          log.warn(s"Cleared EmStates: $emStates")
 
           // the next activations
           val additionalActivation = updatedData.receivedData.flatMap {
@@ -485,8 +471,6 @@ case class EmCommunicationCore(
         } else {
           val msgToExt = getMsgToExtOption
           // log.warn(s"Not finished! Expected: ${updatedData.getExpectedKeys}")
-          // log.warn(s"EmStates: $emStates")
-          // log.warn(s"Message to ext: $msgToExt")
 
           (copy(completions = updatedData), msgToExt)
         }
@@ -569,24 +553,21 @@ case class EmCommunicationCore(
         expectDataFrom
     }
 
-    if updated.isComplete then {
-      val data = updated.receivedData
+    if updated.isComplete || updated.hasCompleted then {
+      val (data, updatedExpectDataFrom) = updated.getFinished
 
       // should no longer wait for internal data
-      data.keys.foreach { uuid => emStates(uuid).setWaitingForInternal(false) }
-      // log.warn(s"Updated EmStates (request): $emStates")
+      data.keys.foreach(emStates(_).setWaitingForInternal(false))
 
       (
-        copy(expectDataFrom = ReceiveMultiDataMap.empty),
+        copy(expectDataFrom = updatedExpectDataFrom),
         Some(new EmResultResponse(data.asJava)),
       )
     } else {
-      val msgToExt = getMsgToExtOption
-      // log.warn(s"Not finished! Expected: ${updated.getExpectedKeys}")
-      // log.warn(s"EmStates: $emStates")
-      // log.warn(s"Message to ext: $msgToExt")
-
-      (copy(expectDataFrom = updated), msgToExt)
+      (
+        copy(expectDataFrom = updated),
+        None,
+      )
     }
   }
 

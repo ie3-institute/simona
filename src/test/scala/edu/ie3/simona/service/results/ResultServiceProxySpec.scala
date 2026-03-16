@@ -337,28 +337,6 @@ class ResultServiceProxySpec
       )
     }
 
-    "correctly filter unchanged result" in {
-      val oldResults: Map[Class[? <: ResultEntity], ResultEntity] = Seq(
-        dummyNodeResult,
-        dummyNodeCongestionResult,
-      ).map(res => res.getClass -> res).toMap
-
-      val cases = Table(
-        ("result", "expected"),
-        (dummyNodeResultPlusHour, None),
-        (dummyNodeResult2, Some(classOf[NodeResult] -> dummyNodeResult2)),
-        (dummyLineResult, Some(classOf[LineResult] -> dummyLineResult)),
-        (dummyNodeCongestionResultPlusHour, None),
-      )
-
-      forAll(cases) { (result, expected) =>
-        val changedResults =
-          ResultServiceProxy.filterUnchangedResults(result, oldResults)
-
-        changedResults shouldBe expected
-      }
-    }
-
   }
 
 }

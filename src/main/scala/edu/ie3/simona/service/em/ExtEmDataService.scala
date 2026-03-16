@@ -248,7 +248,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       serviceStateData.serviceCore.handleDataResponseMessage(
         tick,
         extResponseMsg,
-      )(using serviceStateData.startTime, log)
+      )(using serviceStateData.startTime, ctx.log)
 
     if tick >= FIRST_TICK_IN_SIMULATION then {
       extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
