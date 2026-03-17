@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
@@ -36,7 +35,10 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -88,9 +90,8 @@ class EvcsModelIT
 
     "handle a few requests and arrivals as expected" in {
 
-      val gridAgent = TestProbe[GridAgent.Message]("GridAgent")
       val resultProxy =
-        TestProbe[ResultEvent | ExpectResult]("ResultServiceProxy")
+        TestProbe[ResultEvent | ExpectResult | NoResult]("ResultServiceProxy")
       val primaryServiceProxy =
         TestProbe[PrimaryServiceProxy.Message]("PrimaryServiceProxy")
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
@@ -124,7 +125,6 @@ class EvcsModelIT
 
       /* Create ParticipantAgent with EvcsModel */
       given ParticipantRefs = ParticipantRefs(
-        gridAgent = gridAgent.ref,
         primaryServiceProxy = primaryServiceProxy.ref,
         resultServiceProxy = resultProxy.ref,
         services = Map(ServiceType.EvMovementService -> evService),

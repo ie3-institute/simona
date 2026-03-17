@@ -4,13 +4,13 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid.congestion.data
+package edu.ie3.simona.agent.grid.data
 
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentBaseData
 import edu.ie3.simona.agent.grid.GridEnvironment
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
 import edu.ie3.simona.agent.grid.data.CongestionManagementData
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentBaseData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData

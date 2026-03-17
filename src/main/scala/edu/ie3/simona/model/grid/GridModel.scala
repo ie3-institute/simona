@@ -71,7 +71,7 @@ object GridModel {
       voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      simonaConfig: SimonaConfig,
+      simonaConfig: SimonaConfig.Simona,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
@@ -500,7 +500,7 @@ object GridModel {
       voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      simonaConfig: SimonaConfig,
+      simonaConfig: SimonaConfig.Simona,
   ): GridModel = {
 
     // build
@@ -585,7 +585,7 @@ object GridModel {
       )
 
     /* Build transformer control groups */
-    val transformerControlGroups = simonaConfig.simona.control
+    val transformerControlGroups = simonaConfig.control
       .map { controlConfig =>
         TransformerControlGroupModel.buildControlGroups(
           subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
@@ -611,10 +611,7 @@ object GridModel {
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
-    validateControlGroups(
-      subGridContainer,
-      simonaConfig.simona.control,
-    )
+    validateControlGroups(subGridContainer, simonaConfig.control)
 
     // return
     gridModel

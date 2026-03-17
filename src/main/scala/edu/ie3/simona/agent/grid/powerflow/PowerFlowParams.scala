@@ -4,7 +4,9 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.agent.grid
+package edu.ie3.simona.agent.grid.powerflow
+
+import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow
 
 import scala.concurrent.duration.FiniteDuration
 
@@ -29,3 +31,13 @@ final case class PowerFlowParams(
     maxIterations: Int,
     stopOnFailure: Boolean,
 )
+
+object PowerFlowParams {
+
+  def apply(config: Powerflow): PowerFlowParams = PowerFlowParams(
+    config.maxSweepPowerDeviation,
+    config.newtonraphson.epsilon.toVector,
+    config.newtonraphson.iterations,
+    config.stopOnFailure,
+  )
+}

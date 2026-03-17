@@ -7,7 +7,7 @@
 package edu.ie3.simona.sim
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentCoordinator
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
@@ -478,10 +478,11 @@ object SimonaSimSpec {
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
-    override def gridAgents(
+    override def gridAgentCoordinator(using
         context: ActorContext[?],
         environmentRefs: EnvironmentRefs,
-    ): Iterable[ActorRef[GridAgent.Message]] = Iterable.empty
+    ): ActorRef[GridAgentCoordinator.Message] =
+      context.spawn(empty, uniqueName("gridAgentCoordinator"))
 
     override def extSimulations(
         context: ActorContext[?],

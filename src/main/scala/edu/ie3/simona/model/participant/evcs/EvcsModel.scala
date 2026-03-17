@@ -42,6 +42,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toApparent
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
+import squants.energy.PowerConversions.PowerNumeric
 import squants.energy.{Kilowatts, Watts}
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
@@ -69,7 +70,8 @@ class EvcsModel private (
 
   override val flexModels: Map[FlexType, ParticipantFlexModel[EvcsState]] =
     Map(
-      FlexType.PowerLimit -> EvcsPowerLimitFlexModel(this)
+      FlexType.PowerLimit -> EvcsPowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> EvcsEnergyBoundariesFlexModel(this),
     )
 
   override def determineState(
@@ -545,7 +547,7 @@ object EvcsModel {
       extends OperatingPoint {
 
     override val activePower: Power =
-      evOperatingPoints.values.reduceOption(_ + _).getOrElse(zeroKW)
+      evOperatingPoints.values.sum
 
     override val reactivePower: Option[ReactivePower] = None
   }
