@@ -201,9 +201,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         (serviceStateData, Some(tick))
 
       case core =>
-        log.warn(
-          s"Tick ($tick): ServiceCore -> ${core.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
-        )
+        //log.warn(s"Tick ($tick): ServiceCore -> ${core.getClass}, msg -> ${serviceStateData.extEmDataMessage}")
 
         val (updatedCore, msgToExt) = core.handleExtMessage(tick, extMsg)
 

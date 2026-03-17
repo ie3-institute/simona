@@ -452,7 +452,6 @@ case class EmCommunicationCore(
 
         if updatedData.isComplete then {
           emStates.foreach(_._2.clear())
-          log.warn(s"Cleared EmStates: $emStates")
 
           // the next activations
           val additionalActivation = updatedData.receivedData.flatMap {
@@ -469,10 +468,7 @@ case class EmCommunicationCore(
             Some(new EmCompletion(getMaybeNextTick(tick))),
           )
         } else {
-          val msgToExt = getMsgToExtOption
-          // log.warn(s"Not finished! Expected: ${updatedData.getExpectedKeys}")
-
-          (copy(completions = updatedData), msgToExt)
+          (copy(completions = updatedData), getMsgToExtOption)
         }
 
       case completion: FlexCompletion =>
@@ -481,7 +477,7 @@ case class EmCommunicationCore(
 
       // not supported
       case other =>
-        log.warn(s"Flex response $other is not supported!")
+        log.debug(s"Flex response $other is not supported!")
 
         (this, None)
     }
@@ -571,17 +567,13 @@ case class EmCommunicationCore(
     }
   }
 
-  private def getMsgToExtOption(using
-      log: Logger
-  ): Option[EmDataResponseMessageToExt] = {
+  private def getMsgToExtOption: Option[EmDataResponseMessageToExt] = {
     if emStates.exists(_._2.isWaitingForInternal) then {
       None
     } else {
       val awaited = emStates.filter((_, x) => x.isWaitingForExtern).map {
         case (uuid, state) => uuid -> state.getAwaited
       }
-
-      log.info(s"Waiting for external data: $awaited")
 
       if awaited.isEmpty then None
       else Some(new EmResultResponse(Map.empty.asJava))
