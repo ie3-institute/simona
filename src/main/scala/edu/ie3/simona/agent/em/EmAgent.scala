@@ -289,6 +289,15 @@ object EmAgent {
       inputHandler: DataInputHandler,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
   ): Behavior[Message] = Behaviors.receiveMessagePartial {
+    case IssueDisaggregatedControl(_, setPowers) =>
+      handleFlexControl(
+        emData,
+        modelShell,
+        inputHandler,
+        flexOptionsCore,
+        setPowers,
+      )
+
     case flexCtrl: IssueFlexControl =>
       val setPointActivePower =
         Try(modelShell.determineFlexPower(flexCtrl))
@@ -313,16 +322,32 @@ object EmAgent {
           inputHandler.getSecondaryData,
         )
 
-      val (allFlexMsgs, newCore) = flexOptionsCore
-        .handleFlexCtrl(ctrlSetPoints)
-        .fillInMissingIssueCtrl()
-        .complete()
+      handleFlexControl(
+        emData,
+        modelShell,
+        inputHandler,
+        flexOptionsCore,
+        ctrlSetPoints,
+      )
+  }
 
-      allFlexMsgs.foreach { case (actor, msg) =>
-        actor ! msg
-      }
+  private def handleFlexControl(
+      emData: EmData,
+      modelShell: EmModelShell[?],
+      inputHandler: DataInputHandler,
+      flexOptionsCore: EmDataCore.AwaitingFlexOptions,
+      ctrlSetPoints: Iterable[(UUID, Power)],
+  ): Behavior[Message] = {
+    val (allFlexMsgs, newCore) = flexOptionsCore
+      .handleFlexCtrl(ctrlSetPoints)
+      .fillInMissingIssueCtrl()
+      .complete()
 
-      awaitingCompletions(emData, modelShell, inputHandler, newCore)
+    allFlexMsgs.foreach { case (actor, msg) =>
+      actor ! msg
+    }
+
+    awaitingCompletions(emData, modelShell, inputHandler, newCore)
   }
 
   /** Behavior of an [[EmAgent]] waiting for completions messages to be received
