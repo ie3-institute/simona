@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
+import edu.ie3.datamodel.models.input.system.SystemParticipantInput
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
@@ -34,6 +35,7 @@ final case class EmModelShell[FO <: FlexOptions](
     aggregateFlex: EmAggregateFlex[FO],
     sentDisaggregatedFlex: Boolean = false,
     private val modelToAssetInput: Map[UUID, AssetInput] = Map.empty,
+    private val participants: Set[UUID] = Set.empty,
     private val flexOptions: Option[DisaggregatedFlexOptions[FO]] = None,
     private val flexOptionsExtra: FlexOptionsExtra[FO],
 ) {
@@ -105,6 +107,8 @@ final case class EmModelShell[FO <: FlexOptions](
     aggregateFlex.aggregateFlexOptions(flexOptions)
   }
 
+  def isParticipant(uuid: UUID): Boolean = participants.contains(uuid)
+
   /** Adds an asset controlled by this EM to the model shell.
     *
     * @param modelUuid
@@ -117,10 +121,17 @@ final case class EmModelShell[FO <: FlexOptions](
   def addControlledAsset(
       modelUuid: UUID,
       assetInput: AssetInput,
-  ): EmModelShell[FO] =
+  ): EmModelShell[FO] = {
+    val updated = assetInput match {
+      case _: SystemParticipantInput => participants.incl(assetInput.getUuid)
+      case _                         => participants
+    }
+
     copy(
-      modelToAssetInput = modelToAssetInput.updated(modelUuid, assetInput)
+      modelToAssetInput = modelToAssetInput.updated(modelUuid, assetInput),
+      participants = updated,
     )
+  }
 
   /** Updates the flex options of this EM.
     *

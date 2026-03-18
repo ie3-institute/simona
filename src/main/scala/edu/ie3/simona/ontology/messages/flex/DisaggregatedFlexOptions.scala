@@ -7,17 +7,15 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.simona.api.data.model.em.MultiFlexOptions
-import edu.ie3.simona.model.em.EmAggregateFlex
 
 import java.util.UUID
-import scala.reflect.ClassTag
 
 final case class DisaggregatedFlexOptions[FO <: FlexOptions](
     disaggregated: Map[UUID, FO]
 ) extends FlexOptions {
 
-  override def toExt(recipient: UUID, model: UUID): MultiFlexOptions = {
-    val options = new MultiFlexOptions(recipient)
+  override def toExt(receiver: UUID, model: UUID): MultiFlexOptions = {
+    val options = new MultiFlexOptions(receiver)
 
     disaggregated.foreach { case (disaggregateModelUuid, fo) =>
       options.addDisaggregated(
