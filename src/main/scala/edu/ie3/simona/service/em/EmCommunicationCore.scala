@@ -8,24 +8,25 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
-import edu.ie3.simona.api.data.model.em
+import edu.ie3.simona.api.FlexConversion
+import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
 import edu.ie3.simona.api.data.model.em.{
   EmCommunicationMessage,
   EmData,
-  EmSetPoint,
   FlexOptionRequest,
+  SetPoint,
   FlexOptions as ExtFlexOptions,
 }
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
-import edu.ie3.simona.ontology.messages.flex.FlexOptions.fromExt
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.added
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -256,15 +257,7 @@ case class EmCommunicationCore(
           // updates the em state
           emStates(receiver).setReceivedSetPoint()
 
-          setPoint.power.toScala.flatMap(
-            _.getP.toScala.map(_.toSquants)
-          ) match {
-            case Some(power) =>
-              agent ! IssuePowerControl(extTick, power)
-
-            case None =>
-              agent ! IssueNoControl(extTick)
-          }
+          agent ! FlexConversion.convert(tick, setPoint)
 
           val count = Try {
             uuidToInferior(receiver).count { id => emStates(id).isActivated }
@@ -337,27 +330,19 @@ case class EmCommunicationCore(
 
             agent ! ProvideFlexOptions(
               sender,
-              fromExt(flexOption),
+              convertOptions(flexOption),
             )
 
             // receiver -> number of received flex options
             Some(receiver -> 1)
 
-          case setPoint: EmSetPoint =>
+          case setPoint: SetPoint =>
             val agent = uuidToAgent(receiver)
 
             // updates the em state
             emStates(receiver).setReceivedSetPoint()
 
-            setPoint.power.toScala.flatMap(
-              _.getP.toScala.map(_.toSquants)
-            ) match {
-              case Some(power) =>
-                agent ! IssuePowerControl(extTick, power)
-
-              case None =>
-                agent ! IssueNoControl(extTick)
-            }
+            agent ! convert(tick, setPoint)
 
             val count = Try {
               uuidToInferior(receiver).count { id => emStates(id).isActivated }
@@ -539,7 +524,7 @@ case class EmCommunicationCore(
             new EmCommunicationMessage(
               receiverUuid,
               sender,
-              new EmSetPoint(receiverUuid, power),
+              new SetPoint.AggregatedSetPoint(receiverUuid, power),
             ),
           )
         }

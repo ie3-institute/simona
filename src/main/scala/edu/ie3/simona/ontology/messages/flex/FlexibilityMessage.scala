@@ -8,23 +8,27 @@ package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.value.PValue
-import edu.ie3.simona.api.data.model.em.EmSetPoint
+import edu.ie3.simona.api.data.model.em.SetPoint
+import edu.ie3.simona.api.data.model.em.SetPoint.{
+  AggregatedSetPoint,
+  DisaggregatedSetPoints,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.DataTimeType
+import edu.ie3.simona.service.em.{EmServiceCore, ExtEmDataService}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import edu.ie3.simona.service.em.{EmServiceCore, ExtEmDataService}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toQuantity,
+  toSquants,
+}
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.{MapHasAsScala, MapHasAsJava}
+import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
 import scala.jdk.OptionConverters.RichOptional
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toSquants,
-  toQuantity,
-}
 
 /** Messages used to facilitate flexibility-based communication between
   * [[edu.ie3.simona.agent.em.EmAgent]] and
@@ -123,7 +127,7 @@ object FlexibilityMessage {
     */
   trait IssueFlexControl extends FlexRequest {
 
-    def toExt(receiver: UUID): EmSetPoint
+    def toExt(receiver: UUID): SetPoint
   }
 
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] that specifies a power
@@ -139,7 +143,7 @@ object FlexibilityMessage {
       override val tick: Long,
       setPower: Power,
   ) extends IssueFlexControl {
-    override def toExt(receiver: UUID): EmSetPoint = new EmSetPoint(
+    override def toExt(receiver: UUID): SetPoint = new AggregatedSetPoint(
       receiver,
       setPower.toQuantity,
     )
@@ -159,12 +163,12 @@ object FlexibilityMessage {
       override val tick: Long,
       setPowers: Map[UUID, Power],
   ) extends IssueFlexControl {
-    override def toExt(receiver: UUID): EmSetPoint = {
+    override def toExt(receiver: UUID): SetPoint = {
       val disaggregated = setPowers.map { case (uuid, power) =>
         uuid -> new PValue(power.toQuantity)
       }.asJava
 
-      new EmSetPoint(receiver, java.util.Optional.empty(), disaggregated)
+      new DisaggregatedSetPoints(receiver, disaggregated)
     }
   }
 
@@ -177,7 +181,9 @@ object FlexibilityMessage {
     */
   final case class IssueNoControl(override val tick: Long)
       extends IssueFlexControl {
-    override def toExt(receiver: UUID): EmSetPoint = new EmSetPoint(receiver)
+    override def toExt(receiver: UUID): SetPoint = new AggregatedSetPoint(
+      receiver
+    )
   }
 
   /** Message sent by controlled asset models that transports the result after

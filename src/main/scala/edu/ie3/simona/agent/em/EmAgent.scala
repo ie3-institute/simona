@@ -41,8 +41,10 @@ import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import squants.Power
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import scala.util.{Failure, Try}
 
 /** Energy management agent that receives flex options from and issues control
@@ -306,7 +308,7 @@ object EmAgent {
         setPowers,
       )
 
-    case (_, flexCtrl: IssueFlexControl =>
+    case (_, flexCtrl: IssueFlexControl) =>
       val setPointActivePower =
         Try(modelShell.determineFlexPower(flexCtrl))
           .recoverWith(exception =>

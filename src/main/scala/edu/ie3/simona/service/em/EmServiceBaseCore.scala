@@ -8,7 +8,7 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
+import edu.ie3.simona.api.data.model.em.{SetPoint, FlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
@@ -70,7 +70,7 @@ final case class EmServiceBaseCore(
     flexOptions: ReceiveDataMap[UUID, FlexOptions] = ReceiveDataMap.empty,
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
-    setPointOption: Option[Map[UUID, EmSetPoint]] = None,
+    setPointOption: Option[Map[UUID, SetPoint]] = None,
     internal: Set[UUID] = Set.empty,
 ) extends EmServiceCore {
 
@@ -168,7 +168,7 @@ final case class EmServiceBaseCore(
               case Some(ref) =>
                 // activate the necessary em agent, this is needed, because an em agent needs to know
                 // its current flex option to properly handle the given set point
-                ref ! FlexActivation(tick)
+                ref ! FlexActivation(tick, force = true)
               case None =>
                 log.warn(s"Received entity: $entity")
             }
@@ -302,43 +302,21 @@ final case class EmServiceBaseCore(
               msg.requestAtTick.map(uuid -> _)
             }
 
-          /*
           val updatedStateData = copy(
             completions = ReceiveDataMap.empty,
-            disaggregated = Map.empty,
             sendOptionsToExt = false,
             canHandleSetPoints = false,
             nextActivation = updatedNextActivation,
             internal = Set.empty,
           )
-           */
-
-          val expectedCompletions = nextTick match {
-            case Some(t) =>
-              val keys = updatedNextActivation.filter { case (_, activation) =>
-                activation == t
-              }.keySet
-              ReceiveDataMap[UUID, FlexCompletion](keys)
-            case None =>
-              updated
-          }
 
           val msgToExt = if internal.nonEmpty then {
-            Some(new EmCompletion(updatedNextActivation.values.minOption))
+            Some(new EmCompletion(updatedStateData.getMaybeNextTick(tick)))
           } else extMsgOption
 
           log.info(s"Em service completed for tick: $tick")
 
-          (
-            copy(
-              completions = expectedCompletions,
-              sendOptionsToExt = false,
-              canHandleSetPoints = false,
-              nextActivation = updatedNextActivation,
-              internal = Set.empty,
-            ),
-            msgToExt,
-          )
+          (updatedStateData, msgToExt)
 
         } else {
           log.debug(s"Missing completion for: ${updated.getExpectedKeys}")

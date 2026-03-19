@@ -8,7 +8,7 @@ package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.data.model.em.{
-  MultiFlexOptions,
+  DisaggregatedFlexOptions as ExtDisaggregatedFlexOptions,
   EnergyBoundariesFlexOptions as ExtEnergyBoundariesFlexOptions,
   FlexOptions as ExtFlexOptions,
   PowerLimitFlexOptions as ExtPowerLimitFlexOptions,
@@ -16,8 +16,8 @@ import edu.ie3.simona.api.data.model.em.{
 import edu.ie3.simona.exceptions.FlexException
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 
-import scala.jdk.CollectionConverters.MapHasAsScala
 import java.util.UUID
+import scala.jdk.CollectionConverters.MapHasAsScala
 
 /** Trait that all flex option types have to extend. */
 trait FlexOptions {
@@ -26,27 +26,7 @@ trait FlexOptions {
 }
 
 object FlexOptions {
+
   type TYPE[FO <: FlexOptions] = FO | DisaggregatedFlexOptions[FO]
-
-  def fromExt(externalFlexOptions: ExtFlexOptions): FlexOptions =
-    externalFlexOptions match {
-      case options: ExtPowerLimitFlexOptions =>
-        PowerLimitFlexOptions(
-          options.pRef.toSquants,
-          options.pMin.toSquants,
-          options.pMax.toSquants,
-        )
-
-      case options: MultiFlexOptions =>
-        val convertedFlexOptions = options.disaggregated.asScala.map {
-          case (uuid, fo) =>
-            uuid -> fromExt(fo)
-        }.toMap
-
-        DisaggregatedFlexOptions(convertedFlexOptions)
-
-      case other =>
-        throw FlexException(s"Cannot convert flex option: $other")
-    }
 
 }

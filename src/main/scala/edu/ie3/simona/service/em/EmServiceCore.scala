@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.FlexConversion
 import edu.ie3.simona.api.data.model.em.{
-  EmSetPoint,
+  SetPoint,
   FlexOptions,
   PowerLimitFlexOptions as ExtPowerLimitFlexOptions,
 }
@@ -167,13 +167,13 @@ trait EmServiceCore {
     */
   final def handleSetPoint(
       tick: Long,
-      setPoints: Map[UUID, EmSetPoint],
+      setPoints: Map[UUID, SetPoint],
       log: Logger,
   ): Unit = {
     setPoints.foreach { case (agent, setPoint) =>
       uuidToAgent.get(agent) match {
         case Some(receiver) =>
-          receiver ! FlexConversion.fromExt(tick, setPoint)
+          receiver ! FlexConversion.convert(tick, setPoint)
 
         case None =>
           log.warn(s"No em agent with uuid '$agent' registered!")
