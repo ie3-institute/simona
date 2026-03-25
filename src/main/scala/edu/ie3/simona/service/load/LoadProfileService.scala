@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.load
 
-import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.models.profile.{LoadProfile, PowerProfileKey}
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -72,9 +72,9 @@ object LoadProfileService extends SimonaService {
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      registeredAgents: Map[LoadProfile, RegistrantsContainer] = Map.empty,
-      profileResolutions: Map[LoadProfile, Long],
-      profileToNextActivationTick: Map[LoadProfile, Long],
+      registeredAgents: Map[PowerProfileKey, RegistrantsContainer] = Map.empty,
+      profileResolutions: Map[PowerProfileKey, Long],
+      profileToNextActivationTick: Map[PowerProfileKey, Long],
       simulationStartTime: ZonedDateTime,
   ) extends ServiceBaseStateData
 
@@ -137,7 +137,7 @@ object LoadProfileService extends SimonaService {
     case SecondaryServiceRegistrationMessage(
           requestingActor,
           dataTimeType,
-          loadProfile: LoadProfile,
+          loadProfile: PowerProfileKey,
         ) =>
       Success(
         handleRegistrationRequest(requestingActor, loadProfile, dataTimeType)
@@ -168,7 +168,7 @@ object LoadProfileService extends SimonaService {
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
-      loadProfile: LoadProfile,
+      loadProfile: PowerProfileKey,
       dataTimeType: DataTimeType,
   )(using
       serviceStateData: LoadProfileInitializedStateData,
@@ -207,7 +207,7 @@ object LoadProfileService extends SimonaService {
 
       case Failure(exception) =>
         ctx.log.error(
-          s"Unable to register for load profile '${loadProfile.getKey}'.",
+          s"Unable to register for load profile '${loadProfile}'.",
           exception,
         )
 
@@ -219,7 +219,7 @@ object LoadProfileService extends SimonaService {
 
   /** Retrieves or creates the [[RegistrantsContainer]] for given load profile.
     */
-  private def getRegistrantsContainer(loadProfile: LoadProfile)(using
+  private def getRegistrantsContainer(loadProfile: PowerProfileKey)(using
       serviceStateData: LoadProfileInitializedStateData
   ): Try[RegistrantsContainer] =
     serviceStateData.registeredAgents.get(loadProfile) match {

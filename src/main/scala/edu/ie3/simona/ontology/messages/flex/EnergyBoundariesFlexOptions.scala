@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  EnergyBoundariesFlexOptionsResult,
+}
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -95,15 +98,12 @@ object EnergyBoundariesFlexOptions
       modelUuid: UUID,
       dateTime: ZonedDateTime,
   ): FlexOptionsResult =
-    new FlexOptionsResult(
+    new EnergyBoundariesFlexOptionsResult(
       dateTime,
       modelUuid,
-      // there is no reference power, thus pick power closest to zero
-      zeroKW
-        .max(flexOptions.powerLimits.getLower)
-        .min(flexOptions.powerLimits.getUpper)
-        .toMegawatts
-        .asMegaWatt,
+      // todo
+      ???,
+      ???,
       flexOptions.powerLimits.getLower.toMegawatts.asMegaWatt,
       flexOptions.powerLimits.getUpper.toMegawatts.asMegaWatt,
     )

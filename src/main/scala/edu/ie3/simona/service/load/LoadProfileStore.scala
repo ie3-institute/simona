@@ -7,8 +7,8 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
-import edu.ie3.datamodel.models.profile.LoadProfile
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
+import edu.ie3.datamodel.models.profile.{LoadProfile, PowerProfileKey}
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
@@ -25,10 +25,10 @@ import scala.jdk.OptionConverters.RichOptional
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
-  *   Map: [[LoadProfile]] to [[LoadProfileSource]]
+  *   Map: [[PowerProfileKey]] to [[LoadProfileSource]]
   */
 final case class LoadProfileStore(
-    profileToSource: Map[LoadProfile, LoadProfileSource[?, ?]]
+    profileToSource: Map[PowerProfileKey, LoadProfileSource[?]]
 ) {
 
   /** Converts an option for [[ComparableQuantity]] power to an option for
@@ -62,12 +62,12 @@ final case class LoadProfileStore(
     * @return
     *   True, if this store contain the profile, else false.
     */
-  def contains(loadProfile: LoadProfile): Boolean =
+  def contains(loadProfile: PowerProfileKey): Boolean =
     profileToSource.contains(loadProfile)
 
   /** Returns a map: [[LoadProfile]] to profile resolution in seconds.
     */
-  def getProfileResolutions: Map[LoadProfile, Long] = profileToSource.keys
+  def getProfileResolutions: Map[PowerProfileKey, Long] = profileToSource.keys
     .map(profile => profile -> LoadProfileSource.getResolution(profile))
     .toMap
 
@@ -88,7 +88,7 @@ final case class LoadProfileStore(
       val currentTime = startTime.plusSeconds(tick)
 
       profileToSource.view.flatMap { case (_, source) =>
-        source.getTimeKeysAfter(currentTime).asScala.headOption.map(_.toTick)
+        source.getNextTimeKey(currentTime).asScala.map(_.toTick)
       }.minOption
     }
   }
@@ -105,25 +105,12 @@ final case class LoadProfileStore(
     */
   def entry(
       time: ZonedDateTime,
-      loadProfile: LoadProfile,
-  ): Option[squants.Power] =
+      loadProfile: PowerProfileKey,
+  ): Supplier[Option[squants.Power]] =
     profileToSource
       .get(loadProfile)
-      .flatMap(_.getValue(time).toScala)
+      .flatMap(_.getValueSupplier(time).toScala)
       .flatMap(_.getP)
-
-  /** Returns a function, that will provide a random load value for the given
-    * time.
-    */
-  def randomEntrySupplier(time: ZonedDateTime): () => squants.Power = () =>
-    entry(time, RANDOM_LOAD_PROFILE) match {
-      case Some(value) =>
-        value
-      case None =>
-        throw new CriticalFailureException(
-          s"Couldn't sample random load value!"
-        )
-    }
 
   /** @param loadProfile
     *   Given load profile.
@@ -132,7 +119,7 @@ final case class LoadProfileStore(
     *   [[LoadProfile]].
     */
   def getProfileLoadFactoryData(
-      loadProfile: LoadProfile
+      loadProfile: PowerProfileKey
   ): Option[ProfileLoadFactoryData] =
     profileToSource.get(loadProfile).map { source =>
       ProfileLoadFactoryData(
@@ -155,11 +142,11 @@ object LoadProfileStore {
 
   /** Returns the build in [[LoadProfileSource]]s.
     */
-  private def buildInProfiles: Map[LoadProfile, LoadProfileSource[?, ?]] = {
-    val bdew: Map[LoadProfile, LoadProfileSource[?, ?]] =
+  private def buildInProfiles: Map[PowerProfileKey, LoadProfileSource[?]] = {
+    val bdew: Map[LoadProfile, LoadProfileSource[?]] =
       LoadProfileSource.getBdewLoadProfiles.asScala.toMap
-    val random: Map[LoadProfile, LoadProfileSource[?, ?]] = Map(
-      RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
+    val random: Map[LoadProfile, LoadProfileSource[?]] = Map(
+      RANDOM_LOAD_PROFILE.getKey -> LoadProfileSource.getRandomLoadProfile
     )
     bdew ++ random
   }

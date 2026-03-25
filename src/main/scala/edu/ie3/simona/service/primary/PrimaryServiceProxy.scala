@@ -7,17 +7,17 @@
 package edu.ie3.simona.service.primary
 
 import edu.ie3.datamodel.io.connectors.SqlConnector
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.naming.timeseries.{
+  IndividualTimeSeriesMetaInformation,
+  FileIndividualTimeSeriesMetaInformation,
+}
 import edu.ie3.datamodel.io.naming.{
   DatabaseNamingStrategy,
   EntityPersistenceNamingStrategy,
   FileNamingStrategy,
 }
-import edu.ie3.datamodel.io.source.csv.{
-  CsvTimeSeriesMappingSource,
-  CsvTimeSeriesMetaInformationSource,
-}
+import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
+import edu.ie3.datamodel.io.source.file.FileTimeSeriesMetaInformationSource
 import edu.ie3.datamodel.io.source.sql.{
   SqlTimeSeriesMappingSource,
   SqlTimeSeriesMetaInformationSource,
@@ -253,7 +253,7 @@ object PrimaryServiceProxy {
             Paths.get(directoryPath),
             fileNamingStrategy,
           ),
-          new CsvTimeSeriesMetaInformationSource(
+          new FileTimeSeriesMetaInformationSource(
             csvSep,
             Paths.get(directoryPath),
             fileNamingStrategy,
@@ -488,7 +488,7 @@ object PrimaryServiceProxy {
           ) =>
         /* The actual data sources are from csv. Meta information have to match */
         metaInformation match {
-          case csvMetaData: CsvIndividualTimeSeriesMetaInformation =>
+          case csvMetaData: FileIndividualTimeSeriesMetaInformation =>
             Success(
               CsvInitPrimaryServiceStateData(
                 csvMetaData.getUuid,
@@ -504,7 +504,7 @@ object PrimaryServiceProxy {
           case invalidMetaData =>
             Failure(
               new InitializationException(
-                s"Expected '${classOf[CsvIndividualTimeSeriesMetaInformation]}', but got '$invalidMetaData'."
+                s"Expected '${classOf[FileIndividualTimeSeriesMetaInformation]}', but got '$invalidMetaData'."
               )
             )
         }
