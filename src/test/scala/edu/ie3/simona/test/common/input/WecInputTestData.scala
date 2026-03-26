@@ -24,7 +24,6 @@ trait WecInputTestData extends WecTypeInputTestData {
     CosPhiFixed.CONSTANT_CHARACTERISTIC,
     null,
     wecTypeInputEnerconE82,
-    false,
   )
 
 }

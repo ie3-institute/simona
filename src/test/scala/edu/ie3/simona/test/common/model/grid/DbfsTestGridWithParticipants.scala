@@ -10,18 +10,11 @@ import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
-import edu.ie3.datamodel.models.input.container.{
-  RawGridElements,
-  SystemParticipants,
-}
+import edu.ie3.datamodel.models.input.container.{RawGridElements, SystemParticipants}
+import edu.ie3.datamodel.models.input.system.{AcInput, *}
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.system.*
-import edu.ie3.datamodel.models.input.{
-  MeasurementUnitInput,
-  NodeInput,
-  OperatorInput,
-}
-import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput, OperatorInput}
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.quantities.PowerSystemUnits.*
@@ -103,7 +96,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     node1,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     null,
-    LoadProfile.DefaultLoadProfiles.NO_LOAD_PROFILE,
+    BdewStandardLoadProfile.H0.getKey,
     Quantities.getQuantity(300000, KILOWATTHOUR): ComparableQuantity[Energy],
     Quantities.getQuantity(150, MEGAVOLTAMPERE): ComparableQuantity[Power],
     0.9,
@@ -131,6 +124,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
       Set.empty[EvInput].asJava,
       Set.empty[FixedFeedInInput].asJava,
       Set.empty[HpInput].asJava,
+      Set.empty[AcInput].asJava,
       Set(load1).asJava,
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,

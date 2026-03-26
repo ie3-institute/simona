@@ -54,11 +54,7 @@ trait LoadModelTestHelper {
           simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
 
         val averagePower =
-          store
-            .entryFunc(dateTime, model.loadProfile)
-            .getOrElse(
-              throw new SourceException("No load value present!")
-            )
+          store.entryFunc(dateTime, model.loadProfile)()
 
         val state = LoadModelState(tick, averagePower)
 

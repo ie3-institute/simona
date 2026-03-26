@@ -80,7 +80,6 @@ class PvModelSpec
     getQuantity(41.01871871948242, DEGREE_GEOM),
     0.8999999761581421,
     1,
-    false,
     getQuantity(10, KILOVOLTAMPERE),
     0.8999999761581421,
   )

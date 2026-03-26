@@ -112,6 +112,7 @@ object TestGridFactory {
       Set.empty[EvInput].asJava,
       Set.empty[FixedFeedInInput].asJava,
       Set.empty[HpInput].asJava,
+      Set.empty[AcInput].asJava,
       Set.empty[LoadInput].asJava,
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,

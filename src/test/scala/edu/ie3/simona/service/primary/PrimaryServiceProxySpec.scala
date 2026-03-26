@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.service.primary
 
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.file.FileType
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
-import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
+import edu.ie3.datamodel.io.naming.timeseries.{
+  ColumnScheme,
+  FileIndividualTimeSeriesMetaInformation,
+}
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.SValue
@@ -270,9 +273,10 @@ class PrimaryServiceProxySpec
     }
 
     "successfully build initialization data for the worker" in {
-      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+      val metaInformation = new FileIndividualTimeSeriesMetaInformation(
         metaPq,
         Paths.get("its_pq_" + uuidPq),
+        FileType.CSV,
       )
 
       PrimaryServiceProxy.toInitData(
@@ -343,9 +347,10 @@ class PrimaryServiceProxySpec
       val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
       val lockProbe = TestProbe[ScheduleLock.Message]("lockProbe")
 
-      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+      val metaInformation = new FileIndividualTimeSeriesMetaInformation(
         metaPq,
         Paths.get("its_pq_" + uuidPq),
+        FileType.CSV,
       )
 
       val context: ActorContext[PrimaryServiceProxy.Message] = {
@@ -525,18 +530,20 @@ class PrimaryServiceProxySpec
       val uuid1 = UUID.randomUUID()
       val uuid3 = UUID.randomUUID()
       val timeSeriesUUID1_3 = UUID.randomUUID()
-      val meta1_3 = new CsvIndividualTimeSeriesMetaInformation(
+      val meta1_3 = new FileIndividualTimeSeriesMetaInformation(
         timeSeriesUUID1_3,
         ColumnScheme.ACTIVE_POWER,
         Path.of(""),
+        FileType.CSV,
       )
 
       val uuid2 = UUID.randomUUID()
       val timeSeriesUUID2 = UUID.randomUUID()
-      val meta2 = new CsvIndividualTimeSeriesMetaInformation(
+      val meta2 = new FileIndividualTimeSeriesMetaInformation(
         timeSeriesUUID2,
         ColumnScheme.ACTIVE_POWER,
         Path.of(""),
+        FileType.CSV,
       )
 
       val stateData = PrimaryServiceStateData(

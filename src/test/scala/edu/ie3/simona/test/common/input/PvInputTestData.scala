@@ -52,7 +52,6 @@ trait PvInputTestData
     Quantities.getQuantity(45, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(10, StandardUnits.S_RATED),
     0.95,
   )
@@ -93,7 +92,6 @@ trait PvInputTestData
       .getQuantity(51.75144341774285, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
@@ -113,7 +111,6 @@ trait PvInputTestData
       .getQuantity(50.710754711180925, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
@@ -133,7 +130,6 @@ trait PvInputTestData
       .getQuantity(50.727743320167065, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
@@ -153,7 +149,6 @@ trait PvInputTestData
       .getQuantity(53.588559702038765, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
@@ -173,7 +168,6 @@ trait PvInputTestData
       .getQuantity(48.813238479197025, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
@@ -193,7 +187,6 @@ trait PvInputTestData
       .getQuantity(43.081511203199625, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
@@ -213,7 +206,6 @@ trait PvInputTestData
       .getQuantity(54.5845761615783, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
@@ -233,7 +225,6 @@ trait PvInputTestData
       .getQuantity(52.37527455203235, StandardUnits.SOLAR_ELEVATION_ANGLE),
     0.9,
     1.0,
-    false,
     Quantities.getQuantity(95, StandardUnits.S_RATED),
     1.0,
   )
