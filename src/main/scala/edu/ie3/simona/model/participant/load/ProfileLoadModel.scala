@@ -249,7 +249,7 @@ object ProfileLoadModel {
 
       val randomKey = RandomLoadProfile.RANDOM_LOAD_PROFILE.getKey
       val sRated = input.getLoadProfile match {
-        case randomKey =>
+        case `randomKey` =>
           /** Safety factor to address potential higher sRated values when using
             * unrestricted probability functions.
             */
