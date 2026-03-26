@@ -404,38 +404,6 @@ final case class ThermalGrid(
     }
   }
 
-  /** Handles the case, when the storage has heat demand and will be filled up
-    * here (positive qDot).
-    *
-    * @param state
-    *   State of the heat pump.
-    * @param qDotHeatStorage
-    *   Feed in to the heat storage (positive: Storage is charging, negative:
-    *   Storage is discharging).
-    * @param qDotHotWaterStorage
-    *   Feed in to the water storage (positive: Storage is charging, negative:
-    *   Storage is discharging).
-    * @return
-    *   The ThermalThreshold if there is one.
-    */
-  private def handleFeedInStorages(
-      state: HpState,
-      qDotHeatStorage: Power,
-      qDotHotWaterStorage: Power,
-  ): (Option[ThermalThreshold], Option[ThermalThreshold]) = {
-    val heatStorageThreshold =
-      if qDotHeatStorage != zeroKW then
-        handleFeedInHeatStorage(state, qDotHeatStorage)
-      else None
-
-    val hotWaterStorageThreshold =
-      if qDotHotWaterStorage != zeroKW then
-        handleFeedInHotWaterStorage(state, qDotHotWaterStorage)
-      else None
-
-    (heatStorageThreshold, hotWaterStorageThreshold)
-  }
-
   private def handleFeedInHeatStorage(
       state: HpState,
       qDotStorage: Power,

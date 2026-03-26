@@ -108,8 +108,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `CHANGELOG` entry for #1607 [#1609](https://github.com/ie3-institute/simona/issues/1609)
 - Fixed HP model returning current tick as the next activation [#1622](https://github.com/ie3-institute/simona/issues/1622)
 - Disallowed EMs as inferiors of `PrioritizedFlexStrat` [#1712](https://github.com/ie3-institute/simona/issues/1712)
-- Fixed log spamming during night time due to no solar irradiance [#984](https://github.com/ie3-institute/simona/issues/984)
+- Fixed log spamming during nighttime due to no solar irradiance [#984](https://github.com/ie3-institute/simona/issues/984)
 - Fixed handling of power flow results in `ResultServiceProxy` [#1679](https://github.com/ie3-institute/simona/issues/1679)
+- Fixed some issues of `SonarQube` [#1739](https://github.com/ie3-institute/simona/issues/1739)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
@@ -122,7 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed unused class in EmAgent [#1735](https://github.com/ie3-institute/simona/issues/1735)
 
 ### Updates
-- Updated gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
+- Updated Gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
 - Update simonaAPI to version 0.11.0 [#1573](https://github.com/ie3-institute/simona/issues/1573)
 
 ## [4.0.0] - 2025-05-09
