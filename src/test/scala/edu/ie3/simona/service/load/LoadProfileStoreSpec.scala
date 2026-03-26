@@ -31,8 +31,9 @@ class LoadProfileStoreSpec extends UnitSpec {
     "contain all build-in profile sources" in {
       val profiles = store.profileToSource.keySet
 
-      val buildInSources: Set[LoadProfile] =
-        BdewStandardLoadProfile.values().toSet ++ Set(RANDOM_LOAD_PROFILE)
+      val buildInSources =
+        (BdewStandardLoadProfile.values().toSet ++ Set(RANDOM_LOAD_PROFILE))
+          .map(_.getKey)
 
       profiles should contain allElementsOf buildInSources
     }
