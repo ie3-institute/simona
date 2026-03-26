@@ -55,7 +55,7 @@ trait LoadModelTestHelper {
 
         val averagePower =
           store
-            .entry(dateTime, model.loadProfile)
+            .entryFunc(dateTime, model.loadProfile)
             .getOrElse(
               throw new SourceException("No load value present!")
             )

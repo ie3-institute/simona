@@ -16,12 +16,17 @@ import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import tech.units.indriya.ComparableQuantity
+import edu.ie3.datamodel.io.source.PowerValueSource.TimeSeriesInputValue
+import edu.ie3.datamodel.models.value.PValue
 
 import java.time.ZonedDateTime
 import java.util.Optional
 import javax.measure.quantity.{Energy, Power}
 import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+import scala.jdk.FunctionConverters.enrichAsScalaFromSupplier
 import scala.jdk.OptionConverters.RichOptional
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import java.util.function.Supplier
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
@@ -93,8 +98,8 @@ final case class LoadProfileStore(
     }
   }
 
-  /** Returns the load profiles entry (average power consumption of the current
-    * interval) for given time and load profile.
+  /** Returns the load profiles entry function (supplying the average power
+    * consumption of the current interval) for given time and load profile.
     *
     * @param time
     *   The requested time.
@@ -103,14 +108,33 @@ final case class LoadProfileStore(
     * @return
     *   A load in kW.
     */
-  def entry(
+  def entryFunc(
       time: ZonedDateTime,
       loadProfile: PowerProfileKey,
-  ): Supplier[Option[squants.Power]] =
-    profileToSource
-      .get(loadProfile)
-      .flatMap(_.getValueSupplier(time).toScala)
-      .flatMap(_.getP)
+  ): () => squants.Power = {
+
+    val source = profileToSource
+      .getOrElse(
+        loadProfile,
+        throw new CriticalFailureException(
+          s"Load profile $loadProfile is not available."
+        ),
+      )
+
+    val supplier = source.getValueSupplier(new TimeSeriesInputValue(time))
+
+    () =>
+      supplier.asScala
+        .apply()
+        .toScala
+        .flatMap(_.getP.toScala)
+        .map(_.toSquants)
+        .getOrElse(
+          throw new CriticalFailureException(
+            s"Load value function cannot be provided for load profile $loadProfile at time $time!"
+          )
+        )
+  }
 
   /** @param loadProfile
     *   Given load profile.
@@ -124,7 +148,7 @@ final case class LoadProfileStore(
     profileToSource.get(loadProfile).map { source =>
       ProfileLoadFactoryData(
         source.getMaxPower,
-        source.getLoadProfileEnergyScaling,
+        source.getProfileEnergyScaling,
       )
     }
 

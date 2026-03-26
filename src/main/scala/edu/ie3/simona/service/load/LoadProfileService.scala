@@ -207,7 +207,7 @@ object LoadProfileService extends SimonaService {
 
       case Failure(exception) =>
         ctx.log.error(
-          s"Unable to register for load profile '${loadProfile}'.",
+          s"Unable to register for load profile '$loadProfile'.",
           exception,
         )
 
@@ -258,18 +258,12 @@ object LoadProfileService extends SimonaService {
 
     activations.foreach { case (loadProfile, nextTick) =>
       registeredAgents.get(loadProfile).foreach { registrantsContainer =>
-        def dataRetrievalFunc(time: ZonedDateTime): Option[SecondaryData] = {
-          loadProfile match {
-            case LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE =>
-              Some(LoadDataFunction(loadProfileStore.randomEntrySupplier(time)))
-            case _ =>
-              loadProfileStore.entry(time, loadProfile).map(LoadData.apply)
-          }
-        }
+        def dataRetrievalFunc(time: ZonedDateTime): SecondaryData =
+          LoadDataFunction(loadProfileStore.entryFunc(time, loadProfile))
 
         registrantsContainer.registrantsMap.foreach {
           case (dataTimeType, actors) =>
-            val maybeData = dataTimeType match {
+            val data = dataTimeType match {
               case DataTimeType.Current =>
                 dataRetrievalFunc(time)
 
@@ -289,41 +283,29 @@ object LoadProfileService extends SimonaService {
                 val series =
                   Range.Long
                     .inclusive(tick, endTick, adaptedRes)
-                    .flatMap { tickIt =>
+                    .map { tickIt =>
                       val timeIt = tickIt.toDateTime
                       val data = dataRetrievalFunc(timeIt)
 
-                      data.map(tickIt -> _)
+                      tickIt -> data
                     }
                     .to(SortedMap)
 
-                Some(
-                  SecondarySeriesData(
-                    reduceTimeSeriesResolution(series, forecastResTime)
-                  )
+                SecondarySeriesData(
+                  reduceTimeSeriesResolution(series, forecastResTime)
                 )
 
             }
 
-            maybeData match {
-              case Some(data) =>
-                /* Sending the found value to the requester */
-                actors.foreach(
-                  _ ! DataProvision(
-                    tick,
-                    ctx.self,
-                    data,
-                    Some(nextTick),
-                  )
-                )
-              case None =>
-                /* There is no data available in the source. */
-                ctx.log.warn(
-                  s"No data found for load profile {} for time: {}",
-                  loadProfile,
-                  time,
-                )
-            }
+            /* Sending the found value to the requester */
+            actors.foreach(
+              _ ! DataProvision(
+                tick,
+                ctx.self,
+                data,
+                Some(nextTick),
+              )
+            )
         }
       }
 

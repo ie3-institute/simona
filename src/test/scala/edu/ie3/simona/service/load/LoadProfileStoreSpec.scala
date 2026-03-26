@@ -51,7 +51,7 @@ class LoadProfileStoreSpec extends UnitSpec {
     }
 
     "return a value for a given time and load profile" in {
-      val option = store.entry(time, BdewStandardLoadProfile.G0)
+      val option = store.entryFunc(time, BdewStandardLoadProfile.G0)
       option match {
         case Some(value) =>
           value should approximate(Watts(65.5))

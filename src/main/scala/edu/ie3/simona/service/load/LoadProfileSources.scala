@@ -86,7 +86,7 @@ object LoadProfileSources {
         // get the meta information
         val metaInformation: Map[PowerProfileKey, LoadProfileMetaInformation] =
           metaInformationSource.getLoadProfileMetaInformation.asScala.toMap
-          
+
         // build all defined sources
         val bdewKeys = BdewStandardLoadProfile.values().map(_.getKey).toSet
         val bdewMetaInformation = metaInformation.filter {
@@ -223,12 +223,13 @@ object LoadProfileSources {
                 csvLoadProfileMetaInformation: FileLoadProfileMetaInformation,
               ) =>
             map.updated(
-              profile, new CsvLoadProfileSource[V](
+              profile,
+              new CsvLoadProfileSource[V](
                 csvDataSource,
                 csvLoadProfileMetaInformation,
                 entryClass,
                 factory,
-              )
+              ),
             )
 
           case (
@@ -236,14 +237,15 @@ object LoadProfileSources {
                 loadProfileMetaInformation: LoadProfileMetaInformation,
               ) =>
             map.updated(
-              profile, new SqlLoadProfileSource[V](
+              profile,
+              new SqlLoadProfileSource[V](
                 sqlDataSource,
                 loadProfileMetaInformation,
                 entryClass,
                 factory,
-              )
+              ),
             )
-            
+
           case _ =>
             map
         }
