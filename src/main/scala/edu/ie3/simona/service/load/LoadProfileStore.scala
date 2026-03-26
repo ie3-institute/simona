@@ -7,8 +7,9 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
+import edu.ie3.datamodel.io.source.PowerValueSource.TimeSeriesInputValue
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
-import edu.ie3.datamodel.models.profile.{LoadProfile, PowerProfileKey}
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
@@ -16,17 +17,13 @@ import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import tech.units.indriya.ComparableQuantity
-import edu.ie3.datamodel.io.source.PowerValueSource.TimeSeriesInputValue
-import edu.ie3.datamodel.models.value.PValue
 
 import java.time.ZonedDateTime
 import java.util.Optional
 import javax.measure.quantity.{Energy, Power}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.*
 import scala.jdk.FunctionConverters.enrichAsScalaFromSupplier
 import scala.jdk.OptionConverters.RichOptional
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import java.util.function.Supplier
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
@@ -93,7 +90,7 @@ final case class LoadProfileStore(
       val currentTime = startTime.plusSeconds(tick)
 
       profileToSource.view.flatMap { case (_, source) =>
-        source.getNextTimeKey(currentTime).asScala.map(_.toTick)
+        source.getNextTimeKey(currentTime).toScala.map(_.toTick)
       }.minOption
     }
   }
@@ -167,9 +164,8 @@ object LoadProfileStore {
   /** Returns the build in [[LoadProfileSource]]s.
     */
   private def buildInProfiles: Map[PowerProfileKey, LoadProfileSource[?]] = {
-    val bdew: Map[LoadProfile, LoadProfileSource[?]] =
-      LoadProfileSource.getBdewLoadProfiles.asScala.toMap
-    val random: Map[LoadProfile, LoadProfileSource[?]] = Map(
+    val bdew = LoadProfileSource.getBdewLoadProfiles.asScala.toMap
+    val random = Map(
       RANDOM_LOAD_PROFILE.getKey -> LoadProfileSource.getRandomLoadProfile
     )
     bdew ++ random

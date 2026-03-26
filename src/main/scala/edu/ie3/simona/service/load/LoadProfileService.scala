@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service.load
 
-import edu.ie3.datamodel.models.profile.{LoadProfile, PowerProfileKey}
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -62,7 +62,7 @@ object LoadProfileService extends SimonaService {
   /** @param loadProfileStore
     *   That stores that contains all load profiles.
     * @param registeredAgents
-    *   Registered agents by [[LoadProfile]].
+    *   Registered agents by [[PowerProfileKey]].
     * @param profileResolutions
     *   Map: [[LoadProfile]] to resolution.
     * @param profileToNextActivationTick
