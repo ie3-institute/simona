@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.result.system.{
   EmResult,
-  PowerLimitFlexOptionsResult
+  PowerLimitFlexOptionsResult,
 }
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent

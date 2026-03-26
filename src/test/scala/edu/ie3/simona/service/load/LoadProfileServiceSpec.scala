@@ -7,11 +7,18 @@
 package edu.ie3.simona.service.load
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile, PowerProfileKey}
+import edu.ie3.datamodel.models.profile.{
+  BdewStandardLoadProfile,
+  LoadProfile,
+  PowerProfileKey,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
@@ -21,7 +28,10 @@ import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStat
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.energy.{KilowattHours, Kilowatts, Watts}

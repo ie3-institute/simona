@@ -30,20 +30,20 @@ trait TimeSeriesTestData {
       uuidP,
       ColumnScheme.ACTIVE_POWER,
       Paths.get("its_p_" + uuidP),
-        FileType.CSV,
+      FileType.CSV,
     )
   protected val metaPq: FileIndividualTimeSeriesMetaInformation =
     new FileIndividualTimeSeriesMetaInformation(
       uuidPq,
       ColumnScheme.APPARENT_POWER,
       Paths.get("its_pq_" + uuidPq),
-        FileType.CSV,
+      FileType.CSV,
     )
   protected val metaPqh: FileIndividualTimeSeriesMetaInformation =
     new FileIndividualTimeSeriesMetaInformation(
       uuidPqh,
       ColumnScheme.APPARENT_POWER_AND_HEAT_DEMAND,
       Paths.get("its_pqh_" + uuidPqh),
-        FileType.CSV,
+      FileType.CSV,
     )
 }
