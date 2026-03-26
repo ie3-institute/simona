@@ -26,7 +26,6 @@ import edu.ie3.simona.model.participant.flex.{
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.SecondaryData.{
-  LoadData,
   LoadDataFunction,
   SecondarySeriesData,
 }
@@ -106,16 +105,11 @@ class ProfileLoadModel(
   ): LoadModelState = {
     receivedData
       .collectFirst {
-        case loadData: LoadData =>
-          SortedMap(state.tick -> loadData.averagePower)
-
         case loadFunction: LoadDataFunction =>
           SortedMap(state.tick -> loadFunction.powerSupplier())
 
         case SecondarySeriesData(series) =>
           series.map {
-            case (tick, loadData: LoadData) =>
-              tick -> loadData.averagePower
             case (tick, loadFunction: LoadDataFunction) =>
               tick -> loadFunction.powerSupplier()
             case (_, unexpectedData) =>
