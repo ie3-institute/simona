@@ -8,4 +8,7 @@
 <configuration>
     <!-- File appender is configured and added by edu.ie3.simona.logging.logback.LogbackConfiguration -->
     <!-- Console appender is configured and added by edu.ie3.simona.logging.logback.LogbackConfiguration -->
+
+    <!-- Turn off optimus log spamming at INFO level -->
+    <logger name="optimus" level="WARN"/>
 </configuration>

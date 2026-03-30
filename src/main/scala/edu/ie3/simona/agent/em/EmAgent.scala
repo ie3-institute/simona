@@ -26,7 +26,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.DataMessage
-import edu.ie3.simona.ontology.messages.flex.FlexOptions
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -53,6 +52,26 @@ object EmAgent {
 
   type Message = Activation | FlexRequest | FlexResponse |
     ServiceMessage.Response
+
+  /** Data that is supposed to stay (mostly) constant during simulation.
+    *
+    * @param outputConfig
+    *   Config for the output behaviour of simulation results.
+    * @param simulationStartDate
+    *   Date of the very first tick in the simulation.
+    * @param parent
+    *   Either a [[Right]] with a reference to the parent [[EmAgent]] if this
+    *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
+    *   that is activating this agent.
+    * @param listener
+    *   A listener for result events.
+    */
+  final case class EmData(
+      outputConfig: NotifierConfig,
+      simulationStartDate: ZonedDateTime,
+      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
+      listener: ActorRef[ResultEvent],
+  )
 
   /** Behavior of an inactive [[EmAgent]], which waits for an activation or flex
     * request to be activated.
@@ -441,38 +460,5 @@ object EmAgent {
       ),
     )
   }
-
-  /** Data that is supposed to stay (mostly) constant during simulation.
-    *
-    * @param outputConfig
-    *   Config for the output behaviour of simulation results.
-    * @param simulationStartDate
-    *   Date of the very first tick in the simulation.
-    * @param parent
-    *   Either a [[Right]] with a reference to the parent [[EmAgent]] if this
-    *   agent is em-controlled, or a [[Left]] with a reference to the scheduler
-    *   that is activating this agent.
-    * @param listener
-    *   A listener for result events.
-    */
-  final case class EmData(
-      outputConfig: NotifierConfig,
-      simulationStartDate: ZonedDateTime,
-      parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
-      listener: ActorRef[ResultEvent],
-  )
-
-  /** The existence of this data object indicates that the corresponding agent
-    * is EM-controlled (by [[emAgent]]).
-    *
-    * @param emAgent
-    *   The parent EmAgent that is controlling this agent.
-    * @param lastFlexOptions
-    *   Last flex options that have been calculated for this agent.
-    */
-  final case class FlexControlledData(
-      emAgent: ActorRef[FlexResponse],
-      lastFlexOptions: Option[FlexOptions] = None,
-  )
 
 }
