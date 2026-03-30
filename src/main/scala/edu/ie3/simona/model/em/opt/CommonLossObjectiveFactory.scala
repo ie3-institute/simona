@@ -247,7 +247,7 @@ object CommonLossObjectiveFactory {
         val absPower = maxTotalPower.max(-minTotalPower).toKilowatts
         if absPower == 0.0 then {
           // if there is zero maximum absolute power, the only solution is zero power
-          // for all assets. We thus just assume a placeholder value here so that 
+          // for all assets. We thus just assume a placeholder value here so that
           // numerics do not break
           1.0
         } else absPower
