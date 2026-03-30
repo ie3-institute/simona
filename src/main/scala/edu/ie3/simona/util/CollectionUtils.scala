@@ -104,10 +104,8 @@ object CollectionUtils {
   @tailrec
   private def isUniqueList[T](list: List[T], set: Set[T]): Boolean =
     list match {
-      case Nil => true
-      case headEntry :: tailList =>
-        if set(headEntry) then false
-        else isUniqueList(tailList, set + headEntry)
+      case Nil          => true
+      case head :: tail => !set(head) && isUniqueList(tail, set + head)
     }
 
   /** Checks if the provided list is sorted in accordance to the provided
