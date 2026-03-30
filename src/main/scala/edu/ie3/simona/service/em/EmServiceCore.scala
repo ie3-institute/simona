@@ -171,7 +171,7 @@ trait EmServiceCore {
     setPoints.foreach { case (agent, setPoint) =>
       uuidToAgent.get(agent) match {
         case Some(receiver) =>
-          receiver ! FlexConversion.fromExt(tick, setPoint)
+          receiver ! FlexConversion.convert(tick, setPoint)
 
         case None =>
           log.warn(s"No em agent with uuid '$agent' registered!")
