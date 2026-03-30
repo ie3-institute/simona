@@ -10,13 +10,7 @@ import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
 import edu.ie3.simona.api.FlexConversion
 import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
-import edu.ie3.simona.api.data.model.em.{
-  EmCommunicationMessage,
-  EmData,
-  FlexOptionRequest,
-  SetPoint,
-  FlexOptions as ExtFlexOptions,
-}
+import edu.ie3.simona.api.data.model.em.{EmCommunicationMessage, EmData, FlexOptionRequest, SetPoint, FlexOptions as ExtFlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
@@ -24,17 +18,13 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
-import edu.ie3.util.scala.collection.immutable.RichMultiMap.added
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
 import java.util.{OptionalLong, UUID}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.RichOptional
 import scala.math.max
 import scala.util.Try
 
@@ -158,7 +148,12 @@ case class EmCommunicationCore(
     val uuid = emServiceRegistration.inputUuid
     val ref = emServiceRegistration.requestingActor
 
-    val (updatedUncontrolled, updatedInferior, updatedUuidToParent) =
+    val (
+      updatedUncontrolled,
+      updatedInferior,
+      updatedUuidToParent,
+      updatedCompletions,
+    ) =
       emServiceRegistration.parentUuid match {
         case Some(parent) =>
           val inferior = uuidToInferior.get(parent) match {
@@ -172,9 +167,15 @@ case class EmCommunicationCore(
             uncontrolled,
             uuidToInferior.updated(parent, inferior),
             uuidToParent.updated(uuid, parent),
+            completions,
           )
         case None =>
-          (uncontrolled + uuid, uuidToInferior, uuidToParent)
+          (
+            uncontrolled + uuid,
+            uuidToInferior,
+            uuidToParent,
+            completions.addExpectedKey(uuid),
+          )
       }
 
     copy(
@@ -183,6 +184,7 @@ case class EmCommunicationCore(
       uncontrolled = updatedUncontrolled,
       uuidToInferior = updatedInferior,
       uuidToParent = updatedUuidToParent,
+      completions = updatedCompletions,
       nextActivation = nextActivation.updated(uuid, 0),
       emStates = emStates.updated(uuid, EmAgentState()),
     )
@@ -425,15 +427,15 @@ case class EmCommunicationCore(
         }
 
       case completion @ FlexCompletion(
-            sender,
+            modelUuid,
             requestAtNextActivation,
             requestAtTick,
-          ) if tick != INIT_SIM_TICK =>
+          ) =>
         // the completion can be sent directly to the receiver, since it's not used by the external communication
         uuidToAgent(receiverUuid) ! completion
-        emStates(sender).setWaitingForInternal(false)
+        emStates(modelUuid).setWaitingForInternal(false)
 
-        val updatedData = completions.addData(sender, completion)
+        val updatedData = completions.addData(modelUuid, completion)
 
         if updatedData.isComplete then {
           emStates.foreach(_._2.clear())
@@ -455,10 +457,6 @@ case class EmCommunicationCore(
         } else {
           (copy(completions = updatedData), getMsgToExtOption)
         }
-
-      case completion: FlexCompletion =>
-        receiver.foreach(_ ! completion)
-        (this, None)
 
       // not supported
       case other =>

@@ -197,10 +197,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
 
     serviceStateData.serviceCore match {
       case _: EmServiceBaseCore if nonCompleted =>
-        log.warn(
-          s"Tick: $tick; service: ${serviceStateData.tick}; not completed last tick: ${serviceStateData.serviceCore.completions.nonComplete}"
-        )
-
         // we request a new activation for the same tick
         (serviceStateData, Some(tick))
 

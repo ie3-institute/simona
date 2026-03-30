@@ -408,7 +408,7 @@ object EmAgent {
         }
 
     case (ctx, x) =>
-      ctx.log.warn(s"AwaitingCompletion: Could not handle $x")
+      ctx.log.warn(s"AwaitingCompletion: (${modelShell.id}, tick: ${core.activeTick}) Could not handle $x")
       Behaviors.same
   }
 

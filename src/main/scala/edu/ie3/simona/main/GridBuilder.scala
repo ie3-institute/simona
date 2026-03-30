@@ -3,16 +3,18 @@ package edu.ie3.simona.main
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.sink.CsvFileSink
 import edu.ie3.datamodel.io.source.csv.CsvJointGridContainerSource
-import edu.ie3.datamodel.models.input.EmInput
+import edu.ie3.datamodel.models.input.container.{JointGridContainer, SystemParticipants}
 import edu.ie3.datamodel.models.input.system.`type`.{HpTypeInput, StorageTypeInput}
 import edu.ie3.datamodel.models.input.system.characteristic.ReactivePowerCharacteristic
-import edu.ie3.datamodel.models.input.system.{HpInput, StorageInput}
+import edu.ie3.datamodel.models.input.system.{HpInput, PvInput, StorageInput}
 import edu.ie3.datamodel.models.input.thermal.{CylindricalStorageInput, ThermalBusInput}
+import edu.ie3.datamodel.models.input.{EmInput, NodeInput}
 import edu.ie3.util.quantities.QuantityUtils.*
 
 import java.nio.file.Path
 import java.util.UUID
-import scala.jdk.CollectionConverters.{SeqHasAsJava, SetHasAsScala}
+import scala.jdk.CollectionConverters.{CollectionHasAsScala, SeqHasAsJava, SetHasAsScala}
+import scala.util.Random
 
 object GridBuilder {
 
@@ -22,9 +24,47 @@ object GridBuilder {
 
 
     val grid = CsvJointGridContainerSource.read("_", ";", input, false)
+    val sink = new CsvFileSink(output, new FileNamingStrategy(), ";")
 
     val nodes = grid.getRawGrid.getNodes.asScala.filterNot(n => n.isSlack).map { n => n.getUuid -> n }.toMap
 
+    val nodeToEm = grid.getSystemParticipants.allEntitiesAsList().asScala.map { p =>
+      p.getNode.getUuid -> p.getControllingEm.get()
+    }.toMap
+
+
+    val qCharacteristic = ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.0,1.0)}")
+
+    val pvs = nodes.map { case (nodeUuid, node) =>
+      val id = node.getId
+      val em = nodeToEm(nodeUuid)
+
+      val rnd = new Random()
+
+      new PvInput(
+        UUID.randomUUID(),
+        s"Pv at node $id",
+        node,
+        qCharacteristic,
+        em,
+        0.20000000298023224,
+        rnd.between(-90.0, 90.0).asDegreeGeom,
+        95.0.asPercent,
+        45.0.asDegreeGeom,
+        0.8999999761581421,
+        1.0,
+        false,
+        10.0.asKiloVoltAmpere,
+        0.95
+      )
+
+    }.toSeq.asJava
+
+    sink.persistAllIgnoreNested(pvs)
+
+  }
+
+  def generate(participants: SystemParticipants, nodes: Map[UUID, NodeInput], sink: CsvFileSink): Unit = {
     val supEm = new EmInput(
       UUID.randomUUID(),
       s"client0",
@@ -35,16 +75,13 @@ object GridBuilder {
     val nodeToEm = nodes.zipWithIndex.map { case ((nodUuid, node), idx) =>
       val em = new EmInput(
         UUID.randomUUID(),
-        s"client${idx+1}",
+        s"client${idx + 1}",
         "PROPORTIONAL",
         supEm
       )
 
       nodUuid -> em
     }.toMap
-
-
-    val participants = grid.getSystemParticipants
 
     val ffi = participants.getFixedFeedIns.asScala.map { p =>
       val node = p.getNode.getUuid
@@ -125,8 +162,6 @@ object GridBuilder {
     }.toSeq.asJava
 
 
-    val sink = new CsvFileSink(output, new FileNamingStrategy(), ";")
-
     sink.persistIgnoreNested(storageType)
     sink.persistIgnoreNested(hpType)
 
@@ -134,10 +169,6 @@ object GridBuilder {
     sink.persistAllIgnoreNested(loads)
     sink.persistAllIgnoreNested(ffi)
     sink.persistAllIgnoreNested(nodeToEm.values.toSeq.asJava)
-
-
   }
-
-
 
 }
