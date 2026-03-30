@@ -10,39 +10,21 @@ import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
-  DoCongestionManagement,
-  FinishStep,
-  GotoIdle,
-}
-import edu.ie3.simona.agent.grid.congestion.{
-  CongestionManagementParams,
-  Congestions,
-}
-import edu.ie3.simona.agent.grid.data.GridAgentData.{
-  AwaitingData,
-  GridAgentConstantData,
-  GridAgentInitData,
-  GridAgentRef,
-}
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{DoCongestionManagement, GotoIdle}
+import edu.ie3.simona.agent.grid.congestion.{CongestionManagementParams, Congestions}
+import edu.ie3.simona.agent.grid.data.GridAgentData.{AwaitingData, GridAgentConstantData, GridAgentInitData, GridAgentRef}
 import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.config.GridConfigParser.{
-  ConfigRefSystems,
-  ConfigVoltageLimits,
-}
+import edu.ie3.simona.config.GridConfigParser.{ConfigRefSystems, ConfigVoltageLimits}
 import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
@@ -129,7 +111,7 @@ object GridAgentCoordinator {
       congestionManagementParams: CongestionManagementParams,
       resultProxy: ActorRef[ResultEvent],
       simStartTime: ZonedDateTime,
-      currentTick: Long = INIT_SIM_TICK,
+      currentTick: Long = FIRST_TICK_IN_SIMULATION,
       resolution: Option[Long] = None,
       gridAgentsRef: Set[GridAgentRef] = Set.empty,
       superiorGrids: Set[GridAgentRef] = Set.empty,

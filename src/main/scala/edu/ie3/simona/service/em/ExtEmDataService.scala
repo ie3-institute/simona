@@ -196,7 +196,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       tick != serviceStateData.tick && serviceStateData.serviceCore.completions.nonComplete
 
     serviceStateData.serviceCore match {
-      case _: EmServiceBaseCore if nonCompleted =>
+      case _ if nonCompleted =>
         // we request a new activation for the same tick
         (serviceStateData, Some(tick))
 
