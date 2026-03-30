@@ -358,7 +358,7 @@ object GridAgentCoordinator {
     * @return
     *   A new behavior.
     */
-  private def awaitCongestionResults(
+  private[grid] def awaitCongestionResults(
       stateData: StateData,
       awaitingData: AwaitingData[Congestions],
   ): Behavior[Message] = Behaviors.receivePartial {
