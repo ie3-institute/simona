@@ -12,8 +12,11 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   DoCongestionManagement,
-  FinishStep,
+  GotoIdle,
+  NextStep,
 }
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.NoMeasure
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
   Congestions,
@@ -101,6 +104,8 @@ object GridAgentCoordinator {
       congestions: Congestions,
   ) extends Request
 
+  final case class StepFinished(sender: GridAgentRef) extends Request
+
   /** @param scheduler
     *   Reference of the scheduler.
     * @param congestionManagementParams
@@ -175,7 +180,7 @@ object GridAgentCoordinator {
       val scheduler = environmentRefs.scheduler
 
       val congestionManagementParams =
-        CongestionManagementParams(config.congestionManagement.enableDetection)
+        CongestionManagementParams(config.congestionManagement)
 
       val stateData = StateData(
         scheduler,
@@ -374,21 +379,56 @@ object GridAgentCoordinator {
             s"No congestions found. Finishing the congestion management."
           )
 
+          stateData.superiorGrids.foreach(_ ! GotoIdle)
+          awaitGridSimulation(stateData, stateData.createAwaitingData)
+
         } else {
-          ctx.log.debug(
-            s"Congestion overall: $allCongestions"
-          )
 
-          val timestamp =
-            stateData.simStartTime.plusSeconds(stateData.currentTick)
+          val (nextStep, updatedParams) =
+            stateData.congestionManagementParams.getNextStepsAndUpdate
 
-          ctx.log.info(
-            s"There were some congestions that could not be resolved for timestamp: $timestamp."
-          )
+          nextStep match {
+            case NoMeasure =>
+              ctx.log.debug(
+                s"Congestion overall: $allCongestions"
+              )
+
+              val timestamp =
+                stateData.simStartTime.plusSeconds(stateData.currentTick)
+
+              ctx.log.info(
+                s"There were some congestions that could not be resolved for timestamp: $timestamp."
+              )
+
+              stateData.superiorGrids.foreach(_ ! GotoIdle)
+              awaitGridSimulation(stateData, stateData.createAwaitingData)
+
+            case _ =>
+              // informs the grid agent about the next mitigation step
+              stateData.informGridAgents(NextStep(nextStep))
+
+              awaitMitigationStepCompletion(
+                stateData.copy(congestionManagementParams = updatedParams),
+                stateData.createAwaitingData,
+              )
+          }
         }
+      }
+  }
 
-        stateData.superiorGrids.foreach(_ ! FinishStep)
+  private def awaitMitigationStepCompletion(
+      stateData: StateData,
+      awaitingData: AwaitingData[StepFinished],
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (ctx, stepFinished: StepFinished) =>
+      val updated = awaitingData.addData(stepFinished.sender, stepFinished)
+
+      if updated.nonComplete then {
+        awaitMitigationStepCompletion(stateData, updated)
+
+      } else {
         initPowerFlow(stateData, stateData.currentTick)
+
       }
   }
 
@@ -410,7 +450,7 @@ object GridAgentCoordinator {
 
     stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
 
-    idle(stateData)
+    idle(stateData.copy(hasRunCongestionManagement = false))
   }
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

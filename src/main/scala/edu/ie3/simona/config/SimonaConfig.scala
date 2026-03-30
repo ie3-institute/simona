@@ -115,7 +115,11 @@ object SimonaConfig {
       time: Simona.Time,
   ) derives ConfigConvert
   object Simona {
-    final case class CongestionManagement(enableDetection: Boolean = false)
+
+    final case class CongestionManagement(
+        enableDetection: Boolean = false,
+        enableTransformerTapChange: Boolean = false,
+    )
 
     final case class Control(
         transformer: List[TransformerControlGroup] = List.empty

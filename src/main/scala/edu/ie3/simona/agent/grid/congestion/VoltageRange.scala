@@ -54,22 +54,18 @@ final case class VoltageRange(
       deltaV: Dimensionless
   ): VoltageRange = {
 
-    val (plus, minus) = (deltaV < deltaPlus, deltaV > deltaMinus) match {
-      case (true, true) =>
-        // between both range limits => set upper limit to deltaV, lower limit is unchanged
-        (deltaV, deltaMinus)
-      case (true, false) =>
-        // smaller than both range limits => set limits to minimum
-        (deltaMinus, deltaMinus)
-      case (false, true) =>
-        // greater than both range limits => limits are unchanged
-        (deltaPlus, deltaMinus)
-      case (false, false) =>
-        // should only be possible, if deltaMinus > deltaPlus => limits are unchanged
-        (deltaPlus, deltaMinus)
-    }
+    if deltaV < zeroPU then {
+      // we have to decrease the voltage by at least the specified delta
+      val minus = deltaMinus.max(deltaV)
 
-    VoltageRange(plus, minus)
+      VoltageRange(deltaPlus, minus)
+
+    } else {
+      // we have to increase the voltage by at least the specified delta
+      val minus = deltaV.max(deltaMinus).min(deltaPlus)
+
+      VoltageRange(deltaPlus, minus)
+    }
   }
 
   /** Method to update this voltage range with inferior voltage ranges.

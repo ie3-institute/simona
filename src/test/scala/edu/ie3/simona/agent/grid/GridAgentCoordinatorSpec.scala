@@ -123,7 +123,7 @@ class GridAgentCoordinatorSpec
 
       val stateData = StateData(
         scheduler.ref,
-        CongestionManagementParams(false),
+        CongestionManagementParams(false, false),
         resultProxy.ref,
         startTime,
         gridAgentsRef = Set(subgrid1.ref, subgrid2.ref),

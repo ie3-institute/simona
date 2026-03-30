@@ -73,7 +73,7 @@ trait CongestedComponentsTestData
     false,
   )
 
-  protected val gridModel: GridModel = {
+  protected val defaultGridModel: GridModel = {
     val refSystem = RefSystem(Megawatts(600), Kilovolts(110))
 
     val model = GridModel(
@@ -124,7 +124,7 @@ trait CongestedComponentsTestData
   val nodeResultA = new NodeResult(
     startTime,
     supNodeA.getUuid,
-    0.89.asPu,
+    0.91.asPu,
     0.asDegreeGeom,
   )
 
@@ -152,7 +152,7 @@ trait CongestedComponentsTestData
   val nodeResult3 = new NodeResult(
     startTime,
     node3.getUuid,
-    0.89.asPu,
+    0.91.asPu,
     0.asDegreeGeom,
   )
 
@@ -179,6 +179,15 @@ trait CongestedComponentsTestData
     848d.asAmpere,
     0d.asDegreeGeom,
     849d.asAmpere,
+    0d.asDegreeGeom,
+  )
+
+  val lineResult34 = new LineResult(
+    startTime,
+    line3To4.getUuid,
+    230d.asAmpere,
+    0d.asDegreeGeom,
+    230d.asAmpere,
     0d.asDegreeGeom,
   )
 

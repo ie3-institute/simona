@@ -39,13 +39,13 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        defaultGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
 
-      congested.voltages shouldBe Iterable(nodeResult3, nodeResult2)
+      congested.voltages shouldBe Iterable(nodeResult2)
       congested.lines shouldBe Iterable.empty
       congested.transformer2Ws shouldBe Iterable.empty
       congested.transformer3Ws shouldBe Iterable.empty
@@ -62,13 +62,14 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        defaultGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
 
-      val lineMap = gridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
+      val lineMap =
+        defaultGridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
 
       congested.voltages shouldBe Iterable.empty
       congested.lines shouldBe Iterable(
@@ -89,14 +90,14 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        defaultGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
 
       val transformerMap =
-        gridModel.gridComponents.transformers.map(t => t.uuid -> t).toMap
+        defaultGridModel.gridComponents.transformers.map(t => t.uuid -> t).toMap
 
       congested.voltages shouldBe Iterable(nodeResult2)
       congested.lines shouldBe Iterable.empty
@@ -120,14 +121,16 @@ class CongestedComponentsSpec
 
       val congested = CongestedComponents(
         results,
-        gridModel.gridComponents,
+        defaultGridModel.gridComponents,
         defaultVoltageLimits,
         Kilovolts(110),
         1,
       )
 
       val transformerMap =
-        gridModel.gridComponents.transformers3w.map(t => t.uuid -> t).toMap
+        defaultGridModel.gridComponents.transformers3w
+          .map(t => t.uuid -> t)
+          .toMap
 
       congested.voltages shouldBe Iterable(nodeResult2)
       congested.lines shouldBe Iterable.empty

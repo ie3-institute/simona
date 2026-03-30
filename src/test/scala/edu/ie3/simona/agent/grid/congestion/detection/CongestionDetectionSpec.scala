@@ -8,7 +8,7 @@ package edu.ie3.simona.agent.grid.congestion.detection
 
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
-  FinishStep,
+  GotoIdle,
   StartStep,
 }
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.{
@@ -46,7 +46,7 @@ class CongestionDetectionSpec
 
     "answer a request for congestions correctly" in {
       val stateData = CongestionManagementData(
-        gridAgentBaseData(),
+        gridAgentBaseData(inferiorRefs = Set(inferiorAgent.ref)),
         3600,
         100,
         PowerFlowResultEvent(
@@ -127,7 +127,7 @@ class CongestionDetectionSpec
 
     "wait to answer a request for congestions if inferior data is still missing" in {
       val stateData = CongestionManagementData(
-        gridAgentBaseData(),
+        gridAgentBaseData(inferiorRefs = Set(inferiorAgent.ref)),
         3600,
         100,
         PowerFlowResultEvent(
@@ -238,10 +238,12 @@ class CongestionDetectionSpec
         transformerCongestions = false,
       )
 
-      // we send the center grid agent a FinishStep message to finish the detection
-      centerGridAgent ! FinishStep
+      // normally the superior agent would receive a GotoIdle message from the coordinator
+      // and this message is then forwarded to all other agents
+      // here we send the message manually to the center grid agent, since the superior agent is just a mock
+      centerGridAgent ! GotoIdle
 
-      inferiorAgent.expectMessageType[FinishStep.type]
+      inferiorAgent.expectMessageType[GotoIdle.type]
     }
 
     "work as expected in superior position" in {
@@ -293,8 +295,11 @@ class CongestionDetectionSpec
         ),
       )
 
-      // we expect a FinishStep message
-      inferiorAgent.expectMessageType[FinishStep.type]
+      // the coordinator will send a GotoIdle message
+      superiorGridAgent ! GotoIdle
+
+      // we expect a GotoIdle message
+      inferiorAgent.expectMessageType[GotoIdle.type]
     }
   }
 }
