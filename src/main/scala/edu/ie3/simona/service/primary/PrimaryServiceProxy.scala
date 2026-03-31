@@ -40,7 +40,6 @@ import edu.ie3.simona.ontology.messages.{
   SchedulerMessage,
   ServiceMessage,
 }
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
@@ -420,48 +419,25 @@ object PrimaryServiceProxy {
   ): Try[ActorRef[Message]] = {
     val valueClass = metaInformation.getColumnScheme.getValueClass
 
-    val workerRef = classToWorkerRef(metaInformation.getUuid.toString)
     toInitData(
       metaInformation,
       simulationStart,
       primaryConfig,
       valueClass,
-    ) match {
-      case Success(initData) =>
-        workerRef ! Create(
-          initData,
-          ScheduleLock.singleKey(ctx, scheduler, INIT_SIM_TICK),
+    ).recoverWith { cause =>
+      Failure(
+        new InitializationException(
+          "Unable to build init data for worker. Kill the uninitialized worker. Goodbye my friend!",
+          cause,
         )
-        Success(workerRef)
-      case Failure(cause) =>
-        ctx.stop(workerRef)
-        Failure(
-          new InitializationException(
-            "Unable to build init data for worker. Kill the uninitialized worker. Goodbye my friend!",
-            cause,
-          )
-        )
+      )
+    }.map { initData =>
+      ctx.spawn(
+        PrimaryServiceWorker(scheduler, initData),
+        metaInformation.getUuid.toString,
+      )
     }
   }
-
-  /** Build a primary source worker and type it to the foreseen value class to
-    * come
-    *
-    * @param timeSeriesUuid
-    *   Uuid of the time series the actor processes
-    * @return
-    *   The [[ActorRef]] to the spun off actor
-    */
-  private[service] def classToWorkerRef(
-      timeSeriesUuid: String
-  )(using
-      scheduler: ActorRef[SchedulerMessage],
-      ctx: ActorContext[Message],
-  ): ActorRef[Message] =
-    ctx.spawn(
-      PrimaryServiceWorker(scheduler),
-      timeSeriesUuid,
-    )
 
   /** Building proper init data for the worker
     *

@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the publications and references with new publications [#1707](https://github.com/ie3-institute/simona/issues/1707)
 - Refactor initialization of `GridAgent` [#1686](https://github.com/ie3-institute/simona/issues/1686)
 - Update `README.md` and `AUTHORS.md` [#1728](https://github.com/ie3-institute/simona/issues/1728)
+- Simplified initialization of services [#1751](https://github.com/ie3-institute/simona/issues/1751)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -113,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some issues of `SonarQube` [#1739](https://github.com/ie3-institute/simona/issues/1739)
 - Turned off optimus/ojAlgo log spam [#1742](https://github.com/ie3-institute/simona/issues/1742)
 - Fixed bugs in EM optimization [#1746](https://github.com/ie3-institute/simona/issues/1746)
+- Fixed `EnergyPriceService` initialization [#1747](https://github.com/ie3-institute/simona/issues/1747)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

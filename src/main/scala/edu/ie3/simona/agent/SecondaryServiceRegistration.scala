@@ -210,7 +210,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
       case ServiceType.PriceService =>
         serviceRef ! SecondaryServiceRegistrationMessage(
           registrantRef,
-          DataTimeType.Current,
+          dataTimeType,
           (),
         )
 

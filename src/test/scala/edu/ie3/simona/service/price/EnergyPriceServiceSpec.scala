@@ -14,13 +14,11 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
   DataProvision,
   RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
@@ -29,7 +27,6 @@ import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.price.EnergyPriceService.InitPriceServiceStateData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{EnergyPrice, EuroPerKilowattHour}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -73,33 +70,21 @@ class EnergyPriceServiceSpec
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
   private val priceService = spawn(
-    EnergyPriceService(scheduler.ref)
+    EnergyPriceService(
+      scheduler.ref,
+      InitPriceServiceStateData(
+        dataSourceConfig,
+        simulationStartDate,
+      ),
+    )
   )
 
   // testing tolerances
   private given EnergyPrice = EuroPerKilowattHour(1e-3)
 
   "A price service" must {
-    "send correct completion message after initialisation" in {
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
-
-      priceService ! Create(
-        InitPriceServiceStateData(
-          dataSourceConfig,
-          simulationStartDate,
-        ),
-        key,
-      )
-
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
-
-      priceService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor, Some(0)))
+    "send correct schedule message after initialisation" in {
+      scheduler.expectMessage(ScheduleActivation(priceService, 0L))
     }
 
     "announce that agent is registered for current price data" in {

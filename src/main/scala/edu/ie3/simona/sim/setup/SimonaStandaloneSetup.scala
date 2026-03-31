@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
-import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
+import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.service.price.EnergyPriceService
@@ -32,11 +32,9 @@ import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
-import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.slf4j.Logger
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
@@ -64,11 +62,9 @@ class SimonaStandaloneSetup(
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
   ): ActorRef[GridAgentCoordinator.Message] = {
-    given Logger = context.log
-
     // build participants
     val thermalIslandGridsByBusId = thermalGridsByThermalBus.map {
-      case (bus, thermalGrid) => thermalGrid.bus().getUuid -> thermalGrid
+      case (_, thermalGrid) => thermalGrid.bus().getUuid -> thermalGrid
     }
 
     val nodeToParticipants = ParticipantAgentFactory.buildSystemParticipants(
@@ -125,62 +121,53 @@ class SimonaStandaloneSetup(
   override def weatherService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-  ): ActorRef[ServiceMessage] = {
-    val weatherService = context.spawn(
-      WeatherService(scheduler),
-      "weatherAgent",
-    )
-    weatherService ! ServiceMessage.Create(
-      InitWeatherServiceStateData(
-        simonaConfig.input.weather.datasource,
-        simonaConfig.time.simStartTime,
-        simonaConfig.time.simEndTime,
+  ): ActorRef[ServiceMessage] =
+    context.spawn(
+      WeatherService(
+        scheduler,
+        InitWeatherServiceStateData(
+          simonaConfig.input.weather.datasource,
+          TimeUtil.withDefaults
+            .toZonedDateTime(simonaConfig.time.startDateTime),
+          TimeUtil.withDefaults
+            .toZonedDateTime(simonaConfig.time.endDateTime),
+        ),
       ),
-      ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
+      "weatherService",
     )
-
-    weatherService
-  }
 
   override def priceService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): Option[ActorRef[ServiceMessage]] =
     simonaConfig.input.prices.datasource.map { dataSource =>
-      val priceService = context.spawn(
-        EnergyPriceService(scheduler),
-        "priceAgent",
-      )
-      priceService ! ServiceMessage.Create(
-        InitPriceServiceStateData(
-          dataSource,
-          simonaConfig.time.simStartTime,
+      context.spawn(
+        EnergyPriceService(
+          scheduler,
+          InitPriceServiceStateData(
+            dataSource,
+            TimeUtil.withDefaults
+              .toZonedDateTime(simonaConfig.time.startDateTime),
+          ),
         ),
-        ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
+        "priceService",
       )
-
-      priceService
     }
 
   override def loadProfileService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-  ): ActorRef[ServiceMessage] = {
-    val loadProfileService = context.spawn(
-      LoadProfileService(scheduler),
+  ): ActorRef[ServiceMessage] =
+    context.spawn(
+      LoadProfileService(
+        scheduler,
+        InitLoadProfileServiceStateData(
+          simonaConfig.input.loadProfile.datasource,
+          simonaConfig.time.simStartTime,
+        ),
+      ),
       "loadProfileService",
     )
-
-    loadProfileService ! ServiceMessage.Create(
-      InitLoadProfileServiceStateData(
-        simonaConfig.input.loadProfile.datasource,
-        simonaConfig.time.simStartTime,
-      ),
-      ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
-    )
-
-    loadProfileService
-  }
 
   override def extSimulations(
       context: ActorContext[?],

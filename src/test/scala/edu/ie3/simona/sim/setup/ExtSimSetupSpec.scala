@@ -7,25 +7,10 @@
 package edu.ie3.simona.sim.setup
 
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.api.data.connection.{
-  ExtEvDataConnection,
-  ExtPrimaryDataConnection,
-}
-import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.ontology.ev.RequestEvcsFreeLots
-import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
-import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
-import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
 import edu.ie3.simona.test.common.UnitSpec
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
-import org.apache.pekko.actor.typed.scaladsl.ActorContext
-import org.scalatestplus.mockito.MockitoSugar.mock
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -69,36 +54,6 @@ class ExtSimSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       intercept[ServiceException](
         ExtSimSetup.validatePrimaryData(extPrimaryDataConnection)
       ).getMessage shouldBe s"Multiple data connections provide primary data for assets: $uuid6,$uuid4"
-    }
-
-    "set up a service correctly" in {
-      val connection = new ExtEvDataConnection()
-      val evService = TestProbe[ExtEvDataService.Message]("evService")
-      val extSimAdapter =
-        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
-      val scheduler = TestProbe[SchedulerMessage]("scheduler")
-
-      val ctx = mock[ActorContext[?]]
-
-      ExtSimSetup.setupService(connection, evService.ref, InitExtEvData.apply)(
-        using
-        ctx,
-        scheduler.ref,
-        extSimAdapter.ref,
-      )
-
-      scheduler.expectMessageType[ScheduleActivation]
-
-      evService
-        .expectMessageType[ServiceMessage.Create]
-        .initializeStateData shouldBe InitExtEvData(connection)
-
-      // request to check if the actor references are set correctly
-      connection.sendExtMsg(new RequestEvcsFreeLots())
-
-      extSimAdapter
-        .expectMessageType[ScheduleDataServiceMessage]
-        .dataService shouldBe evService.ref
     }
 
   }

@@ -15,14 +15,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
   DataProvision,
   PrimaryRegistrationSuccessfulMessage,
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData.{
   ActivePower,
   ActivePowerExtra,
@@ -33,7 +31,6 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryService
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -46,7 +43,6 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.testcontainers.utility.DockerImageName
 import squants.energy.Kilowatts
 
-import java.util.UUID
 import scala.language.implicitConversions
 
 class PrimaryServiceWorkerSqlIT
@@ -132,7 +128,6 @@ class PrimaryServiceWorkerSqlIT
             primaryDataExtra,
             maybeNextTick,
         ) =>
-          val serviceRef = testKit.spawn(PrimaryServiceWorker(scheduler.ref))
 
           val initData = SqlInitPrimaryServiceStateData(
             uuid,
@@ -147,19 +142,9 @@ class PrimaryServiceWorkerSqlIT
             ),
             new DatabaseNamingStrategy(),
           )
-
-          val key1 = ScheduleKey(lock.ref, UUID.randomUUID())
-          serviceRef ! Create(initData, key1)
-
-          val scheduleActivationMsg =
-            scheduler.expectMessageType[ScheduleActivation]
-          scheduleActivationMsg.tick shouldBe INIT_SIM_TICK
-          scheduleActivationMsg.unlockKey shouldBe Some(key1)
-
-          serviceRef ! Activation(INIT_SIM_TICK)
-          scheduler.expectMessage(
-            Completion(scheduleActivationMsg.actor, Some(firstTick))
-          )
+          val serviceRef =
+            testKit.spawn(PrimaryServiceWorker(scheduler.ref, initData))
+          scheduler.expectMessage(ScheduleActivation(serviceRef, 0L))
 
           val participant = TestProbe[Any]()
 
@@ -175,7 +160,7 @@ class PrimaryServiceWorkerSqlIT
 
           serviceRef ! Activation(firstTick)
           scheduler.expectMessage(
-            Completion(scheduleActivationMsg.actor, maybeNextTick)
+            Completion(serviceRef, maybeNextTick)
           )
 
           val dataMsg = participant.expectMessageType[DataProvision]
