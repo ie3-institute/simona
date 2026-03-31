@@ -69,9 +69,7 @@ class LoadProfileServiceSpec
       loadProfileService ! Create(
         InitLoadProfileServiceStateData(
           sourceDefinition,
-          TimeUtil.withDefaults.toZonedDateTime(
-            simonaConfig.simona.time.startDateTime
-          ),
+          simonaConfig.time.simStartTime,
         ),
         key,
       )

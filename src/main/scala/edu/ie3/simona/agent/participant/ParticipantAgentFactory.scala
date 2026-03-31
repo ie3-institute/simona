@@ -52,7 +52,7 @@ import scala.jdk.OptionConverters.RichOptional
 object ParticipantAgentFactory {
 
   final case class BuildData(
-      simonaConfig: SimonaConfig.Simona,
+      simonaConfig: SimonaConfig,
       resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
@@ -85,7 +85,7 @@ object ParticipantAgentFactory {
   def buildSystemParticipants(
       systemParticipants: SystemParticipants,
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
-      simonaConfig: SimonaConfig.Simona,
+      simonaConfig: SimonaConfig,
   )(using
       environmentRefs: EnvironmentRefs,
       ctx: ActorContext[?],

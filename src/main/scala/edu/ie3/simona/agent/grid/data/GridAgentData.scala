@@ -69,7 +69,7 @@ object GridAgentData {
   final case class GridAgentConstantData(
       gridAgentCoordinator: ActorRef[GridAgentCoordinator.Message],
       environmentRefs: EnvironmentRefs,
-      simonaConfig: SimonaConfig.Simona,
+      simonaConfig: SimonaConfig,
       resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,

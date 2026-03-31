@@ -71,12 +71,12 @@ class GridAgentCoordinatorSpec
     evDataService = None,
   )
 
-  private val cfg = simonaConfig.simona
+  private val cfg = simonaConfig
 
   given GridAgentConstantData = GridAgentConstantData(
     gridAgentCoordinator.ref,
     environmentRefs,
-    simonaConfig.simona,
+    simonaConfig,
     3600L,
     startTime,
     endTime,
@@ -85,7 +85,7 @@ class GridAgentCoordinatorSpec
   "The GridAgentCoordinator" should {
 
     "create no grid agents if no power flow is configured" in {
-      val cfgWithoutPf = simonaConfig.simona.copy(powerflow = None)
+      val cfgWithoutPf = simonaConfig.copy(powerflow = None)
 
       val coordinator = testKit.spawn(
         GridAgentCoordinator(

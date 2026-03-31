@@ -59,25 +59,25 @@ object ResultFileHierarchy extends LazyLogging {
   ): ResultFileHierarchy = {
 
     /* Determine the result models to write */
-    val modelsToWrite = allResultEntitiesToWrite(simonaConfig.simona.output)
+    val modelsToWrite = allResultEntitiesToWrite(simonaConfig.output)
 
-    val simonaLogConfig = simonaConfig.simona.output.log
+    val simonaLogConfig = simonaConfig.output.log
 
     ResultFileHierarchy(
-      simonaConfig.simona.output.base.dir,
-      simonaConfig.simona.simulationName,
+      simonaConfig.output.base.dir,
+      simonaConfig.simulationName,
       ResultEntityPathConfig(
         modelsToWrite,
         ResultSinkType(
-          simonaConfig.simona.output.sink,
-          simonaConfig.simona.simulationName,
+          simonaConfig.output.sink,
+          simonaConfig.simulationName,
         ),
       ),
       configureLogger = LogbackConfiguration
         .default(simonaLogConfig.level, simonaLogConfig.consoleLevel),
       config = Some((typeSafeConfig, simonaConfig)),
       addTimeStampToOutputDir =
-        simonaConfig.simona.output.base.addTimestampToOutputDir,
+        simonaConfig.output.base.addTimestampToOutputDir,
     )
   }
 
@@ -268,7 +268,7 @@ object ResultFileHierarchy extends LazyLogging {
     maybeConfig.foreach { case (config, simonaConfig) =>
       logger.info(
         "Processing configs for simulation: {}.",
-        simonaConfig.simona.simulationName,
+        simonaConfig.simulationName,
       )
 
       val outFile =

@@ -110,7 +110,7 @@ class DBFSAlgorithmCenGridSpec
   given GridAgentConstantData = GridAgentConstantData(
     gridAgentCoordinator.ref,
     environmentRefs,
-    simonaConfig.simona,
+    simonaConfig,
     3600,
     startTime,
     endTime,
@@ -124,12 +124,12 @@ class DBFSAlgorithmCenGridSpec
       VoltageLimits(0.9, 1.1),
       startTime,
       endTime,
-      simonaConfig.simona,
+      simonaConfig,
     )
 
     val gridAgentInitData = GridAgentInitData(
       gridModel,
-      PowerFlowParams(simonaConfig.simona.powerflow.value),
+      PowerFlowParams(simonaConfig.powerflow.value),
     )
 
     val centerGridAgent = testKit.spawn(GridAgent(gridAgentInitData))

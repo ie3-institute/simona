@@ -8,21 +8,14 @@ package edu.ie3.simona.sim.setup
 
 import com.typesafe.config.Config
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.graph.SubGridTopologyGraph
-import edu.ie3.datamodel.models.input.container.{GridContainer, ThermalGrid}
-import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.GridAgentCoordinator
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.RegisterAssets
-import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.agent.participant.ParticipantAgentFactory
-import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.ontology.messages.ResultMessage.{
-  RequestResult,
-  ResultResponse,
-}
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -41,7 +34,6 @@ import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
@@ -82,7 +74,7 @@ class SimonaStandaloneSetup(
     val nodeToParticipants = ParticipantAgentFactory.buildSystemParticipants(
       grid.getSystemParticipants,
       thermalIslandGridsByBusId,
-      simonaConfig.simona,
+      simonaConfig,
     )
 
     // get the subgrids
@@ -90,7 +82,7 @@ class SimonaStandaloneSetup(
 
     /* spawn the grid agent coordinator */
     val coordinator = context.spawn(
-      GridAgentCoordinator(simonaConfig.simona, subgrids),
+      GridAgentCoordinator(simonaConfig, subgrids),
       "GridAgentCoordinator",
     )
 
@@ -104,13 +96,13 @@ class SimonaStandaloneSetup(
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
   ): ActorRef[ServiceMessage] = {
-    val simulationStart = simonaConfig.simona.time.simStartTime
+    val simulationStart = simonaConfig.time.simStartTime
 
     val primaryServiceProxy = context.spawn(
       PrimaryServiceProxy(
         scheduler,
         InitPrimaryServiceProxyStateData(
-          simonaConfig.simona.input.primary,
+          simonaConfig.input.primary,
           simulationStart,
         ),
       ),
@@ -140,11 +132,9 @@ class SimonaStandaloneSetup(
     )
     weatherService ! ServiceMessage.Create(
       InitWeatherServiceStateData(
-        simonaConfig.simona.input.weather.datasource,
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.startDateTime),
-        TimeUtil.withDefaults
-          .toZonedDateTime(simonaConfig.simona.time.endDateTime),
+        simonaConfig.input.weather.datasource,
+        simonaConfig.time.simStartTime,
+        simonaConfig.time.simEndTime,
       ),
       ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
     )
@@ -156,7 +146,7 @@ class SimonaStandaloneSetup(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): Option[ActorRef[ServiceMessage]] =
-    simonaConfig.simona.input.prices.datasource.map { dataSource =>
+    simonaConfig.input.prices.datasource.map { dataSource =>
       val priceService = context.spawn(
         EnergyPriceService(scheduler),
         "priceAgent",
@@ -164,8 +154,7 @@ class SimonaStandaloneSetup(
       priceService ! ServiceMessage.Create(
         InitPriceServiceStateData(
           dataSource,
-          TimeUtil.withDefaults
-            .toZonedDateTime(simonaConfig.simona.time.startDateTime),
+          simonaConfig.time.simStartTime,
         ),
         ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
       )
@@ -182,12 +171,10 @@ class SimonaStandaloneSetup(
       "loadProfileService",
     )
 
-    val cfg = simonaConfig.simona
-
     loadProfileService ! ServiceMessage.Create(
       InitLoadProfileServiceStateData(
-        cfg.input.loadProfile.datasource,
-        cfg.time.simStartTime,
+        simonaConfig.input.loadProfile.datasource,
+        simonaConfig.time.simStartTime,
       ),
       ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
     )
@@ -214,7 +201,7 @@ class SimonaStandaloneSetup(
       context,
       scheduler,
       resultProxy,
-      simonaConfig.simona.time.simStartTime,
+      simonaConfig.time.simStartTime,
     )
   }
 
@@ -223,14 +210,14 @@ class SimonaStandaloneSetup(
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
   ): ActorRef[TimeAdvancer.Request] = {
-    val startDateTime = simonaConfig.simona.time.simStartTime
-    val endDateTime = simonaConfig.simona.time.simEndTime
+    val startDateTime = simonaConfig.time.simStartTime
+    val endDateTime = simonaConfig.time.simEndTime
 
     context.spawn(
       TimeAdvancer(
         simulation,
         Some(runtimeEventListener),
-        simonaConfig.simona.time.schedulerReadyCheckWindow,
+        simonaConfig.time.schedulerReadyCheckWindow,
         endDateTime.toTick(using startDateTime),
       ),
       TimeAdvancer.getClass.getSimpleName,
@@ -254,9 +241,9 @@ class SimonaStandaloneSetup(
     context
       .spawn(
         RuntimeEventListener(
-          simonaConfig.simona.runtime.listener,
+          simonaConfig.runtime.listener,
           runtimeEventQueue,
-          startDateTimeString = simonaConfig.simona.time.startDateTime,
+          startDateTimeString = simonaConfig.time.startDateTime,
         ),
         RuntimeEventListener.getClass.getSimpleName,
       )

@@ -97,7 +97,7 @@ class DBFSAlgorithmParticipantSpec
   given GridAgentConstantData = GridAgentConstantData(
     gridAgentCoordinator.ref,
     environmentRefs,
-    simonaConfig.simona,
+    simonaConfig,
     3600,
     startTime,
     endTime,
@@ -125,12 +125,12 @@ class DBFSAlgorithmParticipantSpec
       VoltageLimits(0.9, 1.1),
       startTime,
       endTime,
-      simonaConfig.simona,
+      simonaConfig,
     )
 
     val gridAgentInitData = GridAgentInitData(
       gridModel,
-      PowerFlowParams(simonaConfig.simona.powerflow.value),
+      PowerFlowParams(simonaConfig.powerflow.value),
     )
 
     val gridAgentWithParticipants = testKit.spawn(GridAgent(gridAgentInitData))
@@ -153,7 +153,7 @@ class DBFSAlgorithmParticipantSpec
           SimpleInputContainer(load1),
           LoadRuntimeConfig(),
           OutputConfigUtil
-            .participants(simonaConfig.simona.output.participant)
+            .participants(simonaConfig.output.participant)
             .getOrDefault(NotifierIdentifier.Load),
           Left(scheduler.ref),
           key,
