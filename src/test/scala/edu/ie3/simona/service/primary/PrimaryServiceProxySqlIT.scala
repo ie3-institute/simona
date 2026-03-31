@@ -130,23 +130,20 @@ class PrimaryServiceProxySqlIT
         systemParticipantProbe.ref,
         UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409"),
       )
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      val initActivation = scheduler.expectMessageType[ScheduleActivation]
-      initActivation.tick shouldBe INIT_SIM_TICK
-      initActivation.unlockKey should not be empty
-
-      // extract ref to the worker that the proxy created
-      val workerRef = initActivation.actor
-      workerRef ! Activation(INIT_SIM_TICK)
-
-      scheduler.expectMessage(Completion(workerRef, Some(0)))
-
+      // registration was successful
       val msg =
         systemParticipantProbe
           .expectMessageType[PrimaryRegistrationSuccessfulMessage]
       msg.firstDataTick shouldBe 0L
+
+      val initActivation = scheduler.expectMessageType[ScheduleActivation]
+      initActivation.tick shouldBe 0L
+      initActivation.unlockKey shouldBe empty
+      // extract ref to the worker that the proxy created
+      val workerRef = initActivation.actor
+
+      workerRef ! Activation(0L)
+      scheduler.expectMessage(Completion(workerRef, Some(900L)))
     }
 
     "handle participant request correctly if participant does not have primary data" in {
