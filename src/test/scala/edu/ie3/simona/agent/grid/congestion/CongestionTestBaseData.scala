@@ -101,7 +101,7 @@ trait CongestionTestBaseData
     GridAgentConstantData(
       gridAgentCoordinator.ref,
       environmentRefs,
-      simonaConfig.simona,
+      simonaConfig,
       3600,
       startTime,
       endTime,

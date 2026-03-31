@@ -123,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed snapshot repository [#1672](https://github.com/ie3-institute/simona/issues/1672)
 - Removed message retrieval timeout from DBFS [#1422](https://github.com/ie3-institute/simona/issues/1422) 
 - Removed unused class in EmAgent [#1735](https://github.com/ie3-institute/simona/issues/1735)
+- Removed unnecessary subclass `simona` in config [#1749](https://github.com/ie3-institute/simona/issues/1749)
 
 ### Updates
 - Updated Gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)

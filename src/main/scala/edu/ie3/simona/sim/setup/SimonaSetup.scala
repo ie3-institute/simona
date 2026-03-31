@@ -54,16 +54,14 @@ trait SimonaSetup {
   /** The electrical grid.
     */
   lazy val grid: JointGridContainer = GridProvider.gridFromConfig(
-    simonaConfig.simona.simulationName,
-    simonaConfig.simona.input.grid.datasource,
+    simonaConfig.simulationName,
+    simonaConfig.input.grid.datasource,
   )
 
   /** Map: thermal bus to thermal grid.
     */
   lazy val thermalGridsByThermalBus: Map[ThermalBusInput, ThermalGrid] =
-    GridProvider.getThermalGridsFromConfig(
-      simonaConfig.simona.input.grid.datasource
-    )
+    GridProvider.getThermalGridsFromConfig(simonaConfig.input.grid.datasource)
 
   /** Directory of the log output.
     */

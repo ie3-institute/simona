@@ -29,7 +29,7 @@ import edu.ie3.simona.agent.grid.powerflow.{
   SweepValueStore,
 }
 import edu.ie3.simona.agent.grid.{GridAgent, GridResultsSupport}
-import edu.ie3.simona.config.SimonaConfig.Simona
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGridWithSwitches,
@@ -421,7 +421,7 @@ class PowerFlowSupportSpec
   }
 
   object TestData extends DbfsTestGrid with ConfigTestData {
-    val time: Simona.Time = simonaConfig.simona.time
+    val time: SimonaConfig.Time = simonaConfig.time
 
     implicit def toZoneDateTime(timeString: String): ZonedDateTime =
       TimeUtil.withDefaults.toZonedDateTime(timeString)
@@ -435,7 +435,7 @@ class PowerFlowSupportSpec
         VoltageLimits(0.9, 1.1),
         time.startDateTime,
         time.endDateTime,
-        simonaConfig.simona,
+        simonaConfig,
       )
 
     val withEHV: (GridModel, ReceivedValuesStore) = {

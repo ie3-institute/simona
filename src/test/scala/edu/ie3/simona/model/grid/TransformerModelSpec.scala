@@ -386,7 +386,7 @@ class TransformerModelSpec
               defaultVoltageLimits,
               defaultSimulationStart,
               defaultSimulationEnd,
-              simonaConfig.simona,
+              simonaConfig,
             )
 
             gridModel.gridComponents.transformers

@@ -91,7 +91,7 @@ class DBFSAlgorithmSupGridSpec
   given GridAgentConstantData = GridAgentConstantData(
     gridAgentCoordinator.ref,
     environmentRefs,
-    simonaConfig.simona,
+    simonaConfig,
     3600,
     startTime,
     endTime,
@@ -104,12 +104,12 @@ class DBFSAlgorithmSupGridSpec
       VoltageLimits(0.9, 1.1),
       startTime,
       endTime,
-      simonaConfig.simona,
+      simonaConfig,
     )
 
     val gridAgentInitData = GridAgentInitData(
       gridModel,
-      PowerFlowParams(simonaConfig.simona.powerflow.value),
+      PowerFlowParams(simonaConfig.powerflow.value),
     )
 
     val superiorGridAgent = testKit.spawn(GridAgent(gridAgentInitData))
