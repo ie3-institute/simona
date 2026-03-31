@@ -54,8 +54,6 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.Angle
-import scala.concurrent.duration.DurationInt
-import scala.jdk.CollectionConverters.SetHasAsJava
 import scala.language.implicitConversions
 
 /** Tests power flow on a grid with switches on two branches, where depending on

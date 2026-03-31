@@ -87,7 +87,7 @@ class GridAgentCoordinatorSpec
     "create no grid agents if no power flow is configured" in {
       val cfgWithoutPf = simonaConfig.copy(powerflow = None)
 
-      val coordinator = testKit.spawn(
+      testKit.spawn(
         GridAgentCoordinator(
           cfgWithoutPf,
           Seq(ehvGridContainer, hvGridContainer),

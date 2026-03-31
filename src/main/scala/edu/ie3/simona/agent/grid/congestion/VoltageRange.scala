@@ -12,11 +12,7 @@ import edu.ie3.simona.agent.grid.TransformerTappingSupport.getTappingOptions
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.{
-  TransformerTapping,
-  TransformerTappingModel,
-  VoltageLimits,
-}
+import edu.ie3.simona.model.grid.{TransformerTapping, VoltageLimits}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.apache.pekko.actor.typed.ActorRef

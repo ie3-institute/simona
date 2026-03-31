@@ -8,19 +8,20 @@ package edu.ie3.simona.agent.grid.data
 
 import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
-import edu.ie3.simona.agent.grid.GridAgent
-import GridAgentData.{GridAgentBaseData, GridAgentDataInternal, GridAgentRef}
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentDataInternal,
+  GridAgentRef,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.util.quantities.QuantityUtils.asPercent
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
-import org.apache.pekko.actor.typed.ActorRef
 import squants.Each
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
 
 /** State data of a grid agent during the congestion management.
   *
