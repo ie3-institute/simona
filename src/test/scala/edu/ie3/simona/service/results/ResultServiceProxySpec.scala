@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.service.results
 
-import edu.ie3.datamodel.models.result.connector.LineResult
-import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent,
@@ -51,6 +49,7 @@ class ResultServiceProxySpec
         Seq(dummyInputModel, inputModel),
         3600L,
         resultProvider.ref,
+        None,
       )
 
       // no results, since the result proxy received not waiting for result information
@@ -67,7 +66,7 @@ class ResultServiceProxySpec
       // tells the proxy to wait for the results of dummyInputModel for tick 3600L
       resultProxy ! ExpectResult(Seq(dummyNodeResultModel), 3600L)
 
-      resultProxy ! RequestResult(allExpected, 3600L, resultProvider.ref)
+      resultProxy ! RequestResult(allExpected, 3600L, resultProvider.ref, None)
 
       // still waiting for results
       resultProvider.expectNoMessage()
@@ -101,7 +100,7 @@ class ResultServiceProxySpec
       // tells the proxy to wait for the results with dumyInputModel for tick 3600L
       resultProxy ! ExpectResult(Seq(dummyNodeResultModel), 3600L)
 
-      resultProxy ! RequestResult(allExpected, 3600L, resultProvider.ref)
+      resultProxy ! RequestResult(allExpected, 3600L, resultProvider.ref, None)
 
       // receiving three winding results for port B and C beforehand
       resultProxy ! PowerFlowResultEvent(
@@ -155,6 +154,7 @@ class ResultServiceProxySpec
         ),
         3600L,
         resultProvider.ref,
+        None,
       )
 
       // still waiting for results
@@ -191,6 +191,71 @@ class ResultServiceProxySpec
         dummyLineResultModel -> List(dummyLineResult),
         dummyTrafo2WResultModel -> List(dummyTrafo2wResult),
         inputModel -> List(expected),
+      )
+    }
+
+    "answer request for results correctly with threshold" in {
+      val resultProvider = TestProbe[ResultResponse]("listener")
+
+      val resultProxy = spawn(ResultServiceProxy(Seq.empty, startTime, 10))
+
+      // tells the proxy to wait for the results of dumyInputModel for tick 3600L
+      resultProxy ! ExpectResult(Seq(dummyNodeResultModel), 3600L)
+
+      resultProxy ! PowerFlowResultEvent(
+        Seq(dummyNodeResult),
+        Seq(dummySwitchResult),
+        Seq(dummyLineResult),
+        Seq(dummyTrafo2wResult),
+        Seq.empty,
+        Seq(dummyNodeCongestionResult),
+      )
+
+      // tells the proxy to also wait for the results of inputModel for tick 7200L
+      resultProxy ! ExpectResult(Seq(dummyNodeResultModel), 7200L)
+
+      resultProxy ! PowerFlowResultEvent(
+        Seq(dummyNodeResult2PlusHour),
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+      )
+
+      resultProxy ! RequestResult(
+        Seq(
+          dummyNodeResultModel,
+          dummySwitchResultModel,
+          dummyLineResultModel,
+          dummyTrafo2WResultModel,
+        ),
+        7200L,
+        resultProvider.ref,
+        Some(3600),
+      )
+
+      resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyNodeResultModel -> List(dummyNodeResult2PlusHour)
+      )
+
+      resultProxy ! RequestResult(
+        Seq(
+          dummyNodeResultModel,
+          dummySwitchResultModel,
+          dummyLineResultModel,
+          dummyTrafo2WResultModel,
+        ),
+        7200L,
+        resultProvider.ref,
+        Some(3599),
+      )
+
+      resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
+        dummyNodeResultModel -> List(dummyNodeResult2PlusHour),
+        dummySwitchResultModel -> List(dummySwitchResult),
+        dummyLineResultModel -> List(dummyLineResult),
+        dummyTrafo2WResultModel -> List(dummyTrafo2wResult),
       )
     }
 
@@ -259,24 +324,31 @@ class ResultServiceProxySpec
       // request only updated results
       resultProxy ! RequestResult(
         Seq(dummyNodeResultModel),
-        3600L,
+        7200L,
         resultProvider.ref,
+        Some(3600),
       )
 
-      // also request unchanged results
       resultProvider
         .expectMessageType[ResultResponse]
         .results shouldBe Map.empty
 
+      // also request unchanged results
       resultProxy ! RequestResult(
         Seq(dummyNodeResultModel),
-        3600L,
+        7200L,
         resultProvider.ref,
-        true,
+        Some(3599),
       )
 
       resultProvider.expectMessageType[ResultResponse].results shouldBe Map(
-        dummyNodeResultModel -> List(dummyNodeResult, dummyNodeCongestionResult)
+        dummyNodeResultModel -> List(
+          dummyNodeResult,
+          dummyNodeCongestionResult,
+        ),
+        dummySwitchResultModel -> List(dummySwitchResult),
+        dummyLineResultModel -> List(dummyLineResult),
+        dummyTrafo2WResultModel -> List(dummyTrafo2wResult),
       )
     }
 
@@ -335,28 +407,6 @@ class ResultServiceProxySpec
       listener.expectMessageType[ResultResponse].results shouldBe Map(
         dummyPvResult.getInputModel -> List(dummyPvResult)
       )
-    }
-
-    "correctly filter unchanged result" in {
-      val oldResults: Map[Class[? <: ResultEntity], ResultEntity] = Seq(
-        dummyNodeResult,
-        dummyNodeCongestionResult,
-      ).map(res => res.getClass -> res).toMap
-
-      val cases = Table(
-        ("result", "expected"),
-        (dummyNodeResultPlusHour, None),
-        (dummyNodeResult2, Some(classOf[NodeResult] -> dummyNodeResult2)),
-        (dummyLineResult, Some(classOf[LineResult] -> dummyLineResult)),
-        (dummyNodeCongestionResultPlusHour, None),
-      )
-
-      forAll(cases) { (result, expected) =>
-        val changedResults =
-          ResultServiceProxy.filterUnchangedResults(result, oldResults)
-
-        changedResults shouldBe expected
-      }
     }
 
   }

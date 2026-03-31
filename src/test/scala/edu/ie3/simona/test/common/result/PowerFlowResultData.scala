@@ -80,6 +80,13 @@ trait PowerFlowResultData {
     Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM),
   )
 
+  val dummyNodeResult2PlusHour = new NodeResult(
+    dummyTime.plusHours(1),
+    dummyNodeResultModel,
+    Quantities.getQuantity(1.01, PowerSystemUnits.PU),
+    Quantities.getQuantity(10, PowerSystemUnits.DEGREE_GEOM),
+  )
+
   val dummyNodeCongestionResult = new CongestionResult(
     dummyTime,
     dummyNodeResultModel,
