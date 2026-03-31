@@ -127,10 +127,8 @@ class SimonaStandaloneSetup(
         scheduler,
         InitWeatherServiceStateData(
           simonaConfig.input.weather.datasource,
-          TimeUtil.withDefaults
-            .toZonedDateTime(simonaConfig.time.startDateTime),
-          TimeUtil.withDefaults
-            .toZonedDateTime(simonaConfig.time.endDateTime),
+          simonaConfig.time.simStartTime,
+          simonaConfig.time.simEndTime,
         ),
       ),
       "weatherService",
@@ -146,8 +144,7 @@ class SimonaStandaloneSetup(
           scheduler,
           InitPriceServiceStateData(
             dataSource,
-            TimeUtil.withDefaults
-              .toZonedDateTime(simonaConfig.time.startDateTime),
+            simonaConfig.time.simStartTime,
           ),
         ),
         "priceService",
