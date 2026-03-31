@@ -115,6 +115,7 @@ final case class OptimizedFlexStrat(
       }
 
     // we're only interested in the solutions for the current time step
+    val flexOptionsMap = flexOptionsById.toMap
     val assetCtrl = assetVars.map {
       case AssetVarContainer(assetUuid, assetVars) =>
         val setPoint = assetVars.map {
@@ -132,7 +133,19 @@ final case class OptimizedFlexStrat(
         }
           // Add up solutions for all asset assigned to the same UUID
           .sum
-        assetUuid -> setPoint
+
+        // make sure that set point is within allowed power.
+        // floating point rounding errors might move it slightly outside the interval.
+        val flex = flexOptionsMap.getOrElse(
+          assetUuid,
+          throw new CriticalFailureException(
+            s"Flex options not found for $assetUuid"
+          ),
+        )
+        val adaptedSetPoint =
+          setPoint.max(flex.powerLimits.getLower).min(flex.powerLimits.getUpper)
+
+        assetUuid -> adaptedSetPoint
     }
 
     model.release()

@@ -112,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed handling of power flow results in `ResultServiceProxy` [#1679](https://github.com/ie3-institute/simona/issues/1679)
 - Fixed some issues of `SonarQube` [#1739](https://github.com/ie3-institute/simona/issues/1739)
 - Turned off optimus/ojAlgo log spam [#1742](https://github.com/ie3-institute/simona/issues/1742)
+- Fixed bugs in EM optimization [#1746](https://github.com/ie3-institute/simona/issues/1746)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
