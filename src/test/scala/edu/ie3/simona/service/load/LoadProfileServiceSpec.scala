@@ -17,10 +17,12 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{LoadData, SecondarySeriesData}
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -52,22 +54,29 @@ class LoadProfileServiceSpec
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
-  // build the load profile service
-  private val loadProfileService = testKit.spawn(
-    LoadProfileService(
-      scheduler.ref,
-      InitLoadProfileServiceStateData(
-        sourceDefinition,
-        TimeUtil.withDefaults.toZonedDateTime(
-          simonaConfig.time.startDateTime
-        ),
-      ),
-    )
-  )
-
   "A load profile service" should {
+
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
+    val loadProfileService = testKit.spawn(
+      LoadProfileService(
+        scheduler.ref,
+        InitLoadProfileServiceStateData(
+          sourceDefinition,
+          TimeUtil.withDefaults.toZonedDateTime(
+            simonaConfig.time.startDateTime
+          ),
+        ),
+        serviceKey,
+      )
+    )
+
     "send correct schedule message after initialisation" in {
-      scheduler.expectMessage(ScheduleActivation(loadProfileService, 0L))
+      scheduler.expectMessage(
+        ScheduleActivation(loadProfileService, 0L, Some(serviceKey))
+      )
     }
 
     "announce failed load profile registration on invalid load profile" in {

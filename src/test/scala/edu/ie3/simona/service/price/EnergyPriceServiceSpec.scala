@@ -19,6 +19,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   SecondaryServiceRegistrationMessage,
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
@@ -27,6 +28,7 @@ import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.price.EnergyPriceService.InitPriceServiceStateData
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.{EnergyPrice, EuroPerKilowattHour}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -69,22 +71,29 @@ class EnergyPriceServiceSpec
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
-  private val priceService = spawn(
-    EnergyPriceService(
-      scheduler.ref,
-      InitPriceServiceStateData(
-        dataSourceConfig,
-        simulationStartDate,
-      ),
-    )
-  )
-
-  // testing tolerances
   private given EnergyPrice = EuroPerKilowattHour(1e-3)
 
   "A price service" must {
+
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
+    val priceService = spawn(
+      EnergyPriceService(
+        scheduler.ref,
+        InitPriceServiceStateData(
+          dataSourceConfig,
+          simulationStartDate,
+        ),
+        serviceKey,
+      )
+    )
+
     "send correct schedule message after initialisation" in {
-      scheduler.expectMessage(ScheduleActivation(priceService, 0L))
+      scheduler.expectMessage(
+        ScheduleActivation(priceService, 0L, Some(serviceKey))
+      )
     }
 
     "announce that agent is registered for current price data" in {

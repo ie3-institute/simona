@@ -99,8 +99,13 @@ class EvcsModelIT
       val extEvData = new ExtEvDataConnection()
 
       /* Create ExtEvDataService */
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
       val evService = spawn(
-        ExtEvDataService.apply(scheduler.ref, InitExtEvData(extEvData)),
+        ExtEvDataService
+          .apply(scheduler.ref, InitExtEvData(extEvData), serviceKey),
         "ExtEvDataService",
       )
 
@@ -109,6 +114,7 @@ class EvcsModelIT
         extSimAdapter.ref,
       )
 
+      // no message for scheduling first service activation expected
       scheduler.expectNoMessage()
 
       /* Create ParticipantAgent with EvcsModel */

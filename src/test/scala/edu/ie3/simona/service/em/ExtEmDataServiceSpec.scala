@@ -14,7 +14,10 @@ import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
-import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
@@ -22,10 +25,13 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.CollectionUtils.asJava
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -44,7 +50,8 @@ import scala.jdk.CollectionConverters.*
 class ExtEmDataServiceSpec
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
-    with EmInputTestData {
+    with EmInputTestData
+    with TestSpawnerTyped {
 
   implicit val simulationStart: ZonedDateTime = ZonedDateTime.now()
 
@@ -63,10 +70,15 @@ class ExtEmDataServiceSpec
 
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
           InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
         )
       )
 
@@ -75,6 +87,7 @@ class ExtEmDataServiceSpec
         extSimAdapter.ref,
       )
 
+      // no message for scheduling first service activation expected
       scheduler.expectNoMessage()
     }
 
@@ -85,10 +98,15 @@ class ExtEmDataServiceSpec
 
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
           InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
         )
       )
 
@@ -107,6 +125,7 @@ class ExtEmDataServiceSpec
         None,
       )
 
+      // no message for scheduling first service activation expected
       scheduler.expectNoMessage()
     }
   }
@@ -122,10 +141,15 @@ class ExtEmDataServiceSpec
 
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
           InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
         )
       )
 
@@ -134,6 +158,7 @@ class ExtEmDataServiceSpec
         extSimAdapter.ref,
       )
 
+      // no message for scheduling first service activation expected
       scheduler.expectNoMessage()
 
       emService ! EmServiceRegistration(
@@ -163,10 +188,15 @@ class ExtEmDataServiceSpec
 
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
           InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
         )
       )
 
@@ -175,6 +205,7 @@ class ExtEmDataServiceSpec
         extSimAdapter.ref,
       )
 
+      // no message for scheduling first service activation expected
       scheduler.expectNoMessage()
 
       val emAgent1 = TestProbe[EmAgent.Message]("emAgent1")
@@ -273,10 +304,15 @@ class ExtEmDataServiceSpec
 
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
           InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
         )
       )
 
@@ -285,6 +321,7 @@ class ExtEmDataServiceSpec
         extSimAdapter.ref,
       )
 
+      // no message for scheduling first service activation expected
       scheduler.expectNoMessage()
 
       val emAgent1 = TestProbe[EmAgent.Message]("emAgent1")

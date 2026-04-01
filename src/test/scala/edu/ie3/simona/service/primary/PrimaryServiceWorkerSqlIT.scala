@@ -31,6 +31,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.SqlInitPrimaryService
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -84,7 +85,6 @@ class PrimaryServiceWorkerSqlIT
   "A primary service actor with SQL source" should {
     "initialize and send out data when activated" in {
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
-      val lock = TestProbe[ScheduleLock.Message]("lock")
 
       val cases = Table(
         (
@@ -142,9 +142,15 @@ class PrimaryServiceWorkerSqlIT
             ),
             new DatabaseNamingStrategy(),
           )
+          val serviceKey =
+            ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+          // lock activation scheduled
+          scheduler.expectMessageType[ScheduleActivation]
           val serviceRef =
-            testKit.spawn(PrimaryServiceWorker(scheduler.ref, initData))
-          scheduler.expectMessage(ScheduleActivation(serviceRef, 0L))
+            testKit.spawn(
+              PrimaryServiceWorker(scheduler.ref, initData, serviceKey)
+            )
+          scheduler.expectMessage(ScheduleActivation(serviceRef, 0L, Some(serviceKey)))
 
           val participant = TestProbe[Any]()
 

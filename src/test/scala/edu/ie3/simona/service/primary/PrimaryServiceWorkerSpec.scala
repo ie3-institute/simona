@@ -18,6 +18,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.{ActivePower, ActivePowerExtra}
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
@@ -26,10 +27,12 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
   PrimaryServiceInitializedStateData,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.Coordinate
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
@@ -58,7 +61,8 @@ class PrimaryServiceWorkerSpec
     with PrivateMethodTester
     with LazyLogging
     with TimeSeriesTestData
-    with TestResourceHelper {
+    with TestResourceHelper
+    with TestSpawnerTyped {
 
   val baseDirectoryPath: Path = getResourcePath("_it")
 
@@ -81,10 +85,20 @@ class PrimaryServiceWorkerSpec
     val scheduler = TestProbe[SchedulerMessage]("scheduler")
     val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
     given serviceRef: ActorRef[PrimaryServiceProxy.Message] =
-      spawn(PrimaryServiceWorker(scheduler.ref, validInitData))
+      spawn(PrimaryServiceWorker(scheduler.ref, validInitData, serviceKey))
     given log: Logger =
       LoggerFactory.getLogger(classOf[PrimaryServiceWorkerSpec])
+
+    "init the service actor" in {
+      scheduler.expectMessage(
+        ScheduleActivation(serviceRef, 0L, Some(serviceKey))
+      )
+    }
 
     "refuse instantiation on wrong init data" in {
       val maliciousInitData = WrongInitPrimaryServiceStateData()
@@ -202,16 +216,18 @@ class PrimaryServiceWorkerSpec
       }
     }
 
-    "init the service actor" in {
-      scheduler.expectMessage(ScheduleActivation(serviceRef, 0L))
-    }
-
     "refuse registration for wrong registration request" in {
       val schedulerProbe = TestProbe[SchedulerMessage]("schedulerProbe")
 
       // we need to create another service, since we want to continue using the other in later tests
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
       val service =
-        spawn(PrimaryServiceWorker(schedulerProbe.ref, validInitData))
+        spawn(
+          PrimaryServiceWorker(schedulerProbe.ref, validInitData, serviceKey)
+        )
 
       service ! SecondaryServiceRegistrationMessage(
         systemParticipant.ref,

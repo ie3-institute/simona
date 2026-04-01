@@ -19,7 +19,7 @@ import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
-import edu.ie3.simona.scheduler.{Scheduler, TimeAdvancer}
+import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.service.price.EnergyPriceService
@@ -32,6 +32,7 @@ import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
 import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
 import edu.ie3.simona.util.ResultFileHierarchy
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.RichZonedDateTime
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
@@ -130,6 +131,7 @@ class SimonaStandaloneSetup(
           simonaConfig.time.simStartTime,
           simonaConfig.time.simEndTime,
         ),
+        ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
       ),
       "weatherService",
     )
@@ -146,6 +148,7 @@ class SimonaStandaloneSetup(
             dataSource,
             simonaConfig.time.simStartTime,
           ),
+          ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
         ),
         "priceService",
       )
@@ -162,6 +165,7 @@ class SimonaStandaloneSetup(
           simonaConfig.input.loadProfile.datasource,
           simonaConfig.time.simStartTime,
         ),
+        ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
       ),
       "loadProfileService",
     )

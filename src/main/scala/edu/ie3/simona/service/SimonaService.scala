@@ -20,6 +20,7 @@ import edu.ie3.simona.ontology.messages.{
   SchedulerMessage,
   ServiceMessage,
 }
+import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
@@ -48,25 +49,23 @@ abstract class SimonaService {
   def apply(
       scheduler: ActorRef[SchedulerMessage],
       initializeStateData: InitializeServiceStateData,
+      scheduleKey: ScheduleKey,
   ): Behavior[Message] = Behaviors.setup { ctx =>
     init(initializeStateData)(using ctx.log) match {
       case Success((serviceStateData, maybeNewTick)) =>
-        maybeNewTick.foreach { newTick =>
-          scheduler ! ScheduleActivation(
-            ctx.self,
-            newTick,
-          )
+        maybeNewTick match {
+          case Some(newTick) =>
+            scheduler ! ScheduleActivation(
+              ctx.self,
+              newTick,
+              Some(scheduleKey),
+            )
+          case None =>
+            scheduleKey.unlock()
         }
         idle(using serviceStateData, scheduler)
       case Failure(exception) =>
-        // initialize service trigger with invalid data
-        ctx.log.error(
-          "Error during service initialization." +
-            s"\nReceivedData: {}" +
-            s"\nException: {}",
-          initializeStateData,
-          exception,
-        )
+        scheduleKey.unlock()
 
         // if a service fails startup we don't want to go on with the simulation
         throw new CriticalFailureException(

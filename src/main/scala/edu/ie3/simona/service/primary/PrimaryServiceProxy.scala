@@ -40,6 +40,7 @@ import edu.ie3.simona.ontology.messages.{
   SchedulerMessage,
   ServiceMessage,
 }
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.ServiceStateData
 import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
@@ -433,7 +434,11 @@ object PrimaryServiceProxy {
       )
     }.map { initData =>
       ctx.spawn(
-        PrimaryServiceWorker(scheduler, initData),
+        PrimaryServiceWorker(
+          scheduler,
+          initData,
+          ScheduleLock.singleKey(ctx, scheduler, INIT_SIM_TICK),
+        ),
         metaInformation.getUuid.toString,
       )
     }

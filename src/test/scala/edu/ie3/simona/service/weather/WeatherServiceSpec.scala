@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{
   SecondarySeriesData,
   WeatherData,
@@ -27,6 +28,7 @@ import edu.ie3.simona.service.weather.WeatherService.{
 }
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.Coordinate
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -72,21 +74,28 @@ class WeatherServiceSpec
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
-  // build the weather service
-  private val weatherService = spawn(
-    WeatherService(
-      scheduler.ref,
-      InitWeatherServiceStateData(
-        dataSourceConfig,
-        simulationStartDate,
-        simulationEndDate,
-      ),
-    )
-  )
-
   "A weather service" must {
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
+
+    val weatherService = spawn(
+      WeatherService(
+        scheduler.ref,
+        InitWeatherServiceStateData(
+          dataSourceConfig,
+          simulationStartDate,
+          simulationEndDate,
+        ),
+        serviceKey,
+      )
+    )
+
     "send correct completion message after initialisation" in {
-      scheduler.expectMessage(ScheduleActivation(weatherService, 0L))
+      scheduler.expectMessage(
+        ScheduleActivation(weatherService, 0L, Some(serviceKey))
+      )
     }
 
     "announce failed weather registration on invalid coordinate" in {
