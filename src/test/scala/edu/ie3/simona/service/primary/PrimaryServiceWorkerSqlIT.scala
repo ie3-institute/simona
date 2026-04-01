@@ -150,7 +150,9 @@ class PrimaryServiceWorkerSqlIT
             testKit.spawn(
               PrimaryServiceWorker(scheduler.ref, initData, serviceKey)
             )
-          scheduler.expectMessage(ScheduleActivation(serviceRef, 0L, Some(serviceKey)))
+          scheduler.expectMessage(
+            ScheduleActivation(serviceRef, 0L, Some(serviceKey))
+          )
 
           val participant = TestProbe[Any]()
 
