@@ -8,6 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config
 import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
@@ -112,43 +113,41 @@ object ConfigFailFast extends LazyLogging {
   def check(simonaConfig: SimonaConfig): Unit = {
 
     /* check date and time */
-    checkTimeConfig(simonaConfig.simona.time)
+    checkTimeConfig(simonaConfig.time)
 
     // check if the provided combinations of refSystems provided are valid
-    simonaConfig.simona.gridConfig.refSystems.foreach(checkRefSystem)
+    simonaConfig.gridConfig.refSystems.foreach(checkRefSystem)
 
     // check if the provided combinations of voltageLimits provided are valid
-    simonaConfig.simona.gridConfig.voltageLimits.foreach(checkVoltageLimits)
+    simonaConfig.gridConfig.voltageLimits.foreach(checkVoltageLimits)
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
-      simonaConfig.simona.runtime.participant
+      simonaConfig.runtime.participant
     )
 
     /* Check the runtime listener configuration */
-    checkRuntimeListenerConfiguration(
-      simonaConfig.simona.runtime.listener
-    )
+    checkRuntimeListenerConfiguration(simonaConfig.runtime.listener)
 
     /* Check if the provided combination of data source and parameters are valid */
-    checkGridDataSource(simonaConfig.simona.input.grid.datasource)
+    checkGridDataSource(simonaConfig.input.grid.datasource)
 
     /* Check correct parameterization of primary source */
-    checkPrimaryDataSource(simonaConfig.simona.input.primary)
+    checkPrimaryDataSource(simonaConfig.input.primary)
 
     /* Check if the provided combination of data source and parameters are valid */
-    checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
+    checkWeatherDataSource(simonaConfig.input.weather.datasource)
 
-    checkOutputConfig(simonaConfig.simona.output)
+    checkOutputConfig(simonaConfig.output)
 
     /* Check power flow resolution configuration */
-    simonaConfig.simona.powerflow.foreach(checkPowerFlowResolutionConfiguration)
+    simonaConfig.powerflow.foreach(checkPowerFlowResolutionConfiguration)
 
     /* Check control scheme definitions */
-    simonaConfig.simona.control.foreach(checkControlSchemes)
+    simonaConfig.control.foreach(checkControlSchemes)
 
     /* Check correct parameterization of storages */
-    checkStoragesConfig(simonaConfig.simona.runtime.participant.storage)
+    checkStoragesConfig(simonaConfig.runtime.participant.storage)
   }
 
   /** Checks for valid output configuration
@@ -233,7 +232,7 @@ object ConfigFailFast extends LazyLogging {
     *   the time config
     */
   private def checkTimeConfig(
-      timeConfig: SimonaConfig.Simona.Time
+      timeConfig: SimonaConfig.Time
   ): Unit = {
 
     val startDate = createDateTime(timeConfig.startDateTime)
@@ -455,8 +454,7 @@ object ConfigFailFast extends LazyLogging {
     }
   }
 
-  /** Method to check the common elements of a
-    * [[SimonaConfig.Simona.GridConfig]].
+  /** Method to check the common elements of a [[SimonaConfig.GridConfig]].
     * @param gridConfig
     *   the individual config
     * @param configType
@@ -769,7 +767,7 @@ object ConfigFailFast extends LazyLogging {
     *   the power flow configuration that should be checked
     */
   private def checkPowerFlowResolutionConfiguration(
-      powerFlow: SimonaConfig.Simona.Powerflow
+      powerFlow: SimonaConfig.Powerflow
   ): Unit = {
 
     // check if time bin is not smaller than in seconds
@@ -790,7 +788,7 @@ object ConfigFailFast extends LazyLogging {
     * @param control
     *   Control scheme definitions
     */
-  private def checkControlSchemes(control: Simona.Control): Unit = {
+  private def checkControlSchemes(control: SimonaConfig.Control): Unit = {
     control.transformer.foreach(checkTransformerControl)
   }
 

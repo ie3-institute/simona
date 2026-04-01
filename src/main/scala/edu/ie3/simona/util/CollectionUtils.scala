@@ -10,8 +10,7 @@ import squants.Quantity
 
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
-import scala.math.Ordering.Double
-import scala.jdk.CollectionConverters.{SeqHasAsJava, MapHasAsJava}
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 object CollectionUtils {
 

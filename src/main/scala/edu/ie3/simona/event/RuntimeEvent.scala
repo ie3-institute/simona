@@ -27,8 +27,8 @@ object RuntimeEvent {
   final case class InitComplete(duration: Long) extends RuntimeEvent
 
   /** A status indication that the
-    * [[edu.ie3.simona.config.SimonaConfig.simona.time.schedulerReadyCheckWindow]]
-    * has been passed. Normally used by the
+    * [[edu.ie3.simona.config.SimonaConfig.time.schedulerReadyCheckWindow]] has
+    * been passed. Normally used by the
     * [[edu.ie3.simona.event.listener.RuntimeEventListener]] to print status
     * information about the current simulation run.
     *

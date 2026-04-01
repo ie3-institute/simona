@@ -41,8 +41,6 @@ import org.mockito.Mockito.when
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
-import scala.concurrent.duration.DurationInt
-
 trait CongestionTestBaseData
     extends ConfigTestData
     with CongestedComponentsTestData
@@ -101,7 +99,7 @@ trait CongestionTestBaseData
     GridAgentConstantData(
       gridAgentCoordinator.ref,
       environmentRefs,
-      simonaConfig.simona,
+      simonaConfig,
       3600,
       startTime,
       endTime,

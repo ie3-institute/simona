@@ -12,10 +12,8 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.*
 import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.grid.powerflow.{
-  DBFSAlgorithm,
   PowerFlowParams,
   ReceivedValuesStore,
   SweepValueStore,
@@ -69,7 +67,7 @@ object GridAgentData {
   final case class GridAgentConstantData(
       gridAgentCoordinator: ActorRef[GridAgentCoordinator.Message],
       environmentRefs: EnvironmentRefs,
-      simonaConfig: SimonaConfig.Simona,
+      simonaConfig: SimonaConfig,
       resolution: Long,
       simStartTime: ZonedDateTime,
       simEndTime: ZonedDateTime,
