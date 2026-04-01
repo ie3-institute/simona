@@ -34,13 +34,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.testkit.TestKit.awaitCond
 import org.scalatest.prop.TableDrivenPropertyChecks.forAll
 import org.scalatest.prop.Tables.Table
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.UUID
-import scala.concurrent.duration.DurationInt
 import scala.jdk.OptionConverters.RichOption
 import scala.language.{existentials, implicitConversions}
 
@@ -50,7 +48,6 @@ class ExtSimAdapterSpec
     with TestSpawnerTyped {
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
-  private val mainArgs = Array.empty[String]
 
   "An uninitialized ExtSimScheduler" must {
     "send correct completion message after initialisation" in {

@@ -450,7 +450,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               }
           }
 
-          afterPowerFlow(gridAgentBaseData, currentTick, nextTick, ctx)
+          afterPowerFlow(gridAgentBaseData, currentTick, ctx)
 
         // handles power request that arrive to early
         case (requestGridPower: RequestGridPower, _) =>
@@ -740,8 +740,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     case (ctx, CheckPowerDifferencesTrigger(currentTick)) =>
       ctx.log.debug("Starting the power differences check ...")
       val currentSweepNo = gridAgentBaseData.currentSweepNo
-
-      given context: ActorContext[GridAgent.Message] = ctx
 
       slackGridPF(
         gridAgentBaseData.gridEnv.gridModel,

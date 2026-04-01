@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.input.EmInput
 import edu.ie3.datamodel.models.input.container.{
-  SubGridContainer,
   SystemParticipants,
   ThermalGrid,
 }

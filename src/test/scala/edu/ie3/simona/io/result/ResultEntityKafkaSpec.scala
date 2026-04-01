@@ -7,13 +7,11 @@
 package edu.ie3.simona.io.result
 
 import edu.ie3.datamodel.models.result.NodeResult
-import edu.ie3.simona.api.ontology.results.ProvideResultEntities
-import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.io.result.plain.PlainResult.PlainNodeResult
 import edu.ie3.simona.io.result.plain.PlainWriter
 import edu.ie3.simona.logging.LogbackConfiguration
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.test.KafkaSpecLike
 import edu.ie3.simona.test.KafkaSpecLike.Topic
 import edu.ie3.simona.util.ResultFileHierarchy
