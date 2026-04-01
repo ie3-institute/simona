@@ -479,6 +479,11 @@ class PrimaryServiceProxySpec
 
       testKit.run(PrimaryServiceRegistrationMessage(participant1.ref, uuid1))
 
+      // schedule lock
+      testKit.expectEffectPF { case Spawned(_, actorName, _) =>
+        actorName should startWith("schedule_lock")
+      }
+
       testKit.expectEffectPF { case Spawned(_, actorName, _) =>
         actorName shouldBe uuidP.toString
       }
