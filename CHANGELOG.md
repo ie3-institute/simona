@@ -114,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed some issues of `SonarQube` [#1739](https://github.com/ie3-institute/simona/issues/1739)
 - Turned off optimus/ojAlgo log spam [#1742](https://github.com/ie3-institute/simona/issues/1742)
 - Fixed bugs in EM optimization [#1746](https://github.com/ie3-institute/simona/issues/1746)
+- Cleaned imports [#1755](https://github.com/ie3-institute/simona/issues/1755)
 - Fixed `EnergyPriceService` initialization [#1747](https://github.com/ie3-institute/simona/issues/1747)
 
 ### Removed

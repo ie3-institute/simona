@@ -8,14 +8,11 @@ package edu.ie3.simona.model.grid
 
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.QuantityUtils.{asPercent, asPu}
 import squants.{Dimensionless, Each, Percent}
 
 class TransformerTappingSpec extends UnitSpec {
 
   private given Conversion[Double, Dimensionless] = (d: Double) => Each(d)
-
-  private given Dimensionless = Each(1e-3)
 
   "A TransformerTapping" should {
 

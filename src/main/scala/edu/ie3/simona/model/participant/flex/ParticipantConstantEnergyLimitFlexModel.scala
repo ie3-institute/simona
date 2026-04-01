@@ -6,20 +6,17 @@
 
 package edu.ie3.simona.model.participant.flex
 
-import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.model.participant.ParticipantModel.{
   FixedState,
-  ModelState,
   OperatingPoint,
 }
+import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexOptions,
 }
 import edu.ie3.simona.service.DataTimeType
-
-import scala.collection.immutable.SortedMap
 
 /** Flex model implementation for [[ParticipantModel]]s with fixed state
   * producing [[EnergyBoundariesFlexOptions]] that assume a constant power
