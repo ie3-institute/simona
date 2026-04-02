@@ -12,7 +12,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.*
 import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.simona.util.CollectionUtils.emptyOptionMap
 import org.apache.pekko.actor.typed.ActorRef
 

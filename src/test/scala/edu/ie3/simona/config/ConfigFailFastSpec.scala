@@ -18,8 +18,8 @@ import edu.ie3.simona.config.RuntimeConfig.{
   StorageRuntimeConfig,
   StorageRuntimeConfigs,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
-import edu.ie3.simona.config.SimonaConfig.Simona.{Powerflow, Time}
+import edu.ie3.simona.config.SimonaConfig.Powerflow.Newtonraphson
+import edu.ie3.simona.config.SimonaConfig.{Powerflow, Time}
 import edu.ie3.simona.config.SimonaConfig.TransformerControlGroup
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
@@ -176,7 +176,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
             intercept[InvalidConfigParameterException] {
               faultySimonaConfig.foreach(conf =>
-                conf.simona.gridConfig.refSystems.foreach(refSystem =>
+                conf.gridConfig.refSystems.foreach(refSystem =>
                   ConfigFailFast invokePrivate checkRefSystem(refSystem)
                 )
               )
@@ -202,7 +202,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.foreach(conf =>
-              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+              conf.gridConfig.refSystems.foreach(refSystem =>
                 ConfigFailFast invokePrivate checkRefSystem(refSystem)
               )
             )
@@ -228,7 +228,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.foreach(conf =>
-              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+              conf.gridConfig.refSystems.foreach(refSystem =>
                 ConfigFailFast invokePrivate checkRefSystem(refSystem)
               )
             )
@@ -255,7 +255,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.foreach(conf =>
-              conf.simona.gridConfig.refSystems.foreach(refSystem =>
+              conf.gridConfig.refSystems.foreach(refSystem =>
                 ConfigFailFast invokePrivate checkRefSystem(refSystem)
               )
             )
@@ -286,7 +286,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = List(SimonaConfig(config))
 
           simonaConfig.foreach(conf =>
-            conf.simona.gridConfig.refSystems.foreach(refSystem => {
+            conf.gridConfig.refSystems.foreach(refSystem => {
               ConfigFailFast invokePrivate checkRefSystem(refSystem)
             })
           )
@@ -336,7 +336,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
             intercept[InvalidConfigParameterException] {
               faultySimonaConfig.foreach(conf =>
-                conf.simona.gridConfig.voltageLimits.foreach(refSystem =>
+                conf.gridConfig.voltageLimits.foreach(refSystem =>
                   ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
                 )
               )
@@ -362,7 +362,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.foreach(conf =>
-              conf.simona.gridConfig.voltageLimits.foreach(refSystem =>
+              conf.gridConfig.voltageLimits.foreach(refSystem =>
                 ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
               )
             )
@@ -388,7 +388,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             faultySimonaConfig.foreach(conf =>
-              conf.simona.gridConfig.voltageLimits.foreach(refSystem =>
+              conf.gridConfig.voltageLimits.foreach(refSystem =>
                 ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
               )
             )
@@ -418,7 +418,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           val simonaConfig = List(SimonaConfig(config))
 
           simonaConfig.foreach(conf =>
-            conf.simona.gridConfig.voltageLimits.foreach(refSystem => {
+            conf.gridConfig.voltageLimits.foreach(refSystem => {
               ConfigFailFast invokePrivate checkVoltageLimits(refSystem)
             })
           )
@@ -440,7 +440,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
-              simonaConfig.simona.runtime.participant
+              simonaConfig.runtime.participant
             )
           }.getMessage shouldBe "The participant power request voltage deviation threshold must be positive!"
         }
@@ -471,7 +471,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
-              simonaConfig.simona.runtime.participant
+              simonaConfig.runtime.participant
             )
           }
         }
@@ -518,7 +518,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
-              simonaConfig.simona.runtime.participant
+              simonaConfig.runtime.participant
             )
           }
         }
@@ -577,7 +577,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           noException shouldBe thrownBy {
             ConfigFailFast invokePrivate checkParticipantRuntimeConfiguration(
-              simonaConfig.simona.runtime.participant
+              simonaConfig.runtime.participant
             )
           }
         }
@@ -606,8 +606,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
-              simonaConfig.simona.runtime.participant.load.defaultConfig,
-              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              simonaConfig.runtime.participant.load.defaultConfig,
+              simonaConfig.runtime.participant.load.individualConfigs,
             )
           }.getMessage shouldBe "There has to be at least one identifier for each participant."
         }
@@ -632,8 +632,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
-              simonaConfig.simona.runtime.participant.load.defaultConfig,
-              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              simonaConfig.runtime.participant.load.defaultConfig,
+              simonaConfig.runtime.participant.load.individualConfigs,
             )
           }.getMessage shouldBe s"The UUID 'blabla' cannot be parsed as it is invalid."
         }
@@ -657,8 +657,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
-              simonaConfig.simona.runtime.participant.load.defaultConfig,
-              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              simonaConfig.runtime.participant.load.defaultConfig,
+              simonaConfig.runtime.participant.load.individualConfigs,
             )
           }.getMessage shouldBe "The scaling factor for system participants with UUID '49f250fa-41ff-4434-a083-79c98d260a76' may not be negative."
         }
@@ -697,8 +697,8 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkBaseRuntimeConfigs(
-              simonaConfig.simona.runtime.participant.load.defaultConfig,
-              simonaConfig.simona.runtime.participant.load.individualConfigs,
+              simonaConfig.runtime.participant.load.defaultConfig,
+              simonaConfig.runtime.participant.load.individualConfigs,
             )
           }.getMessage shouldBe "The basic model configurations contain ambiguous definitions."
         }
@@ -729,7 +729,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkSpecificLoadModelConfig(
-              simonaConfig.simona.runtime.participant.load.defaultConfig
+              simonaConfig.runtime.participant.load.defaultConfig
             )
           }.getMessage shouldBe "The load model behaviour 'blabla' for the loads with UUIDs '49f250fa-41ff-4434-a083-79c98d260a76' is invalid."
         }
@@ -753,7 +753,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkSpecificLoadModelConfig(
-              simonaConfig.simona.runtime.participant.load.defaultConfig
+              simonaConfig.runtime.participant.load.defaultConfig
             )
           }.getMessage shouldBe "The standard load profile reference 'blabla' for the loads with UUIDs '49f250fa-41ff-4434-a083-79c98d260a76' is invalid."
         }
@@ -780,7 +780,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
 
           intercept[InvalidConfigParameterException] {
             ConfigFailFast invokePrivate checkRuntimeListenerConfiguration(
-              simonaConfig.simona.runtime.listener
+              simonaConfig.runtime.listener
             )
           }.getMessage shouldBe "Connection with kafka broker localhost:12345 failed."
         }
