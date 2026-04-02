@@ -221,6 +221,16 @@ object ResultServiceProxy {
       copy(waitingForResults = updated)
     }
 
+    /** Method for adding a power flow results to the state data.
+      * @param results
+      *   The power flow result excluding congestion results.
+      * @param updatedThreeWindingResults
+      *   The updated partial three-winding transformer results.
+      * @param congestionResults
+      *   The congestion results.
+      * @return
+      *   A copy of the state data with update information.
+      */
     def addPfResults(
         results: Iterable[ResultEntity],
         updatedThreeWindingResults: Map[
@@ -228,7 +238,7 @@ object ResultServiceProxy {
           AggregatedTransformer3wResult,
         ],
         congestionResults: Iterable[ResultEntity],
-    )(using startTime: ZonedDateTime): ResultServiceStateData = {
+    ): ResultServiceStateData = {
 
       val (newMainResults, receivedResult) =
         results
@@ -264,11 +274,10 @@ object ResultServiceProxy {
       notifyListener(allChangedResults)
 
       val changedKeys = allChangedResults.keys
-      val tick =
-        newMainResults.values
-          .find(_ => true)
-          .map(_.getTime.toTick)
-          .getOrElse(-1L)
+      val tick = newMainResults.values
+        .find(_ => true)
+        .map(_.getTime.toTick(using simStartTime))
+        .getOrElse(-1L)
 
       val lastUpdatedTicks = newMainResults.keys.map(k => k -> tick).toMap
 
@@ -282,7 +291,8 @@ object ResultServiceProxy {
       )
     }
 
-    /** Method for adding a result to the state data.
+    /** Method for adding a result to the state data. This method will clear the
+      * flex option result, if the result differs from the stored result.
       *
       * @param result
       *   That should be added.
@@ -448,10 +458,7 @@ object ResultServiceProxy {
       case (ctx, resultEvent: ResultEvent) =>
         // handles the event and updates the state data
         val updatedStateData =
-          handleResultEvent(resultEvent, stateData)(using
-            ctx.log,
-            stateData.simStartTime,
-          )
+          handleResultEvent(resultEvent, stateData)(using ctx.log)
 
         // un-stash received requests
         buffer.unstashAll(idle(updatedStateData))
@@ -511,7 +518,7 @@ object ResultServiceProxy {
   private def handleResultEvent(
       resultEvent: ResultEvent,
       stateData: ResultServiceStateData,
-  )(using log: Logger, startTime: ZonedDateTime): ResultServiceStateData =
+  )(using log: Logger): ResultServiceStateData =
     resultEvent match {
       case PowerFlowResultEvent(
             nodeResults,
