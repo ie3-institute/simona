@@ -30,7 +30,6 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
-import java.util
 import scala.jdk.CollectionConverters.*
 
 /** In contrast to the listener, the result provider will only provide those
@@ -48,6 +47,8 @@ object ExtResultProvider {
     *   The result service proxy.
     * @param connection
     *   Result data connection to the external simulation.
+    * @param lastTick
+    *   The last tick for which results were requested.
     * @param extMessage
     *   Option for the current message from the external simulation.
     */
@@ -128,7 +129,6 @@ object ExtResultProvider {
 
         extMsg match {
           case requestResultEntities: RequestResultEntities =>
-            val tick = requestResultEntities.tick
             val threshold = Option.when(
               !requestResultEntities.sendUnchangedResults
             )(stateData.lastTick)

@@ -125,7 +125,9 @@ object ResultServiceProxy {
       * @param results
       *   That should be sent.
       */
-    def notifyListener(results: Map[UUID, Iterable[ResultEntity]]): Unit =
+    private def notifyListener(
+        results: Map[UUID, Iterable[ResultEntity]]
+    ): Unit =
       if results.nonEmpty then listeners.foreach(_ ! ResultResponse(results))
 
     /** This method is used to forward one result to all known listeners.
@@ -219,6 +221,67 @@ object ResultServiceProxy {
       copy(waitingForResults = updated)
     }
 
+    def addPfResults(
+        results: Iterable[ResultEntity],
+        updatedThreeWindingResults: Map[
+          Transformer3wKey,
+          AggregatedTransformer3wResult,
+        ],
+        congestionResults: Iterable[ResultEntity],
+    )(using startTime: ZonedDateTime): ResultServiceStateData = {
+
+      val (newMainResults, receivedResult) =
+        results
+          .foldLeft(Map.empty[UUID, ResultEntity], Seq.empty[UUID]) {
+            case ((allChangedResults, allKeys), result) =>
+              val uuid = result.getInputModel
+
+              (
+                allChangedResults ++ getUpdateOption(mainResult, uuid, result),
+                allKeys :+ uuid,
+              )
+          }
+
+      val newAdditional = congestionResults.flatMap { res =>
+        val uuid = res.getInputModel
+
+        if newMainResults.contains(uuid) then {
+          getUpdateOption(additionalResults, uuid, res)
+
+        } else None
+      }.toMap
+
+      val allChangedResults = newMainResults.map { case (uuid, result) =>
+        newAdditional.get(uuid) match {
+          case Some(additional) =>
+            uuid -> Seq(result, additional)
+          case None =>
+            uuid -> Seq(result)
+        }
+      }
+
+      // notify listener
+      notifyListener(allChangedResults)
+
+      val changedKeys = allChangedResults.keys
+      val tick =
+        newMainResults.values
+          .find(_ => true)
+          .map(_.getTime.toTick)
+          .getOrElse(-1L)
+
+      val lastUpdatedTicks = newMainResults.keys.map(k => k -> tick).toMap
+
+      copy(
+        mainResult = mainResult ++ newMainResults,
+        threeWindingResults = updatedThreeWindingResults,
+        additionalResults =
+          additionalResults.removedAll(changedKeys) ++ newAdditional,
+        waitingForResults = waitingForResults.removedAll(receivedResult),
+        lastUpdate = lastUpdate ++ lastUpdatedTicks,
+      )
+    }
+
     /** Method for adding a result to the state data.
       *
       * @param result
@@ -267,17 +330,11 @@ object ResultServiceProxy {
         case Some(value) if value == tick =>
           // primary result was updated this tick
           // check additional result for change
-
-          additionalResults.get(uuid) match {
-            case Some(oldResult) if isUnchanged(result, oldResult) =>
-              additionalResults
-            case _ =>
-              additionalResults.updated(uuid, result)
-          }
+          getUpdateOption(additionalResults, uuid, result)
         case _ => additionalResults
       }
 
-      copy(additionalResults = updatedAdditional)
+      copy(additionalResults = additionalResults ++ updatedAdditional)
     }
 
     /** Method for extracting results.
@@ -292,8 +349,8 @@ object ResultServiceProxy {
         threshold: Option[Long],
     ): Map[UUID, List[ResultEntity]] = {
       val filteredUuid = threshold match {
-        case Some(value) =>
-          lastUpdate.filter { case (_, tick) => tick > value }.keys
+        case Some(thresholdTick) =>
+          lastUpdate.filter { case (_, tick) => tick > thresholdTick }.keys
         case None =>
           uuids
       }
@@ -309,6 +366,42 @@ object ResultServiceProxy {
       }.toMap
     }
 
+    /** Method for updating the result map.
+      *
+      * @param oldResults
+      *   The last state of the results.
+      * @param uuid
+      *   Of the result.
+      * @param result
+      *   The new result.
+      * @return
+      *   The updated result map.
+      */
+    private def getUpdateOption(
+        oldResults: Map[UUID, ResultEntity],
+        uuid: UUID,
+        result: ResultEntity,
+    ): Iterable[(UUID, ResultEntity)] = {
+      oldResults.get(uuid) match {
+        case Some(oldResult) if isUnchanged(result, oldResult) =>
+          None
+        case _ =>
+          Some(uuid -> result)
+      }
+    }
+
+    private def isUnchanged(
+        result: ResultEntity,
+        oldResult: ResultEntity,
+    ): Boolean = {
+      // Temporarily change time for comparison, then revert
+      val oldTime = oldResult.getTime
+      oldResult.setTime(result.getTime)
+      val equal = oldResult == result
+      oldResult.setTime(oldTime)
+
+      equal
+    }
   }
 
   /** Used to create a [[ResultServiceProxy]].
@@ -435,67 +528,10 @@ object ResultServiceProxy {
             stateData.threeWindingResults,
           )
 
-        val oldResults = stateData.mainResult
-
-        val (newPrimary, receivedResult) =
-          (transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults)
-            .foldLeft(Map.empty[UUID, ResultEntity], Seq.empty[UUID]) {
-              case ((allChangedResults, allKeys), result) =>
-                val uuid = result.getInputModel
-
-                val updatedResMap = oldResults.get(uuid) match {
-                  case Some(oldResult) if isUnchanged(result, oldResult) =>
-                    allChangedResults
-                  case _ =>
-                    allChangedResults.updated(uuid, result)
-                }
-
-                (updatedResMap, allKeys :+ uuid)
-            }
-
-        val oldAdditionalResults = stateData.additionalResults
-
-        val newAdditional = congestionResults.flatMap { res =>
-          val uuid = res.getInputModel
-
-          if newPrimary.contains(uuid) then {
-            oldAdditionalResults.get(uuid) match {
-              case Some(oldResult) if isUnchanged(res, oldResult) =>
-                None
-              case _ =>
-                Some(uuid -> res)
-            }
-
-          } else None
-        }.toMap
-
-        val allChangedResults = newPrimary.map { case (uuid, result) =>
-          newAdditional.get(uuid) match {
-            case Some(additional) =>
-              uuid -> Seq(result, additional)
-            case None =>
-              uuid -> Seq(result)
-          }
-        }
-
-        // notify listener
-        stateData.notifyListener(allChangedResults)
-
-        val changedKeys = allChangedResults.keys
-        val tick =
-          newPrimary.values.find(_ => true).map(_.getTime.toTick).getOrElse(-1L)
-
-        val lastUpdatedTicks = newPrimary.keys.map(k => k -> tick).toMap
-
-        stateData.copy(
-          mainResult = oldResults ++ newPrimary,
-          threeWindingResults = updatedThreeWindingResults,
-          additionalResults = stateData.additionalResults.removedAll(
-            changedKeys
-          ) ++ newAdditional,
-          waitingForResults =
-            stateData.waitingForResults.removedAll(receivedResult),
-          lastUpdate = stateData.lastUpdate ++ lastUpdatedTicks,
+        stateData.addPfResults(
+          transformer3wResults ++ nodeResults ++ switchResults ++ lineResults ++ transformer2wResults,
+          updatedThreeWindingResults,
+          congestionResults,
         )
 
       case ParticipantResultEvent(systemParticipantResult) =>
@@ -574,18 +610,5 @@ object ResultServiceProxy {
         // on failure, we just continue with previous results
         (allPartialResults, allResults)
     }
-  }
-
-  private def isUnchanged(
-      result: ResultEntity,
-      oldResult: ResultEntity,
-  ): Boolean = {
-    // Temporarily change time for comparison, then revert
-    val oldTime = oldResult.getTime
-    oldResult.setTime(result.getTime)
-    val equal = oldResult == result
-    oldResult.setTime(oldTime)
-
-    equal
   }
 }
