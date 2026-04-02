@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.control
 
-import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.model.grid.TransformerTapping
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.GridComponentsMokka
@@ -15,10 +15,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.ActorRef
-import org.scalatest.prop.TableFor3
 import squants.{Dimensionless, Each, Percent}
-import tech.units.indriya.ComparableQuantity
 
 class TappingGroupModelSpec
     extends ScalaTestWithActorTestKit

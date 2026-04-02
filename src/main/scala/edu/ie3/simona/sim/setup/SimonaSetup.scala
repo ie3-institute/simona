@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
   ThermalGrid,
@@ -60,16 +58,14 @@ trait SimonaSetup {
   /** The electrical grid.
     */
   lazy val grid: JointGridContainer = GridProvider.gridFromConfig(
-    simonaConfig.simona.simulationName,
-    simonaConfig.simona.input.grid.datasource,
+    simonaConfig.simulationName,
+    simonaConfig.input.grid.datasource,
   )
 
   /** Map: thermal bus to thermal grid.
     */
   lazy val thermalGridsByThermalBus: Map[ThermalBusInput, ThermalGrid] =
-    GridProvider.getThermalGridsFromConfig(
-      simonaConfig.simona.input.grid.datasource
-    )
+    GridProvider.getThermalGridsFromConfig(simonaConfig.input.grid.datasource)
 
   lazy val baseInputPath: Path = Path.of(simonaConfig.simona.input.baseInputDir)
 

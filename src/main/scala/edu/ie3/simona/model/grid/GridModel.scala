@@ -71,7 +71,7 @@ object GridModel {
       voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      simonaConfig: SimonaConfig.Simona,
+      simonaConfig: SimonaConfig,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
@@ -449,7 +449,7 @@ object GridModel {
     */
   private def validateControlGroups(
       subGridContainer: SubGridContainer,
-      maybeControlConfig: Option[SimonaConfig.Simona.Control],
+      maybeControlConfig: Option[SimonaConfig.Control],
   ): Unit = {
     maybeControlConfig.foreach { control =>
       val measurementUnits =
@@ -500,7 +500,7 @@ object GridModel {
       voltageLimits: VoltageLimits,
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
-      simonaConfig: SimonaConfig.Simona,
+      simonaConfig: SimonaConfig,
   ): GridModel = {
 
     // build
