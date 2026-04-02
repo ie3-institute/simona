@@ -65,9 +65,7 @@ class LoadProfileServiceSpec
         scheduler.ref,
         InitLoadProfileServiceStateData(
           sourceDefinition,
-          TimeUtil.withDefaults.toZonedDateTime(
-            simonaConfig.time.startDateTime
-          ),
+          simonaConfig.time.simStartTime,
         ),
         serviceKey,
       )
