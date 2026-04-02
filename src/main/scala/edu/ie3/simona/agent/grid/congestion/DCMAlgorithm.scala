@@ -132,7 +132,6 @@ trait DCMAlgorithm
     // return to idle
     GridAgent.gotoIdle(
       stateData.gridAgentBaseData,
-      stateData.currentTick + constantData.resolution,
       Some(powerFlowResults),
       ctx,
     )

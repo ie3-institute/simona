@@ -82,7 +82,7 @@ trait CongestedComponentsTestData
       defaultVoltageLimits,
       startTime,
       endTime,
-      simonaConfig.simona,
+      simonaConfig,
     )
 
     val transformerModel1 = TransformerModel(

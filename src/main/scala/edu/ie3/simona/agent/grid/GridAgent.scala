@@ -157,7 +157,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   private[grid] def afterPowerFlow(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      nextTick: Long,
       ctx: ActorContext[Message],
   )(using
       constantData: GridAgentConstantData,
@@ -179,7 +178,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       }
 
     // clean up agent and go back to idle
-    gotoIdle(gridAgentBaseData, nextTick, results, ctx)
+    gotoIdle(gridAgentBaseData, results, ctx)
   }
 
   /** Method that will clean up the [[GridAgentBaseData]] and go to the
@@ -187,8 +186,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     *
     * @param gridAgentBaseData
     *   State data of the actor.
-    * @param nextTick
-    *   The next tick in the simulation.
     * @param results
     *   Option for the last power flow, that should be written.
     * @param ctx
@@ -202,7 +199,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     */
   private[grid] def gotoIdle(
       gridAgentBaseData: GridAgentBaseData,
-      nextTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Message],
   )(using

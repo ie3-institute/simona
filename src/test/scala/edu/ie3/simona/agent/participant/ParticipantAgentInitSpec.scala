@@ -12,7 +12,6 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   SimulationParameters,
 }
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -27,10 +26,6 @@ import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
-import edu.ie3.simona.service.results.ResultServiceProxy.{
-  ExpectResult,
-  NoResult,
-}
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}

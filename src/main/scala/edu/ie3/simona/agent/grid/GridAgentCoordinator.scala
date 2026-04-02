@@ -173,7 +173,7 @@ object GridAgentCoordinator {
   }
 
   def apply(
-      config: SimonaConfig.Simona,
+      config: SimonaConfig,
       subgrids: Seq[SubGridContainer],
   )(using environmentRefs: EnvironmentRefs): Behavior[Message] =
     Behaviors.setup { ctx =>
@@ -477,7 +477,7 @@ object GridAgentCoordinator {
       subgrids: Seq[SubGridContainer],
       resolution: Long,
       pfParams: PowerFlowParams,
-      cfg: SimonaConfig.Simona,
+      cfg: SimonaConfig,
   )(using
       context: ActorContext[Message],
       environmentRefs: EnvironmentRefs,

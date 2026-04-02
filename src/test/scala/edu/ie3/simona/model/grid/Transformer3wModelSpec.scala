@@ -15,8 +15,8 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 }
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wInputTestData
-import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Megavoltamperes,
@@ -24,8 +24,6 @@ import edu.ie3.util.scala.quantities.{
 }
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.{Dimensionless, Each}
-import tech.units.indriya.quantity.Quantities
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 
 import scala.math.BigDecimal.RoundingMode
 

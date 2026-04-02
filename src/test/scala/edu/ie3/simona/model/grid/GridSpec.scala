@@ -651,7 +651,7 @@ class GridSpec
         defaultVoltageLimits,
         defaultSimulationStart,
         defaultSimulationEnd,
-        simonaConfig.simona,
+        simonaConfig,
       )
 
     }
