@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid.powerflow
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
   FinishedInitialization,
   PowerFlowResults,
@@ -17,19 +16,19 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
 }
+import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
@@ -110,7 +109,7 @@ class DBFSAlgorithmCenGridSpec
   given GridAgentConstantData = GridAgentConstantData(
     gridAgentCoordinator.ref,
     environmentRefs,
-    simonaConfig.simona,
+    simonaConfig,
     3600,
     startTime,
     endTime,
@@ -124,12 +123,12 @@ class DBFSAlgorithmCenGridSpec
       VoltageLimits(0.9, 1.1),
       startTime,
       endTime,
-      simonaConfig.simona,
+      simonaConfig,
     )
 
     val gridAgentInitData = GridAgentInitData(
       gridModel,
-      PowerFlowParams(simonaConfig.simona.powerflow.value),
+      PowerFlowParams(simonaConfig.powerflow.value),
     )
 
     val centerGridAgent = testKit.spawn(GridAgent(gridAgentInitData))

@@ -23,11 +23,11 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
@@ -93,7 +93,7 @@ class DBFSAlgorithmFailedPowerFlowSpec
   given GridAgentConstantData = GridAgentConstantData(
     gridAgentCoordinator.ref,
     environmentRefs,
-    simonaConfig.simona,
+    simonaConfig,
     3600,
     startTime,
     endTime,
@@ -110,12 +110,12 @@ class DBFSAlgorithmFailedPowerFlowSpec
         VoltageLimits(0.9, 1.1),
         startTime,
         endTime,
-        simonaConfig.simona,
+        simonaConfig,
       )
 
       val gridAgentInitData = GridAgentInitData(
         gridModel,
-        PowerFlowParams(simonaConfig.simona.powerflow.value),
+        PowerFlowParams(simonaConfig.powerflow.value),
       )
 
       val centerGridAgent = testKit.spawn(GridAgent(gridAgentInitData))
@@ -363,12 +363,12 @@ class DBFSAlgorithmFailedPowerFlowSpec
         VoltageLimits(0.9, 1.1),
         startTime,
         endTime,
-        simonaConfig.simona,
+        simonaConfig,
       )
 
       val gridAgentInitData = GridAgentInitData(
         gridModel,
-        PowerFlowParams(simonaConfig.simona.powerflow.value),
+        PowerFlowParams(simonaConfig.powerflow.value),
       )
 
       val slackGridAgent = testKit.spawn(GridAgent(gridAgentInitData))

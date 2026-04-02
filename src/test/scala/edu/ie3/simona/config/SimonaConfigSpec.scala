@@ -16,11 +16,12 @@ import edu.ie3.simona.config.InputConfig.{
   WeatherDatasource,
 }
 import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.config.SimonaConfig.Simona
-import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
-import edu.ie3.simona.config.SimonaConfig.Simona.{
+import edu.ie3.simona.config.SimonaConfig.Powerflow.Newtonraphson
+import edu.ie3.simona.config.SimonaConfig.{
   CongestionManagement,
+  GridConfig,
   Powerflow,
+  Time,
 }
 import edu.ie3.simona.test.common.UnitSpec
 
@@ -52,13 +53,13 @@ class SimonaConfigSpec extends UnitSpec {
           |""".stripMargin
       )
 
-      val simonaConfig = SimonaConfig(minimalConfig).simona
+      val simonaConfig = SimonaConfig(minimalConfig)
 
       // simulation name
       simonaConfig.simulationName shouldBe "ConfigTestDataSimulation"
 
       // time config
-      simonaConfig.time shouldBe Simona.Time(
+      simonaConfig.time shouldBe Time(
         endDateTime = "2011-05-01T01:00:00Z",
         schedulerReadyCheckWindow = None,
         startDateTime = "2011-05-01T00:00:00Z",
@@ -73,7 +74,7 @@ class SimonaConfigSpec extends UnitSpec {
       simonaConfig.control shouldBe None
 
       // grid config
-      simonaConfig.gridConfig shouldBe Simona.GridConfig(
+      simonaConfig.gridConfig shouldBe GridConfig(
         refSystems = None,
         voltageLimits = None,
       )

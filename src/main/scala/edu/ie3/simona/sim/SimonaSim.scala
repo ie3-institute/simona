@@ -77,7 +77,7 @@ object SimonaSim {
         val resultProxy = simonaSetup.resultServiceProxy(
           ctx,
           resultEventListeners,
-          simonaSetup.simonaConfig.simona.time.simStartTime,
+          simonaSetup.simonaConfig.time.simStartTime,
         )
 
         val timeAdvancer =
@@ -90,7 +90,7 @@ object SimonaSim {
         // External simulations have to be scheduled for initialization first,
         // so that the phase switch permanently activates them first
         val extSimDir =
-          simonaSetup.simonaConfig.simona.input.extSimDir.map(Path.of(_))
+          simonaSetup.simonaConfig.input.extSimDir.map(Path.of(_))
 
         val extSimulationData =
           simonaSetup.extSimulations(ctx, scheduler, resultProxy, extSimDir)

@@ -7,10 +7,10 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
+import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.em.ProvideEmData
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexActivation,
   IssueFlexControl,
@@ -23,18 +23,15 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
 import org.slf4j.{Logger, LoggerFactory}
-import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.energy.{Kilowatts, Power, Watts}
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 
@@ -175,7 +172,7 @@ class EmServiceBaseCoreSpec
       ) // save the set point data until we can handle it
 
       // handle flex options
-      val (coreAfterFlexOptionProvision, msgToExt2) =
+      val (coreAfterFlexOptionProvision, _) =
         updatedCore.handleFlexResponse(
           0L,
           ProvideFlexOptions(

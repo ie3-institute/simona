@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.container.ThermalGrid
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
   FinishedInitialization,
@@ -15,7 +13,6 @@ import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangePower
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentConstantData,
   GridAgentInitData,
@@ -24,12 +21,11 @@ import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
-import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
@@ -37,7 +33,6 @@ import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped, UnitSpec}
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -91,7 +86,7 @@ class DBFSAlgorithmSupGridSpec
   given GridAgentConstantData = GridAgentConstantData(
     gridAgentCoordinator.ref,
     environmentRefs,
-    simonaConfig.simona,
+    simonaConfig,
     3600,
     startTime,
     endTime,
@@ -104,12 +99,12 @@ class DBFSAlgorithmSupGridSpec
       VoltageLimits(0.9, 1.1),
       startTime,
       endTime,
-      simonaConfig.simona,
+      simonaConfig,
     )
 
     val gridAgentInitData = GridAgentInitData(
       gridModel,
-      PowerFlowParams(simonaConfig.simona.powerflow.value),
+      PowerFlowParams(simonaConfig.powerflow.value),
     )
 
     val superiorGridAgent = testKit.spawn(GridAgent(gridAgentInitData))
