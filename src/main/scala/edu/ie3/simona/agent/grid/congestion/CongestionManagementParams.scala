@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams.Mitigatio
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.*
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.config.SimonaConfig.Simona.CongestionManagement
+import edu.ie3.simona.config.SimonaConfig.CongestionManagement
 
 import scala.concurrent.duration.FiniteDuration
 
