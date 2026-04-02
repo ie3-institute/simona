@@ -6,9 +6,7 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow
-
-import scala.concurrent.duration.FiniteDuration
+import edu.ie3.simona.config.SimonaConfig.Powerflow
 
 /** Holds all power flow configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]

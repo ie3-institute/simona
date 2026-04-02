@@ -162,7 +162,7 @@ class EmServiceBaseCoreSpec
       ) // save the set point data until we can handle it
 
       // handle flex options
-      val (coreAfterFlexOptionProvision, msgToExt2) =
+      val (coreAfterFlexOptionProvision, _) =
         updatedCore.handleFlexResponse(
           0L,
           ProvideFlexOptions(

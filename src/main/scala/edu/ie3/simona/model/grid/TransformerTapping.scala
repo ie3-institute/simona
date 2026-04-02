@@ -7,9 +7,6 @@
 package edu.ie3.simona.model.grid
 
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
-import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.quantities.QuantityUtils.asPu
-import edu.ie3.util.scala.quantities.DefaultQuantities
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import squants.{Dimensionless, Each}
 

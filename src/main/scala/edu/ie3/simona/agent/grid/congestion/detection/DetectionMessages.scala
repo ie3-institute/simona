@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.grid.congestion.detection
 
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgent.{
-  InternalReply,
   InternalReplyWithSender,
   InternalRequest,
 }

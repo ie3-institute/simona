@@ -89,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the publications and references with new publications [#1707](https://github.com/ie3-institute/simona/issues/1707)
 - Refactor initialization of `GridAgent` [#1686](https://github.com/ie3-institute/simona/issues/1686)
 - Update `README.md` and `AUTHORS.md` [#1728](https://github.com/ie3-institute/simona/issues/1728)
+- Updated/enhanced copernicus weather data manual [#1718](https://github.com/ie3-institute/simona/issues/1718)
 - Move handling of disaggregated flex options to `EmAgent` [#1633](https://github.com/ie3-institute/simona/issues/1633)
 
 ### Fixed
@@ -113,6 +114,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed handling of power flow results in `ResultServiceProxy` [#1679](https://github.com/ie3-institute/simona/issues/1679)
 - Fixed some issues of `SonarQube` [#1739](https://github.com/ie3-institute/simona/issues/1739)
 - Turned off optimus/ojAlgo log spam [#1742](https://github.com/ie3-institute/simona/issues/1742)
+- Fixed bugs in EM optimization [#1746](https://github.com/ie3-institute/simona/issues/1746)
+- Cleaned imports [#1755](https://github.com/ie3-institute/simona/issues/1755)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
@@ -123,6 +126,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed snapshot repository [#1672](https://github.com/ie3-institute/simona/issues/1672)
 - Removed message retrieval timeout from DBFS [#1422](https://github.com/ie3-institute/simona/issues/1422) 
 - Removed unused class in EmAgent [#1735](https://github.com/ie3-institute/simona/issues/1735)
+- Removed unnecessary subclass `simona` in config [#1749](https://github.com/ie3-institute/simona/issues/1749)
 
 ### Updates
 - Updated Gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)
