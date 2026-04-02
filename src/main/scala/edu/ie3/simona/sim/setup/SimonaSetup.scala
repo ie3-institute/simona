@@ -45,8 +45,7 @@ trait SimonaSetup {
 
   val simonaConfig: SimonaConfig
 
-  lazy val simulationTimeout: FiniteDuration =
-    simonaConfig.simona.simulationTimeout
+  lazy val simulationTimeout: FiniteDuration = simonaConfig.simulationTimeout
   lazy val timeout: Timeout = Timeout(simulationTimeout)
 
   /** Main arguments of the executable. May be used to pass additional
@@ -67,7 +66,7 @@ trait SimonaSetup {
   lazy val thermalGridsByThermalBus: Map[ThermalBusInput, ThermalGrid] =
     GridProvider.getThermalGridsFromConfig(simonaConfig.input.grid.datasource)
 
-  lazy val baseInputPath: Path = Path.of(simonaConfig.simona.input.baseInputDir)
+  lazy val baseInputPath: Path = Path.of(simonaConfig.input.baseInputDir)
 
   /** Directory of the log output.
     */
