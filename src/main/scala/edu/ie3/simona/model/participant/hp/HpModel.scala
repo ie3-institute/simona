@@ -22,7 +22,8 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
-import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
+import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
@@ -62,7 +63,8 @@ class HpModel private (
     ]
     with LazyLogging {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[HpState]] =
+  override val flexModels
+      : Map[FlexType, ParticipantFlexModel[HpOperatingPoint, HpState]] =
     Map(
       FlexType.PowerLimit -> HpPowerLimitFlexModel(this)
     )
@@ -148,17 +150,11 @@ class HpModel private (
   override def determineOperatingPoint(
       state: HpState,
       setPower: Power,
-  ): (HpOperatingPoint, OperationChangeIndicator) = {
-    val (operatingPoint, nextTick) =
+  ): HpOperatingPoint = {
+    val (operatingPoint, _) =
       findOperatingPointAndNextThreshold(state, Some(setPower))
 
-    (
-      operatingPoint,
-      OperationChangeIndicator(
-        changesAtNextActivation = true,
-        changesAtTick = nextTick,
-      ),
-    )
+    operatingPoint
   }
 
   override def zeroPowerOperatingPoint: HpOperatingPoint =
@@ -174,7 +170,7 @@ class HpModel private (
     * @return
     *   The operating point of the Hp and the next threshold if there is one.
     */
-  private def findOperatingPointAndNextThreshold(
+  def findOperatingPointAndNextThreshold(
       state: HpState,
       setPower: Option[Power],
   ): (HpOperatingPoint, Option[Long]) = {
@@ -197,10 +193,7 @@ class HpModel private (
         thermalGridOperatingPoint,
       )
 
-    val nextTick = maybeThreshold match {
-      case Some(threshold) => Some(threshold.tick)
-      case None            => None
-    }
+    val nextTick = maybeThreshold.map(_.tick)
 
     (operatingPoint, nextTick)
   }

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.flex
 
-import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
+import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
@@ -34,7 +34,7 @@ import scala.collection.immutable.SortedMap
 class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
     model: ParticipantModel[?, S],
     determineStates: S => SortedMap[Long, S],
-) extends ParticipantFlexModel[S] {
+) extends AbstractEnergyBoundariesFlexModel[S] {
 
   override def determineFlexOptions(
       state: S,

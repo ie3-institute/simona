@@ -10,7 +10,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   FixedState,
   OperatingPoint,
 }
-import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
+import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
@@ -27,7 +27,7 @@ import edu.ie3.simona.service.DataTimeType
   */
 class ParticipantConstantEnergyLimitFlexModel(
     model: ParticipantModel[?, FixedState]
-) extends ParticipantFlexModel[FixedState] {
+) extends AbstractEnergyBoundariesFlexModel[FixedState] {
 
   override def determineFlexOptions(
       state: FixedState,
