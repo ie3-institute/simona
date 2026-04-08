@@ -115,6 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Turned off optimus/ojAlgo log spam [#1742](https://github.com/ie3-institute/simona/issues/1742)
 - Fixed bugs in EM optimization [#1746](https://github.com/ie3-institute/simona/issues/1746)
 - Cleaned imports [#1755](https://github.com/ie3-institute/simona/issues/1755)
+- Let participant agents die on failed registration [#76](https://github.com/ie3-institute/simona/issues/76)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
