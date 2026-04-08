@@ -39,8 +39,9 @@ import squants.Each
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
-/** Testing [[ParticipantAgentInit]], which means testing the complete
-  * initialization process of [[ParticipantAgent]] up until the first tick
+/** Testing [[ParticipantAgentInit]] including [[SecondaryServiceRegistration]],
+  * which means testing the complete initialization process of
+  * [[ParticipantAgent]] up until the first tick.
   */
 class ParticipantAgentInitSpec
     extends ScalaTestWithActorTestKit
@@ -389,6 +390,67 @@ class ParticipantAgentInitSpec
 
         scheduler.expectMessage(Completion(activationRef, Some(10 * 3600L)))
 
+      }
+
+      "throw an exception and die if registration fails" in {
+        val scheduler = createTestProbe[SchedulerMessage]()
+
+        val primaryService = createTestProbe[Any]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
+        val service = createTestProbe[Any]()
+
+        given ParticipantRefs = ParticipantRefs(
+          primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> service.ref),
+        )
+
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
+        val participantAgent = spawn(
+          ParticipantAgentInit(
+            mockInput,
+            runtimeConfig,
+            mock[NotifierConfig],
+            Left(scheduler.ref),
+            key,
+          )
+        )
+
+        // init activation
+        scheduler.expectMessageType[ScheduleActivation]
+
+        participantAgent ! Activation(INIT_SIM_TICK)
+
+        primaryService.expectMessage(
+          PrimaryServiceRegistrationMessage(
+            participantAgent,
+            mockInput.electricalInputModel.getUuid,
+          )
+        )
+
+        participantAgent ! RegistrationFailedMessage(primaryService.ref)
+
+        service.expectMessage(
+          SecondaryServiceRegistrationMessage(
+            participantAgent,
+            DataTimeType.Current,
+            WeatherRegistrationData(
+              Coordinate(
+                mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+                mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+              )
+            ),
+          )
+        )
+
+        val deathWatch = createTestProbe("deathWatch")
+        participantAgent ! RegistrationFailedMessage(service.ref)
+        deathWatch expectTerminated participantAgent
+
+        scheduler.expectNoMessage()
       }
 
       "initialize correctly when replaying primary data" in {
