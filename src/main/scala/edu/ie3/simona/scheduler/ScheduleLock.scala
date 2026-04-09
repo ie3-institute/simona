@@ -162,7 +162,8 @@ object ScheduleLock {
   ): Iterable[ScheduleKey] = {
     val keys = (1 to count).map(_ => UUID.randomUUID())
 
-    val actorName = s"schedule_lock_${UUID.randomUUID().toString}"
+    // random UUID in order to create unique actor name
+    val actorName = s"schedule_lock_${UUID.randomUUID()}"
     val lock =
       spawner.spawn(ScheduleLock(scheduler, keys.toSet, tick), actorName)
 
