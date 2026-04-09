@@ -119,6 +119,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cleaned imports [#1755](https://github.com/ie3-institute/simona/issues/1755)
 - Let participant agents die on failed registration [#76](https://github.com/ie3-institute/simona/issues/76)
 - Fixed `EnergyPriceService` initialization [#1747](https://github.com/ie3-institute/simona/issues/1747)
+- Fixed EVCS `OperationChangeIndiactor` in edge cases [#1762](https://github.com/ie3-institute/simona/issues/1762)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
