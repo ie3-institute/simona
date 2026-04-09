@@ -42,6 +42,7 @@ class EvcsModelSpec
 
   private def createModel(
       chargingStrategy: String,
+      departureTargetSoc: Double = 1.0,
       vehicle2Grid: Boolean = true,
   ): EvcsModel =
     EvcsModel
@@ -49,7 +50,7 @@ class EvcsModelSpec
         evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
         EvcsRuntimeConfig(
           chargingStrategy = chargingStrategy,
-          departureTargetSoc = 1.0,
+          departureTargetSoc = departureTargetSoc,
         ),
       )
       .create()
@@ -335,7 +336,10 @@ class EvcsModelSpec
 
     "handle power control correctly" when {
 
-      val evcsModel = createModel("constantPower")
+      val evcsModel = createModel(
+        chargingStrategy = "constantPower",
+        departureTargetSoc = 0.8,
+      )
 
       val currentTick = 3600L
 
@@ -350,14 +354,22 @@ class EvcsModelSpec
             "expNextTick",
           ),
 
-          /* setPower is 0 kW */
-          (0.0, 0.0, 0.0, false, N),
-          (10.0, 0.0, 0.0, false, N),
+          /* setPower is 0 kW, tick is departure */
+          (8.0, 0.0, 0.0, false, S(10800L)),
+          (10.0, 0.0, 0.0, false, S(10800L)),
+
+          /* setPower is 0 kW, tick is last chance for target achievement */
+          (0.0, 0.0, 0.0, false, S(7920L)),
+          (5.0, 0.0, 0.0, false, S(9720L)),
+
+          /* setPower is positive (charging), tick is departure */
+          (5.0, 2.0, 2.0, false, S(10800L)),
+          (8.0, 0.5, 0.5, false, S(10800L)),
 
           /* setPower is positive (charging), tick is last chance for target achievement */
-          (0.0, 4.0, 4.0, true, S(9600L)),
-          (0.0, 1.0, 1.0, true, S(7600L)),
-          (2.0, 2.0, 2.0, false, S(9000L)),
+          (0.0, 2.0, 2.0, true, S(9000L)),
+          (0.0, 1.0, 1.0, true, S(8400L)),
+          (2.0, 2.0, 2.0, false, S(9900L)),
 
           /* setPower is positive (charging), tick is when storage reaches full capacity */
           (0.0, 10.0, 10.0, true, S(7200L)),
@@ -366,21 +378,25 @@ class EvcsModelSpec
           (8.0, 4.0, 4.0, false, S(5400L)),
           (8.0, 2.0, 2.0, false, S(7200L)),
 
-          /* setPower is set to > ev (charging) */
+          /* setPower is set to > ev (charging), tick is when storage reaches full capacity */
           (0.0, 11.0, 10.0, true, S(7200L)),
           (5.0, 15.0, 10.0, false, S(5400L)),
 
+          /* setPower is negative (discharging), tick is departure */
+          (10.0, -1.0, -1.0, true, S(10800L)),
+          (10.0, -0.5, -0.5, true, S(10800L)),
+
           /* setPower is negative (discharging), tick is last chance for target achievement */
-          (10.0, -6.0, -6.0, true, S(8100L)),
-          (10.0, -5.0, -5.0, true, S(8400L)),
-          (8.0, -2.0, -2.0, false, S(9000L)),
+          (10.0, -6.0, -6.0, true, S(8550L)),
+          (10.0, -5.0, -5.0, true, S(8880L)),
+          (8.0, -2.0, -2.0, false, S(9600L)),
 
           /* setPower is negative (discharging), tick is when storage reaches empty capacity */
           (7.5, -10.0, -10.0, false, S(6300L)),
           (5.0, -10.0, -10.0, false, S(5400L)),
           (2.0, -8.0, -8.0, false, S(4500L)),
 
-          /* setPower is set to > ev (discharging) */
+          /* setPower is set to > ev (discharging), tick is when storage reaches empty capacity */
           (10.0, -11.0, -10.0, true, S(7200L)),
           (5.0, -15.0, -10.0, false, S(5400L)),
         )
@@ -434,13 +450,13 @@ class EvcsModelSpec
           ),
 
           /* setPower is 0 kW */
-          (0.0, 0.0, 0.0, 0.0, 0.0, false, N),
-          (10.0, 5.0, 0.0, 0.0, 0.0, false, N),
-          (5.0, 15.0, 0.0, 0.0, 0.0, false, N),
+          (0.0, 0.0, 0.0, 0.0, 0.0, false, S(4320L)),
+          (10.0, 5.0, 0.0, 0.0, 0.0, false, S(5760L)),
+          (5.0, 15.0, 0.0, 0.0, 0.0, false, S(6120L)),
 
           /* setPower is positive (charging) */
-          (0.0, 0.0, 4.0, 2.0, 2.0, true, S(7200L)),
-          (5.0, 0.0, 4.0, 0.0, 4.0, true, S(10800L)),
+          (0.0, 0.0, 4.0, 0.0, 4.0, true, S(4320L)),
+          (0.0, 10.0, 4.0, 2.0, 2.0, true, S(4500L)),
           (10.0, 14.0, 4.0, 0.0, 4.0, false, S(4500L)),
 
           /* setPower is set to > (ev2 * 2) (charging) */
@@ -449,14 +465,14 @@ class EvcsModelSpec
           (5.0, 7.5, 15.0, 10.0, 5.0, false, S(5400L)),
 
           /* setPower is negative (discharging) */
-          (10.0, 15.0, -4.0, -2.0, -2.0, true, S(6600L)),
-          (0.0, 4.0, -4.0, 0.0, -4.0, false, S(7200L)),
-          (7.5, 0.0, -5.0, -5.0, 0.0, false, S(5400L)),
+          (10.0, 15.0, -4.0, -2.0, -2.0, true, S(7200L)),
+          (0.0, 4.0, -4.0, 0.0, -4.0, false, S(4320L)),
+          (7.5, 0.0, -5.0, -5.0, 0.0, false, S(5880L)),
 
           /* setPower is set to > (ev2 * 2) (discharging) */
-          (10.0, 15.0, -13.0, -8.0, -5.0, true, S(5600L)),
-          (5.0, 15.0, -15.0, -10.0, -5.0, true, S(4500L)),
-          (10.0, 15.0, -15.0, -10.0, -5.0, true, S(5400L)),
+          (10.0, 15.0, -13.0, -8.0, -5.0, true, S(6000L)),
+          (5.0, 15.0, -15.0, -10.0, -5.0, true, S(4860L)),
+          (10.0, 15.0, -15.0, -10.0, -5.0, true, S(5760L)),
         )
 
         forAll(cases) {
