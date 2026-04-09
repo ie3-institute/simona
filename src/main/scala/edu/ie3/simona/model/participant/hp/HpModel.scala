@@ -346,17 +346,24 @@ object HpModel {
   /** Operating point of the thermal grid.
     *
     * @param qDotHp
-    *   The thermal power output of the heat pump.
+    *   The thermal power output of the heat pump. Can be a positive value if
+    *   the HP is turned on or zero if HP is turned off.
     * @param qDotHouse
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalHouse]] used for space heating.
+    *   Only positive values or zero allowed. Positive values mean adding energy
+    *   to the house. Losses of the house model are not included here.
     * @param qDotHeatStorage
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.ThermalStorage]] used for heat storage.
+    *   Positive values mean adding energy to storage, negative values mean
+    *   drawing energy from storage (for consumption in the house model).
     * @param qDotDomesticHotWaterStorage
     *   The thermal power input of the
     *   [[edu.ie3.simona.model.thermal.DomesticHotWaterStorage]] used for
-    *   domestic hot water / tap water.
+    *   domestic hot water / tap water. Positive values mean adding energy to
+    *   the storage, negative values mean drawing energy from storage for
+    *   consumption.
     */
   final case class ThermalGridOperatingPoint(
       qDotHp: Power,
@@ -365,7 +372,7 @@ object HpModel {
       qDotDomesticHotWaterStorage: Power,
   )
   object ThermalGridOperatingPoint {
-    def zero: ThermalGridOperatingPoint =
+    lazy val zero: ThermalGridOperatingPoint =
       ThermalGridOperatingPoint(zeroKW, zeroKW, zeroKW, zeroKW)
   }
 
