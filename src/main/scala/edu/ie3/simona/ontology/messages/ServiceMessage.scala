@@ -17,7 +17,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.{Data, DataTimeType}
 import edu.ie3.simona.service.Data.PrimaryDataExtra
-import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -33,16 +32,6 @@ object ServiceMessage {
     * [[ServiceMessage]].
     */
   trait Response
-
-  /** Service initialization data can sometimes only be constructed once the
-    * service actor is created (e.g.
-    * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra
-    * initialization message.
-    */
-  final case class Create(
-      initializeStateData: InitializeServiceStateData,
-      unlockKey: ScheduleKey,
-  ) extends ServiceMessage
 
   /** Message used to register for a service.
     */
