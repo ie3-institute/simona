@@ -163,7 +163,8 @@ class StoragePowerLimitFlexModelSpec
     }
 
     "Determine the next activation tick with target SOC" in {
-      val flexModel = StoragePowerLimitFlexModel(createTestModel())
+      val flexModel =
+        StoragePowerLimitFlexModel(createTestModel(targetSoc = Some(0.5d)))
       val tick = 3600L
 
       val testCases = Table(
