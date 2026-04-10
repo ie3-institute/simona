@@ -205,8 +205,8 @@ final case class ThermalGrid(
       thermalGridState: ThermalGridState
   ): ThermalEnergyDemand =
     calculateStorageDemand(
-      domesticHotWaterStorage,
-      thermalGridState.domesticHotWaterStorageState,
+      heatStorage,
+      thermalGridState.heatStorageState,
     )
 
     /** Determine the energy demand of the DomesticHotWaterStorage.
@@ -220,8 +220,8 @@ final case class ThermalGrid(
       thermalGridState: ThermalGridState
   ): ThermalEnergyDemand =
     calculateStorageDemand(
-      heatStorage,
-      thermalGridState.heatStorageState,
+      domesticHotWaterStorage,
+      thermalGridState.domesticHotWaterStorageState,
     )
 
   /** Determine the energy demand of a thermal storage.
