@@ -386,7 +386,6 @@ final case class ThermalGrid(
     (adaptedOperatingPoint, nextThreshold)
   }
 
-  /** returns negative or zero qdot */
   private def handleHotWaterConsumption(
       state: HpState
   ): Power =
@@ -417,6 +416,15 @@ final case class ThermalGrid(
       }
       .getOrElse(zeroKW)
 
+  /** Returns hot water energy demand, capped at the stored energy that can be
+    * provided. If domestic hot water demand is not applicable, this returns
+    * [[None]].
+    *
+    * @param state
+    *   The current state.
+    * @return
+    *   The capped hot water energy demand, if applicable.
+    */
   private def getHotWaterEnergyDemand(
       state: HpState
   ): Option[ThermalEnergyDemand] = {
@@ -515,21 +523,16 @@ final case class ThermalGrid(
       state: HpState,
       qDotDomesticHotWaterStorage: Power,
   ): Option[ThermalThreshold] = {
-    if qDotDomesticHotWaterStorage == zeroKW then {
-      if domesticHotWaterStorage
-          .zip(
-            state.thermalGridState.domesticHotWaterStorageState
-          )
-          .isDefined
-      then Some(SimpleThermalThreshold(calculateNextHourThreshold(state)))
-      else None
-    } else {
-      getHotWaterEnergyDemand(state).map { domesticHotWaterDemand =>
-        val ticksToFull =
+    getHotWaterEnergyDemand(state).map { domesticHotWaterDemand =>
+      if qDotDomesticHotWaterStorage == zeroKW then {
+        // currently no consumption, return tick at which consumption changes next
+        SimpleThermalThreshold(calculateNextHourThreshold(state))
+      } else {
+        val ticksToEmpty =
           math.round(
             (-1 * domesticHotWaterDemand.required / qDotDomesticHotWaterStorage).toSeconds
           )
-        SimpleThermalThreshold(state.tick + ticksToFull)
+        SimpleThermalThreshold(state.tick + ticksToEmpty)
       }
     }
   }
@@ -865,9 +868,7 @@ object ThermalGrid {
       new ThermalEnergyDemand(required, possible)
     }
 
-    lazy val noDemand: ThermalEnergyDemand = ThermalEnergyDemand(
-      zeroMWh,
-      zeroMWh,
-    )
+    lazy val noDemand: ThermalEnergyDemand =
+      ThermalEnergyDemand(zeroMWh, zeroMWh)
   }
 }
