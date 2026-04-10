@@ -144,13 +144,9 @@ final case class ThermalGrid(
 
     val (houseDemandHeating, houseDemandWater) =
       calculateHouseDemand(thermalGridState, hoursWaterDemandToDetermine)
-    val domesticHotWaterStorageDemand = calculateStorageDemand(
-      domesticHotWaterStorage,
-      thermalGridState.domesticHotWaterStorageState,
-    )
-    val heatStorageDemand = calculateStorageDemand(
-      heatStorage,
-      thermalGridState.heatStorageState,
+    val heatStorageDemand = calculateHeatStorageDemand(thermalGridState)
+    val domesticHotWaterStorageDemand = calculateDomesticStorageDemand(
+      thermalGridState
     )
 
     ThermalDemandWrapper(
@@ -197,6 +193,36 @@ final case class ThermalGrid(
         (ThermalEnergyDemand.noDemand, ThermalEnergyDemand.noDemand)
     }
   }
+
+  /** Determine the energy demand of the HeatStorage.
+    *
+    * @param thermalGridState
+    *   Last state of the thermal grid.
+    * @return
+    *   The energy demand of the HeatStorage.
+    */
+  private def calculateHeatStorageDemand(
+      thermalGridState: ThermalGridState
+  ): ThermalEnergyDemand =
+    calculateStorageDemand(
+      heatStorage,
+      thermalGridState.heatStorageState,
+    )
+
+    /** Determine the energy demand of the DomesticHotWaterStorage.
+      *
+      * @param thermalGridState
+      *   Last state of the thermal grid.
+      * @return
+      *   The energy demand of the domestic hot water storage.
+      */
+  private def calculateDomesticStorageDemand(
+      thermalGridState: ThermalGridState
+  ): ThermalEnergyDemand =
+    calculateStorageDemand(
+      domesticHotWaterStorage,
+      thermalGridState.domesticHotWaterStorageState,
+    )
 
   /** Determine the energy demand of a thermal storage.
     *
@@ -296,7 +322,7 @@ final case class ThermalGrid(
     }
   }
 
-  /** Handles the different thermal flows from and into the thermal grid.
+  /** Handles the different thermal flows into the thermal grid.
     *
     * @param state
     *   State of the heat pump.

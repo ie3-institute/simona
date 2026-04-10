@@ -587,6 +587,11 @@ class ThermalGridWithHouseAndStorageSpec
               heatStorage.getpThermalMax * -1,
               zeroKW,
             )
+
+            thermalGrid.getThreshold(
+              hpState,
+              thermalGridOperatingPoint,
+            ) shouldBe Some(StorageEmpty(5400))
           case None => fail("Unexpected result")
         }
       }
