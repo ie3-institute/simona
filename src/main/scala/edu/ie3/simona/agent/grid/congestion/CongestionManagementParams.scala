@@ -33,7 +33,7 @@ final case class CongestionManagementParams(
     progress: MitigationProgress = MitigationProgress(),
 ) {
 
-  def anyMitigationEnabled: Boolean = enableTransformerTapChange
+  private def anyMitigationEnabled: Boolean = enableTransformerTapChange
 
   def getNextStepsAndUpdate
       : (MitigationSteps.Value, CongestionManagementParams) =

@@ -46,12 +46,14 @@ final case class VoltageRange(
     * @return
     *   A new [[VoltageRange]].
     */
-  def updateWithVoltageDelta(
+  private def updateWithVoltageDelta(
       deltaV: Dimensionless
   ): VoltageRange = {
 
-    if deltaV < zeroPU then {
-      // we have to decrease the voltage by at least the specified delta
+    if deltaV == zeroPU then {
+      this
+    } else if deltaV < zeroPU then {
+      // we have limit the maximal decrease
       val minus = deltaMinus.max(deltaV)
 
       VoltageRange(deltaPlus, minus)

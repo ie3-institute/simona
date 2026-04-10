@@ -7,15 +7,11 @@
 package edu.ie3.simona.agent.grid.congestion.mitigations
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.GridAgent.{
-  askInferior,
-  finishCongestionManagement,
-  unsupported,
-}
+import edu.ie3.simona.agent.grid.GridAgent.{askInferior, unsupported}
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.StepFinished
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
+import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.agent.grid.congestion.mitigations.TappingMessages.*
-import edu.ie3.simona.agent.grid.congestion.{Congestions, VoltageRange}
 import edu.ie3.simona.agent.grid.data.CongestionManagementData
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   AwaitingData,
@@ -27,10 +23,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC,
 }
 import edu.ie3.simona.model.grid.TransformerTapping
-import edu.ie3.simona.util.SimonaConstants
-import edu.ie3.util.quantities.QuantityUtils.asPu
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
-import edu.ie3.util.scala.quantities.{DefaultQuantities, SquantsUtils}
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
