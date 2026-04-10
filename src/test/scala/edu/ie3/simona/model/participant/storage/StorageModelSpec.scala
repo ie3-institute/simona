@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.storage
 
-import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.DataTimeType

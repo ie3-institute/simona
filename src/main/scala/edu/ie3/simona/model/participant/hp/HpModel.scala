@@ -17,7 +17,6 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
-  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
@@ -126,60 +125,44 @@ class HpModel private (
       .getOrElse(state)
   }
 
-  /** Calculate the active power behaviour of the model.
-    *
-    * @param state
-    *   The current state including weather data.
-    * @return
-    *   The active power.
-    */
   override def determineOperatingPoint(
       state: HpState
-  ): (HpOperatingPoint, Option[Long]) =
-    findOperatingPointAndNextThreshold(state, None)
+  ): (HpOperatingPoint, Option[Long]) = {
+    val operatingPoint = determineOperatingPoint(state, None)
+    val nextTick = getNextActivation(state, operatingPoint)
 
-  /** Calculate the active power behaviour of the model.
-    *
-    * @param state
-    *   The current state including weather data.
-    * @param setPower
-    *   The power set by the energy management.
-    * @return
-    *   The active power.
-    */
+    (operatingPoint, nextTick)
+  }
+
   override def determineOperatingPoint(
       state: HpState,
       setPower: Power,
-  ): HpOperatingPoint = {
-    val (operatingPoint, _) =
-      findOperatingPointAndNextThreshold(state, Some(setPower))
-
-    operatingPoint
-  }
+  ): HpOperatingPoint =
+    determineOperatingPoint(state, Some(setPower))
 
   override def zeroPowerOperatingPoint: HpOperatingPoint =
     HpOperatingPoint.zero
 
   /** Depending on the input, this function calculates the next operating point
-    * of the heat pump and the next threshold.
+    * of the heat pump.
     *
     * @param state
     *   Currently applicable HpState.
     * @param setPower
     *   The setPower from Em, if there is some.
     * @return
-    *   The operating point of the Hp and the next threshold if there is one.
+    *   The operating point of the HP.
     */
-  def findOperatingPointAndNextThreshold(
+  private def determineOperatingPoint(
       state: HpState,
       setPower: Option[Power],
-  ): (HpOperatingPoint, Option[Long]) = {
+  ): HpOperatingPoint = {
 
     /* Determine active and thermal power of the Hp */
     val (newActivePowerHp, qDotIntoGrid) = determineHpOperation(state, setPower)
 
     /* Determine how qDot is used in thermalGrid and get threshold */
-    val (thermalGridOperatingPoint, maybeThreshold) =
+    val thermalGridOperatingPoint =
       if qDotIntoGrid > zeroKW then {
         thermalGrid.handleFeedIn(
           state,
@@ -187,15 +170,10 @@ class HpModel private (
         )
       } else thermalGrid.handleConsumption(state)
 
-    val operatingPoint =
-      HpOperatingPoint(
-        newActivePowerHp,
-        thermalGridOperatingPoint,
-      )
-
-    val nextTick = maybeThreshold.map(_.tick)
-
-    (operatingPoint, nextTick)
+    HpOperatingPoint(
+      newActivePowerHp,
+      thermalGridOperatingPoint,
+    )
   }
 
   /** Depending on the input, this function calculates the active power and
@@ -278,6 +256,22 @@ class HpModel private (
       canBeOutOfOperation,
     )
   }
+
+  /** Returns the next tick at which the model expects an event and thus should
+    * be activated.
+    *
+    * @param state
+    *   The current state.
+    * @param operatingPoint
+    *   The current operating point.
+    * @return
+    *   The next activation tick, if applicable.
+    */
+  def getNextActivation(
+      state: HpState,
+      operatingPoint: HpOperatingPoint,
+  ): Option[Long] =
+    thermalGrid.getThreshold(state, operatingPoint.thermalOps).map(_.tick)
 
   override def createResults(
       state: HpState,

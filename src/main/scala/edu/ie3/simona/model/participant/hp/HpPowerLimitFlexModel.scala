@@ -74,14 +74,10 @@ class HpPowerLimitFlexModel(private val model: HpModel)
       operatingPoint: HpOperatingPoint,
       setPower: Power,
       dateTimeType: DataTimeType,
-  ): ParticipantModel.OperationChangeIndicator = {
-    val (_, nextTick) =
-      model.findOperatingPointAndNextThreshold(state, Some(setPower))
-
+  ): ParticipantModel.OperationChangeIndicator =
     OperationChangeIndicator(
       changesAtNextActivation = true,
-      changesAtTick = nextTick,
+      changesAtTick = model.getNextActivation(state, operatingPoint),
     )
-  }
 
 }
