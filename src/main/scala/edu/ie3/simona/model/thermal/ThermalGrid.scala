@@ -144,10 +144,14 @@ final case class ThermalGrid(
 
     val (houseDemandHeating, houseDemandWater) =
       calculateHouseDemand(thermalGridState, hoursWaterDemandToDetermine)
-    val domesticHotWaterStorageDemand = calculateDomesticStorageDemand(
-      thermalGridState
+    val domesticHotWaterStorageDemand = calculateStorageDemand(
+      domesticHotWaterStorage,
+      thermalGridState.domesticHotWaterStorageState,
     )
-    val heatStorageDemand = calculateHeatStorageDemand(thermalGridState)
+    val heatStorageDemand = calculateStorageDemand(
+      heatStorage,
+      thermalGridState.heatStorageState,
+    )
 
     ThermalDemandWrapper(
       houseDemandHeating,
@@ -165,7 +169,7 @@ final case class ThermalGrid(
     *   The hours of which the energy demand for domestic hot water will have to
     *   be determined.
     * @return
-    *   The energy and water demand of the house.
+    *   The heating and hot water energy demand of the house.
     */
   private def calculateHouseDemand(
       thermalGridState: ThermalGridState,
@@ -194,17 +198,20 @@ final case class ThermalGrid(
     }
   }
 
-  /** Determine the energy demand of the HeatStorage.
+  /** Determine the energy demand of a thermal storage.
     *
-    * @param thermalGridState
-    *   Last state of the thermal grid.
+    * @param maybeStorage
+    *   The storage, if applicable.
+    * @param maybeStorageState
+    *   The storage state, if applicable.
     * @return
-    *   The energy demand of the HeatStorage.
+    *   The energy demand of the storage, if applicable.
     */
-  private def calculateHeatStorageDemand(
-      thermalGridState: ThermalGridState
-  ): ThermalEnergyDemand = {
-    heatStorage.zip(thermalGridState.heatStorageState) match {
+  private def calculateStorageDemand(
+      maybeStorage: Option[AbstractThermalStorage],
+      maybeStorageState: Option[ThermalStorageState],
+  ) =
+    maybeStorage.zip(maybeStorageState) match {
       case Some((storage, storageState)) =>
         val storedEnergy = storageState.storedEnergy
         val storageRequired = {
@@ -219,36 +226,6 @@ final case class ThermalGrid(
         )
       case None => ThermalEnergyDemand.noDemand
     }
-  }
-
-  /** Determine the energy demand of the DomesticHotWaterStorage.
-    *
-    * @param thermalGridState
-    *   Last state of the thermal grid.
-    * @return
-    *   The energy demand of the domestic hot water storage.
-    */
-  private def calculateDomesticStorageDemand(
-      thermalGridState: ThermalGridState
-  ): ThermalEnergyDemand = {
-    domesticHotWaterStorage.zip(
-      thermalGridState.domesticHotWaterStorageState
-    ) match {
-      case Some((storage, storageState)) =>
-        val storedEnergy = storageState.storedEnergy
-        val storageRequired = {
-          if storedEnergy == zeroKWh then storage.getMaxEnergyThreshold
-          else zeroMWh
-        }
-
-        val storagePossible = storage.getMaxEnergyThreshold - storedEnergy
-        ThermalEnergyDemand(
-          storageRequired,
-          storagePossible,
-        )
-      case None => ThermalEnergyDemand.noDemand
-    }
-  }
 
   /* OPERATING POINT */
 
