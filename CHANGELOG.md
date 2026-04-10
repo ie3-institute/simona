@@ -91,6 +91,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update `README.md` and `AUTHORS.md` [#1728](https://github.com/ie3-institute/simona/issues/1728)
 - Updated/enhanced copernicus weather data manual [#1718](https://github.com/ie3-institute/simona/issues/1718)
 - Simplified initialization of services [#1751](https://github.com/ie3-institute/simona/issues/1751)
+- Simplifications in `ThermalGrid` [#1765](https://github.com/ie3-institute/simona/issues/1765)
 - Moved next tick determination to `ParticipantFlexModel` [#1692](https://github.com/ie3-institute/simona/issues/1692)
 
 ### Fixed
