@@ -503,13 +503,12 @@ final case class ThermalGrid(
           state,
           operatingPoint.qDotDomesticHotWaterStorage,
         )
-    determineNextThreshold(
-      Seq(
-        thresholdThermalHouse,
-        thresholdHeatStorage,
-        thresholdHotWaterStorage,
-      )
-    )
+
+    Seq(
+      thresholdThermalHouse,
+      thresholdHeatStorage,
+      thresholdHotWaterStorage,
+    ).flatten.reduceOption(_ `min` _)
   }
 
   private def determineHotWaterConsumptionThreshold(
@@ -578,23 +577,6 @@ final case class ThermalGrid(
       .flatMap { case (storage, storageState) =>
         storage.determineNextThreshold(storageState, qDotStorage)
       }
-
-  /** Determines the next threshold of a given input sequence of thresholds.
-    *
-    * @param thresholds
-    *   Sequence of Options of possible next thresholds from the thermal house
-    *   or storage.
-    *
-    * @return
-    *   The next [[ThermalThreshold]] or [[None]].
-    */
-  private def determineNextThreshold(
-      thresholds: Seq[Option[ThermalThreshold]]
-  ): Option[ThermalThreshold] =
-    thresholds.flatten.reduceOption { case (currentMin, threshold) =>
-      if threshold.tick < currentMin.tick then threshold
-      else currentMin
-    }
 
   /* RESULTS */
 
