@@ -18,10 +18,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalGridState,
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
-import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
-  HouseTargetTemperatureReached,
-  HouseTemperatureLowerBoundaryReached,
-}
+import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.HouseTargetTemperatureReached
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
   StorageEmpty,
@@ -503,18 +500,12 @@ class ThermalGridWithHouseAndStorageSpec
             maybeWaterStorageState,
           )
 
-        val maybeThreshold = None
-
         val hpState = state.copy(thermalGridState = maybeThermalGridState)
 
-        thermalGrid.reviseFeedInFromStorage(
-          hpState,
-          maybeThreshold,
-        ) match {
-          case (thermalGridOperatingPoint, nextThreshold) =>
-            thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
-            nextThreshold shouldBe None
-        }
+        thermalGrid.maybeReviseFeedInFromStorage(
+          hpState
+        ) shouldBe None
+
       }
 
       "hand back unaltered information if house temperature is above lower boundary temperature" in {
@@ -546,22 +537,10 @@ class ThermalGridWithHouseAndStorageSpec
 
         val hpState = state.copy(thermalGridState = maybeThermalGridState)
 
-        val maybeThreshold =
-          thermalHouse.determineNextThreshold(maybeHouseState, zeroKW)
+        thermalGrid.maybeReviseFeedInFromStorage(
+          hpState
+        ) shouldBe None
 
-        thermalGrid.reviseFeedInFromStorage(
-          hpState,
-          maybeThreshold,
-        ) match {
-          case (
-                thermalGridOperatingPoint,
-                nextThreshold,
-              ) =>
-            thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
-            nextThreshold shouldBe Some(
-              HouseTemperatureLowerBoundaryReached(170082L)
-            )
-        }
       }
 
       "heat house from storage if house temperature is at lower boundary temperature" in {
@@ -576,9 +555,6 @@ class ThermalGridWithHouseAndStorageSpec
                 .doubleValue
             ),
           )
-
-        val maybeHouseThreshold =
-          thermalHouse.determineNextThreshold(maybeHouseState, zeroKW)
 
         val maybeStorageState =
           Some(ThermalStorageState(state.tick, KilowattHours(10)))
@@ -600,21 +576,20 @@ class ThermalGridWithHouseAndStorageSpec
           ),
         )
 
-        thermalGrid.reviseFeedInFromStorage(
-          hpState,
-          maybeHouseThreshold,
-        ) match {
-          case (
-                thermalGridOperatingPoint,
-                nextThreshold,
-              ) =>
+        thermalGrid.maybeReviseFeedInFromStorage(hpState) match {
+          case Some(thermalGridOperatingPoint) =>
             thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
               zeroKW,
               heatStorage.pThermalMax,
               heatStorage.getpThermalMax * -1,
               zeroKW,
             )
-            nextThreshold shouldBe Some(StorageEmpty(5400))
+
+            thermalGrid.getThreshold(
+              hpState,
+              thermalGridOperatingPoint,
+            ) shouldBe Some(StorageEmpty(5400))
+          case None => fail("Unexpected result")
         }
       }
 
