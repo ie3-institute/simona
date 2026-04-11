@@ -383,8 +383,9 @@ class ThermalGridWithHouseAndStorageSpec
           thermalDemands = onlyPossibleDemandOfHeatStorage,
         )
 
-        val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid.handleConsumption(state)
+        val thermalGridOperatingPoint = thermalGrid.handleConsumption(state)
+        val reachedThreshold =
+          thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
         reachedThreshold shouldBe Some(
           SimpleThermalThreshold(3600L)
@@ -415,8 +416,9 @@ class ThermalGridWithHouseAndStorageSpec
           ),
         )
 
-        val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid.handleConsumption(state)
+        val thermalGridOperatingPoint = thermalGrid.handleConsumption(state)
+        val reachedThreshold =
+          thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
         reachedThreshold shouldBe Some(StorageEmpty(1800))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -457,8 +459,9 @@ class ThermalGridWithHouseAndStorageSpec
           ),
         )
 
-        val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid.handleConsumption(state)
+        val thermalGridOperatingPoint = thermalGrid.handleConsumption(state)
+        val reachedThreshold =
+          thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
@@ -632,10 +635,10 @@ class ThermalGridWithHouseAndStorageSpec
           ),
         )
 
-        val (thermalGridOperatingPoint, threshold) =
-          thermalGrid.handleConsumption(
-            modifiedState
-          )
+        val thermalGridOperatingPoint =
+          thermalGrid.handleConsumption(modifiedState)
+        val threshold =
+          thermalGrid.getThreshold(modifiedState, thermalGridOperatingPoint)
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           zeroKW,
@@ -677,11 +680,10 @@ class ThermalGridWithHouseAndStorageSpec
 
       val externalQDot = testGridQDotInfeed
 
-      val (thermalGridOperatingPoint, reachedThreshold) =
-        thermalGrid.handleFeedIn(
-          state,
-          externalQDot,
-        )
+      val thermalGridOperatingPoint =
+        thermalGrid.handleFeedIn(state, externalQDot)
+      val reachedThreshold =
+        thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
       reachedThreshold shouldBe Some(SimpleThermalThreshold(3600L))
       thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -712,11 +714,8 @@ class ThermalGridWithHouseAndStorageSpec
           thermalDemandOfHouseAndWaterStorage,
         )
 
-      val (operatingPoint, reachedThreshold) =
-        thermalGrid.handleFeedIn(
-          state,
-          testGridQDotInfeed,
-        )
+      val operatingPoint = thermalGrid.handleFeedIn(state, testGridQDotInfeed)
+      val reachedThreshold = thermalGrid.getThreshold(state, operatingPoint)
 
       reachedThreshold shouldBe Some(StorageFull(5846))
       operatingPoint shouldBe ThermalGridOperatingPoint(
@@ -746,11 +745,10 @@ class ThermalGridWithHouseAndStorageSpec
       thermalGridState = gridState
     )
 
-    val (thermalGridOperatingPoint, reachedThreshold) =
-      thermalGrid.handleFeedIn(
-        state,
-        externalQDot,
-      )
+    val thermalGridOperatingPoint =
+      thermalGrid.handleFeedIn(state, externalQDot)
+    val reachedThreshold =
+      thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
     reachedThreshold shouldBe Some(SimpleThermalThreshold(3600))
     thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -778,11 +776,10 @@ class ThermalGridWithHouseAndStorageSpec
       thermalGridState = gridState
     )
 
-    val (thermalGridOperatingPoint, reachedThreshold) =
-      thermalGrid.handleFeedIn(
-        state,
-        externalQDot,
-      )
+    val thermalGridOperatingPoint =
+      thermalGrid.handleFeedIn(state, externalQDot)
+    val reachedThreshold =
+      thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
     reachedThreshold shouldBe Some(SimpleThermalThreshold(3600))
     thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -821,11 +818,9 @@ class ThermalGridWithHouseAndStorageSpec
         firstThermalDemands,
       )
 
-    val (firstOperatingPoint, firstReachedThreshold) =
-      thermalGrid.handleFeedIn(
-        state,
-        externalQDot,
-      )
+    val firstOperatingPoint = thermalGrid.handleFeedIn(state, externalQDot)
+    val firstReachedThreshold =
+      thermalGrid.getThreshold(state, firstOperatingPoint)
 
     firstOperatingPoint shouldBe ThermalGridOperatingPoint(
       testGridQDotInfeed,

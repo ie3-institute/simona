@@ -266,24 +266,19 @@ final case class ThermalGrid(
     *   Feed in to the grid from thermal generation (e.g. heat pump) or thermal
     *   storages.
     * @return
-    *   The operating point of the thermal grid and the thermalThreshold if
-    *   there is one.
+    *   The operating point of the thermal grid.
     */
   def handleFeedIn(
       state: HpState,
       qDot: Power,
-  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
+  ): ThermalGridOperatingPoint = {
     // TODO: We would need to issue a storage result model here...
     val conditions = ThermalDemandConditions.from(state)
     val strategy = selectFeedInStrategy(conditions)
     val (qDotHouse, qDotHeatStorage, qDotWaterStorage) =
       strategy(qDot, heatStorage, domesticHotWaterStorage)
 
-    val operatingPoint =
-      handleFeedInCase(state, qDotHouse, qDotHeatStorage, qDotWaterStorage)
-    val nextThreshold = getThreshold(state, operatingPoint)
-
-    (operatingPoint, nextThreshold)
+    handleFeedInCase(state, qDotHouse, qDotHeatStorage, qDotWaterStorage)
   }
 
   /** Selects the strategy how to distribute the thermal power (qDot) from the
@@ -367,12 +362,11 @@ final case class ThermalGrid(
     * @param state
     *   State of the heat pump.
     * @return
-    *   The operating point of the thermal grid and the ThermalThreshold if
-    *   there is one.
+    *   The operating point of the thermal grid.
     */
   def handleConsumption(
       state: HpState
-  ): (ThermalGridOperatingPoint, Option[ThermalThreshold]) = {
+  ): ThermalGridOperatingPoint = {
     /* Check if house can be heated from storage */
     val operatingPoint =
       maybeReviseFeedInFromStorage(state)
@@ -381,12 +375,8 @@ final case class ThermalGrid(
 
     // handle hot water demand
     val qDotHotWaterStorage = handleHotWaterConsumption(state)
-    val adaptedOperatingPoint =
-      operatingPoint.copy(qDotDomesticHotWaterStorage = qDotHotWaterStorage)
 
-    val nextThreshold = getThreshold(state, adaptedOperatingPoint)
-
-    (adaptedOperatingPoint, nextThreshold)
+    operatingPoint.copy(qDotDomesticHotWaterStorage = qDotHotWaterStorage)
   }
 
   private def handleHotWaterConsumption(

@@ -23,8 +23,9 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 import edu.ie3.simona.model.participant.WecModel.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
-  ParticipantInflexiblePowerLimitFlexModel,
+  ParticipantFlexModel,
   ParticipantInflexibleEnergyLimitFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
@@ -34,8 +35,8 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
-  WeatherData,
   SecondarySeriesData,
+  WeatherData,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
@@ -72,7 +73,10 @@ class WecModel private (
     ]
     with LazyLogging {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[WecState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    WecState,
+  ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
       FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
@@ -161,8 +165,7 @@ class WecModel private (
   override def determineOperatingPoint(
       state: WecState,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+  ): ActivePowerOperatingPoint = ActivePowerOperatingPoint(setPower)
 
   /** The coefficient is dependent on the wind velocity v. Therefore use v to
     * determine the betz coefficient cₚ.
