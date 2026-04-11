@@ -13,9 +13,9 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
-  OperationChangeIndicator,
 }
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
@@ -67,7 +67,7 @@ abstract class ParticipantModel[
 
   /** Map of flex type to offered flexibility model.
     */
-  val flexModels: Map[FlexType, ParticipantFlexModel[S]]
+  val flexModels: Map[FlexType, ParticipantFlexModel[OP, S]]
 
   /** The rated active power according to the rated apparent power and rated
     * power factor.
@@ -153,9 +153,7 @@ abstract class ParticipantModel[
 
   /** Given the current state, this method determines the operating point that
     * is currently valid until the next operating point is determined, given a
-    * flex control power determined by EM. Also, optionally returns a tick at
-    * which the state will change unless the operating point changes due to
-    * external influences beforehand.
+    * flex control power determined by EM.
     *
     * This method should be able to handle calls at arbitrary points in
     * simulation time (i.e. ticks), which have to be situated after the tick of
@@ -170,12 +168,12 @@ abstract class ParticipantModel[
     * @param setPower
     *   The power set point determined by EM.
     * @return
-    *   The operating point and optionally a next activation tick.
+    *   The operating point.
     */
   def determineOperatingPoint(
       state: S,
       setPower: Power,
-  ): (OP, OperationChangeIndicator)
+  ): OP
 
   /** Operating point used when model is out of operation, thus
     * producing/consuming no power.
@@ -386,6 +384,15 @@ object ParticipantModel {
         Seq(changesAtTick, otherIndicator.changesAtTick).flatten.minOption,
       )
     }
+  }
+
+  object OperationChangeIndicator {
+
+    /** Empty [[OperationChangeIndicator]] (does not change at next activation
+      * and does not provide a tick).
+      */
+    lazy val empty: OperationChangeIndicator = OperationChangeIndicator()
+
   }
 
 }

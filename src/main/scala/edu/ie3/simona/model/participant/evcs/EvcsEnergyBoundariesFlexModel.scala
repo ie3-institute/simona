@@ -7,8 +7,8 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
+import edu.ie3.simona.model.participant.flex.AbstractEnergyBoundariesFlexModel
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
@@ -24,7 +24,7 @@ import squants.time.Seconds
 import scala.collection.immutable.SortedMap
 
 class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
-    extends ParticipantFlexModel[EvcsState] {
+    extends AbstractEnergyBoundariesFlexModel[EvcsState] {
 
   override def determineFlexOptions(
       state: EvcsState,

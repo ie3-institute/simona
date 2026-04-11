@@ -6,17 +6,20 @@
 
 package edu.ie3.simona.model.participant.hp
 
-import edu.ie3.simona.model.participant.ParticipantFlexModel
-import edu.ie3.simona.model.participant.hp.HpModel.HpState
+import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.ParticipantModel.OperationChangeIndicator
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
+import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import squants.Power
 
 class HpPowerLimitFlexModel(private val model: HpModel)
-    extends ParticipantFlexModel[HpState] {
+    extends ParticipantFlexModel[HpOperatingPoint, HpState] {
 
   override def determineFlexOptions(
       state: HpState,
@@ -65,4 +68,16 @@ class HpPowerLimitFlexModel(private val model: HpModel)
 
     PowerLimitFlexOptions(refPower, minPower, maxPower)
   }
+
+  override def determineNextActivation(
+      state: HpState,
+      operatingPoint: HpOperatingPoint,
+      setPower: Power,
+      dateTimeType: DataTimeType,
+  ): ParticipantModel.OperationChangeIndicator =
+    OperationChangeIndicator(
+      changesAtNextActivation = true,
+      changesAtTick = model.getNextActivation(state, operatingPoint),
+    )
+
 }
