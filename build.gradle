@@ -21,7 +21,7 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.7.4'
-  pekkoVersion = '1.4.0'
+  pekkoVersion = '1.5.0'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '7.9.0'
   scapegoatVersion = '3.2.4'
@@ -78,12 +78,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:8.2.0') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
-    /* Exclude our own nested dependencies */
-    exclude group: 'com.github.ie3-institute'
-  }
+  implementation files('libs/PowerSystemDataModel-8.2.0-all.jar')
   implementation('com.github.ie3-institute:powerflow:0.4.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'

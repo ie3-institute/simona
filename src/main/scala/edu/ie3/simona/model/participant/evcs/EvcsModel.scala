@@ -18,7 +18,6 @@ import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
-  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
@@ -26,11 +25,8 @@ import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
 }
-import edu.ie3.simona.model.participant.{
-  ChargingHelper,
-  ParticipantFlexModel,
-  ParticipantModel,
-}
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
+import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData
@@ -68,7 +64,8 @@ class EvcsModel private (
     ]
     with EvcsChargingProperties {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[EvcsState]] =
+  override val flexModels
+      : Map[FlexType, ParticipantFlexModel[EvcsOperatingPoint, EvcsState]] =
     Map(
       FlexType.PowerLimit -> EvcsPowerLimitFlexModel(this),
       FlexType.EnergyBoundaries -> EvcsEnergyBoundariesFlexModel(this),
@@ -220,21 +217,12 @@ class EvcsModel private (
   override def determineOperatingPoint(
       state: EvcsState,
       setPower: Power,
-  ): (EvcsOperatingPoint, OperationChangeIndicator) = {
-    if setPower == zeroKW then {
-      val chargingPowers = state.evs.map { ev =>
-        ev.uuid -> zeroKW
-      }.toMap
-
-      return (
-        EvcsOperatingPoint(chargingPowers),
-        OperationChangeIndicator(),
-      )
-    }
+  ): EvcsOperatingPoint = {
 
     // applicable evs can be charged/discharged, other evs cannot
-    val applicableEvs = state.evs.filter { ev =>
-      if setPower > zeroKW then !isFull(ev)
+    val (applicableEvs, idleEvs) = state.evs.partition { ev =>
+      if setPower == zeroKW then false
+      else if setPower > zeroKW then !isFull(ev)
       else !isEmpty(ev)
     }
 
@@ -245,6 +233,8 @@ class EvcsModel private (
         }
       } else (Seq.empty, applicableEvs)
 
+    val idleSchedules = idleEvs.map(_ -> zeroKW)
+
     // first, distribute power amongst EVs that
     // require charging to hit their target SOC
     val (forcedSchedules, remainingPower) =
@@ -253,42 +243,14 @@ class EvcsModel private (
     val (regularSchedules, _) =
       distributeChargingPower(state.tick, regularChargingEvs, remainingPower)
 
-    val combinedSchedules = forcedSchedules ++ regularSchedules
-
-    // preparing results
-    val combinedSchedulesPerUuid =
-      combinedSchedules.map { case (ev, power) =>
-        ev.uuid -> power
+    val chargingPowers =
+      (idleSchedules ++ forcedSchedules ++ regularSchedules).map {
+        case (ev, power) =>
+          ev.uuid -> power
       }.toMap
 
-    val aggregateIndicator = combinedSchedules
-      .map { case (ev, chargingPower) =>
-        val chargingLimitTick =
-          determineChargingLimitEvent(ev, chargingPower, state.tick)
-        val requiredChargingTick =
-          determineRequiredChargingEvent(ev, chargingPower, state.tick)
-
-        val nextTick = Seq(
-          chargingLimitTick,
-          requiredChargingTick,
-          Some(ev.departureTick),
-        ).flatten.minOption
-
-        OperationChangeIndicator(
-          changesAtNextActivation = isFull(ev) || isEmpty(ev),
-          changesAtTick = nextTick,
-        )
-      }
-      .foldLeft(OperationChangeIndicator()) {
-        case (aggregate, otherIndicator) =>
-          aggregate | otherIndicator
-      }
-
-    (
-      EvcsOperatingPoint(
-        addMissingZeroPowerEntries(state.evs, combinedSchedulesPerUuid)
-      ),
-      aggregateIndicator,
+    EvcsOperatingPoint(
+      addMissingZeroPowerEntries(state.evs, chargingPowers)
     )
   }
 
@@ -311,11 +273,11 @@ class EvcsModel private (
       setPower: Power,
   ): (Seq[(EvModelWrapper, Power)], Power) = {
 
-    if evs.isEmpty then return (Seq.empty, setPower)
+    if evs.isEmpty then return (evs.map(_ -> zeroKW), setPower)
 
     if setPower.~=(zeroKW)(using Kilowatts(1e-6)) then {
       // No power left. Rest is not charging
-      return (Seq.empty, zeroKW)
+      return (evs.map(_ -> zeroKW), zeroKW)
     }
 
     val proposedPower = setPower.divide(evs.size)
@@ -328,9 +290,7 @@ class EvcsModel private (
     if exceedingPowerEvs.isEmpty then {
       // end of recursion, rest of charging power fits to all
 
-      val results = fittingPowerEvs.map { ev =>
-        (ev, proposedPower)
-      }
+      val results = fittingPowerEvs.map(_ -> proposedPower)
 
       (results, zeroKW)
     } else {
@@ -343,7 +303,7 @@ class EvcsModel private (
           if setPower > zeroKW then maxPower
           else maxPower * -1
 
-        (ev, power)
+        ev -> power
       }
 
       // sum up allocated power
@@ -380,7 +340,7 @@ class EvcsModel private (
     * @return
     *   The tick at which the target is reached.
     */
-  private def determineChargingLimitEvent(
+  def determineChargingLimitEvent(
       ev: EvModelWrapper,
       power: Power,
       currentTick: Long,
@@ -398,34 +358,6 @@ class EvcsModel private (
       chargingEnergyTarget,
       dischargingEnergyTarget,
     )
-  }
-
-  private def determineRequiredChargingEvent(
-      ev: EvModelWrapper,
-      power: Power,
-      currentTick: Long,
-  ): Option[Long] = {
-    implicit val tolerance: Power = calcPowerTolerance
-
-    val maxPower = getMaxAvailableChargingPower(ev)
-
-    // we determine the last possible tick until which the EV
-    // can charge with the given power and still reach its
-    // departure SOC target when charging with full power afterward
-    Option
-      .unless(power ~= maxPower) {
-        val targetEnergy = ev.eStorage * departureTargetSoc
-
-        val timeToEvent =
-          (ev.storedEnergy - targetEnergy +
-            ev.timeToDeparture(currentTick) * maxPower) /
-            (maxPower - power)
-
-        currentTick + timeToEvent.toSeconds.toLong
-      }
-      // should not be situated in the past,
-      // which can happen if target cannot be reached anymore
-      .filter(_ > currentTick)
   }
 
   override def handleRequest(
@@ -535,7 +467,7 @@ class EvcsModel private (
     // of a second worth of charging
     getMaxAvailableChargingPower(ev) * Seconds(1)
 
-  private def calcPowerTolerance: Power =
+  def calcPowerTolerance: Power =
     // TODO adapt like in StorageModel: dependent tolerance -> issue #1698
     Watts(1e-3)
 

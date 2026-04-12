@@ -11,7 +11,6 @@ import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   AdditionalFactoryData,
@@ -20,6 +19,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
+  ParticipantFlexModel,
   ParticipantInflexibleEnergyLimitFlexModel,
   ParticipantInflexiblePowerLimitFlexModel,
 }
@@ -50,7 +50,10 @@ class ProfileLoadModel(
     val referenceScalingFactor: Double,
 ) extends LoadModel[LoadModelState] {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[LoadModelState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    LoadModelState,
+  ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
       FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(

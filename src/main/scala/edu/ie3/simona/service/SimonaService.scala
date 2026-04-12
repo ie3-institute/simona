@@ -12,7 +12,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
   ServiceRegistrationMessage,
   ServiceResponseMessage,
 }
@@ -26,12 +25,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.scaladsl.{
-  ActorContext,
-  Behaviors,
-  StashBuffer,
-}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 import squants.Time
@@ -54,93 +48,31 @@ abstract class SimonaService {
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],
-      bufferSize: Int = 10000,
-  ): Behavior[Message] =
-    Behaviors.withStash[Message](bufferSize) { buffer =>
-      uninitialized(using scheduler, buffer)
+      initializeStateData: InitializeServiceStateData,
+      scheduleKey: ScheduleKey,
+  ): Behavior[Message] = Behaviors.setup { ctx =>
+    init(initializeStateData)(using ctx.log) match {
+      case Success((serviceStateData, maybeNewTick)) =>
+        maybeNewTick match {
+          case Some(newTick) =>
+            scheduler ! ScheduleActivation(
+              ctx.self,
+              newTick,
+              Some(scheduleKey),
+            )
+          case None =>
+            scheduleKey.unlock()
+        }
+        idle(using serviceStateData, scheduler)
+      case Failure(exception) =>
+        scheduleKey.unlock()
+
+        // if a service fails startup we don't want to go on with the simulation
+        throw new CriticalFailureException(
+          "Error during service initialization.",
+          exception,
+        )
     }
-
-  /** Receive method that is used before the service is initialized. Represents
-    * the state "Uninitialized".
-    *
-    * @return
-    *   IdleInternal methods for the uninitialized state.
-    */
-  def uninitialized(using
-      scheduler: ActorRef[SchedulerMessage],
-      buffer: StashBuffer[Message],
-  ): Behavior[Message] = Behaviors.receive {
-    case (
-          ctx,
-          Create(
-            initializeStateData: InitializeServiceStateData,
-            unlockKey: ScheduleKey,
-          ),
-        ) =>
-      scheduler ! ScheduleActivation(
-        ctx.self,
-        INIT_SIM_TICK,
-        Some(unlockKey),
-      )
-
-      initializing(initializeStateData)
-
-    // not ready yet to handle registrations, stash request away
-    case (_, msg: ServiceRegistrationMessage) =>
-      buffer.stash(msg)
-      Behaviors.same
-  }
-
-  private def initializing(
-      initializeStateData: InitializeServiceStateData
-  )(using
-      scheduler: ActorRef[SchedulerMessage],
-      buffer: StashBuffer[Message],
-  ): Behavior[Message] = Behaviors.receive {
-    case (ctx, Activation(INIT_SIM_TICK)) =>
-      // init might take some time and could go wrong if invalid initialize service data is received
-      // execute complete and unstash only if init is carried out successfully
-      init(initializeStateData)(using ctx.log) match {
-        case Success((serviceStateData, maybeNewTick)) =>
-          scheduler ! Completion(
-            ctx.self,
-            maybeNewTick,
-          )
-          buffer.unstashAll(idle(using serviceStateData, scheduler))
-        case Failure(exception) =>
-          // initialize service trigger with invalid data
-          ctx.log.error(
-            "Error during service initialization." +
-              s"\nReceivedData: {}" +
-              s"\nException: {}",
-            initializeStateData,
-            exception,
-          )
-
-          // if a service fails startup we don't want to go on with the simulation
-          throw new CriticalFailureException(
-            "Error during service initialization.",
-            exception,
-          )
-      }
-
-    // not ready yet to handle registrations, stash request away
-    case (_, msg: ServiceRegistrationMessage) =>
-      buffer.stash(msg)
-      Behaviors.same
-
-    case (_, msg: Activation) =>
-      buffer.stash(msg)
-      Behaviors.same
-
-    case (ctx, msg: ServiceResponseMessage) =>
-      handleServiceResponse(msg)(using ctx)
-      Behaviors.same
-
-    // unhandled message
-    case (ctx, x) =>
-      ctx.log.error(s"Received unhandled message: $x")
-      Behaviors.unhandled
   }
 
   /** Default receive method when the service is initialized. Requires the

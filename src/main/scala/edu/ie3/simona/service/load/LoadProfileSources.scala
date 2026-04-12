@@ -13,7 +13,6 @@ import edu.ie3.datamodel.io.factory.timeseries.{
   RandomLoadProfileFactory,
 }
 import edu.ie3.datamodel.io.naming.timeseries.{
-  FileIndividualTimeSeriesMetaInformation,
   FileLoadProfileMetaInformation,
   LoadProfileMetaInformation,
 }
@@ -47,7 +46,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.util.{Failure, Success, Try}
 
 /** Utility methods for loading csv and sql load profile sources.
   */

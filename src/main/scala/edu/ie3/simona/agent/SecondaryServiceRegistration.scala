@@ -12,6 +12,7 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  RegistrationFailedMessage,
   RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
 }
@@ -163,6 +164,11 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
               newExpectedFirstData,
             )
 
+        case RegistrationFailedMessage(serviceRef) =>
+          throw new CriticalFailureException(
+            s"${modelAsset.identifier}: Registration for service $serviceRef failed!"
+          )
+
         case msg =>
           // stash away other messages until service registration has completed
           buffer.stash(msg)
@@ -210,7 +216,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
       case ServiceType.PriceService =>
         serviceRef ! SecondaryServiceRegistrationMessage(
           registrantRef,
-          DataTimeType.Current,
+          dataTimeType,
           (),
         )
 

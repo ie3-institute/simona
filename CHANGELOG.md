@@ -89,6 +89,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the publications and references with new publications [#1707](https://github.com/ie3-institute/simona/issues/1707)
 - Refactor initialization of `GridAgent` [#1686](https://github.com/ie3-institute/simona/issues/1686)
 - Update `README.md` and `AUTHORS.md` [#1728](https://github.com/ie3-institute/simona/issues/1728)
+- Updated/enhanced copernicus weather data manual [#1718](https://github.com/ie3-institute/simona/issues/1718)
+- Simplified initialization of services [#1751](https://github.com/ie3-institute/simona/issues/1751)
+- Simplifications in `ThermalGrid` [#1765](https://github.com/ie3-institute/simona/issues/1765)
+- Moved next tick determination to `ParticipantFlexModel` [#1692](https://github.com/ie3-institute/simona/issues/1692)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -114,6 +118,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Turned off optimus/ojAlgo log spam [#1742](https://github.com/ie3-institute/simona/issues/1742)
 - Fixed bugs in EM optimization [#1746](https://github.com/ie3-institute/simona/issues/1746)
 - Cleaned imports [#1755](https://github.com/ie3-institute/simona/issues/1755)
+- Let participant agents die on failed registration [#76](https://github.com/ie3-institute/simona/issues/76)
+- Fixed `EnergyPriceService` initialization [#1747](https://github.com/ie3-institute/simona/issues/1747)
+- Fixed EVCS `OperationChangeIndiactor` in edge cases [#1762](https://github.com/ie3-institute/simona/issues/1762)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

@@ -29,7 +29,6 @@ import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -60,32 +59,27 @@ class LoadProfileServiceSpec
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
-  // build the load profile service
-  private val loadProfileService = testKit.spawn(
-    LoadProfileService(scheduler.ref)
-  )
-
   "A load profile service" should {
-    "send correct completion message after initialisation" in {
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
 
-      loadProfileService ! Create(
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
+    val loadProfileService = testKit.spawn(
+      LoadProfileService(
+        scheduler.ref,
         InitLoadProfileServiceStateData(
           sourceDefinition,
           simonaConfig.time.simStartTime,
         ),
-        key,
+        serviceKey,
       )
+    )
 
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
-
-      loadProfileService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor, Some(0)))
+    "send correct schedule message after initialisation" in {
+      scheduler.expectMessage(
+        ScheduleActivation(loadProfileService, 0L, Some(serviceKey))
+      )
     }
 
     "announce failed load profile registration on invalid load profile" in {
