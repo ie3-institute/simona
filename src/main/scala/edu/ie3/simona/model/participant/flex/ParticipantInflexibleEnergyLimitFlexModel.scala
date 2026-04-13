@@ -36,6 +36,8 @@ class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
     determineStates: S => SortedMap[Long, S],
 ) extends AbstractEnergyBoundariesFlexModel[S] {
 
+  override val hasEnergyFlexibility: Boolean = false
+
   override def determineFlexOptions(
       state: S,
       dateTimeType: DataTimeType,
