@@ -107,7 +107,7 @@ dependencies {
   testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.20"
   testImplementation "org.junit.platform:junit-platform-launcher:${junitVersion}"
   testRuntimeOnly "org.junit.platform:junit-platform-engine:${junitVersion}"
-  testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.20.0"
+  testRuntimeOnly "org.scalatestplus:junit-5-14_${scalaVersion}:3.2.20.0"
 
   // mocking framework
   testImplementation 'org.mockito:mockito-core:5.23.0'
