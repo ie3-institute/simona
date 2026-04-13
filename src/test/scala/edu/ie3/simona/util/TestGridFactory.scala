@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.util
 
-import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
+import edu.ie3.datamodel.models.input.{EmInput, MeasurementUnitInput, NodeInput}
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
@@ -14,6 +14,7 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer3WInput,
 }
 import edu.ie3.datamodel.models.input.container.{
+  EnergyManagementUnits,
   GraphicElements,
   JointGridContainer,
   RawGridElements,
@@ -37,26 +38,31 @@ object TestGridFactory {
     * then.
     *
     * @param gridName
-    *   The name of the grid, defaults to "TestGrid"
+    *   The name of the grid, defaults to "TestGrid".
     * @param rawGridElements
-    *   The raw grid elements, default to empty container
+    *   The raw grid elements, default to empty container.
     * @param systemParticipants
-    *   The system participants, default to empty container
+    *   The system participants, default to empty container.
+    * @param energyManagementUnits
+    *   The energy management units, default to empty container.
     * @param graphicElements
-    *   The graphic elements, default to empty container
+    *   The graphic elements, default to empty container.
     * @return
-    *   A JointGridContainer for testing purposes
+    *   A JointGridContainer for testing purposes.
     */
   def createJointGrid(
       gridName: String = "TestGrid",
       rawGridElements: RawGridElements = createEmptyRawGridElements(),
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
+      energyManagementUnits: EnergyManagementUnits =
+        createEmptyEnergyManagementUnits(),
       graphicElements: GraphicElements = createEmptyGraphicElements(),
   ): JointGridContainer =
     new JointGridContainer(
       gridName,
       rawGridElements,
       systemParticipants,
+      energyManagementUnits,
       graphicElements,
     )
 
@@ -67,23 +73,27 @@ object TestGridFactory {
     * then.
     *
     * @param gridName
-    *   The name of the grid, defaults to "TestGrid"
+    *   The name of the grid, defaults to "TestGrid".
     * @param subgrid
-    *   The sub grid number, defaults to 100
+    *   The sub grid number, defaults to 100.
     * @param rawGridElements
-    *   The raw grid elements, default to empty container
+    *   The raw grid elements, default to empty container.
     * @param systemParticipants
-    *   The system participants, default to empty container
+    *   The system participants, default to empty container.
+    * @param energyManagementUnits
+    *   The energy management units, default to empty container.
     * @param graphicElements
-    *   The graphic elements, default to empty container
+    *   The graphic elements, default to empty container.
     * @return
-    *   A SubGridContainer for testing purposes
+    *   A SubGridContainer for testing purposes.
     */
   def createSubGrid(
       gridName: String = "TestGrid",
       subgrid: Int = 100,
       rawGridElements: RawGridElements = createEmptyRawGridElements(),
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
+      energyManagementUnits: EnergyManagementUnits =
+        createEmptyEnergyManagementUnits(),
       graphicElements: GraphicElements = createEmptyGraphicElements(),
   ): SubGridContainer =
     new SubGridContainer(
@@ -91,6 +101,7 @@ object TestGridFactory {
       subgrid,
       rawGridElements,
       systemParticipants,
+      energyManagementUnits,
       graphicElements,
     )
 
@@ -117,6 +128,11 @@ object TestGridFactory {
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,
       Set.empty[WecInput].asJava,
+    )
+
+  def createEmptyEnergyManagementUnits(): EnergyManagementUnits =
+    new EnergyManagementUnits(
+      Set.empty[EmInput].asJava
     )
 
   def createEmptyGraphicElements(): GraphicElements =

@@ -82,7 +82,6 @@ class PrimaryServiceProxySpec
           csvSep,
           baseDirectoryPath.toString,
           isHierarchic = false,
-          "yyyy-MM-dd'T'HH:mm:ssX",
         )
       ),
       None,
@@ -262,7 +261,6 @@ class PrimaryServiceProxySpec
                 directoryPath,
                 filePath,
                 fileNamingStrategy,
-                timePattern,
               )
             ) =>
           actualTimeSeriesUuid shouldBe uuidPq
@@ -274,7 +272,6 @@ class PrimaryServiceProxySpec
           classOf[FileNamingStrategy].isAssignableFrom(
             fileNamingStrategy.getClass
           ) shouldBe true
-          timePattern shouldBe "yyyy-MM-dd'T'HH:mm:ssX"
         case Success(wrongData) =>
           fail(s"Creation of init data lead to wrong init data '$wrongData'.")
         case Failure(exception) =>

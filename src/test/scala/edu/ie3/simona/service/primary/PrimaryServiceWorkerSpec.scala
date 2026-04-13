@@ -76,7 +76,6 @@ class PrimaryServiceWorkerSpec
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
-      timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
     )
 
   private given powerTolerance: squants.Power = Watts(0.1)
@@ -179,7 +178,6 @@ class PrimaryServiceWorkerSpec
         directoryPath = baseDirectoryPath,
         filePath = Paths.get("its_pq_" + tsUuid),
         fileNamingStrategy = new FileNamingStrategy(),
-        timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
       )
       PrimaryServiceWorker.init(maliciousInitData) match {
         case Failure(exception) =>

@@ -245,7 +245,7 @@ object PrimaryServiceProxy {
       sourceOption: Option[Product]
   ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
     sourceOption match {
-      case Some(TimeStampedCsvParams(csvSep, directoryPath, _, _)) =>
+      case Some(TimeStampedCsvParams(csvSep, directoryPath, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
@@ -463,7 +463,7 @@ object PrimaryServiceProxy {
     primaryConfig match {
       case PrimaryConfig(
             None,
-            Some(TimeStampedCsvParams(csvSep, directoryPath, _, timePattern)),
+            Some(TimeStampedCsvParams(csvSep, directoryPath, _)),
             None,
             None,
           ) =>
@@ -479,7 +479,6 @@ object PrimaryServiceProxy {
                 Paths.get(directoryPath),
                 csvMetaData.getFullFilePath,
                 new FileNamingStrategy(),
-                timePattern,
               )
             )
           case invalidMetaData =>
