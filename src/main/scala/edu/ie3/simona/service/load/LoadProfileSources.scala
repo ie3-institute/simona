@@ -32,7 +32,6 @@ import edu.ie3.datamodel.io.source.{
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
 import edu.ie3.datamodel.models.profile.{
   BdewStandardLoadProfile,
-  LoadProfile,
   PowerProfileKey,
 }
 import edu.ie3.datamodel.models.value.load.{
@@ -99,13 +98,13 @@ object LoadProfileSources {
         )
 
         val rndKeys = RandomLoadProfile.values().map(_.getKey).toSet
-        val rndwMetaInformation = metaInformation.filter {
+        val rndMetaInformation = metaInformation.filter {
           case (profileKey, _) =>
             rndKeys.contains(profileKey)
         }
         val random = buildSourcesFrom(
           dataSource,
-          rndwMetaInformation,
+          rndMetaInformation,
           new RandomLoadProfileFactory(),
           classOf[RandomLoadValues],
         )
