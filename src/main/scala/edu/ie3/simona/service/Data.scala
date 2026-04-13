@@ -348,16 +348,6 @@ object Data {
     /** Container class for the load profile information at a certain point in
       * time.
       *
-      * @param averagePower
-      *   The average power for the current interval.
-      */
-    final case class LoadData(
-        averagePower: Power
-    ) extends SecondaryData
-
-    /** Container class for the load profile information at a certain point in
-      * time.
-      *
       * @param powerSupplier
       *   A supplier, that will return a load value.
       */

@@ -7,7 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.datamodel.models.result.system.PowerLimitFlexOptionsResult
 import edu.ie3.simona.agent.DataInputHandler
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
@@ -1001,7 +1001,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
@@ -1083,7 +1083,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -1200,7 +1200,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
@@ -1283,7 +1283,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.001.asMegaWatt)
@@ -1342,7 +1342,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -1479,7 +1479,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -1560,7 +1560,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.002.asMegaWatt)
@@ -1653,7 +1653,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
@@ -1726,7 +1726,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.006.asMegaWatt)
@@ -1788,7 +1788,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -1921,7 +1921,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe simulationStartDate
             result.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -1993,7 +1993,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (8 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
@@ -2083,7 +2083,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (12 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.006.asMegaWatt)
@@ -2153,7 +2153,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (18 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.003.asMegaWatt)
@@ -2211,7 +2211,7 @@ class ParticipantAgentSpec extends ScalaTestWithActorTestKit with UnitSpec {
         }
 
         resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-          case FlexOptionsResultEvent(result: FlexOptionsResult) =>
+          case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
             result.getInputModel shouldBe MockParticipantModel.uuid
             result.getTime shouldBe (20 * 3600).toDateTime
             result.getpRef() should equalWithTolerance(0.asMegaWatt)

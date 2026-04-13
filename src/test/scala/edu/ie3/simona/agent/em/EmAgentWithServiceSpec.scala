@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.agent.em
 
-import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.datamodel.models.result.system.{
+  EmResult,
+  PowerLimitFlexOptionsResult,
+}
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
@@ -196,7 +199,7 @@ class EmAgentWithServiceSpec
       )
 
       resultServiceProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -540,7 +543,7 @@ class EmAgentWithServiceSpec
       )
 
       resultServiceProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe updatedEmInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -640,10 +643,10 @@ class EmAgentWithServiceSpec
 
       // expect correct results
       resultServiceProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexOptionsResult) =>
-          flexOptionsResult.getpRef should equalWithTolerance(0.asMegaWatt)
-          flexOptionsResult.getpMin should equalWithTolerance(-0.016.asMegaWatt)
-          flexOptionsResult.getpMax should equalWithTolerance(0.006.asMegaWatt)
+        case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
+          result.getpRef should equalWithTolerance(0.asMegaWatt)
+          result.getpMin should equalWithTolerance(-0.016.asMegaWatt)
+          result.getpMax should equalWithTolerance(0.006.asMegaWatt)
       }
 
       resultServiceProxy.expectMessageType[ParticipantResultEvent] match {

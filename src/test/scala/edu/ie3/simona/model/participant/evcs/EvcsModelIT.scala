@@ -141,7 +141,7 @@ class EvcsModelIT
         )
       )
 
-      val scheduleEvcsMsg = scheduler.expectMessage(
+      scheduler.expectMessage(
         ScheduleActivation(evcsAgent, INIT_SIM_TICK, Some(evcsKey))
       )
 
