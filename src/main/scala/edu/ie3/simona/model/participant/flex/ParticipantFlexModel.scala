@@ -31,12 +31,12 @@ trait ParticipantFlexModel[-OP <: OperatingPoint, -S <: ModelState] {
     *
     * @param state
     *   The current state.
-    * @param dateTimeType
+    * @param dataTimeType
     *   The data time type to calculate flex options for.
     * @return
     *   The flexibility options.
     */
-  def determineFlexOptions(state: S, dateTimeType: DataTimeType): FlexOptions
+  def determineFlexOptions(state: S, dataTimeType: DataTimeType): FlexOptions
 
   /** Determines the [[OperationChangeIndicator]] for the current state and
     * operating point, i.e. the indication at which point in simulation time the
@@ -48,7 +48,7 @@ trait ParticipantFlexModel[-OP <: OperatingPoint, -S <: ModelState] {
     *   The current operating point.
     * @param setPower
     *   The power set point determined by EM.
-    * @param dateTimeType
+    * @param dataTimeType
     *   The data time type.
     * @return
     *   The [[OperationChangeIndicator]].
@@ -57,7 +57,7 @@ trait ParticipantFlexModel[-OP <: OperatingPoint, -S <: ModelState] {
       state: S,
       operatingPoint: OP,
       setPower: Power,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): OperationChangeIndicator
 
 }

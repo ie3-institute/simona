@@ -34,10 +34,10 @@ trait AbstractEnergyBoundariesFlexModel[S <: ModelState]
       state: S,
       operatingPoint: OperatingPoint,
       setPower: Power,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): OperationChangeIndicator = {
 
-    val forecastResolution = dateTimeType match {
+    val forecastResolution = dataTimeType match {
       case DataTimeType.CurrentAndForecast(_, resolution) =>
         resolution.toSeconds.toLong
       case other =>

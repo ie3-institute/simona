@@ -40,7 +40,7 @@ class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
 
   override def determineFlexOptions(
       state: S,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions = {
 
     val powerMap = determineStates(state).map { case (tick, tickState) =>

@@ -25,7 +25,7 @@ class EvcsPowerLimitFlexModel(private val model: EvcsModel)
 
   override def determineFlexOptions(
       state: EvcsState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions = {
 
     val preferredPowers =
@@ -84,7 +84,7 @@ class EvcsPowerLimitFlexModel(private val model: EvcsModel)
       state: EvcsState,
       operatingPoint: EvcsOperatingPoint,
       setPower: Power,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): OperationChangeIndicator =
     state.evs
       .flatMap { ev =>

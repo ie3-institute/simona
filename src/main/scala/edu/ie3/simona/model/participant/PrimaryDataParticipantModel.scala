@@ -204,7 +204,7 @@ object PrimaryDataParticipantModel {
 
     override def determineFlexOptions(
         state: PrimaryDataState[PD],
-        dateTimeType: DataTimeType,
+        dataTimeType: DataTimeType,
     ): FlexOptions = {
       val (operatingPoint, _) = model.determineOperatingPoint(state)
 
@@ -215,7 +215,7 @@ object PrimaryDataParticipantModel {
         state: PrimaryDataState[PD],
         operatingPoint: PrimaryOperatingPoint[PD],
         setPower: Power,
-        dateTimeType: DataTimeType,
+        dataTimeType: DataTimeType,
     ): OperationChangeIndicator =
       OperationChangeIndicator.empty
 

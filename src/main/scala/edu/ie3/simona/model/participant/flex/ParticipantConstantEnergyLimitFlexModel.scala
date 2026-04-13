@@ -33,7 +33,7 @@ class ParticipantConstantEnergyLimitFlexModel(
 
   override def determineFlexOptions(
       state: FixedState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions = {
 
     val (op: OperatingPoint, _) = model.determineOperatingPoint(state)

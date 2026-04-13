@@ -22,7 +22,7 @@ class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
 
   override def determineFlexOptions(
       state: StorageState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
