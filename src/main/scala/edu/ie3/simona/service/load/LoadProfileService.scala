@@ -130,10 +130,14 @@ object LoadProfileService extends SimonaService {
     case SecondaryServiceRegistrationMessage(
           requestingActor,
           dataTimeType,
-          loadProfile: PowerProfileKey,
+          powerProfileKey: PowerProfileKey,
         ) =>
       Success(
-        handleRegistrationRequest(requestingActor, loadProfile, dataTimeType)
+        handleRegistrationRequest(
+          requestingActor,
+          powerProfileKey,
+          dataTimeType,
+        )
       )
     case invalidMessage =>
       Failure(
@@ -149,7 +153,7 @@ object LoadProfileService extends SimonaService {
     *
     * @param agentToBeRegistered
     *   The agent that wants to be registered.
-    * @param loadProfile
+    * @param powerProfileKey
     *   The load profile that the agent wants to receive data for.
     * @param dataTimeType
     *   The data time type that the agent wants to receive data for.
@@ -161,14 +165,14 @@ object LoadProfileService extends SimonaService {
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
-      loadProfile: PowerProfileKey,
+      powerProfileKey: PowerProfileKey,
       dataTimeType: DataTimeType,
   )(using
       serviceStateData: LoadProfileInitializedStateData,
       ctx: ActorContext[Message],
   ): LoadProfileInitializedStateData = {
 
-    getRegistrantsContainer(loadProfile) match {
+    getRegistrantsContainer(powerProfileKey) match {
       case Success(registrants) =>
         if registrants.registrantsMap.contains(
             dataTimeType,
@@ -184,7 +188,7 @@ object LoadProfileService extends SimonaService {
             ctx.self,
             FIRST_TICK_IN_SIMULATION,
             serviceStateData.loadProfileStore.getProfileLoadFactoryData(
-              loadProfile
+              powerProfileKey
             ),
           )
 
@@ -195,12 +199,12 @@ object LoadProfileService extends SimonaService {
 
         serviceStateData.copy(registeredAgents =
           serviceStateData.registeredAgents
-            .updated(loadProfile, updatedRegistrants)
+            .updated(powerProfileKey, updatedRegistrants)
         )
 
       case Failure(exception) =>
         ctx.log.error(
-          s"Unable to register for load profile '$loadProfile'.",
+          s"Unable to register for load profile '$powerProfileKey'.",
           exception,
         )
 

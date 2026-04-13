@@ -53,7 +53,7 @@ trait LoadModelTestHelper {
           simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
 
         val averagePower =
-          store.entryFunc(dateTime, model.loadProfile)()
+          store.entryFunc(dateTime, model.powerProfileKey)()
 
         val state = LoadModelState(tick, averagePower)
 

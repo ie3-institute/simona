@@ -57,15 +57,15 @@ final case class LoadProfileStore(
   ): Option[squants.Energy] =
     energy.toScala.map(_.toSquants)
 
-  /** Method to check whether this [[LoadProfileStore]] contains the given
-    * [[LoadProfile]].
-    * @param loadProfile
+  /** Method to check whether this [[LoadProfileStore]] contains a load profile
+    * for given [[PowerProfileKey]].
+    * @param powerProfileKey
     *   That should be checked.
     * @return
     *   True, if this store contain the profile, else false.
     */
-  def contains(loadProfile: PowerProfileKey): Boolean =
-    profileToSource.contains(loadProfile)
+  def contains(powerProfileKey: PowerProfileKey): Boolean =
+    profileToSource.contains(powerProfileKey)
 
   /** Returns a map: [[LoadProfile]] to profile resolution in seconds.
     */
@@ -100,21 +100,21 @@ final case class LoadProfileStore(
     *
     * @param time
     *   The requested time.
-    * @param loadProfile
+    * @param powerProfileKey
     *   The requested load profile.
     * @return
     *   A load in kW.
     */
   def entryFunc(
       time: ZonedDateTime,
-      loadProfile: PowerProfileKey,
+      powerProfileKey: PowerProfileKey,
   ): () => squants.Power = {
 
     val source = profileToSource
       .getOrElse(
-        loadProfile,
+        powerProfileKey,
         throw new CriticalFailureException(
-          s"Load profile $loadProfile is not available."
+          s"Load profile $powerProfileKey is not available."
         ),
       )
 
@@ -128,21 +128,21 @@ final case class LoadProfileStore(
         .map(_.toSquants)
         .getOrElse(
           throw new CriticalFailureException(
-            s"Load value function cannot be provided for load profile $loadProfile at time $time!"
+            s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
           )
         )
   }
 
-  /** @param loadProfile
+  /** @param powerProfileKey
     *   Given load profile.
     * @return
     *   An option for the [[ProfileLoadFactoryData]] for the given
     *   [[LoadProfile]].
     */
   def getProfileLoadFactoryData(
-      loadProfile: PowerProfileKey
+      powerProfileKey: PowerProfileKey
   ): Option[ProfileLoadFactoryData] =
-    profileToSource.get(loadProfile).map { source =>
+    profileToSource.get(powerProfileKey).map { source =>
       ProfileLoadFactoryData(
         source.getMaxPower,
         source.getProfileEnergyScaling,

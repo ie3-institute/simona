@@ -46,7 +46,7 @@ class ProfileLoadModel(
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    val loadProfile: PowerProfileKey,
+    val powerProfileKey: PowerProfileKey,
     val referenceScalingFactor: Double,
 ) extends LoadModel[LoadModelState] {
 
