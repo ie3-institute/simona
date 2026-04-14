@@ -180,7 +180,7 @@ object MockParticipantModel {
         state: MockState,
         operatingPoint: ActivePowerOperatingPoint,
         setPower: Power,
-        dateTimeType: DataTimeType,
+        dataTimeType: DataTimeType,
     ): OperationChangeIndicator =
       OperationChangeIndicator(
         changesAtNextActivation = model.mockChangeAtNext.contains(state.tick),

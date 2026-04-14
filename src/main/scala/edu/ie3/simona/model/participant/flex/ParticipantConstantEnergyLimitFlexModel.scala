@@ -29,9 +29,11 @@ class ParticipantConstantEnergyLimitFlexModel(
     model: ParticipantModel[?, FixedState]
 ) extends AbstractEnergyBoundariesFlexModel[FixedState] {
 
+  override val hasEnergyFlexibility: Boolean = false
+
   override def determineFlexOptions(
       state: FixedState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions = {
 
     val (op: OperatingPoint, _) = model.determineOperatingPoint(state)

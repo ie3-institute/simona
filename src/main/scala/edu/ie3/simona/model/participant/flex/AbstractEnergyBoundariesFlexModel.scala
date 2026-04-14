@@ -13,6 +13,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   OperationChangeIndicator,
 }
 import edu.ie3.simona.service.DataTimeType
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
 
 /** Trait to be implemented by all flexibility models of
@@ -25,22 +26,36 @@ import squants.Power
 trait AbstractEnergyBoundariesFlexModel[S <: ModelState]
     extends ParticipantFlexModel[OperatingPoint, S] {
 
+  /** Whether the model offers flexibility.
+    */
+  val hasEnergyFlexibility: Boolean
+
   override def determineNextActivation(
       state: S,
       operatingPoint: OperatingPoint,
       setPower: Power,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): OperationChangeIndicator = {
 
-    val forecastResolution = dateTimeType match {
+    val forecastResolution = dataTimeType match {
       case DataTimeType.CurrentAndForecast(_, resolution) =>
         resolution.toSeconds.toLong
       case other =>
         throw new CriticalFailureException(s"Unexpected date time type $other")
     }
 
+    // we assume that the first forecast window starts at tick 0
+    val currentTick = state.tick
+    val lastForecast = currentTick - currentTick % forecastResolution
+
+    // if there is flexibility, and we're charging/discharging,
+    // our state of energy is going to be different at every point in the future
+    val changesAtNext =
+      hasEnergyFlexibility && operatingPoint.activePower != zeroKW
+
     OperationChangeIndicator(
-      changesAtTick = Some(state.tick + forecastResolution)
+      changesAtNextActivation = changesAtNext,
+      changesAtTick = Some(lastForecast + forecastResolution),
     )
   }
 

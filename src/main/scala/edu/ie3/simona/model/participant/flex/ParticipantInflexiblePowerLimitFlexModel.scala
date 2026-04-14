@@ -33,7 +33,7 @@ class ParticipantInflexiblePowerLimitFlexModel[S <: ModelState](
 
   override def determineFlexOptions(
       state: S,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions = {
     val (operatingPoint, _) = model.determineOperatingPoint(state)
 
@@ -44,7 +44,7 @@ class ParticipantInflexiblePowerLimitFlexModel[S <: ModelState](
       state: S,
       operatingPoint: OperatingPoint,
       setPower: Power,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): ParticipantModel.OperationChangeIndicator = OperationChangeIndicator.empty
 
 }
