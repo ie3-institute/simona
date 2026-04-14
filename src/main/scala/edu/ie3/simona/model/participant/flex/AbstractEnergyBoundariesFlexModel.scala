@@ -48,7 +48,7 @@ trait AbstractEnergyBoundariesFlexModel[S <: ModelState]
     val currentTick = state.tick
     val lastForecast = currentTick - currentTick % forecastResolution
 
-    // if there is flexibility and we're charging/discharging,
+    // if there is flexibility, and we're charging/discharging,
     // our state of energy is going to be different at every point in the future
     val changesAtNext =
       hasEnergyFlexibility && operatingPoint.activePower != zeroKW
