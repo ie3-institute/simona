@@ -46,7 +46,7 @@ final case class VoltageRange(
     * @return
     *   A new [[VoltageRange]].
     */
-  private def updateWithVoltageDelta(
+  private[congestion] def updateWithVoltageDelta(
       deltaV: Dimensionless
   ): VoltageRange = {
 

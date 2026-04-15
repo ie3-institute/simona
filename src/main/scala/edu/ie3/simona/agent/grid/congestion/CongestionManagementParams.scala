@@ -9,10 +9,7 @@ package edu.ie3.simona.agent.grid.congestion
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams.MitigationProgress
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.*
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.config.SimonaConfig.CongestionManagement
-
-import scala.concurrent.duration.FiniteDuration
 
 /** Holds all congestion management configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]. If the parameter [[detectionEnabled]] is set
@@ -65,7 +62,7 @@ object CongestionManagementParams {
     def getNextStepsAndUpdate: (MitigationSteps.Value, MitigationProgress) = {
 
       if hasUsedTransformerTapChange then {
-        // we reset the progress and return no next step
+        // we reset the progress and do not return a next step
         (NoMeasure, reset)
       } else {
         (
