@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.participant.load
 
-import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.simona.model.participant.ParticipantModel.ActivePowerOperatingPoint
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
 import edu.ie3.simona.service.load.LoadProfileStore
@@ -54,11 +53,7 @@ trait LoadModelTestHelper {
           simulationStartDate.plus(quarterHour * 15, ChronoUnit.MINUTES)
 
         val averagePower =
-          store
-            .entry(dateTime, model.loadProfile)
-            .getOrElse(
-              throw new SourceException("No load value present!")
-            )
+          store.entryFunc(dateTime, model.powerProfileKey)()
 
         val state = LoadModelState(tick, averagePower)
 

@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.agent.em
 
-import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.datamodel.models.result.system.{
+  EmResult,
+  PowerLimitFlexOptionsResult,
+}
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
@@ -179,7 +182,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -233,7 +236,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(-.005.asMegaWatt)
@@ -344,7 +347,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -414,7 +417,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -527,7 +530,7 @@ class EmAgentSpec
       )
 
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -606,7 +609,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -722,7 +725,7 @@ class EmAgentSpec
       )
 
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)

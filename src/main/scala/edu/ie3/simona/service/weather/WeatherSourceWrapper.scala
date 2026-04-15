@@ -235,11 +235,9 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
   )(implicit
       idCoordinateSource: IdCoordinateSource
   ): Option[PsdmWeatherSource] = {
-    implicit val timestampPattern: Option[String] =
-      cfgParams.timestampPattern
     implicit val scheme: String = cfgParams.scheme
 
-    val factory = buildFactory(scheme, timestampPattern)
+    val factory = buildFactory(scheme)
 
     val source = definedWeatherSource.flatMap {
       case BaseCsvParams(csvSep, directoryPath, _) =>
@@ -268,7 +266,6 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             couchbaseParams.coordinateColumnName,
             couchbaseParams.keyPrefix,
             factory,
-            "yyyy-MM-dd'T'HH:mm:ssxxx",
           )
         )
       case BaseInfluxDb1xParams(database, _, url) =>
@@ -312,7 +309,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     source
   }
 
-  private def buildFactory(scheme: String, timestampPattern: Option[String]) =
+  private def buildFactory(scheme: String) =
     Try(WeatherScheme(scheme)) match {
       case Failure(exception) =>
         throw new InitializationException(
@@ -321,21 +318,9 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
           exception,
         )
       case Success(WeatherScheme.ICON) =>
-        timestampPattern
-          .map(pattern =>
-            new IconTimeBasedWeatherValueFactory(
-              DateTimeFormatter.ofPattern(pattern)
-            )
-          )
-          .getOrElse(new IconTimeBasedWeatherValueFactory())
+        new IconTimeBasedWeatherValueFactory()
       case Success(WeatherScheme.COSMO) =>
-        timestampPattern
-          .map(pattern =>
-            new CosmoTimeBasedWeatherValueFactory(
-              DateTimeFormatter.ofPattern(pattern)
-            )
-          )
-          .getOrElse(new CosmoTimeBasedWeatherValueFactory())
+        new CosmoTimeBasedWeatherValueFactory()
       case Success(unknownScheme) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."

@@ -26,7 +26,7 @@ class StoragePowerLimitFlexModel(private val model: StorageModel)
 
   override def determineFlexOptions(
       state: StorageState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions = {
 
     val chargingPossible = !model.isFull(state.storedEnergy)
@@ -63,7 +63,7 @@ class StoragePowerLimitFlexModel(private val model: StorageModel)
       state: StorageState,
       operatingPoint: ActivePowerOperatingPoint,
       setPower: Power,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): OperationChangeIndicator = {
 
     val adaptedSetPower = operatingPoint.activePower

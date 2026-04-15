@@ -18,9 +18,11 @@ import edu.ie3.simona.service.DataTimeType
 class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
     extends AbstractEnergyBoundariesFlexModel[StorageState] {
 
+  override val hasEnergyFlexibility: Boolean = true
+
   override def determineFlexOptions(
       state: StorageState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(

@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.service.primary
 
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.file.FileType
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.naming.timeseries.FileIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.SValue
@@ -81,7 +82,6 @@ class PrimaryServiceProxySpec
           csvSep,
           baseDirectoryPath.toString,
           isHierarchic = false,
-          "yyyy-MM-dd'T'HH:mm:ssX",
         )
       ),
       None,
@@ -240,9 +240,10 @@ class PrimaryServiceProxySpec
   "Spinning off a worker" should {
 
     "successfully build initialization data for the worker" in {
-      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+      val metaInformation = new FileIndividualTimeSeriesMetaInformation(
         metaPq,
         Paths.get("its_pq_" + uuidPq),
+        FileType.CSV,
       )
 
       PrimaryServiceProxy.toInitData(
@@ -260,7 +261,6 @@ class PrimaryServiceProxySpec
                 directoryPath,
                 filePath,
                 fileNamingStrategy,
-                timePattern,
               )
             ) =>
           actualTimeSeriesUuid shouldBe uuidPq
@@ -272,7 +272,6 @@ class PrimaryServiceProxySpec
           classOf[FileNamingStrategy].isAssignableFrom(
             fileNamingStrategy.getClass
           ) shouldBe true
-          timePattern shouldBe "yyyy-MM-dd'T'HH:mm:ssX"
         case Success(wrongData) =>
           fail(s"Creation of init data lead to wrong init data '$wrongData'.")
         case Failure(exception) =>
@@ -312,9 +311,10 @@ class PrimaryServiceProxySpec
        * message is sent to the worker */
       val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
 
-      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+      val metaInformation = new FileIndividualTimeSeriesMetaInformation(
         metaPq,
         Paths.get("its_pq_" + uuidPq),
+        FileType.CSV,
       )
 
       val context: ActorContext[PrimaryServiceProxy.Message] = {

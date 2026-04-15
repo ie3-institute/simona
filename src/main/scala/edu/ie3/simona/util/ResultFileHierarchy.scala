@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.util
 
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.{Files, Path, Paths}
-import java.text.SimpleDateFormat
 import com.typesafe.config.{Config, ConfigRenderOptions}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
@@ -16,7 +13,10 @@ import edu.ie3.datamodel.io.naming.{
   FileNamingStrategy,
 }
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.datamodel.models.result.system.{
+  EnergyBoundariesFlexOptionsResult,
+  PowerLimitFlexOptionsResult,
+}
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.FileHierarchyException
 import edu.ie3.simona.io.result.ResultSinkType
@@ -26,6 +26,9 @@ import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.util.io.FileIOUtils
 import org.apache.commons.io.FilenameUtils.*
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.{Files, Path, Paths}
+import java.text.SimpleDateFormat
 import scala.jdk.OptionConverters.RichOptional
 
 /** Represents the output directory where the results will be materialized.
@@ -392,7 +395,11 @@ object ResultFileHierarchy extends LazyLogging {
            )
            ._1
            .flexResult
-       then Seq(classOf[FlexOptionsResult])
+       then
+         Seq(
+           classOf[PowerLimitFlexOptionsResult],
+           classOf[EnergyBoundariesFlexOptionsResult],
+         )
        else Seq.empty)
 
 }

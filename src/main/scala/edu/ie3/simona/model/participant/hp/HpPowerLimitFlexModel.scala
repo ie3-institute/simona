@@ -23,7 +23,7 @@ class HpPowerLimitFlexModel(private val model: HpModel)
 
   override def determineFlexOptions(
       state: HpState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions = {
     val wasRunningLastOp = state.lastHpOperatingPoint.activePower > zeroKW
     // Determining the operation point and limitations at this tick
@@ -73,7 +73,7 @@ class HpPowerLimitFlexModel(private val model: HpModel)
       state: HpState,
       operatingPoint: HpOperatingPoint,
       setPower: Power,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): ParticipantModel.OperationChangeIndicator =
     OperationChangeIndicator(
       changesAtNextActivation = true,

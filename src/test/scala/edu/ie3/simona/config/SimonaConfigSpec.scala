@@ -117,7 +117,6 @@ class SimonaConfigSpec extends UnitSpec {
             sampleParams = None,
             scheme = "icon",
             sqlParams = None,
-            timestampPattern = None,
           )
         ),
       )
