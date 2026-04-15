@@ -52,6 +52,7 @@ import squants.Each
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+import java.util.OptionalLong
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 
@@ -160,7 +161,7 @@ class EvcsModelIT
       // providing the first data tick
       extEvData.provideArrivingEvs(
         Map.empty[UUID, java.util.List[EvModel]].asJava,
-        Some(long2Long(0L)).toJava,
+        OptionalLong.of(0),
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -208,7 +209,7 @@ class EvcsModelIT
         Map(
           evcsInputModel.getUuid -> List[EvModel](evA, evB).asJava
         ).asJava,
-        Some(long2Long(9000)).toJava,
+        OptionalLong.of(9000),
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -364,7 +365,7 @@ class EvcsModelIT
       // Send (empty) arrivals in order to update next tick
       extEvData.provideArrivingEvs(
         Map.empty[UUID, java.util.List[EvModel]].asJava,
-        Some(long2Long(10800)).toJava,
+        OptionalLong.of(10800),
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -403,7 +404,7 @@ class EvcsModelIT
         Map(
           evcsInputModel.getUuid -> List[EvModel](evC).asJava
         ).asJava,
-        Some(long2Long(14400)).toJava,
+        OptionalLong.of(14400),
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -522,7 +523,7 @@ class EvcsModelIT
       // Send (empty) arrivals in order to update next tick
       extEvData.provideArrivingEvs(
         Map.empty[UUID, java.util.List[EvModel]].asJava,
-        Some(long2Long(18000)).toJava,
+        OptionalLong.of(18000),
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
@@ -576,7 +577,7 @@ class EvcsModelIT
       // Send (empty) arrivals in order to update next tick
       extEvData.provideArrivingEvs(
         Map.empty[UUID, java.util.List[EvModel]].asJava,
-        None.toJava,
+        OptionalLong.empty(),
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
 
