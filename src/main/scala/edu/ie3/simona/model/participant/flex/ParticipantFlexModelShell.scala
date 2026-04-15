@@ -8,8 +8,11 @@ package edu.ie3.simona.model.participant.flex
 
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.ParticipantFlexModel
-import edu.ie3.simona.model.participant.ParticipantModel.ModelState
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+  OperationChangeIndicator,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
@@ -47,9 +50,12 @@ import scala.util.{Failure, Try}
   * @tparam S
   *   The type of state used by the [[ParticipantFlexModel]].
   */
-final case class ParticipantFlexModelShell[S <: ModelState](
+final case class ParticipantFlexModelShell[
+    OP <: OperatingPoint,
+    S <: ModelState,
+](
     modelUuid: UUID,
-    flexModel: ParticipantFlexModel[S],
+    flexModel: ParticipantFlexModel[OP, S],
     flexType: FlexType,
     dataTimeType: DataTimeType,
     flexOptions: Option[FlexOptions] = None,
@@ -98,7 +104,7 @@ final case class ParticipantFlexModelShell[S <: ModelState](
   def updateFlexOptions(
       state: S,
       inOperation: Boolean,
-  ): ParticipantFlexModelShell[S] = {
+  ): ParticipantFlexModelShell[OP, S] = {
     val updatedFlexOptions =
       if inOperation then flexModel.determineFlexOptions(state, dataTimeType)
       else
@@ -107,6 +113,18 @@ final case class ParticipantFlexModelShell[S <: ModelState](
 
     copy(flexOptions = Some(updatedFlexOptions))
   }
+
+  def determineNextActivation(
+      state: S,
+      operatingPoint: OP,
+      setPower: Power,
+  ): OperationChangeIndicator =
+    flexModel.determineNextActivation(
+      state,
+      operatingPoint,
+      setPower,
+      dataTimeType,
+    )
 
   /** Determines and returns the set point power, determined by the flex control
     * message.

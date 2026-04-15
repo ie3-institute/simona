@@ -100,7 +100,7 @@ object RegularSchedulerCore extends CoreFactory {
     ): ActiveCore = {
       if newTick < activeTick then
         throw new CriticalFailureException(
-          s"Cannot schedule an activation at tick $newTick"
+          s"Cannot schedule an activation ($actor) at tick $newTick, as currently the active tick is $activeTick."
         )
 
       activationQueue.set(newTick, actor)

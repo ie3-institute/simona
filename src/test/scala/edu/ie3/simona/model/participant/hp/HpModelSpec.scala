@@ -18,6 +18,8 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
+import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -276,6 +278,8 @@ class HpModelSpec
     "determine operating point with flex control correctly" in {
       val ambientTemperature = Celsius(10)
 
+      val flexModel = hpModel.flexModels(FlexType.PowerLimit)
+
       val cases = Table(
         (
           "tick",
@@ -319,7 +323,13 @@ class HpModelSpec
           )
           val setPower = Kilowatts(setPwr)
 
-          val (op, threshold) = hpModel.determineOperatingPoint(state, setPower)
+          val op = hpModel.determineOperatingPoint(state, setPower)
+          val threshold = flexModel.determineNextActivation(
+            state,
+            op,
+            setPower,
+            DataTimeType.Current,
+          )
 
           op.activePower shouldBe Kilowatts(expectedHpQDot)
           threshold.changesAtTick shouldBe expectedTick

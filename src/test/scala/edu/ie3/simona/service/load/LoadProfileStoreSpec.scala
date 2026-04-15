@@ -7,7 +7,11 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
-import edu.ie3.datamodel.models.profile.{BdewStandardLoadProfile, LoadProfile}
+import edu.ie3.datamodel.models.profile.{
+  BdewStandardLoadProfile,
+  LoadProfile,
+  PowerProfileKey,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil
 import squants.energy.*
@@ -27,15 +31,16 @@ class LoadProfileStoreSpec extends UnitSpec {
     "contain all build-in profile sources" in {
       val profiles = store.profileToSource.keySet
 
-      val buildInSources: Set[LoadProfile] =
-        BdewStandardLoadProfile.values().toSet ++ Set(RANDOM_LOAD_PROFILE)
+      val buildInSources =
+        (BdewStandardLoadProfile.values().toSet ++ Set(RANDOM_LOAD_PROFILE))
+          .map(_.getKey)
 
       profiles should contain allElementsOf buildInSources
     }
 
     "be able to check, if it contains a given load profile" in {
       val otherProfile = new LoadProfile {
-        override def getKey: String = "other"
+        override def getKey: PowerProfileKey = new PowerProfileKey("other")
       }
 
       val cases = Table(
@@ -46,24 +51,18 @@ class LoadProfileStoreSpec extends UnitSpec {
       )
 
       forAll(cases) { (loadProfile, expectedResult) =>
-        store.contains(loadProfile) shouldBe expectedResult
+        store.contains(loadProfile.getKey) shouldBe expectedResult
       }
     }
 
     "return a value for a given time and load profile" in {
-      val option = store.entry(time, BdewStandardLoadProfile.G0)
-      option match {
-        case Some(value) =>
-          value should approximate(Watts(65.5))
-        case None =>
-          fail("We expect a value here!")
-      }
+      val func = store.entryFunc(time, BdewStandardLoadProfile.G0.getKey)
+      func() should approximate(Watts(65.5))
     }
 
     "sample multiple random values for random load profile" in {
-      val supplier = store.randomEntrySupplier(time)
-
-      val powers = Range(0, 10).map(_ => supplier())
+      val func = store.entryFunc(time, RANDOM_LOAD_PROFILE.getKey)
+      val powers = Range(0, 10).map(_ => func())
 
       powers.size shouldBe 10
       powers.toSet.size > 1 shouldBe true
@@ -77,7 +76,7 @@ class LoadProfileStoreSpec extends UnitSpec {
       )
 
       forAll(cases) { (loadProfile, expectedMaxPower, expectedProfileScaling) =>
-        val factoryData = store.getProfileLoadFactoryData(loadProfile)
+        val factoryData = store.getProfileLoadFactoryData(loadProfile.getKey)
 
         factoryData.flatMap { data =>
           data.maxPower.zip(data.energyScaling)
@@ -86,7 +85,7 @@ class LoadProfileStoreSpec extends UnitSpec {
             maxPower should approximate(expectedMaxPower)
             energyScaling should approximate(expectedProfileScaling)
 
-          case _ if store.contains(loadProfile) =>
+          case _ if store.contains(loadProfile.getKey) =>
             fail("We expect factory data here!")
 
           case _ =>

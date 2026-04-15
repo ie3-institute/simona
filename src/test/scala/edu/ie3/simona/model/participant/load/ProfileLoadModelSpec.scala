@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
-import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.{
   LoadModelState,
@@ -17,7 +17,10 @@ import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
   FlexType,
 }
-import edu.ie3.simona.service.Data.SecondaryData.{LoadData, SecondarySeriesData}
+import edu.ie3.simona.service.Data.SecondaryData.{
+  LoadDataFunction,
+  SecondarySeriesData,
+}
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
@@ -57,7 +60,7 @@ class ProfileLoadModelSpec
 
   "A profile load model" should {
 
-    val sampleData = LoadData(Kilowatts(1))
+    val sampleDataFunc = LoadDataFunction(() => Kilowatts(1))
     val samplePowerSeries = SortedMap(
       0L -> Kilowatts(1),
       900L -> Kilowatts(2),
@@ -66,11 +69,11 @@ class ProfileLoadModelSpec
     )
     val sampleDataSeries = SecondarySeriesData(
       series = samplePowerSeries.map { case (tick, power) =>
-        tick -> LoadData(power)
+        tick -> LoadDataFunction(() => power)
       }
     )
 
-    def additionalData(loadProfile: LoadProfile): ProfileLoadFactoryData =
+    def additionalData(loadProfile: PowerProfileKey): ProfileLoadFactoryData =
       loadProfileStore
         .getProfileLoadFactoryData(loadProfile)
         .getOrElse(fail(s"No data found for profile: $loadProfile"))
@@ -93,14 +96,14 @@ class ProfileLoadModelSpec
           .Factory(
             loadInput
               .copy()
-              .loadprofile(profile)
+              .loadProfile(profile.getKey)
               .sRated(
                 Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE)
               )
               .build(),
             config,
           )
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -128,7 +131,7 @@ class ProfileLoadModelSpec
           .Factory(
             loadInput
               .copy()
-              .loadprofile(profile)
+              .loadProfile(profile.getKey)
               .eConsAnnual(
                 Quantities
                   .getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
@@ -136,7 +139,7 @@ class ProfileLoadModelSpec
               .build(),
             config,
           )
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -153,11 +156,11 @@ class ProfileLoadModelSpec
       val oldState = LoadModelState(0L)
 
       val actualState =
-        model.handleInput(oldState, Seq(sampleData), onePU)
+        model.handleInput(oldState, Seq(sampleDataFunc), onePU)
 
       actualState.tick shouldEqual oldState.tick
       actualState.powerData shouldEqual SortedMap(
-        0L -> sampleData.averagePower
+        0L -> sampleDataFunc.powerSupplier()
       )
     }
 
@@ -180,7 +183,7 @@ class ProfileLoadModelSpec
       forAll(
         Table("profile", H0, L0, G0)
       ) { profile =>
-        val input = loadInput.copy().loadprofile(profile).build()
+        val input = loadInput.copy().loadProfile(profile.getKey).build()
         val config = LoadRuntimeConfig(
           modelBehaviour = "profile",
           reference = "energy",
@@ -190,7 +193,7 @@ class ProfileLoadModelSpec
 
         val model = ProfileLoadModel
           .Factory(input, config)
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
@@ -210,12 +213,12 @@ class ProfileLoadModelSpec
       forAll(
         Table("profile", H0, L0, G0)
       ) { profile =>
-        val input = loadInput.copy().loadprofile(profile).build()
+        val input = loadInput.copy().loadProfile(profile.getKey).build()
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
 
         val model = ProfileLoadModel
           .Factory(input, config)
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         val targetMaximumPower =

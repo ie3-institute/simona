@@ -12,7 +12,9 @@ import edu.ie3.datamodel.models.input.system.EvcsInput
 import edu.ie3.datamodel.models.input.system.`type`.chargingpoint.ChargingPointTypeUtils
 import edu.ie3.datamodel.models.input.system.`type`.evcslocation.EvcsLocationType
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
+import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
+import edu.ie3.simona.model.participant.evcs.EvcsModel
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.util.quantities.QuantityUtils.*
@@ -20,6 +22,21 @@ import edu.ie3.util.quantities.QuantityUtils.*
 import java.util.UUID
 
 trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
+
+  protected def createTestModel(
+      chargingStrategy: String,
+      departureTargetSoc: Double = 1.0,
+      vehicle2Grid: Boolean = true,
+  ): EvcsModel =
+    EvcsModel
+      .Factory(
+        evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
+        EvcsRuntimeConfig(
+          chargingStrategy = chargingStrategy,
+          departureTargetSoc = departureTargetSoc,
+        ),
+      )
+      .create()
 
   protected val evcsInputModel = new EvcsInput(
     UUID.randomUUID(),

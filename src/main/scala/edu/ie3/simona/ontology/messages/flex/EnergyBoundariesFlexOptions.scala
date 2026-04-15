@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.datamodel.models.result.system.{
+  EnergyBoundariesFlexOptionsResult,
+  FlexOptionsResult,
+}
 import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
@@ -15,9 +18,10 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssuePowerControl,
 }
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
+import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaWattHour}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import org.slf4j.{Logger, LoggerFactory}
+import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
@@ -100,19 +104,33 @@ object EnergyBoundariesFlexOptions
       flexOptions: EnergyBoundariesFlexOptions,
       modelUuid: UUID,
       dateTime: ZonedDateTime,
-  ): FlexOptionsResult =
-    new FlexOptionsResult(
+  ): FlexOptionsResult = {
+
+    val firstEnergyLimits = flexOptions.energyBoundaries
+      .map(
+        _.energyLimits.headOption.getOrElse(
+          throw new CriticalFailureException(
+            s"Empty energy limits. At least one entry needs to be provided."
+          )
+        )
+      )
+
+    val lowerEnergyLimit = firstEnergyLimits.map { case (_, energyLimits) =>
+      energyLimits.getLower
+    }.sum
+    val upperEnergyLimit = firstEnergyLimits.map { case (_, energyLimits) =>
+      energyLimits.getUpper
+    }.sum
+
+    new EnergyBoundariesFlexOptionsResult(
       dateTime,
       modelUuid,
-      // there is no reference power, thus pick power closest to zero
-      zeroKW
-        .max(flexOptions.powerLimits.getLower)
-        .min(flexOptions.powerLimits.getUpper)
-        .toMegawatts
-        .asMegaWatt,
+      lowerEnergyLimit.toMegawattHours.asMegaWattHour,
+      upperEnergyLimit.toMegawattHours.asMegaWattHour,
       flexOptions.powerLimits.getLower.toMegawatts.asMegaWatt,
       flexOptions.powerLimits.getUpper.toMegawatts.asMegaWatt,
     )
+  }
 
   override def zero(tick: Long): EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(

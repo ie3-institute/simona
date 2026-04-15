@@ -8,7 +8,6 @@ package edu.ie3.simona.model.participant.load
 
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   FixedState,
@@ -18,6 +17,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
   ParticipantConstantEnergyLimitFlexModel,
+  ParticipantFlexModel,
   ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexType
@@ -43,7 +43,10 @@ class FixedLoadModel(
 ) extends LoadModel[FixedState]
     with ParticipantFixedState[ActivePowerOperatingPoint] {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[FixedState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    FixedState,
+  ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
       FlexType.EnergyBoundaries -> ParticipantConstantEnergyLimitFlexModel(this),

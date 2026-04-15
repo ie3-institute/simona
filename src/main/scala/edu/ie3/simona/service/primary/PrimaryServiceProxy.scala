@@ -7,17 +7,17 @@
 package edu.ie3.simona.service.primary
 
 import edu.ie3.datamodel.io.connectors.SqlConnector
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
-import edu.ie3.datamodel.io.naming.timeseries.IndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.naming.timeseries.{
+  IndividualTimeSeriesMetaInformation,
+  FileIndividualTimeSeriesMetaInformation,
+}
 import edu.ie3.datamodel.io.naming.{
   DatabaseNamingStrategy,
   EntityPersistenceNamingStrategy,
   FileNamingStrategy,
 }
-import edu.ie3.datamodel.io.source.csv.{
-  CsvTimeSeriesMappingSource,
-  CsvTimeSeriesMetaInformationSource,
-}
+import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
+import edu.ie3.datamodel.io.source.file.FileTimeSeriesMetaInformationSource
 import edu.ie3.datamodel.io.source.sql.{
   SqlTimeSeriesMappingSource,
   SqlTimeSeriesMetaInformationSource,
@@ -245,7 +245,7 @@ object PrimaryServiceProxy {
       sourceOption: Option[Product]
   ): Try[(TimeSeriesMappingSource, TimeSeriesMetaInformationSource)] = {
     sourceOption match {
-      case Some(TimeStampedCsvParams(csvSep, directoryPath, _, _)) =>
+      case Some(TimeStampedCsvParams(csvSep, directoryPath, _)) =>
         val fileNamingStrategy = new FileNamingStrategy()
         Success(
           new CsvTimeSeriesMappingSource(
@@ -253,7 +253,7 @@ object PrimaryServiceProxy {
             Paths.get(directoryPath),
             fileNamingStrategy,
           ),
-          new CsvTimeSeriesMetaInformationSource(
+          new FileTimeSeriesMetaInformationSource(
             csvSep,
             Paths.get(directoryPath),
             fileNamingStrategy,
@@ -420,48 +420,29 @@ object PrimaryServiceProxy {
   ): Try[ActorRef[Message]] = {
     val valueClass = metaInformation.getColumnScheme.getValueClass
 
-    val workerRef = classToWorkerRef(metaInformation.getUuid.toString)
     toInitData(
       metaInformation,
       simulationStart,
       primaryConfig,
       valueClass,
-    ) match {
-      case Success(initData) =>
-        workerRef ! Create(
+    ).recoverWith { cause =>
+      Failure(
+        new InitializationException(
+          "Unable to build init data for worker. Kill the uninitialized worker. Goodbye my friend!",
+          cause,
+        )
+      )
+    }.map { initData =>
+      ctx.spawn(
+        PrimaryServiceWorker(
+          scheduler,
           initData,
           ScheduleLock.singleKey(ctx, scheduler, INIT_SIM_TICK),
-        )
-        Success(workerRef)
-      case Failure(cause) =>
-        ctx.stop(workerRef)
-        Failure(
-          new InitializationException(
-            "Unable to build init data for worker. Kill the uninitialized worker. Goodbye my friend!",
-            cause,
-          )
-        )
+        ),
+        metaInformation.getUuid.toString,
+      )
     }
   }
-
-  /** Build a primary source worker and type it to the foreseen value class to
-    * come
-    *
-    * @param timeSeriesUuid
-    *   Uuid of the time series the actor processes
-    * @return
-    *   The [[ActorRef]] to the spun off actor
-    */
-  private[service] def classToWorkerRef(
-      timeSeriesUuid: String
-  )(using
-      scheduler: ActorRef[SchedulerMessage],
-      ctx: ActorContext[Message],
-  ): ActorRef[Message] =
-    ctx.spawn(
-      PrimaryServiceWorker(scheduler),
-      timeSeriesUuid,
-    )
 
   /** Building proper init data for the worker
     *
@@ -482,13 +463,13 @@ object PrimaryServiceProxy {
     primaryConfig match {
       case PrimaryConfig(
             None,
-            Some(TimeStampedCsvParams(csvSep, directoryPath, _, timePattern)),
+            Some(TimeStampedCsvParams(csvSep, directoryPath, _)),
             None,
             None,
           ) =>
         /* The actual data sources are from csv. Meta information have to match */
         metaInformation match {
-          case csvMetaData: CsvIndividualTimeSeriesMetaInformation =>
+          case csvMetaData: FileIndividualTimeSeriesMetaInformation =>
             Success(
               CsvInitPrimaryServiceStateData(
                 csvMetaData.getUuid,
@@ -498,13 +479,12 @@ object PrimaryServiceProxy {
                 Paths.get(directoryPath),
                 csvMetaData.getFullFilePath,
                 new FileNamingStrategy(),
-                timePattern,
               )
             )
           case invalidMetaData =>
             Failure(
               new InitializationException(
-                s"Expected '${classOf[CsvIndividualTimeSeriesMetaInformation]}', but got '$invalidMetaData'."
+                s"Expected '${classOf[FileIndividualTimeSeriesMetaInformation]}', but got '$invalidMetaData'."
               )
             )
         }
