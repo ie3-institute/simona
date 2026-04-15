@@ -322,6 +322,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate1b -> new WeatherValue(
         coordinate1b,
@@ -330,6 +332,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate1c -> new WeatherValue(
         coordinate1c,
@@ -338,6 +342,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate1d -> new WeatherValue(
         coordinate1d,
@@ -346,6 +352,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate13 -> new WeatherValue(
         coordinate13,
@@ -354,6 +362,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(13d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(13d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(13d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate13NoTemp -> new WeatherValue(
         coordinate13NoTemp,
@@ -362,6 +372,8 @@ object WeatherSourceWrapperSpec {
         null,
         Quantities.getQuantity(13d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(13d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinateEmpty -> new WeatherValue(
         coordinateEmpty,
@@ -370,12 +382,14 @@ object WeatherSourceWrapperSpec {
         null,
         null,
         null,
+        null,
+        null,
       ),
     )
 
-    override def getSourceFields: Optional[util.Set[String]] =
-      // only required for validation
-      Optional.empty()
+    override def validate(): Unit = {
+      // no validation implemented
+    }
 
     override def getWeather(
         timeInterval: ClosedInterval[ZonedDateTime]

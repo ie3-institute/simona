@@ -116,14 +116,7 @@ object EnergyPriceService extends SimonaService {
         given simulationStart: ZonedDateTime = startDateTime
         val valueClass = classOf[EnergyPriceValue]
 
-        val factory = sourceDefinition.timestampPattern
-          .map { pattern =>
-            new TimeBasedSimpleValueFactory(
-              valueClass,
-              DateTimeFormatter.ofPattern(pattern),
-            )
-          }
-          .getOrElse(new TimeBasedSimpleValueFactory(valueClass))
+        val factory = new TimeBasedSimpleValueFactory(valueClass)
 
         val priceSourceCfg = Seq(
           sourceDefinition.csvParams

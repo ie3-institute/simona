@@ -29,6 +29,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceWorker.{
 import edu.ie3.simona.service.primary.PrimaryServiceWorkerSpec.WrongInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -60,17 +61,10 @@ class PrimaryServiceWorkerSpec
     with PrivateMethodTester
     with LazyLogging
     with TimeSeriesTestData
+    with TestResourceHelper
     with TestSpawnerTyped {
 
-  // this works both on Windows and Unix systems
-  val baseDirectoryPath: Path = Paths
-    .get(
-      this.getClass
-        .getResource(
-          "_it"
-        )
-        .toURI
-    )
+  val baseDirectoryPath: Path = getResourcePath("_it")
 
   val validInitData: CsvInitPrimaryServiceStateData[PValue] =
     CsvInitPrimaryServiceStateData(
@@ -82,7 +76,6 @@ class PrimaryServiceWorkerSpec
       fileNamingStrategy = new FileNamingStrategy(),
       simulationStart =
         TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z"),
-      timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
     )
 
   private given powerTolerance: squants.Power = Watts(0.1)
@@ -91,10 +84,20 @@ class PrimaryServiceWorkerSpec
     val scheduler = TestProbe[SchedulerMessage]("scheduler")
     val systemParticipant = TestProbe[Any]("dummySystemParticipant")
 
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
     given serviceRef: ActorRef[PrimaryServiceProxy.Message] =
-      spawn(PrimaryServiceWorker(scheduler.ref))
+      spawn(PrimaryServiceWorker(scheduler.ref, validInitData, serviceKey))
     given log: Logger =
       LoggerFactory.getLogger(classOf[PrimaryServiceWorkerSpec])
+
+    "init the service actor" in {
+      scheduler.expectMessage(
+        ScheduleActivation(serviceRef, 0L, Some(serviceKey))
+      )
+    }
 
     "refuse instantiation on wrong init data" in {
       val maliciousInitData = WrongInitPrimaryServiceStateData()
@@ -175,7 +178,6 @@ class PrimaryServiceWorkerSpec
         directoryPath = baseDirectoryPath,
         filePath = Paths.get("its_pq_" + tsUuid),
         fileNamingStrategy = new FileNamingStrategy(),
-        timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
       )
       PrimaryServiceWorker.init(maliciousInitData) match {
         case Failure(exception) =>
@@ -212,33 +214,18 @@ class PrimaryServiceWorkerSpec
       }
     }
 
-    "init the service actor" in {
-      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      serviceRef ! Create(validInitData, key)
-
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
-
-      serviceRef ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor, Some(0)))
-    }
-
     "refuse registration for wrong registration request" in {
       val schedulerProbe = TestProbe[SchedulerMessage]("schedulerProbe")
 
       // we need to create another service, since we want to continue using the other in later tests
-      val service = spawn(PrimaryServiceWorker(schedulerProbe.ref))
-
-      val key =
-        ScheduleLock.singleKey(TSpawner, schedulerProbe.ref, INIT_SIM_TICK)
-
-      service ! Create(validInitData, key)
-
-      service ! Activation(INIT_SIM_TICK)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+      val service =
+        spawn(
+          PrimaryServiceWorker(schedulerProbe.ref, validInitData, serviceKey)
+        )
 
       service ! SecondaryServiceRegistrationMessage(
         systemParticipant.ref,

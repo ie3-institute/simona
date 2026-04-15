@@ -166,11 +166,10 @@ class ThermalGridWithStorageOnlySpec
 
     "handling thermal feed in into the grid" should {
       "properly put energy to storage" in {
-        val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid.handleFeedIn(
-            initialHpState,
-            testGridQDotInfeed,
-          )
+        val thermalGridOperatingPoint =
+          thermalGrid.handleFeedIn(initialHpState, testGridQDotInfeed)
+        val reachedThreshold =
+          thermalGrid.getThreshold(initialHpState, thermalGridOperatingPoint)
 
         reachedThreshold shouldBe Some(StorageFull(276000))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -184,11 +183,10 @@ class ThermalGridWithStorageOnlySpec
 
     "updating the grid state dependent on the given thermal feed in" should {
       "deliver proper result, if energy is fed into the grid" in {
-        val (thermalGridOperatingPoint, nextThreshold) =
-          thermalGrid.handleFeedIn(
-            initialHpState,
-            testGridQDotInfeed,
-          )
+        val thermalGridOperatingPoint =
+          thermalGrid.handleFeedIn(initialHpState, testGridQDotInfeed)
+        val nextThreshold =
+          thermalGrid.getThreshold(initialHpState, thermalGridOperatingPoint)
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           testGridQDotInfeed,
@@ -211,16 +209,19 @@ class ThermalGridWithStorageOnlySpec
           thermalDemands = onlyPossibleDemandOfHeatStorage,
         )
 
-        val (thermalGridOperatingPoint, threshold) =
-          thermalGrid.handleConsumption(state)
+        val thermalGridOperatingPoint = thermalGrid.handleConsumption(state)
+        val threshold =
+          thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
         threshold shouldBe None
       }
 
       "deliver proper result, if energy is neither consumed from nor fed into the grid" in {
-        val (thermalGridOperatingPoint, threshold) =
+        val thermalGridOperatingPoint =
           thermalGrid.handleConsumption(initialHpState)
+        val threshold =
+          thermalGrid.getThreshold(initialHpState, thermalGridOperatingPoint)
 
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
         threshold shouldBe None

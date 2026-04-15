@@ -563,9 +563,7 @@ object ConfigFailFast extends LazyLogging {
     } else {
       sourceConfigs.headOption match {
         case Some(csvParams: TimeStampedCsvParams) =>
-          checkTimePattern(csvParams.timePattern)
         case Some(sqlParams: TimeStampedSqlParams) =>
-          checkTimePattern(sqlParams.timePattern)
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
@@ -970,22 +968,5 @@ object ConfigFailFast extends LazyLogging {
         )
     }
   }
-
-  /** Check the validity of the given time pattern.
-    * @param dtfPattern
-    *   That should be checked.
-    */
-  private def checkTimePattern(dtfPattern: String): Unit =
-    Try {
-      new SimpleDateFormat(dtfPattern)
-    } match {
-      case Failure(exception) =>
-        throw new InvalidConfigParameterException(
-          s"Invalid timePattern '$dtfPattern' found. Please provide a valid pattern!" +
-            s"\nException: $exception"
-        )
-      case Success(_) =>
-      // this is fine
-    }
 
 }
