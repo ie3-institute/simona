@@ -9,10 +9,8 @@ package edu.ie3.simona.model.participant.load
 import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
-import edu.ie3.datamodel.models.profile.{LoadProfile, StandardLoadProfile}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.ParticipantFlexModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   AdditionalFactoryData,
@@ -21,13 +19,13 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
+  ParticipantFlexModel,
   ParticipantInflexibleEnergyLimitFlexModel,
   ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.SecondaryData.{
-  LoadData,
   LoadDataFunction,
   SecondarySeriesData,
 }
@@ -40,6 +38,7 @@ import squants.{Dimensionless, Power}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.immutable.SortedMap
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 
 class ProfileLoadModel(
     override val uuid: UUID,
@@ -47,11 +46,14 @@ class ProfileLoadModel(
     override val sRated: ApparentPower,
     override val cosPhiRated: Double,
     override val qControl: QControl,
-    val loadProfile: LoadProfile,
+    val powerProfileKey: PowerProfileKey,
     val referenceScalingFactor: Double,
 ) extends LoadModel[LoadModelState] {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[LoadModelState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    LoadModelState,
+  ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
       FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
@@ -106,16 +108,11 @@ class ProfileLoadModel(
   ): LoadModelState = {
     receivedData
       .collectFirst {
-        case loadData: LoadData =>
-          SortedMap(state.tick -> loadData.averagePower)
-
         case loadFunction: LoadDataFunction =>
           SortedMap(state.tick -> loadFunction.powerSupplier())
 
         case SecondarySeriesData(series) =>
           series.map {
-            case (tick, loadData: LoadData) =>
-              tick -> loadData.averagePower
             case (tick, loadFunction: LoadDataFunction) =>
               tick -> loadFunction.powerSupplier()
             case (_, unexpectedData) =>
@@ -226,17 +223,6 @@ object ProfileLoadModel {
     ): LoadModelState = LoadModelState(tick)
 
     override def create(): ProfileLoadModel = {
-      val loadProfile = input.getLoadProfile match {
-        case slp: StandardLoadProfile =>
-          slp
-        case random: RandomLoadProfile =>
-          random
-        case other =>
-          throw new CriticalFailureException(
-            s"Expected a standard load profile type, got ${other.getClass}"
-          )
-      }
-
       val referenceType = LoadReferenceType(config.reference)
 
       val power = maxPower.getOrElse(
@@ -258,8 +244,9 @@ object ProfileLoadModel {
         profileReferenceEnergy,
       )
 
-      val sRated = loadProfile match {
-        case RandomLoadProfile.RANDOM_LOAD_PROFILE =>
+      val randomKey = RandomLoadProfile.RANDOM_LOAD_PROFILE.getKey
+      val sRated = input.getLoadProfile match {
+        case `randomKey` =>
           /** Safety factor to address potential higher sRated values when using
             * unrestricted probability functions.
             */
@@ -274,7 +261,7 @@ object ProfileLoadModel {
         sRated,
         input.getCosPhiRated,
         QControl.apply(input.getqCharacteristics()),
-        loadProfile,
+        input.getLoadProfile,
         referenceScalingFactor,
       )
     }

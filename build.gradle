@@ -78,7 +78,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:8.1.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.0.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -104,10 +104,10 @@ dependencies {
 
   /* testing */
   // scalatest & junit
-  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
+  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.20"
   testImplementation "org.junit.platform:junit-platform-launcher:${junitVersion}"
   testRuntimeOnly "org.junit.platform:junit-platform-engine:${junitVersion}"
-  testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
+  testRuntimeOnly "org.scalatestplus:junit-5-14_${scalaVersion}:3.2.20.0"
 
   // mocking framework
   testImplementation 'org.mockito:mockito-core:5.23.0'
@@ -158,7 +158,7 @@ dependencies {
   implementation 'tech.units:indriya:2.2.3' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
   implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
-  implementation 'org.jgrapht:jgrapht-core:1.5.2'
+  implementation 'org.jgrapht:jgrapht-core:1.5.3'
 
   // needed, because scala won't compile otherwise
   implementation 'org.influxdb:influxdb-java:2.25'

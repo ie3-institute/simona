@@ -16,7 +16,6 @@ import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
-  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.service.Data.PrimaryData.{
@@ -45,8 +44,7 @@ abstract class LoadModel[S <: ModelState]
   override def determineOperatingPoint(
       state: S,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+  ): ActivePowerOperatingPoint = ActivePowerOperatingPoint(setPower)
 
   override def createResults(
       state: S,

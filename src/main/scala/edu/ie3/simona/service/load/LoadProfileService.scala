@@ -6,21 +6,14 @@
 
 package edu.ie3.simona.service.load
 
-import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.ServiceMessage
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-  SecondaryServiceRegistrationMessage,
-  ServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.Data.SecondaryData.{
-  LoadData,
   LoadDataFunction,
   SecondarySeriesData,
 }
@@ -28,7 +21,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{Data, DataTimeType, SimonaService}
+import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
@@ -62,7 +55,7 @@ object LoadProfileService extends SimonaService {
   /** @param loadProfileStore
     *   That stores that contains all load profiles.
     * @param registeredAgents
-    *   Registered agents by [[LoadProfile]].
+    *   Registered agents by [[PowerProfileKey]].
     * @param profileResolutions
     *   Map: [[LoadProfile]] to resolution.
     * @param profileToNextActivationTick
@@ -72,9 +65,9 @@ object LoadProfileService extends SimonaService {
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      registeredAgents: Map[LoadProfile, RegistrantsContainer] = Map.empty,
-      profileResolutions: Map[LoadProfile, Long],
-      profileToNextActivationTick: Map[LoadProfile, Long],
+      registeredAgents: Map[PowerProfileKey, RegistrantsContainer] = Map.empty,
+      profileResolutions: Map[PowerProfileKey, Long],
+      profileToNextActivationTick: Map[PowerProfileKey, Long],
       simulationStartTime: ZonedDateTime,
   ) extends ServiceBaseStateData
 
@@ -137,10 +130,14 @@ object LoadProfileService extends SimonaService {
     case SecondaryServiceRegistrationMessage(
           requestingActor,
           dataTimeType,
-          loadProfile: LoadProfile,
+          powerProfileKey: PowerProfileKey,
         ) =>
       Success(
-        handleRegistrationRequest(requestingActor, loadProfile, dataTimeType)
+        handleRegistrationRequest(
+          requestingActor,
+          powerProfileKey,
+          dataTimeType,
+        )
       )
     case invalidMessage =>
       Failure(
@@ -156,7 +153,7 @@ object LoadProfileService extends SimonaService {
     *
     * @param agentToBeRegistered
     *   The agent that wants to be registered.
-    * @param loadProfile
+    * @param powerProfileKey
     *   The load profile that the agent wants to receive data for.
     * @param dataTimeType
     *   The data time type that the agent wants to receive data for.
@@ -168,14 +165,14 @@ object LoadProfileService extends SimonaService {
     */
   private def handleRegistrationRequest(
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
-      loadProfile: LoadProfile,
+      powerProfileKey: PowerProfileKey,
       dataTimeType: DataTimeType,
   )(using
       serviceStateData: LoadProfileInitializedStateData,
       ctx: ActorContext[Message],
   ): LoadProfileInitializedStateData = {
 
-    getRegistrantsContainer(loadProfile) match {
+    getRegistrantsContainer(powerProfileKey) match {
       case Success(registrants) =>
         if registrants.registrantsMap.contains(
             dataTimeType,
@@ -191,7 +188,7 @@ object LoadProfileService extends SimonaService {
             ctx.self,
             FIRST_TICK_IN_SIMULATION,
             serviceStateData.loadProfileStore.getProfileLoadFactoryData(
-              loadProfile
+              powerProfileKey
             ),
           )
 
@@ -202,12 +199,12 @@ object LoadProfileService extends SimonaService {
 
         serviceStateData.copy(registeredAgents =
           serviceStateData.registeredAgents
-            .updated(loadProfile, updatedRegistrants)
+            .updated(powerProfileKey, updatedRegistrants)
         )
 
       case Failure(exception) =>
         ctx.log.error(
-          s"Unable to register for load profile '${loadProfile.getKey}'.",
+          s"Unable to register for load profile '$powerProfileKey'.",
           exception,
         )
 
@@ -219,7 +216,7 @@ object LoadProfileService extends SimonaService {
 
   /** Retrieves or creates the [[RegistrantsContainer]] for given load profile.
     */
-  private def getRegistrantsContainer(loadProfile: LoadProfile)(using
+  private def getRegistrantsContainer(loadProfile: PowerProfileKey)(using
       serviceStateData: LoadProfileInitializedStateData
   ): Try[RegistrantsContainer] =
     serviceStateData.registeredAgents.get(loadProfile) match {
@@ -258,18 +255,12 @@ object LoadProfileService extends SimonaService {
 
     activations.foreach { case (loadProfile, nextTick) =>
       registeredAgents.get(loadProfile).foreach { registrantsContainer =>
-        def dataRetrievalFunc(time: ZonedDateTime): Option[SecondaryData] = {
-          loadProfile match {
-            case LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE =>
-              Some(LoadDataFunction(loadProfileStore.randomEntrySupplier(time)))
-            case _ =>
-              loadProfileStore.entry(time, loadProfile).map(LoadData.apply)
-          }
-        }
+        def dataRetrievalFunc(time: ZonedDateTime): SecondaryData =
+          LoadDataFunction(loadProfileStore.entryFunc(time, loadProfile))
 
         registrantsContainer.registrantsMap.foreach {
           case (dataTimeType, actors) =>
-            val maybeData = dataTimeType match {
+            val data = dataTimeType match {
               case DataTimeType.Current =>
                 dataRetrievalFunc(time)
 
@@ -289,41 +280,29 @@ object LoadProfileService extends SimonaService {
                 val series =
                   Range.Long
                     .inclusive(tick, endTick, adaptedRes)
-                    .flatMap { tickIt =>
+                    .map { tickIt =>
                       val timeIt = tickIt.toDateTime
                       val data = dataRetrievalFunc(timeIt)
 
-                      data.map(tickIt -> _)
+                      tickIt -> data
                     }
                     .to(SortedMap)
 
-                Some(
-                  SecondarySeriesData(
-                    reduceTimeSeriesResolution(series, forecastResTime)
-                  )
+                SecondarySeriesData(
+                  reduceTimeSeriesResolution(series, forecastResTime)
                 )
 
             }
 
-            maybeData match {
-              case Some(data) =>
-                /* Sending the found value to the requester */
-                actors.foreach(
-                  _ ! DataProvision(
-                    tick,
-                    ctx.self,
-                    data,
-                    Some(nextTick),
-                  )
-                )
-              case None =>
-                /* There is no data available in the source. */
-                ctx.log.warn(
-                  s"No data found for load profile {} for time: {}",
-                  loadProfile,
-                  time,
-                )
-            }
+            /* Sending the found value to the requester */
+            actors.foreach(
+              _ ! DataProvision(
+                tick,
+                ctx.self,
+                data,
+                Some(nextTick),
+              )
+            )
         }
       }
 

@@ -88,7 +88,6 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.95)}"),
     null,
     typeInput,
-    false,
   )
 
   "WecModel" should {

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.storage
 
-import edu.ie3.simona.model.participant.ParticipantFlexModel
+import edu.ie3.simona.model.participant.flex.AbstractEnergyBoundariesFlexModel
 import edu.ie3.simona.model.participant.storage.StorageModel.StorageState
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.{
@@ -16,13 +16,13 @@ import edu.ie3.simona.ontology.messages.flex.{
 import edu.ie3.simona.service.DataTimeType
 
 class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
-    extends ParticipantFlexModel[
-      StorageState
-    ] {
+    extends AbstractEnergyBoundariesFlexModel[StorageState] {
+
+  override val hasEnergyFlexibility: Boolean = true
 
   override def determineFlexOptions(
       state: StorageState,
-      dateTimeType: DataTimeType,
+      dataTimeType: DataTimeType,
   ): FlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(

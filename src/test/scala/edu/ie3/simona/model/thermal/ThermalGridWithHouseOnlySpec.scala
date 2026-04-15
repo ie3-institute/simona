@@ -226,12 +226,12 @@ class ThermalGridWithHouseOnlySpec
     "handling thermal energy consumption from grid" should {
 
       "deliver the house state by just letting it cool down, if just no feed in is given" in {
-        val (thermalGridOperatingPoint, reachedThreshold) =
+        val thermalGridOperatingPoint =
           thermalGrid.handleConsumption(initialHpState)
+        val reachedThreshold =
+          thermalGrid.getThreshold(initialHpState, thermalGridOperatingPoint)
 
-        reachedThreshold shouldBe Some(
-          SimpleThermalThreshold(3600)
-        )
+        reachedThreshold shouldBe Some(SimpleThermalThreshold(3600))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
       }
     }
@@ -256,11 +256,10 @@ class ThermalGridWithHouseOnlySpec
           thermalDemandOfHouseAndWaterStorage,
         )
 
-        val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid.handleFeedIn(
-            state,
-            testGridQDotInfeed,
-          )
+        val thermalGridOperatingPoint =
+          thermalGrid.handleFeedIn(state, testGridQDotInfeed)
+        val reachedThreshold =
+          thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
         reachedThreshold shouldBe Some(StorageFull(5846L))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -291,11 +290,10 @@ class ThermalGridWithHouseOnlySpec
           thermalDemandOfHouseAndWaterStorage,
         )
 
-        val (thermalGridOperatingPoint, reachedThreshold) =
-          thermalGrid.handleFeedIn(
-            state,
-            qDotInfeed,
-          )
+        val thermalGridOperatingPoint =
+          thermalGrid.handleFeedIn(state, qDotInfeed)
+        val reachedThreshold =
+          thermalGrid.getThreshold(state, thermalGridOperatingPoint)
 
         reachedThreshold shouldBe Some(StorageFull(3986L))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
@@ -330,35 +328,28 @@ class ThermalGridWithHouseOnlySpec
           thermalDemands = onlyThermalDemandOfHouse,
         )
 
-        thermalGrid.handleFeedIn(
-          initState,
+        val thermalGridOperatingPoint =
+          thermalGrid.handleFeedIn(initState, testGridQDotInfeed)
+        val reachedThreshold =
+          thermalGrid.getThreshold(initState, thermalGridOperatingPoint)
+
+        thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           testGridQDotInfeed,
-        ) match {
-          case (
-                thermalGridOperatingPoint,
-                Some(SimpleThermalThreshold(thresholdTick)),
-              ) =>
-            thresholdTick shouldBe 3600
-            thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
-              testGridQDotInfeed,
-              testGridQDotInfeed,
-              zeroKW,
-              zeroKW,
-            )
-          case _ => fail("Thermal grid state updated failed")
-        }
+          testGridQDotInfeed,
+          zeroKW,
+          zeroKW,
+        )
+        reachedThreshold shouldBe Some(SimpleThermalThreshold(3600))
       }
 
       "deliver proper result, if energy is consumed from the grid" in {
-        thermalGrid.handleConsumption(initialHpState) match {
-          case (
-                thermalGridOperatingPoint,
-                Some(SimpleThermalThreshold(thresholdTick)),
-              ) =>
-            thresholdTick shouldBe 3600L
-            thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
-          case _ => fail("Thermal grid state updated failed")
-        }
+        val thermalGridOperatingPoint =
+          thermalGrid.handleConsumption(initialHpState)
+        val reachedThreshold =
+          thermalGrid.getThreshold(initialHpState, thermalGridOperatingPoint)
+
+        thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint.zero
+        reachedThreshold shouldBe Some(SimpleThermalThreshold(3600))
       }
     }
   }
