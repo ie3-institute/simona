@@ -26,7 +26,7 @@ import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
 import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
-import edu.ie3.simona.util.SimonaConstants.PRE_INIT_TICK
+import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.{Logger, LoggerFactory}
@@ -166,14 +166,17 @@ object ExtSimSetup {
         connection match {
           case extPrimaryDataConnection: ExtPrimaryDataConnection =>
             val serviceRef = context.spawn(
-              ExtPrimaryServiceWorker(scheduler),
+              ExtPrimaryServiceWorker(
+                scheduler,
+                InitExtPrimaryData(extPrimaryDataConnection),
+                ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+              ),
               "ExtPrimaryDataService_$index",
             )
 
-            setupService(
-              extPrimaryDataConnection,
+            extPrimaryDataConnection.setActorRefs(
               serviceRef,
-              InitExtPrimaryData.apply,
+              extSimAdapter,
             )
 
             extSimSetupData.update(extPrimaryDataConnection, serviceRef)

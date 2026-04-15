@@ -7,15 +7,12 @@
 package edu.ie3.simona.service.primary
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.value.{PValue, Value}
+import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.primary.ProvidePrimaryData
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -68,33 +65,22 @@ class ExtPrimaryServiceWorkerSpec
         Map(validUuid -> classOf[PValue]).asJava
       )
 
-      val primaryDataService = spawn(ExtPrimaryServiceWorker(scheduler.ref))
-      extPrimaryDataConnection.setActorRefs(
-        primaryDataService,
-        extSimAdapter.ref,
-      )
-
-      val key =
+      val serviceKey =
         ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
-      extPrimaryDataConnection.setActorRefs(
-        primaryDataService,
-        extSimAdapter.ref,
+      val serviceRef = spawn(
+        ExtPrimaryServiceWorker(
+          scheduler.ref,
+          InitExtPrimaryData(extPrimaryDataConnection),
+          serviceKey,
+        )
       )
+      extPrimaryDataConnection.setActorRefs(serviceRef, extSimAdapter.ref)
 
-      primaryDataService ! Create(
-        InitExtPrimaryData(extPrimaryDataConnection),
-        key,
-      )
-
-      scheduler.expectMessage(
-        ScheduleActivation(primaryDataService, INIT_SIM_TICK, Some(key))
-      )
-
-      primaryDataService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(primaryDataService))
+      // no message for scheduling first service activation expected
+      scheduler.expectNoMessage()
     }
 
     "refuse registration for wrong registration request" in {
@@ -104,27 +90,30 @@ class ExtPrimaryServiceWorkerSpec
         Map(validUuid -> classOf[PValue]).asJava
       )
 
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
       // we need to create another service, since we want to continue using the other in later tests
-      val service = spawn(ExtPrimaryServiceWorker(schedulerProbe.ref))
-      extPrimaryDataConnection.setActorRefs(service, extSimAdapter.ref)
-
-      val key =
-        ScheduleLock.singleKey(TSpawner, schedulerProbe.ref, INIT_SIM_TICK)
-
-      service ! Create(
-        InitExtPrimaryData(extPrimaryDataConnection),
-        key,
+      val serviceRef = spawn(
+        ExtPrimaryServiceWorker(
+          scheduler.ref,
+          InitExtPrimaryData(extPrimaryDataConnection),
+          serviceKey,
+        )
       )
+      extPrimaryDataConnection.setActorRefs(serviceRef, extSimAdapter.ref)
 
-      service ! Activation(INIT_SIM_TICK)
+      serviceRef ! Activation(INIT_SIM_TICK)
 
-      service ! PrimaryServiceRegistrationMessage(
+      serviceRef ! PrimaryServiceRegistrationMessage(
         systemParticipant.ref,
         UUID.randomUUID(),
       )
 
       val deathWatch = createTestProbe("deathWatch")
-      deathWatch.expectTerminated(service.ref)
+      deathWatch.expectTerminated(serviceRef.ref)
     }
 
     "refuse registration for unknown participant uuid" in {
@@ -134,27 +123,30 @@ class ExtPrimaryServiceWorkerSpec
         Map(validUuid -> classOf[PValue]).asJava
       )
 
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
       // we need to create another service, since we want to continue using the other in later tests
-      val service = spawn(ExtPrimaryServiceWorker(schedulerProbe.ref))
-      extPrimaryDataConnection.setActorRefs(service, extSimAdapter.ref)
-
-      val key =
-        ScheduleLock.singleKey(TSpawner, schedulerProbe.ref, INIT_SIM_TICK)
-
-      service ! Create(
-        InitExtPrimaryData(extPrimaryDataConnection),
-        key,
+      val serviceRef = spawn(
+        ExtPrimaryServiceWorker(
+          scheduler.ref,
+          InitExtPrimaryData(extPrimaryDataConnection),
+          serviceKey,
+        )
       )
+      extPrimaryDataConnection.setActorRefs(serviceRef, extSimAdapter.ref)
 
-      service ! Activation(INIT_SIM_TICK)
+      serviceRef ! Activation(INIT_SIM_TICK)
 
-      service ! PrimaryServiceRegistrationMessage(
+      serviceRef ! PrimaryServiceRegistrationMessage(
         systemParticipant.ref,
         invalidUuid,
       )
 
       val deathWatch = createTestProbe("deathWatch")
-      deathWatch.expectTerminated(service.ref)
+      deathWatch.expectTerminated(serviceRef.ref)
     }
   }
 
@@ -164,23 +156,19 @@ class ExtPrimaryServiceWorkerSpec
       Map(validUuid -> classOf[PValue]).asJava
     )
 
-    val serviceRef = spawn(ExtPrimaryServiceWorker(scheduler.ref))
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
+
+    val serviceRef = spawn(
+      ExtPrimaryServiceWorker(
+        scheduler.ref,
+        InitExtPrimaryData(extPrimaryDataConnection),
+        serviceKey,
+      )
+    )
     extPrimaryDataConnection.setActorRefs(serviceRef, extSimAdapter.ref)
-
-    "init the service actor" in {
-      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      serviceRef ! Create(InitExtPrimaryData(extPrimaryDataConnection), key)
-
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
-
-      serviceRef ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(serviceRef, None))
-    }
 
     "correctly register a forwarded request" in {
       serviceRef ! PrimaryServiceRegistrationMessage(

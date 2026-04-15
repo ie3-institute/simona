@@ -12,9 +12,9 @@ import edu.ie3.datamodel.io.naming.timeseries.FileIndividualTimeSeriesMetaInform
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
 import edu.ie3.datamodel.models.value.{PValue, SValue, Value}
-import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
-import edu.ie3.datamodel.models.value.SValue
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.config.ConfigParams.{
   CouchbaseParams,
   TimeStampedCsvParams,
@@ -31,13 +31,20 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationFailedMessage,
   WorkerRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
   SourceRef,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.CsvInitPrimaryServiceStateData
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -72,7 +79,8 @@ class PrimaryServiceProxySpec
     with TableDrivenPropertyChecks
     with PartialFunctionValues
     with TimeSeriesTestData
-    with TestResourceHelper {
+    with TestResourceHelper
+    with TestSpawnerTyped {
   // this works both on Windows and Unix systems
   val baseDirectoryPath: Path = getResourcePath("_it")
   val csvSep = ";"
@@ -126,9 +134,6 @@ class PrimaryServiceProxySpec
     when(m.self).thenReturn(service.ref)
     m
   }
-  private val validExtPrimaryDataService = spawn(
-    ExtPrimaryServiceWorker(scheduler.ref)
-  )
 
   private val extEntityId =
     UUID.fromString("07bbe1aa-1f39-4dfb-b41b-339dec816ec4")
@@ -248,6 +253,25 @@ class PrimaryServiceProxySpec
     }
 
     "build proxy correctly when there is an external simulation" in {
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val validExtPrimaryDataService = spawn(
+        ExtPrimaryServiceWorker(
+          scheduler.ref,
+          InitExtPrimaryData(extPrimaryDataConnection),
+          serviceKey,
+        )
+      )
+      extPrimaryDataConnection.setActorRefs(
+        validExtPrimaryDataService,
+        extSimAdapter.ref,
+      )
+
       PrimaryServiceProxy.prepareStateData(
         validPrimaryConfig,
         simulationStart,
