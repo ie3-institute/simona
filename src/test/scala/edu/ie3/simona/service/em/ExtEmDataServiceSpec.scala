@@ -288,8 +288,8 @@ class ExtEmDataServiceSpec
             new em.PowerLimitFlexOptions(
               emAgent1UUID,
               emAgent1UUID,
-              0.005.asMegaWatt,
               0.asMegaWatt,
+              0.005.asMegaWatt,
               0.01.asMegaWatt,
             )
           )

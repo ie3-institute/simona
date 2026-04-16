@@ -98,13 +98,8 @@ object FlexibilityMessage {
     *
     * @param tick
     *   The tick to request [[FlexOptions]] for.
-    * @param disaggregated
-    *   True, if disaggregated flex options should be provided (default: false).
     */
-  final case class FlexActivation(
-      override val tick: Long,
-      disaggregated: Boolean = false,
-  ) extends FlexRequest
+  final case class FlexActivation(override val tick: Long) extends FlexRequest
 
   /** Message that provides [[FlexOptions]] to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via

@@ -16,11 +16,7 @@ import edu.ie3.simona.event.ResultEvent.{
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelShell
-import edu.ie3.simona.ontology.messages.AgentMessage.{
-  ActivationRequest,
-  disaggregated,
-  tick,
-}
+import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -151,9 +147,6 @@ object EmAgent {
       msg: ActivationRequest,
   ): Behavior[Message] = {
     val tick = msg.tick
-    val disaggregated = msg.disaggregated
-    val updatedModelShell =
-      modelShell.copy(sentDisaggregatedFlex = disaggregated)
 
     val flexOptionsCore = core.activate(tick)
 
@@ -162,25 +155,22 @@ object EmAgent {
     msg match {
       case flexInit: FlexInit =>
         // validate initialization message
-        updatedModelShell.validateInit(flexInit)
+        modelShell.validateInit(flexInit)
       case _ =>
       // no validation to do
     }
 
     val activationMsg = tick match {
       case INIT_SIM_TICK =>
-        FlexInit(
-          updatedModelShell.getFlexType,
-          updatedModelShell.getDataTimeType,
-        )
-      case _ => FlexActivation(tick, disaggregated)
+        FlexInit(modelShell.getFlexType, modelShell.getDataTimeType)
+      case _ => FlexActivation(msg.tick)
     }
 
     toActivate.foreach(_ ! activationMsg)
 
     newCore.fold(
-      awaitingFlexOptions(emData, updatedModelShell, inputHandler, _),
-      awaitingCompletions(emData, updatedModelShell, inputHandler, _),
+      awaitingFlexOptions(emData, modelShell, inputHandler, _),
+      awaitingCompletions(emData, modelShell, inputHandler, _),
     )
   }
 
@@ -232,7 +222,8 @@ object EmAgent {
 
       val allFlexOptions = flexOptionsCore.getFlexOptions
 
-      val updatedModelShell = modelShell.updateFlexOptions(allFlexOptions)
+      val updatedModelShell =
+        modelShell.updateAggregatedFlexOptions(allFlexOptions)
 
       if emData.outputConfig.flexResult then {
         val flexResult = updatedModelShell.determineResults(

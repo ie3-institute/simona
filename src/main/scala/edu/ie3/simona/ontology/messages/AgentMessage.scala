@@ -6,10 +6,7 @@
 
 package edu.ie3.simona.ontology.messages
 
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexActivation,
-  FlexRequest,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.FlexRequest
 
 object AgentMessage {
 
@@ -26,11 +23,6 @@ object AgentMessage {
         case a: Activation  => a.tick
         case f: FlexRequest => f.tick
       }
-
-    def disaggregated: Boolean = activation match {
-      case f: FlexActivation => f.disaggregated
-      case _                 => false
-    }
   }
 
 }

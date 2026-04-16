@@ -8,23 +8,23 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptions}
+import edu.ie3.simona.api.data.model.em.{
+  EmSetPoint,
+  FlexOptions,
+  MultiFlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
-import edu.ie3.simona.ontology.messages.flex.FlexOptions.TYPE
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{
-  DisaggregatedFlexOptions,
-  PowerLimitFlexOptions,
-}
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.{MapHasAsScala, MapHasAsJava}
 
 /** Basic service core for an [[ExtEmDataService]].
   * @param uuidToAgent
@@ -42,8 +42,14 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *   ReceiveDataMap: uuid to completions.
   * @param nextActivation
   *   A map: uuid to next activation tick.
+  * @param allFlexOptions
+  *   Map: uuid to flex options. This map stores all flex options received for
+  *   the current tick.
   * @param flexOptions
   *   ReceiveDataMap: uuid to flex option.
+  * @param disaggregated
+  *   A map: uuid of em agent to boolean. It defines for which em agent we
+  *   should return disaggregated flex options.
   * @param sendOptionsToExt
   *   True, if flex options should be sent to the external simulation.
   * @param canHandleSetPoints
@@ -67,7 +73,9 @@ final case class EmServiceBaseCore(
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
     override val nextActivation: Map[UUID, Long] = Map.empty,
+    override val allFlexOptions: Map[UUID, FlexOptions] = Map.empty,
     flexOptions: ReceiveDataMap[UUID, FlexOptions] = ReceiveDataMap.empty,
+    disaggregated: Map[UUID, Boolean] = Map.empty,
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, EmSetPoint]] = None,
@@ -124,14 +132,16 @@ final case class EmServiceBaseCore(
       val flexRequests = provideEmData.flexRequests.asScala.flatMap {
         case (entity, request) =>
           uuidToAgent.get(entity).map { ref =>
-            ref ! FlexActivation(tick, request.disaggregated)
-            entity
+            ref ! FlexActivation(tick)
+
+            entity -> request.disaggregated
           }
-      }.toSet
+      }.toMap
 
       val updatedState = copy(
-        flexOptions = ReceiveDataMap(flexRequests),
-        completions = completions.addExpectedKeys(flexRequests),
+        flexOptions = ReceiveDataMap(flexRequests.keySet),
+        completions = completions.addExpectedKeys(flexRequests.keySet),
+        disaggregated = disaggregated ++ flexRequests,
         sendOptionsToExt = flexRequests.nonEmpty,
       )
 
@@ -213,15 +223,35 @@ final case class EmServiceBaseCore(
 
     flexResponse match {
       case provideFlexOptions: ProvideFlexOptions =>
-        val updated = handleFlexOptions(receiverUuid, provideFlexOptions)
+        val (updated, updatedAdditional) =
+          handleFlexOptions(receiverUuid, provideFlexOptions)
 
         if updated.isComplete then {
           // we received all flex options
 
           val data = updated.receivedData
 
+          val updatedData = data.map { case (uuid, flexOption) =>
+            disaggregated.get(uuid) match {
+              case Some(value) if value =>
+                val disaggregatedData = uuidToInferior
+                  .getOrElse(uuid, Set.empty)
+                  .map(inferior => inferior -> allFlexOptions(inferior))
+                  .toMap
+
+                uuid -> new MultiFlexOptions(
+                  uuid,
+                  disaggregatedData.asJava,
+                )
+
+              case _ =>
+                uuid -> flexOption
+            }
+          }
+
           val updatedCore = copy(
             flexOptions = ReceiveDataMap.empty,
+            allFlexOptions = updatedAdditional,
             canHandleSetPoints = true,
           )
 
@@ -231,7 +261,7 @@ final case class EmServiceBaseCore(
             (updatedCore, None)
 
           } else if sendOptionsToExt then {
-            val dataToSend = data.map { case (uuid, option) =>
+            val dataToSend = updatedData.map { case (uuid, option) =>
               uuid -> List(option)
             }
 
@@ -255,7 +285,13 @@ final case class EmServiceBaseCore(
         } else {
           log.debug(s"Missing flex options for: ${updated.getExpectedKeys}")
 
-          (copy(flexOptions = updated), None)
+          (
+            copy(
+              flexOptions = updated,
+              allFlexOptions = updatedAdditional,
+            ),
+            None,
+          )
         }
 
       case completion: FlexCompletion =>
@@ -286,6 +322,7 @@ final case class EmServiceBaseCore(
           (
             copy(
               completions = expectedCompletions,
+              disaggregated = Map.empty,
               sendOptionsToExt = false,
               canHandleSetPoints = false,
               nextActivation = updatedNextActivation,
@@ -319,29 +356,46 @@ final case class EmServiceBaseCore(
   }
 
   /** Method to handle flex options.
-    * @param recipient
-    *   The recipient of the flex options.
+    * @param receiver
+    *   The receiver of the flex options.
     * @param provideFlexOptions
     *   The provided flex options.
     * @return
-    *   An updated receive data map.
+    *   An updated service core and a map: uuid to flex options
     */
   private def handleFlexOptions(
-      recipient: UUID,
+      receiver: UUID,
       provideFlexOptions: ProvideFlexOptions,
-  )(using log: Logger): ReceiveDataMap[UUID, FlexOptions] = {
-    val modelUuid = provideFlexOptions.modelUuid
+  ): (
+      ReceiveDataMap[UUID, FlexOptions],
+      Map[UUID, FlexOptions],
+  ) = provideFlexOptions match {
+    case ProvideFlexOptions(
+          modelUuid: UUID,
+          PowerLimitFlexOptions(ref, min, max),
+        ) =>
+      val result = new em.PowerLimitFlexOptions(
+        receiver,
+        modelUuid,
+        min.toQuantity,
+        ref.toQuantity,
+        max.toQuantity,
+      )
 
-    provideFlexOptions.flexOptions match {
-      case fo: TYPE[PowerLimitFlexOptions] =>
-        if flexOptions.expects(modelUuid) then {
-          flexOptions.addData(modelUuid, fo.toExt(recipient, modelUuid))
-        } else flexOptions
+      if flexOptions.expects(modelUuid) then {
+        (
+          flexOptions.addData(modelUuid, result),
+          allFlexOptions.updated(modelUuid, result),
+        )
+      } else {
+        (
+          flexOptions,
+          allFlexOptions.updated(modelUuid, result),
+        )
+      }
 
-      case other =>
-        log.warn(s"Cannot handle flex option: $flexOptions")
-
-        flexOptions
-    }
+    case _ =>
+      (flexOptions, allFlexOptions)
   }
+
 }

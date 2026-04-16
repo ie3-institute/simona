@@ -15,7 +15,3 @@ trait FlexOptions {
 
   def toExt(recipient: UUID, model: UUID): ExtFlexOptions
 }
-
-object FlexOptions {
-  type TYPE[FO <: FlexOptions] = FO | DisaggregatedFlexOptions[FO]
-}
