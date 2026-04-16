@@ -115,7 +115,7 @@ class SolarIrradiationCalculationSpec
         (
           "2011-06-21T12:00:00-06:00",
           -1.57097d, // long of 90W
-          -0.006302291304357792.
+          -0.006302291304357792,
         ),
         (
           "2011-06-21T12:00:00+12:00",
@@ -195,7 +195,8 @@ class SolarIrradiationCalculationSpec
       )
 
       forAll(testCases) { (time, longitude, omegaSol) =>
-        val dayAngleJ= SolarIrradiationCalculation.calcAngleJ(ZonedDateTime.parse(time))
+        val dayAngleJ =
+          SolarIrradiationCalculation.calcAngleJ(ZonedDateTime.parse(time))
 
         When("the hour angle is calculated")
         val omegaCalc = SolarIrradiationCalculation.calcHourAngleOmega(
