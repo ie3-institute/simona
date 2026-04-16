@@ -101,6 +101,27 @@ class SolarIrradiationCalculationSpec
     "calculate the hour angle omega correctly" in {
       val testCases = Table(
         ("time", "longitudeInRad", "omegaSol"),
+        // Sun needs to be above meridian at local noon == omega should be almost zero
+        (
+          "2011-06-21T12:00:00+00:00",
+          0d, // long of 0E
+          -0.006128618099254653,
+        ),
+        (
+          "2011-06-21T12:00:00+06:00",
+          +1.57097d, // long of 90E
+          -0.0059549448941510486,
+        ),
+        (
+          "2011-06-21T12:00:00-06:00",
+          -1.57097d, // long of 90W
+          -0.006302291304357792.
+        ),
+        (
+          "2011-06-21T12:00:00+12:00",
+          3.14d, // long of 0E
+          -0.0077212716890476835,
+        ),
         (
           "2019-01-01T05:00:00+01:00",
           0.16d,
