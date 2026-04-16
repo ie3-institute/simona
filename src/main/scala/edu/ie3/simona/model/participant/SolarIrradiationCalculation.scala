@@ -10,7 +10,7 @@ import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import squants.{Angle, Radians}
 import squants.time.Minutes
 
-import java.time.ZonedDateTime
+import java.time.{ZoneId, ZonedDateTime}
 import scala.math.*
 
 /** A collection of methods used for solar irradiation calculation, as required
@@ -62,7 +62,7 @@ object SolarIrradiationCalculation {
     * on its axis at 15◦ per hour; morning negative, afternoon positive.
     *
     * @param time
-    *   The requested time (which is transformed to solar time).
+    *   The requested time (which is transformed to UTC and then to solar time).
     * @param angleJ
     *   The day angle J.
     * @param longitude
@@ -83,9 +83,11 @@ object SolarIrradiationCalculation {
       ) + 0.3387 * cos(3d * jInRad + 1.8360863730980346)
     )
 
+    val utcTime = time.withZoneSameInstant(ZoneId.of("UTC"))
     val lmt = Minutes(
-      time.getHour * 60d + time.getMinute - 4d * (15d - lambda)
+      utcTime.getHour * 60d + utcTime.getMinute + 4d * (0d + lambda)
     )
+
     val st = lmt + et
 
     Radians((st.toHours - 12).toRadians * 15d)
