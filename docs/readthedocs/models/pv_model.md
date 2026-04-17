@@ -50,7 +50,7 @@ J = 2 \pi(\frac{n-1}{365})
 $$
 
 *with*\
-**n** = number of the day in the year (e.g. 1 January = 1, 20 February = 51)
+**$n$** = number of the day in the year (e.g. 1 January = 1, 20 February = 51)
 
 Based on $J$ the declination angle $\delta$ (in radian!) can be calculated as follows:
 
@@ -84,25 +84,27 @@ $$
 $$
 
 *with*\
-**ST** = local solar time (in hours)
+**$ST$** = local solar time (in hours)
 
 $$
 ST = LMT + ET
 $$
 
 *with*\
-**LMT** = local mean time (in minutes)\
-**ET** = equation of time (in minutes)
+**$LMT$** = local mean time (in minutes)\
+**$ET$** = equation of time (in minutes)
 
 $$
-LMT = hour_{TimeBasis} \cdot 60 + min{TimeBasis} + 4 \cdot (L_{St} + \lambda)
+LMT = hour_{TimeBasis} \cdot 60 + min_{TimeBasis} + 4 \cdot (L_{St} + \lambda)
 $$
 
 *with*\
 **$hour_{TimeBasis}$** = Hour of the time basis (we choose UTC as time basis) \
 **$min_{TimeBasis}$** = Minute of the time basis (we choose UTC as time basis) \
-**$L_St$** = Standard meridian for the time (since we choose UTC as time basis, $L_{St}$ is zero) \
+**$L_{St}$** = Standard meridian for the time basis (since we choose UTC as time basis, $L_{St}$ is zero) \
 **λ** = longitude of the location (in Degrees) of the PV panel
+
+**Note:** The formula in {cite:cts}`Duffie.2013` is defining λ in degrees west being positive. However, since we are using the longitude directly, which is negative westwards, this changes the sign in the formula.
 
 $$
 \begin{aligned}
@@ -248,7 +250,7 @@ G_{SC} = 1367 {\frac{W}{m^2}}
 $$
 
 *with*\
-**J** = day angle
+**$J$** = day angle
 
 **References:**
 
