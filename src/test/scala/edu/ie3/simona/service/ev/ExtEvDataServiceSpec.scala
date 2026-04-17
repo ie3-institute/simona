@@ -34,7 +34,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.testkit.TestKit.awaitCond
 import tech.units.indriya.quantity.Quantities
 
-import java.util.UUID
+import java.util.{OptionalLong, UUID}
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
@@ -158,7 +158,7 @@ class ExtEvDataServiceSpec
       extEvData.sendExtMsg(
         new ProvideArrivingEvs(
           Map.empty[UUID, java.util.List[EvModel]].asJava,
-          Some(long2Long(0L)).toJava,
+          OptionalLong.of(0L),
         )
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
@@ -241,7 +241,7 @@ class ExtEvDataServiceSpec
       extEvData.sendExtMsg(
         new ProvideArrivingEvs(
           Map.empty[UUID, java.util.List[EvModel]].asJava,
-          Some(long2Long(0L)).toJava,
+          OptionalLong.of(0L),
         )
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
@@ -338,7 +338,7 @@ class ExtEvDataServiceSpec
       extEvData.sendExtMsg(
         new ProvideArrivingEvs(
           Map.empty[UUID, java.util.List[EvModel]].asJava,
-          Some(long2Long(0L)).toJava,
+          OptionalLong.of(0L),
         )
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
@@ -464,7 +464,7 @@ class ExtEvDataServiceSpec
       extEvData.sendExtMsg(
         new ProvideArrivingEvs(
           Map.empty[UUID, java.util.List[EvModel]].asJava,
-          Some(long2Long(0L)).toJava,
+          OptionalLong.of(0L),
         )
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
@@ -623,7 +623,7 @@ class ExtEvDataServiceSpec
       extEvData.sendExtMsg(
         new ProvideArrivingEvs(
           Map.empty[UUID, java.util.List[EvModel]].asJava,
-          Some(long2Long(0L)).toJava,
+          OptionalLong.of(0L),
         )
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
@@ -642,7 +642,9 @@ class ExtEvDataServiceSpec
         evcs2UUID -> List[EvModel](ev2).asJava,
       ).asJava
 
-      extEvData.sendExtMsg(new ProvideArrivingEvs(arrivals, None.toJava))
+      extEvData.sendExtMsg(
+        new ProvideArrivingEvs(arrivals, OptionalLong.empty())
+      )
 
       // ev service should receive movements msg at this moment
       // scheduler should receive schedule msg
@@ -702,7 +704,7 @@ class ExtEvDataServiceSpec
       extEvData.sendExtMsg(
         new ProvideArrivingEvs(
           Map.empty[UUID, java.util.List[EvModel]].asJava,
-          Some(long2Long(0L)).toJava,
+          OptionalLong.of(0L),
         )
       )
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(evService))
@@ -720,7 +722,7 @@ class ExtEvDataServiceSpec
       ).asJava
 
       extEvData.sendExtMsg(
-        new ProvideArrivingEvs(arrivals, None.toJava)
+        new ProvideArrivingEvs(arrivals, OptionalLong.empty())
       )
 
       // ev service should receive movements msg at this moment
