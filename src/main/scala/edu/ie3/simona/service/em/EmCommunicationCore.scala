@@ -204,9 +204,6 @@ case class EmCommunicationCore(
       } else {
         log.info(s"Request to finish for tick '$tick' received.")
 
-        // deactivate agents by sending an IssueNoControl message
-        // activatedAgents.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
-
         val nextTick: OptionalLong = if emStates.exists(_._2.isActivated) then {
           requestEmCompletion.maybeNextTick
         } else getMaybeNextTick(tick)
@@ -227,7 +224,6 @@ case class EmCommunicationCore(
 
     case provideEmData: ProvideEmData =>
       log.debug(s"Handling ext message: $provideEmData")
-      val extTick = provideEmData.tick
 
       // handling of requests
       val flexRequests = provideEmData.flexRequests.asScala
@@ -241,7 +237,7 @@ case class EmCommunicationCore(
 
             agent ! FlexActivation(tick, request.disaggregated, true)
 
-            val count = uuidToInferior(uuid).size
+            val count = Try(uuidToInferior(uuid).size).getOrElse(0)
 
             // uuid -> number of sent flex requests
             uuid -> count
@@ -284,14 +280,10 @@ case class EmCommunicationCore(
         completions = completions.addExpectedKeys(mapping.keySet),
       )
 
-      // log.warn(s"EmStates: ${newState.emStates}")
-      // log.warn(s"Message to ext: $msgToExt")
-
       (newState, msgToExt)
 
     case comMsg: EmCommunicationMessages =>
       val messages = comMsg.messages.asScala
-      val extTick = comMsg.tick
 
       val mapping = messages.flatMap { msg =>
         val receiver = msg.receiver
