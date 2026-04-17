@@ -122,6 +122,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `EnergyPriceService` initialization [#1747](https://github.com/ie3-institute/simona/issues/1747)
 - Fixed EVCS `OperationChangeIndiactor` in edge cases [#1762](https://github.com/ie3-institute/simona/issues/1762)
 - Fixed `AbstractEnergyBoundariesFlexModel` next tick determination [#1769](https://github.com/ie3-institute/simona/issues/1769)
+- Fix unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
 - Fixed hour angle calculation in `PvModel` [#574](https://github.com/ie3-institute/simona/issues/574)
 - Documentation of `PvModel` [#1776](https://github.com/ie3-institute/simona/issues/1776)
 
