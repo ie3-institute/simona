@@ -55,9 +55,10 @@ $$
 Based on $J$ the declination angle $\delta$ (in radian!) can be calculated as follows:
 
 $$
-\begin{eqnarray*}\delta = 0.006918 - 0.399912 \cdot \cos(J) + 0.070257 \cdot
+\begin{aligned}
+\delta = 0.006918 - 0.399912 \cdot \cos(J) + 0.070257 \cdot
 \sin(J) \\ - 0.006758 \cdot \cos(2\cdot J) + 0.000907 \cdot \sin(2 \cdot J) \\ - 0.002697 \cdot \cos(3 \cdot J) + 0.00148 \cdot \sin(3 \cdot J)
-\end{eqnarray*}
+\end{aligned}
 $$
 
 **References:**
@@ -102,9 +103,10 @@ $$
 **λ** = longitude of the location of the PV panel
 
 $$
-\begin{eqnarray*}ET = 0.0066 + 7.3525 \cdot \cos(J + 1.4992378274631293) \\ +
-9.9359 \cdot \cos(2 \cdot J + 1.9006635554218247) \\ + 0.3387 \cdot \cos(3 \cdot J + 1.8360863730980346)
-\end{eqnarray*}
+\begin{aligned}
+ET = 0.0066 + 7.3525 \cdot \cos(J + 1.4992378274631293) \\ +
+9.9359 \cdot \cos(2 \cdot J + 1.9006635554218247) \\+ 0.3387 \cdot \cos(3 \cdot J + 1.8360863730980346)
+\end{aligned}
 $$
 
 *with*\
@@ -183,7 +185,7 @@ The angle of incidence is the angle between the Sun\'s rays and the PV panel.
 It can be calculated as follows:
 
 $$
-\begin{eqnarray*}
+\begin{aligned}
 \theta_{g} = \arccos(\sin(\delta) \cdot \sin(\phi) \cdot
 \cos(\gamma_{e}) \\ - \sin(\delta) \cdot \cos(\phi) \cdot
 \sin(\gamma_{e}) \cdot \cos(\alpha_{e}) \\ +
@@ -192,7 +194,7 @@ $$
 \cdot \cos(\alpha_{e}) \cdot \cos(\omega) \\ +
 \cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e}) \cdot
 \sin(\omega))
-\end{eqnarray*}
+\end{aligned}
 $$
 
 *with*\
@@ -231,9 +233,9 @@ $$
 The extraterrestrial radiance $G_0$ is calculated by multiplying the eccentricity correction factor.
 
 $$
-\begin{eqnarray*}
+\begin{aligned}
 e = 1.00011 + 0.034221 \cdot \cos(J) + 0.001280 \cdot \sin(J) \\ + 0.000719 \cdot \cos(2 \cdot J) + 0.000077 \cdot \sin(2 \cdot J)
-\end{eqnarray*}
+\end{aligned}
 $$
 
 with the solar constant
@@ -259,11 +261,11 @@ For our use case, $\omega_{2}$ is normally set to the hour angle one hour after 
 Within one hour distance to sunrise/sunset, we adjust $\omega_{1}$ and $\omega_{2}$ accordingly:
 
 $$
-\begin{eqnarray*}
+\begin{aligned}
 (\omega_{1}, \omega_{2}) = \begin{cases}
 (\omega_{SR}, \omega_{SR} + \Delta\omega), & \text{for}  (\omega_{SR}-\frac{\Delta \omega}{2}) < \omega < \omega_{SR} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{SR} \le \omega \le (\omega_{SS}- \Delta\omega) \\ (\omega_{SS}-\Delta\omega,\omega_{SS}), & \text{for }(\omega_{SR}-\Delta\omega) < \omega < (\omega_{SS}-\frac{\Delta\omega}{2})
 \end{cases}
-\end{eqnarray*}
+\end{aligned}
 $$
 
 Additionally, the condition $\theta_{g} < 90°$ must be met (the sun must not be behind the surface).
@@ -277,14 +279,14 @@ Additionally, the condition $\theta_{g} < 90°$ must be met (the sun must not be
 From here on, formulas from given reference below are used:
 
 $$
-\begin{eqnarray*}
+\begin{aligned}
 a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e}) - 
 \sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\omega_{2} - \omega_{1}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) +
 \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e}) \cdot
 \cos(\alpha_{e})) \cdot (\sin(\omega_{2}) \\ -
 \sin(\omega_{1}))  - (\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e})) \cdot (\cos(\omega_{2}) - \cos(\omega_{1}))
-\end{eqnarray*}
+\end{aligned}
 $$
 
 $$
