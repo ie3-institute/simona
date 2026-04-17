@@ -63,7 +63,7 @@ $$
 
 **References:**
 
-* {cite:cts}`Maleki.2017`
+* {cite:cts}`Maleki.2017` p. 2
 * {cite:cts}`Spencer.1971`
 
 
@@ -117,8 +117,9 @@ For international calculations a more general formulation that can be found in {
 
 **References:**
 
-* {cite:cts}`Watter.2013`
-* {cite:cts}`Maleki.2017`
+* {cite:cts}`Watter.2013` p. 14
+* {cite:cts}`Maleki.2017` p. 3
+* {cite:cts}`Duffie.2013` p. 11 
 * {cite:cts}`Wang.2019`
 
 
@@ -142,7 +143,7 @@ $$
 
 **References:**
 
-* {cite:cts}`Maleki.2017`
+* {cite:cts}`Maleki.2017` p. 20
 * {cite:cts}`Duffie.2013` p. 17 (formula 1.6.10)
 
 
