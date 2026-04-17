@@ -104,7 +104,7 @@ $$
 **$L_{St}$** = Standard meridian for the time basis (since we choose UTC as time basis, $L_{St}$ is zero) \
 **λ** = longitude of the location (in Degrees) of the PV panel
 
-**Note:** The formula in {cite:cts}`Duffie.2013` is defining λ in degrees west being positive. However, since we are using the longitude directly, which is negative westwards, this changes the sign in the formula.
+**Note:** The formula in {cite:cts}`Duffie.2013` p. 11 is defining λ in degrees west being positive. However, since we are using the longitude directly, which is negative westwards, this changes the sign in the formula.
 
 $$
 \begin{aligned}
