@@ -434,7 +434,7 @@ class EmAgentIT
         )
         val hpAgent = spawn(
           ParticipantAgentInit(
-            adaptedWithHeatContainer,
+            withHeatContainerEmIT,
             HpRuntimeConfig(),
             outputConfigOff,
             Right(emAgent),
@@ -458,7 +458,7 @@ class EmAgentIT
         primaryServiceProxy.receiveMessages(3) should contain allOf (
           PrimaryServiceRegistrationMessage(
             hpAgent,
-            adaptedHpInputModel.getUuid,
+            hpInputModelEmIT.getUuid,
           ),
           PrimaryServiceRegistrationMessage(
             loadAgent,
@@ -502,8 +502,8 @@ class EmAgentIT
             DataTimeType.Current,
             WeatherRegistrationData(
               Coordinate(
-                adaptedHpInputModel.getNode.getGeoPosition.getY,
-                adaptedHpInputModel.getNode.getGeoPosition.getX,
+                hpInputModelEmIT.getNode.getGeoPosition.getY,
+                hpInputModelEmIT.getNode.getGeoPosition.getX,
               )
             ),
           )
