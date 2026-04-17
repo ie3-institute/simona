@@ -93,6 +93,7 @@ object ConfigParams {
       filePrefix: String = "",
       fileSuffix: String = "",
       isHierarchic: Boolean = false,
+      bufferOutputs: Boolean = true,
   ) derives ConfigConvert
 
   /** Basic trait for all influxDb1x parameters.

@@ -8,7 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{ConfigFactory, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import scopt.{OptionParser as scoptOptionParser}
+import scopt.OptionParser as scoptOptionParser
 
 import java.io.File
 import java.nio.file.Paths
@@ -21,6 +21,7 @@ object ArgsParser extends LazyLogging {
       mainArgs: Array[String],
       configLocation: Option[String] = None,
       config: Option[TypesafeConfig] = None,
+      extAddress: Option[String] = None,
   )
 
   // build the config parser using scopt library
@@ -39,6 +40,15 @@ object ArgsParser extends LazyLogging {
         )
         .text("Location of the simona config file")
         .minOccurs(1)
+      opt[String]("ext-address")
+        .action((value, args) => args.copy(extAddress = Option(value)))
+        .validate(value =>
+          if value.trim.isEmpty then failure("ext-address cannot be empty")
+          else success
+        )
+        .text(
+          "Comma separated list (no whitespaces!) of initial addresses used for the rest of the cluster to bootstrap"
+        )
     }
   }
 

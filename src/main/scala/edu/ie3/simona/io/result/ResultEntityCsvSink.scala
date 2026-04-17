@@ -155,13 +155,18 @@ object ResultEntityCsvSink {
       outfileName: String,
       resultEntityProcessor: ResultEntityProcessor,
       compressOutputFiles: Boolean,
+      bufferOutputs: Boolean,
       delimiter: String,
   ): ResultEntityCsvSink = {
 
     val file = new File(outfileName)
     val existedBefore = file.exists()
 
-    val writer = new BufferedWriter(new FileWriter(file, existedBefore), 32768)
+    val writer = if bufferOutputs then {
+      new BufferedWriter(new FileWriter(file, existedBefore), 32768)
+    } else {
+      new FileWriter(file, existedBefore)
+    }
 
     val resultEntityCsvSink = new ResultEntityCsvSink(
       outfileName,

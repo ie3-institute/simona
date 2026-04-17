@@ -8,6 +8,7 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -131,7 +132,10 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
       case InitExtEmData(extEmDataConnection, startTime) =>
-        val serviceCore = EmServiceBaseCore()
+        val serviceCore = extEmDataConnection.mode match {
+          case EmMode.BASE             => EmServiceBaseCore()
+          case EmMode.EM_COMMUNICATION => EmCommunicationCore()
+        }
 
         val emDataInitializedStateData =
           ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
@@ -188,19 +192,35 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       )
     )
 
-    val (updatedCore, msgToExt) =
-      serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
+    val nonCompleted =
+      tick != serviceStateData.tick && serviceStateData.serviceCore.completions.nonComplete
 
-    msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+    serviceStateData.serviceCore match {
+      case _ if nonCompleted =>
+        // we request a new activation for the same tick
+        (serviceStateData, Some(tick))
 
-    (
-      serviceStateData.copy(
-        tick = tick,
-        serviceCore = updatedCore,
-        extEmDataMessage = None,
-      ),
-      None,
-    )
+      case core =>
+        log.warn(
+          s"Tick ($tick): ServiceCore -> ${core.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
+        )
+
+        val (updatedCore, msgToExt) = core.handleExtMessage(tick, extMsg)
+
+        msgToExt.foreach(
+          serviceStateData.extEmDataConnection.queueExtResponseMsg
+        )
+
+        (
+          serviceStateData.copy(
+            tick = tick,
+            serviceCore = updatedCore,
+            extEmDataMessage = None,
+          ),
+          None,
+        )
+    }
+
   }
 
   override protected def handleDataMessage(
@@ -228,7 +248,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       serviceStateData.serviceCore.handleDataResponseMessage(
         tick,
         extResponseMsg,
-      )(using serviceStateData.startTime, log)
+      )(using serviceStateData.startTime, ctx.log)
 
     if tick >= FIRST_TICK_IN_SIMULATION then {
       extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)

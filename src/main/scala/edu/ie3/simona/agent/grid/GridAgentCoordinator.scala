@@ -128,7 +128,7 @@ object GridAgentCoordinator {
       congestionManagementParams: CongestionManagementParams,
       resultProxy: ActorRef[ResultEvent],
       simStartTime: ZonedDateTime,
-      currentTick: Long = INIT_SIM_TICK,
+      currentTick: Long = FIRST_TICK_IN_SIMULATION,
       resolution: Option[Long] = None,
       gridAgentsRef: Set[GridAgentRef] = Set.empty,
       superiorGrids: Set[GridAgentRef] = Set.empty,
@@ -387,8 +387,8 @@ object GridAgentCoordinator {
           )
         }
 
-        stateData.superiorGrids.foreach(_ ! FinishStep)
-        initPowerFlow(stateData, stateData.currentTick)
+        stateData.superiorGrids.foreach(_ ! GotoIdle)
+        awaitGridSimulation(stateData, stateData.createAwaitingData)
       }
   }
 
@@ -410,7 +410,7 @@ object GridAgentCoordinator {
 
     stateData.scheduler ! Completion(ctx.self, stateData.maybeNextTick)
 
-    idle(stateData)
+    idle(stateData.copy(hasRunCongestionManagement = false))
   }
 
   // -=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
