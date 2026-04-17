@@ -84,7 +84,7 @@ $$
 $$
 
 *with*\
-**ST** = local solar time (standard time, in hours)
+**ST** = local solar time (in hours)
 
 $$
 ST = LMT + ET
@@ -95,13 +95,13 @@ $$
 **ET** = equation of time (in minutes)
 
 $$
-LMT = h_time_basis \cdot 60 + m_time_basis + 4 \cdot (L_St + \lambda)
+LMT = hour_{TimeBasis} \cdot 60 + min{TimeBasis} + 4 \cdot (L_{St} + \lambda)
 $$
 
 *with*\
-**h_time_basis** = Hour of the time basis (we choose UTC as time basis)
-**m_time_basis** = Minute of the time basis (we choose UTC as time basis)
-**L_St** = Standard meridian for the time (since we choose UTC as time basis, L_St is zero)
+**$hour_{TimeBasis}$** = Hour of the time basis (we choose UTC as time basis) \
+**$min_{TimeBasis}$** = Minute of the time basis (we choose UTC as time basis) \
+**$L_St$** = Standard meridian for the time (since we choose UTC as time basis, $L_{St}$ is zero) \
 **λ** = longitude of the location (in Degrees) of the PV panel
 
 $$
