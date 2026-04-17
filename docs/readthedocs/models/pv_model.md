@@ -95,12 +95,14 @@ $$
 **ET** = equation of time (in minutes)
 
 $$
-LMT = CET - 4 \cdot (15 - \lambda)
+LMT = h_time_basis \cdot 60 + m_time_basis + 4 \cdot (L_St + \lambda)
 $$
 
 *with*\
-**CET** = central eastern time\
-**λ** = longitude of the location of the PV panel
+**h_time_basis** = Hour of the time basis (we choose UTC as time basis)
+**m_time_basis** = Minute of the time basis (we choose UTC as time basis)
+**L_St** = Standard meridian for the time (since we choose UTC as time basis, L_St is zero)
+**λ** = longitude of the location (in Degrees) of the PV panel
 
 $$
 \begin{aligned}
