@@ -182,7 +182,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
           handleArrivingEvs(
             tick,
             asScala(arrivingEvsProvision.arrivals),
-            arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
+            arrivingEvsProvision.maybeNextTick.toScala,
           )
       }
       .getOrElse(
