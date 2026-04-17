@@ -1711,9 +1711,7 @@ class ThermalGridIT
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 1800.toDateTime
                 emResult._3 should equalWithTolerance(-0.00292865377.asMegaWatt)
-                emResult._4 should equalWithTolerance(
-                  -0.000962601943614.asMegaVar
-                )
+                emResult._4 should equalWithTolerance(-0.00096260194.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -1765,12 +1763,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 3600.toDateTime
-                emResult._3 should equalWithTolerance(
-                  -0.00292865376952.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  -0.00096260194361.asMegaVar
-                )
+                emResult._3 should equalWithTolerance(-0.00292865377.asMegaWatt)
+                emResult._4 should equalWithTolerance(-0.00096260194.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -1827,9 +1821,7 @@ class ThermalGridIT
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 3750.toDateTime
                 emResult._3 should equalWithTolerance(-0.00292865377.asMegaWatt)
-                emResult._4 should equalWithTolerance(
-                  -0.0009626019436.asMegaVar
-                )
+                emResult._4 should equalWithTolerance(-0.0009626019.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -2330,12 +2322,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 10800.toDateTime
-                emResult._3 should equalWithTolerance(
-                  -0.0014023706967.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  -0.0004609369576.asMegaVar
-                )
+                emResult._3 should equalWithTolerance(-0.0014023707.asMegaWatt)
+                emResult._4 should equalWithTolerance(-0.000460937.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -2388,11 +2376,9 @@ class ThermalGridIT
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 10958.toDateTime
                 emResult._3 should equalWithTolerance(
-                  -0.0014023706966543605.asMegaWatt
+                  -0.0014023706967.asMegaWatt
                 )
-                emResult._4 should equalWithTolerance(
-                  -0.0004609369575588975.asMegaVar
-                )
+                emResult._4 should equalWithTolerance(-0.000460936958.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -2519,9 +2505,7 @@ class ThermalGridIT
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 12000.toDateTime
                 emResult._3 should equalWithTolerance(-0.00135705894.asMegaWatt)
-                emResult._4 should equalWithTolerance(
-                  -0.000446043704762.asMegaVar
-                )
+                emResult._4 should equalWithTolerance(-0.0004460437.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -2573,10 +2557,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 12139.toDateTime
-                emResult._3 should equalWithTolerance(
-                  -0.005157058944.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(-0.001695043304.asMegaVar)
+                emResult._3 should equalWithTolerance(-0.00515705894.asMegaWatt)
+                emResult._4 should equalWithTolerance(-0.00169504330.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -2787,12 +2769,8 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 25200.toDateTime
-                emResult._3 should equalWithTolerance(
-                  0.0003682265484.asMegaWatt
-                )
-                emResult._4 should equalWithTolerance(
-                  0.00012103021357.asMegaVar
-                )
+                emResult._3 should equalWithTolerance(0.000368226548.asMegaWatt)
+                emResult._4 should equalWithTolerance(0.000121030214.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {
@@ -3036,9 +3014,7 @@ class ThermalGridIT
               case EmResult(emResult) =>
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 28800.toDateTime
-                emResult._3 should equalWithTolerance(
-                  0.0016744890276.asMegaWatt
-                )
+                emResult._3 should equalWithTolerance(0.001674489028.asMegaWatt)
                 emResult._4 should equalWithTolerance(0.0005503779277.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
@@ -3092,9 +3068,7 @@ class ThermalGridIT
                 emResult._2 shouldBe emInput.getUuid
                 emResult._1 shouldBe 28941.toDateTime
                 emResult._3 should equalWithTolerance(0.001674489028.asMegaWatt)
-                emResult._4 should equalWithTolerance(
-                  0.00055037792766.asMegaVar
-                )
+                emResult._4 should equalWithTolerance(0.000550377928.asMegaVar)
             }
           case ThermalResultEvent(thermalUnitResult) =>
             thermalUnitResult match {

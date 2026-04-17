@@ -587,10 +587,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 75.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.00461545289367.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(-0.00151702600435.asMegaVar)
+            emResult.getP should equalWithTolerance(-0.004615452894.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.001517026004.asMegaVar)
         }
         resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3600)))
@@ -615,12 +613,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 3600.toDateTime
-            emResult.getP should equalWithTolerance(
-              0.000234547106334.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(
-              -0.000532191500274863.asMegaVar
-            )
+            emResult.getP should equalWithTolerance(0.0002345471063.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.0005321915.asMegaVar)
         }
         resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(3675)))
@@ -673,10 +667,8 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 6056.toDateTime
-            emResult.getP should equalWithTolerance(
-              -0.00461545289367.asMegaWatt
-            )
-            emResult.getQ should equalWithTolerance(-0.00151702600435.asMegaVar)
+            emResult.getP should equalWithTolerance(-0.00461545289.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.001517026.asMegaVar)
         }
         resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
