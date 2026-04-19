@@ -212,10 +212,10 @@ class EmAgentIT
 
         /* TICK 0
          LOAD: 0.269 kW
-         PV:  -5.842 kW
+         PV:  -5.676 kW
          STORAGE: SOC 0 %
          -> charge with 5 kW
-         -> remaining -0.573 kW
+         -> remaining 0.407 kW
          */
         emAgentActivation ! Activation(0)
 
@@ -229,8 +229,8 @@ class EmAgentIT
           0,
           weatherService.ref,
           WeatherData(
-            WattsPerSquareMeter(200d),
-            WattsPerSquareMeter(100d),
+            WattsPerSquareMeter(220d),
+            WattsPerSquareMeter(120d),
             Celsius(0d),
             MetersPerSecond(0d),
           ),
@@ -251,17 +251,17 @@ class EmAgentIT
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
             emResult.getTime shouldBe 0L.toDateTime
-            emResult.getP should equalWithTolerance(0.asMegaWatt)
-            emResult.getQ should equalWithTolerance(-0.001517026.asMegaVar)
+            emResult.getP should equalWithTolerance(-0.000407845.asMegaWatt)
+            emResult.getQ should equalWithTolerance(-0.0017774727.asMegaVar)
         }
         resultServiceProxy.expectNoMessage()
         scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
         /* TICK 7200
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.715 kW
+         PV:  -4.008 kW
          STORAGE: SOC 63.3 %
-         -> charge with 3.522 kW
+         -> charge with 3.739 kW
          -> remaining 0 kW
          */
         emAgentActivation ! Activation(7200)
@@ -304,31 +304,31 @@ class EmAgentIT
             emResult.getQ should equalWithTolerance(-0.001229325.asMegaVar)
         }
         resultServiceProxy.expectNoMessage()
-        scheduler.expectMessage(Completion(emAgentActivation, Some(13512)))
+        scheduler.expectMessage(Completion(emAgentActivation, Some(12772)))
 
-        /* TICK 13512
+        /* TICK 12772
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.715 kW (unchanged)
+         PV:  -4.008 kW (unchanged)
          STORAGE: SOC 100 %
          -> charge with 0 kW
-         -> remaining -3.447 kW
+         -> remaining -3.740 kW
          */
-        emAgentActivation ! Activation(13512)
+        emAgentActivation ! Activation(12772)
 
         // the result proxy will receive ExpectResult messages
         resultServiceProxy.expectMessage(
-          ExpectResult(storageInput.getUuid, 13512, true)
+          ExpectResult(storageInput.getUuid, 12772, true)
         )
 
         // we receive an update message, since a new set point were provided
         resultServiceProxy.expectMessage(
-          ExpectResult(storageInput.getUuid, 13512)
+          ExpectResult(storageInput.getUuid, 12772)
         )
 
         resultServiceProxy.expectMessageType[ParticipantResultEvent] match {
           case ParticipantResultEvent(emResult: EmResult) =>
             emResult.getInputModel shouldBe emInput.getUuid
-            emResult.getTime shouldBe 13512.toDateTime
+            emResult.getTime shouldBe 12772.toDateTime
             emResult.getP should equalWithTolerance(-0.00374014137.asMegaWatt)
             emResult.getQ should equalWithTolerance(-0.001229325.asMegaVar)
         }
@@ -337,9 +337,9 @@ class EmAgentIT
 
         /* TICK 14400
          LOAD: 0.269 kW (unchanged)
-         PV:  -0.07 kW
+         PV:  -0.108 kW
          STORAGE: SOC 100 %
-         -> discharge with 0.199 kW
+         -> discharge with 0.161 kW
          -> remaining 0.0 kW
          */
 
