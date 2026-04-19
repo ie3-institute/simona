@@ -15,7 +15,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssuePowerControl,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.  toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.Power
 
 import scala.jdk.OptionConverters.RichOptional
