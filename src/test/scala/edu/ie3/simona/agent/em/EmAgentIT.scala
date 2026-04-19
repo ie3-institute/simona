@@ -1134,8 +1134,8 @@ class EmAgentIT
 
         /* TICK 7200
          Load: P: 268.603 W, Q: 88.2855 var (unchanged)
-         PV:  P: -8692.167 W  Q: -2856.98 var
-         -> expect P:-8423.564 Q: -2768.69 var
+         PV:  P: -9194.387 W  Q: -3022.05 var
+         -> expect P:-8925.784 Q: -2933.8 var
          */
         weatherDependentAgents.foreach {
           _ ! DataProvision(
@@ -1175,7 +1175,7 @@ class EmAgentIT
 
         /* TICK 10800
         LOAD: P: 0 W, Q: 0 var (limited OperationTime)
-        PV:  P: -8692.167 W  Q: -2856.98 var
+        PV:  P: -9194.387 W  Q: -3022.05 var
         -> expect P and Q values of PV
          */
         emAgentActivation ! Activation(10800)
