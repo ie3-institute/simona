@@ -66,8 +66,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
     2.0,
   )
 
-  protected val defaultThermalHouse = ThermalHouse(defaultThermalHouseInput)
-
   protected val defaultDomesticHotWaterStorageInput =
     new DomesticHotWaterStorageInput(
       UUID.fromString("5a3935c0-14ff-4d7b-9e69-a101f41a3b73"),
@@ -115,13 +113,6 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
       Quantities.getQuantity(11.0, StandardUnits.ACTIVE_POWER_IN),
     )
-
-  protected val typicalThermalGrid = new container.ThermalGrid(
-    thermalBusInput,
-    Seq(typicalThermalHouse).asJava,
-    Set[ThermalStorageInput](typicalHeatStorage).asJava,
-    Seq[ThermalStorageInput](defaultDomesticHotWaterStorageInput).asJava,
-  )
 
   protected val typicalHpTypeInput = new HpTypeInput(
     UUID.fromString("2829d5eb-352b-40df-a07f-735b65a0a7bd"),
