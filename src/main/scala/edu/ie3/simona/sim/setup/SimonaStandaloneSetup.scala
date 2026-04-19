@@ -184,6 +184,7 @@ class SimonaStandaloneSetup(
       args,
       typeSafeConfig,
       grid,
+      baseInputPath,
       resultFileHierarchy.runOutputDir,
     )(using
       context,
