@@ -35,7 +35,6 @@ import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.UUID

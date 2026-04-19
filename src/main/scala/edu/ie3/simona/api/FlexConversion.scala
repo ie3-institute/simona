@@ -15,14 +15,10 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssuePowerControl,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toQuantity,
-  toSquants,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.  toSquants
 import squants.Power
 
-import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.OptionConverters.{RichOption, RichOptional}
+import scala.jdk.OptionConverters.RichOptional
 
 object FlexConversion {
 
