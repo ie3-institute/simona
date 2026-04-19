@@ -677,7 +677,7 @@ class EmAgentIT
          LOAD: 0.269 kW (unchanged)
          PV:  -4.008 kW
          Heat pump: off, can be turned on or stay off
-         -> set point ~ FIXME ?.? kW (bigger than 50 % rated apparent power): turned on
+         -> set point ~ 3.7 kW (bigger than 50 % rated apparent power): turned on
          -> remaining 1.111 kW
          */
         emAgentActivation ! Activation(7200)
@@ -723,7 +723,7 @@ class EmAgentIT
          LOAD: 0.269 kW (unchanged)
          PV:  -4.008 kW
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> set point 4.85 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
          -> remaining 1.111 kW
          */
         emAgentActivation ! Activation(7278)
@@ -750,8 +750,8 @@ class EmAgentIT
          LOAD: 0.269 kW (unchanged)
          PV:  -4.008 kW
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining 1.111 kW
+         -> set point ~0.0 kW: will be turned off
+         -> remaining 3.739 kW
          */
         emAgentActivation ! Activation(7981)
 
@@ -775,8 +775,8 @@ class EmAgentIT
         /* TICK 10800
        LOAD: 0.269 kW (unchanged)
        PV:  -4.793 kW
-       Heat pump: running (turned on from last request), can also be turned off
-       -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+       Heat pump: off, can also be turned on
+       -> set point ~4.5 kW (bigger than 50 % rated apparent power): turned on
        -> remaining 0.326 kW
          */
         emAgentActivation ! Activation(10800)
@@ -822,7 +822,7 @@ class EmAgentIT
          LOAD: 0.269 kW (unchanged)
          PV:  -4.793 kW (unchanged)
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> set point ~4.85 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
          -> remaining 0.326 kW
          */
         emAgentActivation ! Activation(10879)
