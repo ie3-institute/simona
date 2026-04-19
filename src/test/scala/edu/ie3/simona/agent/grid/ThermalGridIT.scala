@@ -1660,7 +1660,7 @@ class ThermalGridIT
 
       /* TICK 1800
         New Weather: The sun comes out, PV will produce.
-        PV: -6.3 kW
+        PV: -6.7 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
@@ -1843,7 +1843,6 @@ class ThermalGridIT
 
       /* TICK 5216
       Storage is fully heated up, meanwhile house cooled a bit.
-      PV: -6.3 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.59 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -1988,7 +1987,6 @@ class ThermalGridIT
 
       /* TICK 6731
      The house reaches target temperature
-     PV: 0.0 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.07 kWh
@@ -2050,7 +2048,7 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(7200)))
 
       /* TICK 7200
-     DomesticHotWaterStorage will serve the water demand of the house
+     DomesticHotWaterStorage will serve the water demand of the house.
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.32 kWh
      House demand water   : requiredDemand = 0.24 kWh, possibleDemand = 0.24 kWh
      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.07 kWh
@@ -2229,7 +2227,6 @@ class ThermalGridIT
 
       /* TICK 10531
       Storage is full, now heating the house till target temperature.
-      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.62 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2400,7 +2397,6 @@ class ThermalGridIT
 
       /* TICK 11638
       House reaches target temperature boundary.
-      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2454,7 +2450,7 @@ class ThermalGridIT
       /* TICK 12000
       House would reach lowerTempBoundary at tick 23809,
       but now it's getting colder which should decrease inner temp of house faster, but the sun is still there.
-      PV: -5.2 kW
+      PV: -5.16 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.25 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2525,7 +2521,6 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(12139)))
 
       /* TICK 12139
-      PV: 0.0 kW
       House reaches the target temperature.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2653,7 +2648,6 @@ class ThermalGridIT
 
       /* TICK 24412
         House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
-        PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2716,7 +2710,7 @@ class ThermalGridIT
 
       /* TICK 25200
         The sun comes out and it's getting warmer.
-        PV: -4.4 kW
+        PV: -3.4 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.53 kWh
         House demand water   : requiredDemand = 0.18 kWh, possibleDemand = 0.18 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.4 kWh
@@ -2926,7 +2920,7 @@ class ThermalGridIT
 
       /* TICK 27500
         Additional trigger caused by (unchanged) weather data should not change this.
-        PV: -3.9 kW
+        PV: -2.12 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 9.5 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.41 kWh
@@ -3166,7 +3160,6 @@ class ThermalGridIT
 
       /* TICK 31762
       House reaches target temperature.
-      PV: 0.0 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.7 kW
@@ -3247,7 +3240,6 @@ class ThermalGridIT
 
       /* TICK 41762
       House reaches lower temperature.
-      PV: 0.0 kW
       House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.7 kWh
@@ -3381,7 +3373,6 @@ class ThermalGridIT
       Storage is empty now.
       Note: One could argue, that the Hp now should be started to continue heating of the house,
       but actually we don't support this. So the house is cooling down now.
-      PV: 0.0 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 12.05 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
@@ -3444,7 +3435,6 @@ class ThermalGridIT
 
       /* TICK 45620
         House reaches lower temperature.
-        PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
