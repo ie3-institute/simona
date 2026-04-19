@@ -517,10 +517,10 @@ class EmAgentIT
 
         /* TICK 0
          LOAD: 0.269 kW
-         PV:  -5.842 kW
+         PV:  -4.884 kW
          Heat pump: off, can be turned on or stay off
          -> set point = 0 kW: stays off
-         -> remaining -5.573 kW
+         -> remaining -4.615 kW
          */
         emAgentActivation ! Activation(0)
 
@@ -569,10 +569,10 @@ class EmAgentIT
         /* TICK 75
          DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
          LOAD: 0.269 kW (unchanged)
-         PV:  -5.842 kW
-         Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining -0.723 kW
+         PV:  -4.884 kW
+         Heat pump: off
+         -> set point = 0 kW: stays off
+         -> remaining -4.615 kW
          */
         emAgentActivation ! Activation(75)
 
@@ -596,10 +596,10 @@ class EmAgentIT
         /* TICK 3600
         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
         LOAD: 0.269 kW (unchanged)
-        PV:  -3.715 kW
-        Heat pump: running (turned on from last request), can also be turned off
-        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-        -> remaining ~0.0 kW
+        PV:  -4.884 kW (unchanged)
+        Heat pump: off
+        -> set point ~4.615 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining +0.235 kW
          */
         emAgentActivation ! Activation(3600)
 
@@ -622,10 +622,10 @@ class EmAgentIT
         /* TICK 3675
         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
         LOAD: 0.269 kW (unchanged)
-        PV:  -5.842 kW
-        Heat pump: running (turned on from last request), can also be turned off
-        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-        -> remaining -0.723 kW
+        PV:  -4.884 kW (unchanged)
+        Heat pump: still running (turned on from last request), can also be turned off
+        -> set point ~4.615 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+        -> remaining +0.235 kW
          */
         emAgentActivation ! Activation(3675)
 
@@ -649,10 +649,10 @@ class EmAgentIT
         /* TICK 6056
         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
         LOAD: 0.269 kW (unchanged)
-        PV:  -5.842 kW
+        PV:  -4.884 kW (unchanged)
         Heat pump: running (turned on from last request), can also be turned off
-        -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-        -> remaining -0.723 kW
+        -> set point 0 W: stopping Heat pump
+        -> remaining -4.615 kW
          */
         emAgentActivation ! Activation(6056)
 
@@ -675,10 +675,10 @@ class EmAgentIT
 
         /* TICK 7200
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.715 kW
+         PV:  -4.008 kW
          Heat pump: off, can be turned on or stay off
-         -> set point ~3.5 kW (bigger than 50 % rated apparent power): turned on
-         -> remaining 1.403 kW
+         -> set point ~ FIXME ?.? kW (bigger than 50 % rated apparent power): turned on
+         -> remaining 1.111 kW
          */
         emAgentActivation ! Activation(7200)
 
@@ -721,10 +721,10 @@ class EmAgentIT
         /* TICK 7278
          DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.791 kW
+         PV:  -4.008 kW
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining 0 MW
+         -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 1.111 kW
          */
         emAgentActivation ! Activation(7278)
 
@@ -748,10 +748,10 @@ class EmAgentIT
         /* TICK 7981
          DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
          LOAD: 0.269 kW (unchanged)
-         PV:  -3.791 kW
+         PV:  -4.008 kW
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~3.5 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining 0 MW
+         -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 1.111 kW
          */
         emAgentActivation ! Activation(7981)
 
@@ -774,10 +774,10 @@ class EmAgentIT
 
         /* TICK 10800
        LOAD: 0.269 kW (unchanged)
-       PV:  -4.008 kW
+       PV:  -4.793 kW
        Heat pump: running (turned on from last request), can also be turned off
-       -> set point ~3.7 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-       -> remaining 1.111 kW
+       -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+       -> remaining 0.326 kW
          */
         emAgentActivation ! Activation(10800)
 
@@ -820,10 +820,10 @@ class EmAgentIT
         /* TICK 10879
         DomesticHotWaterStorage stopped discharging. Expect same behaviour as before
          LOAD: 0.269 kW (unchanged)
-         PV:  -4.008 kW
+         PV:  -4.793 kW (unchanged)
          Heat pump: running (turned on from last request), can also be turned off
-         -> set point ~3.7 kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
-         -> remaining 1.111 kW
+         -> set point ~?.? kW (bigger than 50 % rated apparent power): stays turned on with unchanged state
+         -> remaining 0.326 kW
          */
         emAgentActivation ! Activation(10879)
 
@@ -846,7 +846,7 @@ class EmAgentIT
 
         /* TICK 11000
          LOAD: 0.269 kW (unchanged)
-         PV:  -0.06 kW
+         PV:  -0.07 kW
          Heat pump: Is still running, can't be turned off
          (was running in last state, house has some demand, no storage available -> we would like to force running Hp,
          even in theory it could be turned off for flex purposes)
@@ -893,7 +893,7 @@ class EmAgentIT
 
         /* TICK 11500
          LOAD: 0.269 kW (unchanged)
-         PV:  -0.133 kW
+         PV:  -0.164 kW
          Heat pump: Is still running, can't be turned off
          (was running in last state, house has some demand, no storage available -> we would like to force running Hp,
          even in theory it could be turned off for flex purposes)
