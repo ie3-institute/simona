@@ -45,7 +45,7 @@ class ResultFileHierarchySpec
           currentRunOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff"),
+            ResultSinkType.Csv("csv", "pref", "suff", delimiter = ","),
           ),
           configureLogger =
             LogbackConfiguration.default("INFO", Some("ERROR"))(_),
@@ -63,7 +63,7 @@ class ResultFileHierarchySpec
 
     "write directories automatically on instantiation when requested so" in {
       // delete file if they exist
-      if (Files.exists(parentOutputFilePath))
+      if Files.exists(parentOutputFilePath) then
         FileIOUtils.deleteRecursively(parentOutputFilePath)
 
       // init output file hierarchy with writing
@@ -73,7 +73,7 @@ class ResultFileHierarchySpec
           runOutputDir,
           ResultEntityPathConfig(
             Set(classOf[PvResult]),
-            ResultSinkType.Csv("csv", "pref", "suff"),
+            ResultSinkType.Csv("csv", "pref", "suff", delimiter = ","),
           ),
           configureLogger =
             LogbackConfiguration.default("INFO", Some("ERROR"))(_),

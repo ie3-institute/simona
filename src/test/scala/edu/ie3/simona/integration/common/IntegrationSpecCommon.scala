@@ -16,4 +16,6 @@ trait IntegrationSpecCommon {
    * beginning of your config file and then just override the parameters you want to change! */
   val configFile: String = "input/samples/vn_simona/vn_simona.conf"
 
+  val minimalConfigFile: String =
+    "input/samples/vn_simona/vn_simona_minimal.conf"
 }

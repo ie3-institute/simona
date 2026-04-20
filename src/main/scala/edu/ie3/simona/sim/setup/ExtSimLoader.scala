@@ -13,19 +13,19 @@ import java.io.{File, IOException}
 import java.net.URLClassLoader
 import java.nio.file.Path
 import java.util.ServiceLoader
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Finds and loads jars containing external simulations.
   */
 object ExtSimLoader extends LazyLogging {
 
   private def buildDir(path: Path): File = {
-    if (path.isAbsolute) {
+    if path.isAbsolute then {
       return path.toFile
     }
 
     val workingDir = new File(System.getProperty("user.dir"))
-    if (!workingDir.isDirectory)
+    if !workingDir.isDirectory then
       throw new IOException("Error when accessing working directory.")
 
     new File(workingDir, path.toString)
@@ -35,7 +35,7 @@ object ExtSimLoader extends LazyLogging {
       extSimDirOption: Option[Path] = None
   ): Iterable[File] = extSimDirOption.map(buildDir) match {
     case Some(extSimDir) =>
-      if (!extSimDir.isDirectory) {
+      if !extSimDir.isDirectory then {
         logger.warn(
           s"External simulation directory ${extSimDir.getPath} does not exist or is not a directory, no external simulation loaded."
         )

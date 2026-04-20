@@ -11,7 +11,7 @@ import squants.{Angle, Radians}
 import squants.time.Minutes
 
 import java.time.ZonedDateTime
-import scala.math._
+import scala.math.*
 
 /** A collection of methods used for solar irradiation calculation, as required
   * e.g. for [[PvModel]].
@@ -298,18 +298,17 @@ object SolarIrradiationCalculation {
 
     // (thetaG < 90°): sun is visible
     // (thetaG > 90°), otherwise: sun is behind the surface  -> no direct irradiance
-    if (
-      thetaGInRad < toRadians(90)
+    if thetaGInRad < toRadians(90)
       // omega1 and omega2: sun has risen and has not set yet
       && omega2InRad > omegaSRInRad + omegaHalfHour
       && omega1InRad < omegaSSInRad - omegaHalfHour
-    ) {
+    then {
 
       val (finalOmega1, finalOmega2) =
-        if (omega1InRad < omegaSRInRad) {
+        if omega1InRad < omegaSRInRad then {
           // requested time earlier than sunrise
           (omegaSRInRad, omegaSRInRad + omegaOneHour)
-        } else if (omega2InRad > omegaSSInRad) {
+        } else if omega2InRad > omegaSSInRad then {
           // sunset earlier than requested time
           (omegaSSInRad - omegaOneHour, omegaSSInRad)
         } else {
@@ -317,8 +316,7 @@ object SolarIrradiationCalculation {
         }
 
       Some(Radians(finalOmega1), Radians(finalOmega2))
-    } else
-      None
+    } else None
   }
 
   /** Calculates the beam irradiance on a sloped surface.
@@ -427,7 +425,7 @@ object SolarIrradiationCalculation {
     val delta = gDifH * airMass / extraterrestrialRadianceG0
 
     // == cloud index epsilon  ==//
-    val x = if (gDifH.value.doubleValue > 0) {
+    val x = if gDifH.value.doubleValue > 0 then {
       // if we have diffuse irradiance on horizontal surface we have to consider
       // the clearness parameter epsilon, which then gives us an epsilon bin x
 
@@ -443,7 +441,7 @@ object SolarIrradiationCalculation {
       ))
 
       // get the corresponding bin if epsilon is smaller than 6.2
-      if (epsilon < 6.2) { // define the bins based on Perez
+      if epsilon < 6.2 then { // define the bins based on Perez
         val discreteSkyClearnessCategories = Array(
           Array(1, 1.065),
           Array(1.065, 1.230),

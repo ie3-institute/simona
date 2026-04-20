@@ -9,6 +9,7 @@ package edu.ie3.util.scala.quantities
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.{
   EnergyPrice,
+  Irradiance,
   SpecificConductance,
   SpecificHeatCapacity,
   SpecificResistance,
@@ -16,12 +17,13 @@ import edu.ie3.util.quantities.interfaces.{
 import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.motion.MetersPerSecond
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
-import squants.{Amperes, Each, Radians}
+import squants.{Amperes, Each, Radians, Velocity}
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
-
 import javax.measure.quantity.*
 
 /** Some utilities to improve the conversion between [[ComparableQuantity]] and
@@ -29,135 +31,96 @@ import javax.measure.quantity.*
   */
 object QuantityConversionUtils {
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[Dimensionless]] into
-    * [[squants.Dimensionless]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[Dimensionless]] that allows
+    * conversion into a [[squants.Dimensionless]] squants quantity.
     */
-  implicit class DimensionlessToSimona(
-      quantity: ComparableQuantity[Dimensionless]
-  ) {
+  extension (quantity: ComparableQuantity[Dimensionless]) {
 
-    /** Returns a quantity with unit [[Each]].
-      */
     def toSquants: squants.Dimensionless = Each(
       quantity.to(PU).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[ElectricPotential]] into
-    * [[squants.electro.ElectricPotential]].
-    * @param quantity
-    *   To convert.
-    */
-  implicit class VoltageToSimona(
-      quantity: ComparableQuantity[ElectricPotential]
-  ) {
+  extension (quantity: squants.Dimensionless) {
+    def toQuantity: ComparableQuantity[Dimensionless] =
+      Quantities.getQuantity(quantity.toEach, PU)
+  }
 
-    /** Returns a quantity with unit [[Kilovolts]].
-      */
+  /** Extension for [[ComparableQuantity]] of type [[ElectricPotential]] that
+    * allows conversion into a [[squants.electro.ElectricPotential]] squants
+    * quantity.
+    */
+  extension (quantity: ComparableQuantity[ElectricPotential]) {
+
     def toSquants: squants.electro.ElectricPotential = Kilovolts(
       quantity.to(KILOVOLT).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[ElectricCurrent]] into
-    * [[squants.electro.ElectricCurrent]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[ElectricCurrent]] that
+    * allows conversion into a [[squants.ElectricCurrent]] squants quantity.
     */
-  implicit class CurrentToSimona(
-      quantity: ComparableQuantity[ElectricCurrent]
-  ) {
+  extension (quantity: ComparableQuantity[ElectricCurrent]) {
 
-    /** Returns a quantity with unit [[Amperes]].
-      */
     def toSquants: squants.ElectricCurrent = Amperes(
       quantity.to(AMPERE).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[Power]] into [[squants.Power]] or
-    * [[ApparentPower]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[Power]] that allows
+    * conversion into a [[squants.Power]] or [[ApparentPower]] squants quantity.
     */
-  implicit class PowerConversionSimona(quantity: ComparableQuantity[Power]) {
+  extension (quantity: ComparableQuantity[Power]) {
 
-    /** Returns a quantity with unit [[Kilowatts]].
+    /** Returns a quantity of type [[squants.Power]].
       */
     def toSquants: squants.Power = Kilowatts(
       quantity.to(KILOWATT).getValue.doubleValue
     )
 
-    /** Returns a quantity with unit [[Kilovoltamperes]].
+    /** Returns a quantity of type [[ApparentPower]].
       */
     def toApparent: ApparentPower = Kilovoltamperes(
       quantity.to(KILOVOLTAMPERE).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[Energy]] into [[squants.Energy]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[Energy]] that allows
+    * conversion into a [[squants.Energy]] squants quantity.
     */
-  implicit class EnergyToSimona(quantity: ComparableQuantity[Energy]) {
+  extension (quantity: ComparableQuantity[Energy]) {
 
-    /** Returns a quantity with unit [[KilowattHours]].
-      */
     def toSquants: squants.Energy = KilowattHours(
-      quantity.to(KILOVARHOUR).getValue.doubleValue
+      quantity.to(KILOWATTHOUR).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[EnergyPrice]] into
-    * [[quantities.EnergyPrice]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[EnergyPrice]] that allows
+    * conversion into a [[quantities.EnergyPrice]] squants quantity.
     */
-  implicit class EnergyPriceToSimona(
-      quantity: ComparableQuantity[EnergyPrice]
-  ) {
+  extension (quantity: ComparableQuantity[EnergyPrice]) {
 
-    /** Returns a quantity with unit [[EuroPerKilowatthour]].
-      */
-    def toSquants: quantities.EnergyPrice = EuroPerKilowatthour(
+    def toSquants: quantities.EnergyPrice = EuroPerKilowattHour(
       quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[ElectricResistance]] into
-    * [[squants.electro.ElectricalResistance]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[ElectricResistance]] that
+    * allows conversion into a [[squants.electro.ElectricalResistance]] squants
+    * quantity.
     */
-  implicit class OhmToSimona(
-      quantity: ComparableQuantity[ElectricResistance]
-  ) {
+  extension (quantity: ComparableQuantity[ElectricResistance]) {
 
-    /** Returns a quantity with unit [[Ohms]].
-      */
     def toSquants: squants.electro.ElectricalResistance = Ohms(
       quantity.to(OHM).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[SpecificResistance]] into
-    * [[squants.electro.ElectricalResistance]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[SpecificResistance]] that
+    * allows conversion into a [[squants.electro.ElectricalConductance]] squants
+    * quantity.
     */
-  implicit class OhmPerLengthToSimona(
-      quantity: ComparableQuantity[SpecificResistance]
-  ) {
+  extension (quantity: ComparableQuantity[SpecificResistance]) {
 
     /** @param length
       *   Used to convert [[OHM_PER_KILOMETRE]] into [[OHM]].
@@ -175,29 +138,22 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[ElectricConductance]] into
-    * [[squants.electro.ElectricalConductance]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[ElectricConductance]] that
+    * allows conversion into a [[squants.electro.ElectricalConductance]] squants
+    * quantity.
     */
-  implicit class SiemensToSimona(
-      quantity: ComparableQuantity[ElectricConductance]
-  ) {
+  extension (quantity: ComparableQuantity[ElectricConductance]) {
+
     def toSquants: squants.electro.ElectricalConductance = Siemens(
       quantity.to(SIEMENS).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[SpecificConductance]] into
-    * [[squants.electro.ElectricalConductance]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[SpecificConductance]] that
+    * allows conversion into a [[squants.electro.ElectricalConductance]] squants
+    * quantity.
     */
-  implicit class SiemensPerLengthToSimona(
-      quantity: ComparableQuantity[SpecificConductance]
-  ) {
+  extension (quantity: ComparableQuantity[SpecificConductance]) {
 
     /** @param length
       *   Used to convert [[SIEMENS_PER_KILOMETRE]] into [[Siemens]].
@@ -215,79 +171,52 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[Area]] into [[squants.Area]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[Area]] that allows
+    * conversion into a [[squants.Area]] squants quantity.
     */
-  implicit class AreaToSimona(quantity: ComparableQuantity[Area]) {
+  extension (quantity: ComparableQuantity[Area]) {
 
-    /** Returns a quantity with unit [[SquareMeters]].
-      */
     def toSquants: squants.Area = SquareMeters(
       quantity.to(SQUARE_METRE).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[Angle]] into [[squants.Angle]].
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[Temperature]] that allows
+    * conversion into a [[squants.Temperature]] squants quantity.
     */
-  implicit class RadiansConversionSimona(quantity: ComparableQuantity[Angle]) {
+  extension (quantity: ComparableQuantity[Angle]) {
 
-    /** Returns a quantity with unit [[Radians]].
-      */
     def toSquants: squants.Angle = Radians(
       quantity.to(RADIAN).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[CELSIUS]] into
-    * [[squants.thermal.Celsius]].
-    *
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[Temperature]] that allows
+    * conversion into a [[squants.Temperature]] squants quantity.
     */
-  implicit class TemperatureConversionSimona(
-      quantity: ComparableQuantity[Temperature]
-  ) {
+  extension (quantity: ComparableQuantity[Temperature]) {
 
-    /** Returns a quantity with unit [[Celsius]].
-      */
     def toSquants: squants.Temperature = Celsius(
       quantity.to(CELSIUS).getValue.doubleValue
     )
   }
 
-  /** Implicit class that contains a method to convert a given
-    * [[ComparableQuantity]] with unit [[CUBIC_METRE]] into
-    * [[squants.space.CubicMeters]].
-    *
-    * @param quantity
-    *   To convert.
+  /** Extension for [[ComparableQuantity]] of type [[Volume]] that allows
+    * conversion into a [[squants.space.Volume]] squants quantity.
     */
-  implicit class VolumeConversionSimona(
-      quantity: ComparableQuantity[Volume]
-  ) {
+  extension (quantity: ComparableQuantity[Volume]) {
 
-    /** Returns a quantity with unit [[CubicMeters]].
-      */
     def toSquants: squants.space.Volume = CubicMeters(
       quantity.to(CUBIC_METRE).getValue.doubleValue
     )
   }
 
-  /** Extension for [[ComparableQuantity]] with unit
-    * [[KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE]], that allows an easy
-    * conversion into
-    * [[edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters]].
+  /** Extension for [[ComparableQuantity]] of type [[SpecificHeatCapacity]] that
+    * allows conversion into a
+    * [[edu.ie3.util.scala.quantities.SpecificHeatCapacity]] squants quantity.
     */
   extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
 
-    /** Returns a quantity with unit [[KilowattHoursPerKelvinCubicMeters]].
-      */
     def toSquants: edu.ie3.util.scala.quantities.SpecificHeatCapacity =
       KilowattHoursPerKelvinCubicMeters(
         quantity
@@ -295,5 +224,31 @@ object QuantityConversionUtils {
           .getValue
           .doubleValue
       )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[Irradiance]] that allows
+    * conversion into a [[quantities.Irradiance]] squants quantity.
+    */
+  extension (quantity: ComparableQuantity[Irradiance]) {
+
+    def toSquants: quantities.Irradiance = WattsPerSquareMeter(
+      quantity
+        .to(WATT_PER_SQUAREMETRE)
+        .getValue
+        .doubleValue
+    )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[Speed]] that allows
+    * conversion into a [[Velocity]] squants quantity.
+    */
+  extension (quantity: ComparableQuantity[Speed]) {
+
+    def toSquants: Velocity = MetersPerSecond(
+      quantity
+        .to(METRE_PER_SECOND)
+        .getValue
+        .doubleValue
+    )
   }
 }

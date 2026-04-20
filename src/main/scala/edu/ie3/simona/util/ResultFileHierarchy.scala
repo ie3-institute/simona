@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.util
 
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.{Files, Path, Paths}
-import java.text.SimpleDateFormat
 import com.typesafe.config.{Config, ConfigRenderOptions}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
@@ -16,29 +13,76 @@ import edu.ie3.datamodel.io.naming.{
   FileNamingStrategy,
 }
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.datamodel.models.result.system.{
+  EnergyBoundariesFlexOptionsResult,
+  PowerLimitFlexOptionsResult,
+}
+import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.FileHierarchyException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.logging.LogbackConfiguration
+import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.util.io.FileIOUtils
 import org.apache.commons.io.FilenameUtils.*
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.{Files, Path, Paths}
+import java.text.SimpleDateFormat
 import scala.jdk.OptionConverters.RichOptional
 
 /** Represents the output directory where the results will be materialized.
   */
 final case class ResultFileHierarchy private (
     runOutputDir: Path,
-    rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], Path],
+    rawOutputDataFilePaths: Map[Class[? <: ResultEntity], Path],
     configOutputDir: Path,
     logOutputDir: Path,
     tmpDir: Path,
     resultSinkType: ResultSinkType,
-    resultEntitiesToConsider: Set[Class[_ <: ResultEntity]],
+    resultEntitiesToConsider: Set[Class[? <: ResultEntity]],
 )
 
 object ResultFileHierarchy extends LazyLogging {
+
+  /** Build the result file hierarchy based on the provided configuration file.
+    * The provided type safe config must be able to be parsed as
+    * [[SimonaConfig]], otherwise an exception is thrown.
+    *
+    * @param typeSafeConfig
+    *   All configuration parameters.
+    * @param simonaConfig
+    *   The configuration for SIMONA.
+    * @return
+    *   The resulting result file hierarchy.
+    */
+  def apply(
+      typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
+  ): ResultFileHierarchy = {
+
+    /* Determine the result models to write */
+    val modelsToWrite = allResultEntitiesToWrite(simonaConfig.output)
+
+    val simonaLogConfig = simonaConfig.output.log
+
+    ResultFileHierarchy(
+      simonaConfig.output.base.dir,
+      simonaConfig.simulationName,
+      ResultEntityPathConfig(
+        modelsToWrite,
+        ResultSinkType(
+          simonaConfig.output.sink,
+          simonaConfig.simulationName,
+        ),
+      ),
+      configureLogger = LogbackConfiguration
+        .default(simonaLogConfig.level, simonaLogConfig.consoleLevel),
+      config = Some((typeSafeConfig, simonaConfig)),
+      addTimeStampToOutputDir =
+        simonaConfig.output.base.addTimestampToOutputDir,
+    )
+  }
 
   /** Creates the [[ResultFileHierarchy]] and relevant directories
     */
@@ -70,7 +114,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     val resultSinkType: ResultSinkType = resultEntityPathConfig.resultSinkType
 
-    val rawOutputDataFilePaths: Map[Class[_ <: ResultEntity], Path] = {
+    val rawOutputDataFilePaths: Map[Class[? <: ResultEntity], Path] = {
       resultSinkType match {
         case csv: Csv =>
           resultEntityPathConfig.resultEntitiesToConsider
@@ -157,7 +201,7 @@ object ResultFileHierarchy extends LazyLogging {
     *   the type of the sink where result entities should be persisted
     */
   final case class ResultEntityPathConfig(
-      resultEntitiesToConsider: Set[Class[_ <: ResultEntity]],
+      resultEntitiesToConsider: Set[Class[? <: ResultEntity]],
       resultSinkType: ResultSinkType,
   )
 
@@ -172,13 +216,12 @@ object ResultFileHierarchy extends LazyLogging {
     *   name + extension
     */
   private def buildRawOutputFilePath(
-      modelClass: Class[_ <: ResultEntity],
+      modelClass: Class[? <: ResultEntity],
       csvSink: Csv,
       rawOutputDataDir: Path,
   ): Path = {
     val fileEnding =
-      if (csvSink.fileFormat.startsWith("."))
-        csvSink.fileFormat
+      if csvSink.fileFormat.startsWith(".") then csvSink.fileFormat
       else ".".concat(csvSink.fileFormat)
     val namingStrategy = new FileNamingStrategy(
       new EntityPersistenceNamingStrategy(
@@ -218,7 +261,7 @@ object ResultFileHierarchy extends LazyLogging {
       maybeConfig: Option[(Config, SimonaConfig)],
   ): Unit = {
     // create output directories if they are not present yet
-    if (!runOutputDirExists(resultFileHierarchy))
+    if !runOutputDirExists(resultFileHierarchy) then
       createOutputDirectories(
         baseOutputDir,
         dirsToBeCreated,
@@ -228,7 +271,7 @@ object ResultFileHierarchy extends LazyLogging {
     maybeConfig.foreach { case (config, simonaConfig) =>
       logger.info(
         "Processing configs for simulation: {}.",
-        simonaConfig.simona.simulationName,
+        simonaConfig.simulationName,
       )
 
       val outFile =
@@ -237,7 +280,7 @@ object ResultFileHierarchy extends LazyLogging {
       bw.write(
         config
           .root()
-          .withFallback(simonaConfig.defaults)
+          .withFallback(simonaConfig.values)
           .render(
             ConfigRenderOptions
               .defaults()
@@ -276,7 +319,7 @@ object ResultFileHierarchy extends LazyLogging {
   ): Unit = {
     // try to create base output dir
     // / check for existence of the provided baseOutputDir, if not create it
-    if (Files.exists(baseOutputDir) && baseOutputDir.toFile.isFile) {
+    if Files.exists(baseOutputDir) && baseOutputDir.toFile.isFile then {
       throw new FileHierarchyException(
         s"Provided base output path $baseOutputDir is a file and cannot be replaced with a directory!"
       )
@@ -284,7 +327,7 @@ object ResultFileHierarchy extends LazyLogging {
 
     // check if there is data inside the runOutputDir taking into account the provided FileHandling
     val runOutputDir = outputFileHierarchy.runOutputDir.toFile
-    if (runOutputDir.exists() && runOutputDir.listFiles().length > 0) {
+    if runOutputDir.exists() && runOutputDir.listFiles().length > 0 then {
       // files inside the runOutputDir -> fail
       throw new FileHierarchyException(
         s"The runOutputDir ${outputFileHierarchy.runOutputDir.toString} already exists and is NOT empty! " +
@@ -304,7 +347,7 @@ object ResultFileHierarchy extends LazyLogging {
     */
   private def createDir(dir: Path): Unit = {
     val dirFile = dir.toFile
-    if (!dirFile.mkdirs() && !dirFile.exists())
+    if !dirFile.mkdirs() && !dirFile.exists() then
       throw new FileHierarchyException(
         "The output directory path " + dir
           + " could not be created. Check pathname and permissions! Full path: " + dirFile.getAbsolutePath
@@ -319,5 +362,44 @@ object ResultFileHierarchy extends LazyLogging {
   def deleteTmpDir(outputFileHierarchy: ResultFileHierarchy): Unit = {
     FileIOUtils.deleteRecursively(outputFileHierarchy.tmpDir)
   }
+
+  /** Determine a comprehensive collection of all [[ResultEntity]] classes, that
+    * will have to be considered.
+    *
+    * @param outputConfig
+    *   configuration to consider.
+    * @return
+    *   Set of [[ResultEntity]] classes.
+    */
+  private def allResultEntitiesToWrite(
+      outputConfig: OutputConfig
+  ): Set[Class[? <: ResultEntity]] =
+    GridOutputConfigUtil(
+      outputConfig.grid
+    ).simulationResultEntitiesToConsider ++
+      (OutputConfigUtil
+        .participants(
+          outputConfig.participant
+        )
+        .simulationResultIdentifiersToConsider(thermal =
+          false
+        ) ++ OutputConfigUtil
+        .thermal(
+          outputConfig.thermal
+        )
+        .simulationResultIdentifiersToConsider(thermal = true))
+        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
+      (if OutputConfigUtil
+           .participants(
+             outputConfig.participant
+           )
+           ._1
+           .flexResult
+       then
+         Seq(
+           classOf[PowerLimitFlexOptionsResult],
+           classOf[EnergyBoundariesFlexOptionsResult],
+         )
+       else Seq.empty)
 
 }

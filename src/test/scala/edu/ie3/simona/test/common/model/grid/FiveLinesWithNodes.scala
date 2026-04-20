@@ -7,10 +7,10 @@
 package edu.ie3.simona.test.common.model.grid
 
 import breeze.linalg.DenseMatrix
-import breeze.math.{Complex => C}
+import breeze.math.{Complex as C}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.model.grid.{LineModel, NodeModel}
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import squants.{Amperes, Each}
 import tech.units.indriya.ComparableQuantity

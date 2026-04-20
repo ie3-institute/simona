@@ -24,6 +24,8 @@ object DefaultQuantities {
   val zeroMWh: Energy = MegawattHours(0d)
 
   val zeroPU: Dimensionless = Each(0d)
+  val onePU: Dimensionless = Each(1d)
+
   val zeroCelsius: Temperature = Celsius(0)
 
 }

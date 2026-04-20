@@ -8,8 +8,8 @@ package edu.ie3.simona.scheduler
 
 import org.apache.pekko.actor.typed.ActorRef
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
-import edu.ie3.simona.scheduler.RuntimeNotifier._
+import edu.ie3.simona.event.RuntimeEvent.*
+import edu.ie3.simona.scheduler.RuntimeNotifier.*
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 
 /** Determines runtime events at different stages of the simulation and notifies
@@ -60,7 +60,7 @@ final case class RuntimeNotifier(
         Simulating(tick, endTick)
     })
 
-    if (simStartTime.nonEmpty)
+    if simStartTime.nonEmpty then
       // Has been started before: resuming simulation
       copy(lastStartTime = Some(nowTime), lastCheckWindowTime = Some(nowTime))
     else
@@ -83,8 +83,7 @@ final case class RuntimeNotifier(
     val nowTime = now()
 
     // first tick (usually INIT_SIM_TICK) has completed
-    if (lastCheck.isEmpty)
-      notify(InitComplete(duration(simStartTime)))
+    if lastCheck.isEmpty then notify(InitComplete(duration(simStartTime)))
 
     // start with 0 if this is the first completed tick
     val adjustedLastCheck = lastCheck.getOrElse(0L)

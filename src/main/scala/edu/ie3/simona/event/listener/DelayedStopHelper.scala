@@ -21,7 +21,7 @@ object DelayedStopHelper {
     * functionality
     */
   sealed trait StoppingMsg
-      extends ResultEventListener.Request
+      extends ResultListener.Request
       with RuntimeEventListener.Request
 
   /** Message indicating that [[RuntimeEventListener]] should stop. Instead of
@@ -45,7 +45,7 @@ object DelayedStopHelper {
 
     case (ctx, StopTimeout) =>
       // there have been no messages for 5 seconds, let's end this
-      ctx.log.debug(s"${getClass.getSimpleName} is now stopped.")
+      ctx.log.debug(s"${this.getClass.getSimpleName} is now stopped.")
       Behaviors.stopped
   }
 

@@ -9,7 +9,7 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
-  WeatherSource => PsdmWeatherSource,
+  WeatherSource as PsdmWeatherSource,
 }
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.timeseries.individual.{
@@ -18,22 +18,22 @@ import edu.ie3.datamodel.models.timeseries.individual.{
 }
 import edu.ie3.datamodel.models.value.WeatherValue
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  EMPTY_WEATHER_DATA,
-  WeightedCoordinates,
-}
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.service.weather.WeatherSourceSpec.DummyIdCoordinateSource
-import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec._
+import edu.ie3.simona.service.weather.WeatherSourceWrapper.{
+  WeightSum,
+  ZERO_WEATHER_DATA,
+}
+import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.locationtech.jts.geom.Point
-import tech.units.indriya.ComparableQuantity
-import squants.{Temperature, Velocity}
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
+import squants.{Temperature, Velocity}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
@@ -41,7 +41,8 @@ import java.time.{ZoneId, ZonedDateTime}
 import java.util
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava, SetHasAsJava}
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
@@ -87,6 +88,28 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
     }
 
+    "calculate the correct weighted value for 4 coordinates and three ticks with 0.25 weight each" in {
+      val weightedCoordinates = WeightedCoordinates(
+        Map(
+          coordinate1a -> 0.25,
+          coordinate1b -> 0.25,
+          coordinate1c -> 0.25,
+          coordinate13 -> 0.25,
+        )
+      )
+      val results = source.getWeather(0L, 7200L, weightedCoordinates)
+      val sumOfAll = 1 + 1 + 1 + 13
+      results.keys should contain allOf (
+        date, date.plusHours(1), date.plusHours(2)
+      )
+      results.foreach { case (_, result) =>
+        result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+        result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
+        result.temp should approximate(Celsius(sumOfAll / 4))
+        result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
+      }
+    }
+
     "Calculate the correct weighted value for 4 coordinates with 0.25 weight each, where a singular parameter value is missing" in {
       val weightedCoordinates = WeightedCoordinates(
         Map(
@@ -96,7 +119,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
           coordinate13NoTemp -> 0.25,
         )
       )
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1 + 13
       result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
@@ -113,7 +136,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
           coordinateEmpty -> 0.25,
         )
       )
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       val sumOfAll = 1 + 1 + 1
       result.dirIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
@@ -124,7 +147,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate13 -> 1d))
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       result.dirIrr should approximate(WattsPerSquareMeter(13d))
       result.diffIrr should approximate(WattsPerSquareMeter(13d))
       result.temp should approximate(Celsius(13d))
@@ -133,7 +156,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
     "return temperature quantity on absolute scale" in {
       val weightedCoordinates = WeightedCoordinates(Map(coordinate1a -> 1))
-      val result = source.getWeather(date.toEpochSecond, weightedCoordinates)
+      val result = source.getWeather(0L, weightedCoordinates)
       result.temp.unit shouldBe Kelvin
     }
 
@@ -213,7 +236,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
 
       weightSum.scale(weightedWeather) match {
         case WeatherData(_, _, temp, _) =>
-          temp shouldBe EMPTY_WEATHER_DATA.temp
+          temp shouldBe ZERO_WEATHER_DATA.temp
       }
     }
 
@@ -299,6 +322,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate1b -> new WeatherValue(
         coordinate1b,
@@ -307,6 +332,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate1c -> new WeatherValue(
         coordinate1c,
@@ -315,6 +342,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate1d -> new WeatherValue(
         coordinate1d,
@@ -323,6 +352,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate13 -> new WeatherValue(
         coordinate13,
@@ -331,6 +362,8 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(13d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(13d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(13d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinate13NoTemp -> new WeatherValue(
         coordinate13NoTemp,
@@ -339,6 +372,8 @@ object WeatherSourceWrapperSpec {
         null,
         Quantities.getQuantity(13d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(13d, StandardUnits.WIND_VELOCITY),
+        Optional.empty,
+        Optional.empty,
       ),
       coordinateEmpty -> new WeatherValue(
         coordinateEmpty,
@@ -347,62 +382,57 @@ object WeatherSourceWrapperSpec {
         null,
         null,
         null,
+        null,
+        null,
       ),
     )
 
-    override def getSourceFields: Optional[util.Set[String]] =
-      // only required for validation
-      Optional.empty()
+    override def validate(): Unit = {
+      // no validation implemented
+    }
 
     override def getWeather(
         timeInterval: ClosedInterval[ZonedDateTime]
+    ): util.Map[Point, IndividualTimeSeries[WeatherValue]] =
+      getWeatherImpl(timeInterval, dummyValues)
+
+    override def getWeather(
+        timeInterval: ClosedInterval[ZonedDateTime],
+        coordinates: util.Collection[Point],
+    ): util.Map[Point, IndividualTimeSeries[WeatherValue]] =
+      getWeatherImpl(
+        timeInterval,
+        dummyValues
+          .filter { case (point, _) => coordinates.contains(point) },
+      )
+
+    private def getWeatherImpl(
+        timeInterval: ClosedInterval[ZonedDateTime],
+        weatherValues: Map[Point, WeatherValue],
     ): util.Map[Point, IndividualTimeSeries[WeatherValue]] = {
-      val ticks = LazyList
+      val dateTimes = LazyList
         .iterate(timeInterval.getLower)(_.plusHours(1))
         .takeWhile(_.isBefore(timeInterval.getUpper.plusHours(1)))
         .toList
-      dummyValues.map { case (point, data) =>
+      weatherValues.map { case (point, data) =>
         (
           point,
           new IndividualTimeSeries[WeatherValue](
             UUID.randomUUID(),
-            ticks.map(tick => new TimeBasedValue(tick, data)).toSet.asJava,
+            dateTimes.map(tick => new TimeBasedValue(tick, data)).toSet.asJava,
           ),
         )
       }.asJava
     }
 
     override def getWeather(
-        timeInterval: ClosedInterval[ZonedDateTime],
-        coordinates: util.Collection[Point],
-    ): util.Map[Point, IndividualTimeSeries[WeatherValue]] = {
-      val ticks = LazyList
-        .iterate(timeInterval.getLower)(_.plusHours(1))
-        .takeWhile(_.isBefore(timeInterval.getUpper.plusHours(1)))
-        .toList
-      dummyValues
-        .filter { case (point, _) => coordinates.contains(point) }
-        .map { case (point, data) =>
-          (
-            point,
-            new IndividualTimeSeries[WeatherValue](
-              UUID.randomUUID(),
-              ticks.map(tick => new TimeBasedValue(tick, data)).toSet.asJava,
-            ),
-          )
-        }
-        .asJava
-    }
-
-    override def getWeather(
         date: ZonedDateTime,
         coordinate: Point,
-    ): Optional[TimeBasedValue[WeatherValue]] = {
-      dummyValues.get(coordinate) match {
-        case Some(value) => Optional.of(new TimeBasedValue(date, value))
-        case None        => Optional.empty()
-      }
-    }
+    ): Optional[TimeBasedValue[WeatherValue]] =
+      dummyValues
+        .get(coordinate)
+        .map(value => new TimeBasedValue(date, value))
+        .toJava
   }
 
   /** Prepare test data for WeightSum-related tests
@@ -429,7 +459,7 @@ object WeatherSourceWrapperSpec {
     }
 
     val weightedWeather =
-      weatherData.zip(weights).foldLeft(EMPTY_WEATHER_DATA) {
+      weatherData.zip(weights).foldLeft(ZERO_WEATHER_DATA) {
         case (
               currentSum,
               (
@@ -444,7 +474,7 @@ object WeatherSourceWrapperSpec {
             windVel = currentSum.windVel + windVel * wVelWeight,
           )
       }
-    val weightSum = weights.foldLeft(WeightSum.EMPTY_WEIGHT_SUM) {
+    val weightSum = weights.foldLeft(WeightSum.ZERO_WEIGHT_SUM) {
       case (currentSum, currentWeight) =>
         currentSum.add(
           currentWeight._1,

@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.config.{ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
-import edu.ie3.simona.event.RuntimeEvent._
+import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.main.RunSimonaStandalone
 import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
@@ -23,7 +23,7 @@ import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterAll
 
 import scala.io.{BufferedSource, Source}
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 class RunSimonaStandaloneIT
     extends IntegrationSpecCommon
@@ -76,11 +76,7 @@ class RunSimonaStandaloneIT
       val simonaConfig = SimonaConfig(parsedConfig)
       ConfigFailFast.check(simonaConfig)
 
-      val resultFileHierarchy =
-        SimonaStandaloneSetup.buildResultFileHierarchy(
-          parsedConfig,
-          simonaConfig,
-        )
+      val resultFileHierarchy = ResultFileHierarchy(parsedConfig, simonaConfig)
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
@@ -109,7 +105,7 @@ class RunSimonaStandaloneIT
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
-      // todo implement if valid result handling is implemented
+      // todo implement if valid result handling is implemented (see issue #1491)
       val pvResultFileContent = getFileSource(
         resultFileHierarchy,
         classOf[PvResult],
@@ -121,11 +117,90 @@ class RunSimonaStandaloneIT
 
     }
 
+    "run und produce results based on a valid minimal config correctly" in {
+
+      /* setup config */
+      val parsedConfig =
+        ConfigFactory
+          .empty()
+          .withValue(
+            "simona.output.base.dir",
+            ConfigValueFactory.fromAnyRef(testTmpDir),
+          )
+          .withValue(
+            "simona.time.startDateTime",
+            ConfigValueFactory.fromAnyRef("2011-01-01T00:00:00Z"),
+          )
+          .withValue(
+            "simona.time.endDateTime",
+            ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
+          )
+          .withFallback(
+            ConfigFactory.parseString("""
+                |simona.output.log.level = "INFO"
+                |simona.output.log.consoleLevel = "ERROR"
+                |""".stripMargin)
+          )
+          .withFallback(
+            ConfigFactory
+              .parseString("""
+                  |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+                  |pekko.loglevel="OFF"
+                  |""".stripMargin)
+          )
+          .withFallback(ConfigFactory.parseFile(new File(minimalConfigFile)))
+          .withFallback(ConfigFactory.parseString(s"config=$minimalConfigFile"))
+          .resolve()
+
+      /* validate config */
+      val simonaConfig = SimonaConfig(parsedConfig)
+      ConfigFailFast.check(simonaConfig)
+
+      val resultFileHierarchy = ResultFileHierarchy(parsedConfig, simonaConfig)
+
+      val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
+
+      val simonaStandaloneSetup = SimonaStandaloneSetup(
+        parsedConfig,
+        simonaConfig,
+        resultFileHierarchy,
+        Some(runtimeEventQueue),
+      )
+
+      /* run simulation */
+      val successful = RunSimonaStandalone.run(
+        simonaStandaloneSetup
+      )
+
+      successful shouldBe true
+
+      /* check the results */
+      // check configs
+      val configOutputDir = resultFileHierarchy.configOutputDir.toFile
+
+      configOutputDir.isDirectory shouldBe true
+      configOutputDir.listFiles.toVector.size shouldBe 1
+
+      // check runtime event queue for the expected runtime events
+      checkRuntimeEvents(runtimeEventQueue.asScala)
+
+      // check result data
+      // todo implement if valid result handling is implemented (see issue #1491)
+      val pvResultFileContent = getFileSource(
+        resultFileHierarchy,
+        classOf[PvResult],
+      ).getLines().toVector
+      pvResultFileContent.size shouldBe 190
+      pvResultFileContent.headOption.map(
+        _.equals("uuid,inputModel,p,q,timestamp")
+      )
+
+    }
   }
 
   private def getFileSource(
       resultFileHierarchy: ResultFileHierarchy,
-      entityClass: Class[_ <: ResultEntity],
+      entityClass: Class[? <: ResultEntity],
   ): BufferedSource = {
     Source.fromFile(
       resultFileHierarchy.rawOutputDataFilePaths

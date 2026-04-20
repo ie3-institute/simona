@@ -6,16 +6,14 @@
 
 package edu.ie3.simona.io.result
 
-import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.exceptions.EntityProcessorException
 import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.result.system.{PvResult, WecResult}
 import edu.ie3.simona.exceptions.ProcessResultEventException
-import edu.ie3.simona.test.common.{IOTestCommons, TestKitWithShutdown, UnitSpec}
+import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
-import org.apache.pekko.actor.ActorSystem
 import tech.units.indriya.quantity.Quantities
 
 import java.io.File
@@ -26,22 +24,7 @@ import java.util.UUID
 import scala.io.Source
 import scala.language.postfixOps
 
-class ResultEntityCsvSinkSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "ResultEntityCsvSinkSpec",
-        ConfigFactory
-          .parseString(
-            """
-            |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
-            |pekko.loglevel="DEBUG"
-            |pekko.coordinated-shutdown.phases.actor-system-terminate.timeout = 500s
-          """.stripMargin
-          ),
-      )
-    )
-    with UnitSpec
-    with IOTestCommons {
+class ResultEntityCsvSinkSpec extends UnitSpec with IOTestCommons {
 
   "A ResultEntityCsvSink" should {
 
@@ -56,6 +39,7 @@ class ResultEntityCsvSinkSpec
           outFileName,
           resultEntityProcessor,
           outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       resultEntitySink.outfileName shouldBe outFileName
@@ -109,6 +93,7 @@ class ResultEntityCsvSinkSpec
         outFileName,
         resultEntityProcessor,
         outFileName.endsWith(".gz"),
+        delimiter = ",",
       )
 
       // close sink to ensure that everything is written out
@@ -156,6 +141,7 @@ class ResultEntityCsvSinkSpec
           outFileName,
           resultEntityProcessor,
           outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       resultEntitySink.handleResultEntity(dummyPvResult)
@@ -200,6 +186,7 @@ class ResultEntityCsvSinkSpec
           outFileName,
           resultEntityProcessor,
           outFileName.endsWith(".gz"),
+          delimiter = ",",
         )
 
       val exception = intercept[ProcessResultEventException] {

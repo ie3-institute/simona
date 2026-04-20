@@ -24,15 +24,11 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.InputModelContainer.{
   SimpleInputContainer,
   WithHeatInputContainer,
 }
-import edu.ie3.simona.util.ConfigUtil
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
 
 import java.util.UUID
@@ -94,22 +90,6 @@ trait EmInputTestData
 
   protected val storageInputContainer = SimpleInputContainer(storageInput)
 
-  protected val simonaConfig: SimonaConfig = createSimonaConfig()
-
-  private val configUtil = ConfigUtil.EmConfigUtil(
-    simonaConfig.simona.runtime.em
-  )
-
-  protected val defaultOutputConfig: NotifierConfig =
-    NotifierConfig(
-      simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-      simonaConfig.simona.output.participant.defaultConfig.flexResult,
-    )
-
-  protected val modelConfig: EmRuntimeConfig =
-    configUtil.getOrDefault(emInput.getUuid)
-
   protected val adaptedTypeInput = new HpTypeInput(
     UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
     "hp type",
@@ -149,7 +129,7 @@ trait EmInputTestData
     thermalBusInput,
     Seq(adaptedThermalHouse).asJava,
     Seq.empty[ThermalStorageInput].asJava,
-    Seq.empty[ThermalStorageInput].asJava,
+    Seq[ThermalStorageInput](defaultDomesticHotWaterStorageInput).asJava,
   )
 
   protected val adaptedWithHeatContainer =

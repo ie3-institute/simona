@@ -7,19 +7,18 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.connectors.SqlConnector
-import edu.ie3.datamodel.io.csv.CsvLoadProfileMetaInformation
 import edu.ie3.datamodel.io.factory.timeseries.{
   BdewLoadProfileFactory,
   LoadProfileFactory,
   RandomLoadProfileFactory,
 }
-import edu.ie3.datamodel.io.naming.timeseries.LoadProfileMetaInformation
-import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, FileNamingStrategy}
-import edu.ie3.datamodel.io.source.csv.{
-  CsvDataSource,
-  CsvLoadProfileSource,
-  CsvTimeSeriesMetaInformationSource,
+import edu.ie3.datamodel.io.naming.timeseries.{
+  FileLoadProfileMetaInformation,
+  LoadProfileMetaInformation,
 }
+import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, FileNamingStrategy}
+import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvLoadProfileSource}
+import edu.ie3.datamodel.io.source.file.FileTimeSeriesMetaInformationSource
 import edu.ie3.datamodel.io.source.sql.{
   SqlDataSource,
   SqlLoadProfileSource,
@@ -30,8 +29,11 @@ import edu.ie3.datamodel.io.source.{
   LoadProfileSource,
   TimeSeriesMetaInformationSource,
 }
-import edu.ie3.datamodel.models.profile.LoadProfile
-import edu.ie3.datamodel.models.timeseries.repetitive.LoadProfileTimeSeries
+import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
+import edu.ie3.datamodel.models.profile.{
+  BdewStandardLoadProfile,
+  PowerProfileKey,
+}
 import edu.ie3.datamodel.models.value.load.{
   BdewLoadValues,
   LoadValues,
@@ -43,7 +45,6 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.util.{Failure, Success, Try}
 
 /** Utility methods for loading csv and sql load profile sources.
   */
@@ -62,7 +63,7 @@ object LoadProfileSources {
     */
   def buildSources(
       sourceDefinition: InputConfig.LoadProfile.Datasource
-  ): Map[LoadProfile, LoadProfileSource[_, _]] = {
+  ): Map[PowerProfileKey, LoadProfileSource[?]] = {
     val definedSources = Vector(
       sourceDefinition.csvParams,
       sourceDefinition.sqlParams,
@@ -80,19 +81,30 @@ object LoadProfileSources {
             )
           ) =>
         // get the meta information
-        val metaInformation: Map[String, LoadProfileMetaInformation] =
+        val metaInformation: Map[PowerProfileKey, LoadProfileMetaInformation] =
           metaInformationSource.getLoadProfileMetaInformation.asScala.toMap
 
         // build all defined sources
+        val bdewKeys = BdewStandardLoadProfile.values().map(_.getKey).toSet
+        val bdewMetaInformation = metaInformation.filter {
+          case (profileKey, _) =>
+            bdewKeys.contains(profileKey)
+        }
         val bdew = buildSourcesFrom(
           dataSource,
-          metaInformation,
+          bdewMetaInformation,
           new BdewLoadProfileFactory(),
           classOf[BdewLoadValues],
         )
+
+        val rndKeys = RandomLoadProfile.values().map(_.getKey).toSet
+        val rndMetaInformation = metaInformation.filter {
+          case (profileKey, _) =>
+            rndKeys.contains(profileKey)
+        }
         val random = buildSourcesFrom(
           dataSource,
-          metaInformation,
+          rndMetaInformation,
           new RandomLoadProfileFactory(),
           classOf[RandomLoadValues],
         )
@@ -127,7 +139,7 @@ object LoadProfileSources {
             new FileNamingStrategy(),
           )
 
-        val metaInformationSource = new CsvTimeSeriesMetaInformationSource(
+        val metaInformationSource = new FileTimeSeriesMetaInformationSource(
           csvDataSource
         )
 
@@ -162,12 +174,12 @@ object LoadProfileSources {
     *   That are expected.
     */
   private def checkSources(
-      profiles: Set[LoadProfile],
-      expectedProfiles: Set[String],
+      profiles: Set[PowerProfileKey],
+      expectedProfiles: Set[PowerProfileKey],
   ): Unit = {
-    if (profiles.size != expectedProfiles.size) {
+    if profiles.size != expectedProfiles.size then {
       expectedProfiles
-        .diff(profiles.map(_.getKey))
+        .diff(profiles)
         .foreach { profile =>
           log.warn(s"No factory found for profile $profile!")
         }
@@ -184,63 +196,53 @@ object LoadProfileSources {
     *   For the [[LoadProfileSource]]
     * @param allMetaInformation
     *   All available meta information.
-    * @tparam P
-    *   Type of the [[LoadProfile]].
     * @tparam V
     *   Type of the [[LoadValues]].
     * @return
     *   A map: [[LoadProfile]] to [[LoadProfileSource]].
     */
   private def buildSourcesFrom[
-      P <: LoadProfile,
-      V <: LoadValues[P],
+      V <: LoadValues
   ](
       datasource: DataSource,
-      allMetaInformation: Map[String, LoadProfileMetaInformation],
-      factory: LoadProfileFactory[P, V],
+      allMetaInformation: Map[PowerProfileKey, LoadProfileMetaInformation],
+      factory: LoadProfileFactory[V],
       entryClass: Class[V],
-  ): Map[LoadProfile, LoadProfileSource[_, _]] = {
-    val emptyMap = Map.empty[LoadProfile, LoadProfileSource[_, _]]
+  ): Map[PowerProfileKey, LoadProfileSource[?]] = {
+    val emptyMap = Map.empty[PowerProfileKey, LoadProfileSource[?]]
 
     // filter out all profile, that cannot be built by the given factory
     allMetaInformation
-      .filter { case (profile, meta) =>
-        Try(factory.parseProfile(profile)) match {
-          case Failure(_) =>
-            false
-          case Success(value) =>
-            value.getKey.equals(meta.getProfile)
-        }
-      }
       .foldLeft(emptyMap) { case (map, (profile, metaInformation)) =>
-        val parsedProfile = factory.parseProfile(profile)
-
         (datasource, metaInformation) match {
           case (
                 csvDataSource: CsvDataSource,
-                csvLoadProfileMetaInformation: CsvLoadProfileMetaInformation,
+                csvLoadProfileMetaInformation: FileLoadProfileMetaInformation,
               ) =>
-            map ++ Map(
-              parsedProfile -> new CsvLoadProfileSource[P, V](
+            map.updated(
+              profile,
+              new CsvLoadProfileSource[V](
                 csvDataSource,
                 csvLoadProfileMetaInformation,
                 entryClass,
                 factory,
-              )
+              ),
             )
 
           case (
                 sqlDataSource: SqlDataSource,
                 loadProfileMetaInformation: LoadProfileMetaInformation,
               ) =>
-            map ++ Map(
-              parsedProfile -> new SqlLoadProfileSource[P, V](
+            map.updated(
+              profile,
+              new SqlLoadProfileSource[V](
                 sqlDataSource,
                 loadProfileMetaInformation,
                 entryClass,
                 factory,
-              )
+              ),
             )
+
           case _ =>
             map
         }

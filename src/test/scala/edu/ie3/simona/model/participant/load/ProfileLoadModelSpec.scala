@@ -6,28 +6,41 @@
 
 package edu.ie3.simona.model.participant.load
 
-import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile._
-import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile.*
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
+import edu.ie3.simona.model.participant.load.ProfileLoadModel.{
+  LoadModelState,
+  ProfileLoadFactoryData,
+}
+import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
+  FlexType,
+}
+import edu.ie3.simona.service.Data.SecondaryData.{
+  LoadDataFunction,
+  SecondarySeriesData,
+}
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  EnergyToSimona,
-  PowerConversionSimona,
+  toApparent,
+  toSquants,
 }
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Kilovoltamperes,
-  Voltamperes,
-}
-import squants.Percent
-import squants.energy.{KilowattHours, Power, Watts}
+import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
+import squants.energy.*
+import squants.time.{Hours, Minutes}
+import squants.{Energy, Percent}
 import tech.units.indriya.quantity.Quantities
+
+import scala.collection.immutable.SortedMap
 
 class ProfileLoadModelSpec
     extends UnitSpec
@@ -35,17 +48,32 @@ class ProfileLoadModelSpec
     with LoadModelTestHelper
     with LoadInputTestData {
 
-  private implicit val powerTolerance: ApparentPower = Voltamperes(1e-2)
-  private implicit val doubleTolerance: Double = 1e-6
-
   private val simulationStartDate =
     TimeUtil.withDefaults.toZonedDateTime("2022-01-01T00:00:00Z")
 
   private val loadProfileStore = LoadProfileStore()
 
+  // testing tolerances
+  private given ApparentPower = Voltamperes(1e-2)
+  private given Energy = WattHours(1e-6)
+  private given Double = 1e-6
+
   "A profile load model" should {
 
-    def additionalData(loadProfile: LoadProfile): ProfileLoadFactoryData =
+    val sampleDataFunc = LoadDataFunction(() => Kilowatts(1))
+    val samplePowerSeries = SortedMap(
+      0L -> Kilowatts(1),
+      900L -> Kilowatts(2),
+      1800L -> Kilowatts(3),
+      2700L -> Kilowatts(4),
+    )
+    val sampleDataSeries = SecondarySeriesData(
+      series = samplePowerSeries.map { case (tick, power) =>
+        tick -> LoadDataFunction(() => power)
+      }
+    )
+
+    def additionalData(loadProfile: PowerProfileKey): ProfileLoadFactoryData =
       loadProfileStore
         .getProfileLoadFactoryData(loadProfile)
         .getOrElse(fail(s"No data found for profile: $loadProfile"))
@@ -68,14 +96,14 @@ class ProfileLoadModelSpec
           .Factory(
             loadInput
               .copy()
-              .loadprofile(profile)
+              .loadProfile(profile.getKey)
               .sRated(
                 Quantities.getQuantity(sRated, PowerSystemUnits.VOLTAMPERE)
               )
               .build(),
             config,
           )
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -103,7 +131,7 @@ class ProfileLoadModelSpec
           .Factory(
             loadInput
               .copy()
-              .loadprofile(profile)
+              .loadProfile(profile.getKey)
               .eConsAnnual(
                 Quantities
                   .getQuantity(eConsAnnual, PowerSystemUnits.KILOWATTHOUR)
@@ -111,7 +139,7 @@ class ProfileLoadModelSpec
               .build(),
             config,
           )
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         model.referenceScalingFactor should approximate(expectedScalingFactor)
@@ -119,11 +147,43 @@ class ProfileLoadModelSpec
       }
     }
 
+    "handle singular power data by storing it into state" in {
+      val model = ProfileLoadModel
+        .Factory(loadInput, LoadRuntimeConfig())
+        .update(additionalData(loadInput.getLoadProfile))
+        .create()
+
+      val oldState = LoadModelState(0L)
+
+      val actualState =
+        model.handleInput(oldState, Seq(sampleDataFunc), onePU)
+
+      actualState.tick shouldEqual oldState.tick
+      actualState.powerData shouldEqual SortedMap(
+        0L -> sampleDataFunc.powerSupplier()
+      )
+    }
+
+    "handle power series data by storing it into state" in {
+      val model = ProfileLoadModel
+        .Factory(loadInput, LoadRuntimeConfig())
+        .update(additionalData(loadInput.getLoadProfile))
+        .create()
+
+      val oldState = LoadModelState(0L)
+
+      val actualState =
+        model.handleInput(oldState, Seq(sampleDataSeries), onePU)
+
+      actualState.tick shouldEqual oldState.tick
+      actualState.powerData shouldEqual samplePowerSeries
+    }
+
     "reach the targeted annual energy consumption in a simulated year" in {
       forAll(
         Table("profile", H0, L0, G0)
       ) { profile =>
-        val input = loadInput.copy().loadprofile(profile).build()
+        val input = loadInput.copy().loadProfile(profile.getKey).build()
         val config = LoadRuntimeConfig(
           modelBehaviour = "profile",
           reference = "energy",
@@ -133,7 +193,7 @@ class ProfileLoadModelSpec
 
         val model = ProfileLoadModel
           .Factory(input, config)
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         /* Test against a permissible deviation of 2 %. As per official documentation of the bdew load profiles
@@ -153,12 +213,12 @@ class ProfileLoadModelSpec
       forAll(
         Table("profile", H0, L0, G0)
       ) { profile =>
-        val input = loadInput.copy().loadprofile(profile).build()
+        val input = loadInput.copy().loadProfile(profile.getKey).build()
         val config = LoadRuntimeConfig(modelBehaviour = "profile")
 
         val model = ProfileLoadModel
           .Factory(input, config)
-          .update(additionalData(profile))
+          .update(additionalData(profile.getKey))
           .create()
 
         val targetMaximumPower =
@@ -175,6 +235,50 @@ class ProfileLoadModelSpec
         implicit val tolerance: Power = Watts(1)
         maximumPower should approximate(targetMaximumPower)
       }
+    }
+
+    "calculate forecast flex power series correctly" in {
+      val model = ProfileLoadModel
+        .Factory(
+          // parameters that result in scaling factor of 1
+          loadInput.copy().eConsAnnual(1000d.asKiloWattHour).build(),
+          LoadRuntimeConfig(
+            reference = "energy"
+          ),
+        )
+        .update(additionalData(loadInput.getLoadProfile))
+        .create()
+
+      val state = LoadModelState(tick = 0L, powerData = samplePowerSeries)
+      val dataTimeType = DataTimeType.CurrentAndForecast(
+        forecastLength = Hours(1),
+        forecastResolution = Minutes(15),
+      )
+
+      val flexOptions =
+        model
+          .flexModels(FlexType.EnergyBoundaries)
+          .determineFlexOptions(state, dataTimeType)
+
+      flexOptions match {
+        case EnergyBoundariesFlexOptions(boundaries) =>
+          boundaries should have size 1
+
+          val energyLimits = boundaries.headOption.value.energyLimits
+          energyLimits should have size sampleDataSeries.series.size + 1
+
+          samplePowerSeries
+            // adding dummy value so that last energy is tested
+            .updated(3600L, zeroKW)
+            .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
+              energyLimits(tick).getUpper should approximate(expectedEnergy)
+              energyLimits(tick).getLower should approximate(expectedEnergy)
+
+              expectedEnergy + expectedPower * dataTimeType.forecastResolution
+            }
+        case unexpected => fail(s"Received unexpected flex options $unexpected")
+      }
+
     }
 
   }

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common.model;
 
-import edu.ie3.simona.api.data.ev.model.EvModel;
+import edu.ie3.simona.api.data.model.ev.EvModel;
 import edu.ie3.util.quantities.PowerSystemUnits;
 import java.util.Objects;
 import java.util.UUID;
@@ -20,6 +20,7 @@ public class MockEvModel implements EvModel {
   private final String id;
   private final ComparableQuantity<Power> sRatedAC;
   private final ComparableQuantity<Power> sRatedDC;
+  private final double cosPhi;
   private final ComparableQuantity<Energy> eStorage;
   private final ComparableQuantity<Energy> storedEnergy;
   private final Long departureTick;
@@ -36,6 +37,7 @@ public class MockEvModel implements EvModel {
     this.id = id;
     this.sRatedAC = sRatedAC;
     this.sRatedDC = sRatedDC;
+    this.cosPhi = 1d;
     this.eStorage = eStorage;
     this.storedEnergy = storedEnergy;
     this.departureTick = departureTick;
@@ -52,6 +54,7 @@ public class MockEvModel implements EvModel {
     this.id = id;
     this.sRatedAC = sRatedAC;
     this.sRatedDC = sRatedDC;
+    this.cosPhi = 1d;
     this.eStorage = eStorage;
     this.storedEnergy = Quantities.getQuantity(0d, PowerSystemUnits.KILOWATTHOUR);
     this.departureTick = departureTick;
@@ -68,13 +71,22 @@ public class MockEvModel implements EvModel {
   }
 
   @Override
-  public ComparableQuantity<Power> getPRatedAC() {
+  public ComparableQuantity<Power> getSRatedAC() {
     return sRatedAC;
+  }
+
+  public ComparableQuantity<Power> getPRatedAC() {
+    return sRatedAC.multiply(cosPhi);
   }
 
   @Override
   public ComparableQuantity<Power> getPRatedDC() {
     return sRatedDC;
+  }
+
+  @Override
+  public double getCosPhiRated() {
+    return cosPhi;
   }
 
   @Override

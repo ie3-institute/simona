@@ -16,7 +16,7 @@ object RuntimeEvent {
   /** Indicates that all required agents and services are currently being
     * initialized for simulation
     */
-  final case object Initializing extends RuntimeEvent
+  case object Initializing extends RuntimeEvent
 
   /** Indicates that the initialization process of all agents and actors is
     * finished
@@ -27,8 +27,8 @@ object RuntimeEvent {
   final case class InitComplete(duration: Long) extends RuntimeEvent
 
   /** A status indication that the
-    * [[edu.ie3.simona.config.SimonaConfig.simona.time.schedulerReadyCheckWindow]]
-    * has been passed. Normally used by the
+    * [[edu.ie3.simona.config.SimonaConfig.time.schedulerReadyCheckWindow]] has
+    * been passed. Normally used by the
     * [[edu.ie3.simona.event.listener.RuntimeEventListener]] to print status
     * information about the current simulation run.
     *
@@ -70,7 +70,7 @@ object RuntimeEvent {
   /** Indicates that a power flow calculation has failed. This event is not
     * forwarded to sinks, but rather counted in runtime statistics.
     */
-  final case object PowerFlowFailed extends RuntimeEvent
+  case object PowerFlowFailed extends RuntimeEvent
 
   /** Indicates that an error occurred during the simulation, thereby preventing
     * continuation

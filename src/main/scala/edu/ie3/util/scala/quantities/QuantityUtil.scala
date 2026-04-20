@@ -67,18 +67,18 @@ object QuantityUtil {
     * @return
     *   Averaged quantity
     */
-  def average[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+  def average[Q <: Quantity[Q] & TimeDerivative[QI], QI <: Quantity[
     QI
-  ] with TimeIntegral[Q]](
+  ] & TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,
   ): Try[Q] = {
-    if (windowStart == windowEnd)
+    if windowStart == windowEnd then
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
       )
-    else if (windowStart > windowEnd)
+    else if windowStart > windowEnd then
       Failure(
         new IllegalArgumentException("Window end is before window start.")
       )
@@ -108,9 +108,9 @@ object QuantityUtil {
     * @return
     *   Integration over given values from window start to window end
     */
-  def integrate[Q <: Quantity[Q] with TimeDerivative[QI], QI <: Quantity[
+  def integrate[Q <: Quantity[Q] & TimeDerivative[QI], QI <: Quantity[
     QI
-  ] with TimeIntegral[Q]](
+  ] & TimeIntegral[Q]](
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,

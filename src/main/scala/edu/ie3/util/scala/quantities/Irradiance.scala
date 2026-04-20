@@ -6,7 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants._
+import squants.*
 import squants.energy.{WattHours, Watts}
 import squants.radio.{AreaTime, BecquerelsPerSquareMeterSecond, ParticleFlux}
 import squants.space.SquareMeters

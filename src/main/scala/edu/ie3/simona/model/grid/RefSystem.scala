@@ -9,7 +9,7 @@ package edu.ie3.simona.model.grid
 import breeze.math.Complex
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ReactivePower, Vars}
-import squants.electro._
+import squants.electro.*
 import squants.energy.{Megawatts, Watts}
 import squants.{Dimensionless, Each, Power}
 import tech.units.indriya.quantity.Quantities

@@ -70,12 +70,12 @@ object ScheduleLock {
   /** Defines a method of spawning actors from behaviors.
     */
   trait Spawner {
-    def spawn[T](behavior: Behavior[T]): ActorRef[T]
+    def spawn[T](behavior: Behavior[T], name: String): ActorRef[T]
   }
 
   private final case class TypedSpawner(ctx: ActorContext[?]) extends Spawner {
-    override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
-      ctx.spawnAnonymous(behavior)
+    override def spawn[T](behavior: Behavior[T], name: String): ActorRef[T] =
+      ctx.spawn(behavior, name = name)
   }
 
   /** Creates a lock with a single key.
@@ -162,7 +162,10 @@ object ScheduleLock {
   ): Iterable[ScheduleKey] = {
     val keys = (1 to count).map(_ => UUID.randomUUID())
 
-    val lock = spawner.spawn(ScheduleLock(scheduler, keys.toSet, tick))
+    // random UUID in order to create unique actor name
+    val actorName = s"schedule_lock_${UUID.randomUUID()}"
+    val lock =
+      spawner.spawn(ScheduleLock(scheduler, keys.toSet, tick), actorName)
 
     // We have to schedule the activation right away. If there is any
     // possibility for delay via a third actor, the lock could be
@@ -189,7 +192,7 @@ object ScheduleLock {
     Behaviors.withStash(100) { buffer =>
       Behaviors.receivePartial {
         case (ctx, Activation(tick)) =>
-          if (tick == expectedTick)
+          if tick == expectedTick then
             buffer.unstashAll(active(scheduler, awaitedKeys))
           else {
             ctx.log.error(
@@ -211,7 +214,7 @@ object ScheduleLock {
   ): Behavior[Message] = Behaviors.receivePartial { case (ctx, Unlock(key)) =>
     val updatedKeys = awaitedKeys - key
 
-    if (updatedKeys.nonEmpty) active(scheduler, updatedKeys)
+    if updatedKeys.nonEmpty then active(scheduler, updatedKeys)
     else {
       scheduler ! Completion(ctx.self)
       Behaviors.stopped

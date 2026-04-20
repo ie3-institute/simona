@@ -131,6 +131,8 @@ class ProportionalFlexStratSpec
                 (assetInput2, flexOptions2),
               ),
               Kilowatts(target),
+              currentTick = 0L,
+              Seq.empty,
             )
             .toMap
 
@@ -143,7 +145,7 @@ class ProportionalFlexStratSpec
                 "Results should include a set point for device 1, but doesn't"
               ),
             )
-            (res1 ~= Kilowatts(exp1)) shouldBe true
+            res1 should approximate(Kilowatts(exp1))
           }
 
           expected2.foreach { exp2 =>
@@ -153,7 +155,7 @@ class ProportionalFlexStratSpec
                 "Results should include a set point for device 2, but doesn't"
               ),
             )
-            (res2 ~= Kilowatts(exp2)) shouldBe true
+            res2 should approximate(Kilowatts(exp2))
           }
 
       }

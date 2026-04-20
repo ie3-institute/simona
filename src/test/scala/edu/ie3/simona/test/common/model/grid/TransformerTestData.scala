@@ -15,7 +15,7 @@ import squants.electro.Kilovolts
 import squants.energy.Kilowatts
 
 import java.util.UUID
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** This test data refers to a life-like transformer, the SGB Smit DTTH 630 kVA
   * transformer. For details refer to

@@ -7,20 +7,28 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 
 /** Messages for the congestion management.
   */
 object CongestionManagementMessages {
 
+  /** Message that informs the grid agent to start with congestion management.
+    */
+  case class DoCongestionManagement(
+      currentTick: Long,
+      results: Option[PowerFlowResultEvent],
+  ) extends GridAgent.InternalRequest
+
   /** Message that informs all actors that the current step is started.
     */
-  final case object StartStep extends GridAgent.InternalRequest
+  case object StartStep extends GridAgent.InternalRequest
 
   /** Message that informs all actors that the current step is finished.
     */
-  final case object FinishStep extends GridAgent.InternalRequest
+  case object FinishStep extends GridAgent.InternalRequest
 
   /** Message that informs all actors that the next state is the idle state.
     */
-  final case object GotoIdle extends GridAgent.InternalRequest
+  case object GotoIdle extends GridAgent.InternalRequest
 }

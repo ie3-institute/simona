@@ -9,12 +9,10 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.service.weather.WeatherSource.{
-  AgentCoordinates,
-  WeightedCoordinates,
-}
-import edu.ie3.simona.service.weather.WeatherSourceSpec._
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
+import edu.ie3.simona.service.weather.WeatherSourceSpec.*
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.util.geo.{CoordinateDistance, GeoUtils}
 import edu.ie3.util.quantities.QuantityUtil
 import org.locationtech.jts.geom.{Envelope, Point}
@@ -22,11 +20,13 @@ import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
+import java.time.ZonedDateTime
 import java.util
 import java.util.Optional
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters._
-import scala.jdk.OptionConverters._
+import scala.collection.immutable.SortedMap
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success}
 
 class WeatherSourceSpec extends UnitSpec {
@@ -35,7 +35,7 @@ class WeatherSourceSpec extends UnitSpec {
   "A weather source" should {
     "issue a ServiceException, if there are not enough coordinates available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
-        AgentCoordinates(coordinate0.getY, coordinate0.getX),
+        Coordinate(coordinate0.getY, coordinate0.getX),
         9,
       ) match {
         case Failure(exception: ServiceException) =>
@@ -45,7 +45,7 @@ class WeatherSourceSpec extends UnitSpec {
     }
     "issue a ServiceException, if there are not enough coordinates in max distance available" in {
       DummyWeatherSource.getNearestCoordinatesWithDistances(
-        AgentCoordinates(coordinate0.getY, coordinate0.getX),
+        Coordinate(coordinate0.getY, coordinate0.getX),
         5,
       ) match {
         case Failure(exception: ServiceException) =>
@@ -55,7 +55,7 @@ class WeatherSourceSpec extends UnitSpec {
     }
 
     "return one coordinate, if we found an exact hit" in {
-      val agentCoordinates = AgentCoordinates(51.4380006, 7.4380005)
+      val agentCoordinates = Coordinate(51.4380006, 7.4380005)
       val distance = GeoUtils.calcHaversine(
         agentCoordinates.latitude,
         agentCoordinates.longitude,
@@ -89,7 +89,7 @@ class WeatherSourceSpec extends UnitSpec {
 
     "determine the nearest 4 coordinates" in {
       val agentCoordinates =
-        AgentCoordinates(coordinate0.getY, coordinate0.getX)
+        Coordinate(coordinate0.getY, coordinate0.getX)
       val expectedCoordinateDistances = Vector(
         new CoordinateDistance(
           coordinate0,
@@ -218,7 +218,7 @@ class WeatherSourceSpec extends UnitSpec {
     "refuse to return the nearest weighted coordinates on an arbitrary error in underlying methods" in {
       /* Query more coordinates, than are apparent */
       DummyWeatherSource.getWeightedCoordinates(
-        AgentCoordinates(coordinate0.getY, coordinate0.getX),
+        Coordinate(coordinate0.getY, coordinate0.getX),
         9,
       ) match {
         case Failure(exception: ServiceException) =>
@@ -231,7 +231,7 @@ class WeatherSourceSpec extends UnitSpec {
     }
 
     "return one coordinate with weight one if we found an exact hit" in {
-      val agentCoordinates = AgentCoordinates(51.4380006, 7.4380005)
+      val agentCoordinates = Coordinate(51.4380006, 7.4380005)
 
       DummyWeatherSource.getWeightedCoordinates(
         agentCoordinates,
@@ -252,8 +252,7 @@ class WeatherSourceSpec extends UnitSpec {
     }
 
     "return four coordinates with respective weight" in {
-      val agentCoordinates =
-        AgentCoordinates(coordinate0.getY, coordinate0.getX)
+      val agentCoordinates = Coordinate(coordinate0.getY, coordinate0.getX)
       val expectedWeighting = Map(
         coordinate67775 -> 0.254626046882988,
         coordinate531137 -> 0.249222038996929,
@@ -298,35 +297,15 @@ case object WeatherSourceSpec {
     override protected val maxCoordinateDistance: ComparableQuantity[Length] =
       Quantities.getQuantity(400000, Units.METRE)
 
-    /** Get the weather data for the given tick as a weighted average taking
-      * into account the given weighting of weather coordinates.
-      *
-      * @param tick
-      *   Simulation date in question
-      * @param weightedCoordinates
-      *   The coordinate in question
-      * @return
-      *   Matching weather data
-      */
     override def getWeather(
-        tick: Long,
+        startTick: Long,
+        endTick: Long,
         weightedCoordinates: WeightedCoordinates,
-    ): WeatherData =
+    ): SortedMap[ZonedDateTime, WeatherData] =
       throw new UnsupportedOperationException(
         "This is not supported by the dummy source."
       )
 
-    /** Determine an Array with all ticks between the request frame's start and
-      * end on which new data is available. Bot the request frame's start and
-      * end are INCLUDED.
-      *
-      * @param requestFrameStart
-      *   Beginning of the announced request frame
-      * @param requestFrameEnd
-      *   End of the announced request frame
-      * @return
-      *   Array with data ticks
-      */
     override def getDataTicks(
         requestFrameStart: Long,
         requestFrameEnd: Long,
@@ -379,7 +358,7 @@ case object WeatherSourceSpec {
         GeoUtils.calculateBoundingBox(coordinate, distance)
 
       val reducedPoints: Set[Point] = points.flatMap { point =>
-        if (envelope.contains(point.getCoordinate)) {
+        if envelope.contains(point.getCoordinate) then {
           Some(point)
         } else {
           None

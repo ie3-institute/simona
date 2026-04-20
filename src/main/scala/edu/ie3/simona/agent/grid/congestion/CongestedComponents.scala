@@ -20,10 +20,7 @@ import edu.ie3.simona.model.grid.{
   TransformerModel,
   VoltageLimits,
 }
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  CurrentToSimona,
-  DimensionlessToSimona,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.electro.ElectricPotential
@@ -88,7 +85,7 @@ object CongestedComponents {
 
         // Units: A -> (A, A)
 
-        val current = if (iA > iB) {
+        val current = if iA > iB then {
           iA
         } else iB
 

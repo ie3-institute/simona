@@ -8,21 +8,21 @@ package edu.ie3.simona.service.primary
 
 import com.dimafeng.testcontainers.{ForAllTestContainer, PostgreSQLContainer}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationFailedMessage,
-}
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.config.InputConfig.Primary
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.PrimaryServiceRegistrationMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  PrimaryRegistrationSuccessfulMessage,
+  PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
+}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
-import edu.ie3.simona.test.helper.TestContainerHelper
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -42,7 +42,7 @@ class PrimaryServiceProxySqlIT
     with AnyWordSpecLike
     with ForAllTestContainer
     with BeforeAndAfterAll
-    with TestContainerHelper
+    with TestResourceHelper
     with TestSpawnerTyped {
 
   override val container: PostgreSQLContainer = PostgreSQLContainer(
@@ -82,7 +82,6 @@ class PrimaryServiceProxySqlIT
     userName = container.username,
     password = container.password,
     schemaName = schemaName,
-    timePattern = "yyyy-MM-dd'T'HH:mm:ssX",
   )
 
   private def createProxy(): ActorRef[PrimaryServiceProxy.Message] = {
@@ -117,7 +116,7 @@ class PrimaryServiceProxySqlIT
 
     "handle participant request correctly if participant has primary data" in {
       val systemParticipantProbe =
-        TestProbe[ParticipantAgent.Request]("SystemParticipant")
+        TestProbe[ParticipantAgent.Message]("SystemParticipant")
 
       val proxyRef = createProxy()
 
@@ -130,23 +129,23 @@ class PrimaryServiceProxySqlIT
         systemParticipantProbe.ref,
         UUID.fromString("b86e95b0-e579-4a80-a534-37c7a470a409"),
       )
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
 
-      val initActivation = scheduler.expectMessageType[ScheduleActivation]
-      initActivation.tick shouldBe INIT_SIM_TICK
-      initActivation.unlockKey should not be empty
-
-      // extract ref to the worker that the proxy created
-      val workerRef = initActivation.actor
-      workerRef ! Activation(INIT_SIM_TICK)
-
-      scheduler.expectMessage(Completion(workerRef, Some(0)))
-
-      val msg =
-        systemParticipantProbe
-          .expectMessageType[PrimaryRegistrationSuccessfulMessage]
+      // registration was successful
+      val msg = systemParticipantProbe
+        .expectMessageType[PrimaryRegistrationSuccessfulMessage]
       msg.firstDataTick shouldBe 0L
+
+      val firstActivation = scheduler.expectMessageType[ScheduleActivation]
+      firstActivation.tick shouldBe 0L
+      firstActivation.unlockKey should not be empty
+      // extract ref to the worker that the proxy created
+      val workerRef = firstActivation.actor
+
+      workerRef ! Activation(0L)
+      scheduler.expectMessage(Completion(workerRef, Some(900L)))
+      scheduler.expectNoMessage()
     }
 
     "handle participant request correctly if participant does not have primary data" in {

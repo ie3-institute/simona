@@ -35,7 +35,7 @@ object RegularSchedulerCore extends CoreFactory {
         )
       )
 
-      if (nextScheduledTick != newTick)
+      if nextScheduledTick != newTick then
         throw new CriticalFailureException(
           s"Cannot activate with new tick $newTick because $nextScheduledTick is the next scheduled tick."
         )
@@ -75,7 +75,7 @@ object RegularSchedulerCore extends CoreFactory {
   ) extends ActiveCore {
 
     override def handleCompletion(actor: Actor): ActiveCore = {
-      if (!activeActors.contains(actor))
+      if !activeActors.contains(actor) then
         throw new CriticalFailureException(
           s"Actor $actor is not part of the expected completing actors"
         )
@@ -98,9 +98,9 @@ object RegularSchedulerCore extends CoreFactory {
         actor: Actor,
         newTick: Long,
     ): ActiveCore = {
-      if (newTick < activeTick)
+      if newTick < activeTick then
         throw new CriticalFailureException(
-          s"Cannot schedule an activation at tick $newTick"
+          s"Cannot schedule an activation ($actor) at tick $newTick, as currently the active tick is $activeTick."
         )
 
       activationQueue.set(newTick, actor)

@@ -7,38 +7,30 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  PrimaryRegistrationSuccessfulMessage,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
 }
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  SecondaryServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.PrimaryData.ActivePowerExtra
-import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.weather.WeatherService.Coordinate
+import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.test.common.input.{LoadInputTestData, PvInputTestData}
 import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
@@ -47,8 +39,9 @@ import squants.Each
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
-/** Testing [[ParticipantAgentInit]], which means testing the complete
-  * initialization process of [[ParticipantAgent]] up until the first tick
+/** Testing [[ParticipantAgentInit]] including [[SecondaryServiceRegistration]],
+  * which means testing the complete initialization process of
+  * [[ParticipantAgent]] up until the first tick.
   */
 class ParticipantAgentInitSpec
     extends ScalaTestWithActorTestKit
@@ -58,8 +51,6 @@ class ParticipantAgentInitSpec
     with TestSpawnerTyped {
 
   given simulationStart: ZonedDateTime = defaultSimulationStart
-
-  given FlexType = FlexType.PowerLimit
 
   given SimulationParameters = SimulationParameters(
     3600,
@@ -90,15 +81,13 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[PrimaryServiceProxy.Message]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -139,15 +128,13 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -197,15 +184,13 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -235,7 +220,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -260,15 +245,13 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map.empty,
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -298,7 +281,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -347,16 +330,14 @@ class ParticipantAgentInitSpec
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -392,9 +373,12 @@ class ParticipantAgentInitSpec
         service.expectMessage(
           SecondaryServiceRegistrationMessage(
             participantAgent,
-            Coordinate(
-              mockInput.electricalInputModel.getNode.getGeoPosition.getY,
-              mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            DataTimeType.Current,
+            WeatherRegistrationData(
+              Coordinate(
+                mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+                mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+              )
             ),
           )
         )
@@ -408,20 +392,79 @@ class ParticipantAgentInitSpec
 
       }
 
+      "throw an exception and die if registration fails" in {
+        val scheduler = createTestProbe[SchedulerMessage]()
+
+        val primaryService = createTestProbe[Any]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
+        val service = createTestProbe[Any]()
+
+        given ParticipantRefs = ParticipantRefs(
+          primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
+          services = Map(ServiceType.WeatherService -> service.ref),
+        )
+
+        val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+        // lock activation scheduled
+        scheduler.expectMessageType[ScheduleActivation]
+
+        val participantAgent = spawn(
+          ParticipantAgentInit(
+            mockInput,
+            runtimeConfig,
+            mock[NotifierConfig],
+            Left(scheduler.ref),
+            key,
+          )
+        )
+
+        // init activation
+        scheduler.expectMessageType[ScheduleActivation]
+
+        participantAgent ! Activation(INIT_SIM_TICK)
+
+        primaryService.expectMessage(
+          PrimaryServiceRegistrationMessage(
+            participantAgent,
+            mockInput.electricalInputModel.getUuid,
+          )
+        )
+
+        participantAgent ! RegistrationFailedMessage(primaryService.ref)
+
+        service.expectMessage(
+          SecondaryServiceRegistrationMessage(
+            participantAgent,
+            DataTimeType.Current,
+            WeatherRegistrationData(
+              Coordinate(
+                mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+                mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+              )
+            ),
+          )
+        )
+
+        val deathWatch = createTestProbe("deathWatch")
+        participantAgent ! RegistrationFailedMessage(service.ref)
+        deathWatch expectTerminated participantAgent
+
+        scheduler.expectNoMessage()
+      }
+
       "initialize correctly when replaying primary data" in {
 
         val scheduler = createTestProbe[SchedulerMessage]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -475,16 +518,14 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -514,7 +555,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(
@@ -528,9 +569,12 @@ class ParticipantAgentInitSpec
         service.expectMessage(
           SecondaryServiceRegistrationMessage(
             participantAgent,
-            Coordinate(
-              mockInput.electricalInputModel.getNode.getGeoPosition.getY,
-              mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+            DataTimeType.Current,
+            WeatherRegistrationData(
+              Coordinate(
+                mockInput.electricalInputModel.getNode.getGeoPosition.getY,
+                mockInput.electricalInputModel.getNode.getGeoPosition.getX,
+              )
             ),
           )
         )
@@ -553,16 +597,14 @@ class ParticipantAgentInitSpec
         val scheduler = createTestProbe[SchedulerMessage]()
         val em = createTestProbe[FlexResponse]()
 
-        val gridAgent = createTestProbe[GridAgent.Message]()
         val primaryService = createTestProbe[Any]()
-        val resultListener = createTestProbe[ResultEvent]()
+        val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
         val service = createTestProbe[Any]()
 
         given ParticipantRefs = ParticipantRefs(
-          gridAgent = gridAgent.ref,
           primaryServiceProxy = primaryService.ref,
+          resultServiceProxy = resultServiceProxy.ref,
           services = Map(ServiceType.WeatherService -> service.ref),
-          resultListener = Iterable(resultListener.ref),
         )
 
         val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
@@ -592,7 +634,7 @@ class ParticipantAgentInitSpec
           )
         )
 
-        activationRef ! FlexActivation(INIT_SIM_TICK)
+        activationRef ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
         primaryService.expectMessage(
           PrimaryServiceRegistrationMessage(

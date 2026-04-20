@@ -7,28 +7,24 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.model.MockEvModel
-import edu.ie3.util.quantities.QuantityUtils._
+import edu.ie3.simona.test.common.input.EvcsInputTestData
+import edu.ie3.util.quantities.QuantityUtils.*
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.Kilowatts
 
 import java.util.UUID
 
-class MaximumPowerChargingSpec extends UnitSpec with TableDrivenPropertyChecks {
+class MaximumPowerChargingSpec
+    extends UnitSpec
+    with EvcsInputTestData
+    with TableDrivenPropertyChecks {
 
   "Calculating maximum power charging schedules" should {
 
     "not charge evs if they are fully charged" in {
+      // 10 kWh capacity, 8 kWh target, 5 kW max power
       val ev = EvModelWrapper(
-        new MockEvModel(
-          UUID.randomUUID(),
-          "Test EV",
-          5.0.asKiloWatt,
-          10.0.asKiloWatt,
-          20.0.asKiloWattHour,
-          20.0.asKiloWattHour,
-          3600,
-        )
+        ev1.copyWith(ev1.getEStorage)
       )
 
       val actualSchedule = MaximumPowerCharging.determineChargingPowers(
@@ -44,28 +40,24 @@ class MaximumPowerChargingSpec extends UnitSpec with TableDrivenPropertyChecks {
       val offset = 1800L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy"),
+        ("stayingHours", "storedEnergy"),
         // empty battery
-        (3600L, 0.0), // stay shorter than full
-        (7200L, 0.0), // exactly full
-        (14400L, 0.0), // full before end of stay
+        (1.0, 0.0), // stay shorter than full
+        (2.0, 0.0), // exactly full
+        (4.0, 0.0), // full before end of stay
         // half full battery
-        (1800L, 5.0), // stay shorter than full
-        (3600L, 5.0), // exactly full
-        (14400L, 5.0), // full before end of stay
+        (0.5, 5.0), // stay shorter than full
+        (1.0, 5.0), // exactly full
+        (4.0, 5.0), // full before end of stay
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy) =>
+      forAll(cases) { (stayingHours, storedEnergy) =>
+
+        // 10 kWh capacity, 8 kWh target, 5 kW max power
         val ev = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Test EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            storedEnergy.asKiloWattHour,
-            offset + stayingTicks,
-          )
+          ev1
+            .copyWith(storedEnergy.asKiloWattHour)
+            .copyWithDeparture(offset + (stayingHours * 3600L).toLong)
         )
 
         val chargingMap = MaximumPowerCharging.determineChargingPowers(
@@ -85,40 +77,29 @@ class MaximumPowerChargingSpec extends UnitSpec with TableDrivenPropertyChecks {
       val offset = 3600L
 
       val cases = Table(
-        ("stayingTicks", "storedEnergy"),
+        ("stayingHours", "storedEnergy"),
         // empty battery
-        (3600L, 0.0), // stay shorter than full
-        (7200L, 0.0), // exactly full
-        (14400L, 0.0), // full before end of stay
+        (1.0, 0.0), // stay shorter than full
+        (2.0, 0.0), // exactly full
+        (4.0, 0.0), // full before end of stay
         // half full battery
-        (1800L, 5.0), // stay shorter than full
-        (3600L, 5.0), // exactly full
-        (14400L, 5.0), // full before end of stay
+        (0.5, 5.0), // stay shorter than full
+        (1.0, 5.0), // exactly full
+        (4.0, 5.0), // full before end of stay
       )
 
-      forAll(cases) { (stayingTicks, storedEnergy) =>
+      forAll(cases) { (stayingHours, storedEnergy) =>
+
+        // 10 kWh capacity, 8 kWh target, 5 kW max power, staying one hour
         val givenEv = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "First EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            5.0.asKiloWattHour,
-            offset + 3600L,
-          )
+          ev1.copyWithDeparture(offset + 3600L)
         )
 
+        // 10 kWh capacity, 8 kWh target, 5 kW max power
         val ev = EvModelWrapper(
-          new MockEvModel(
-            UUID.randomUUID(),
-            "Test EV",
-            5.0.asKiloWatt, // using AC charging here
-            10.0.asKiloWatt,
-            10.0.asKiloWattHour,
-            storedEnergy.asKiloWattHour,
-            offset + stayingTicks,
-          )
+          ev2
+            .copyWith(storedEnergy.asKiloWattHour)
+            .copyWithDeparture(offset + (stayingHours * 3600L).toLong)
         )
 
         val chargingMap = MaximumPowerCharging.determineChargingPowers(

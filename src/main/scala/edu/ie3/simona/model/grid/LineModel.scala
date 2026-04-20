@@ -13,11 +13,7 @@ import edu.ie3.datamodel.models.input.connector.LineInput
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  CurrentToSimona,
-  OhmPerLengthToSimona,
-  SiemensPerLengthToSimona,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.Each
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -184,7 +180,7 @@ case object LineModel extends LazyLogging {
     // TODO Build ThermalLineModel here from LineString/Geopositions as well
 
     // if the line input model is in operation, enable the model
-    if (operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION))
+    if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       lineModel.enable()
 
     // sanity check after creation for piEquivalent parameters r,x,g,b
@@ -204,7 +200,7 @@ case object LineModel extends LazyLogging {
     */
   def validateInputModel(lineInput: LineInput): Unit = {
 
-    if (lineInput.getNodeA == null || lineInput.getNodeB == null)
+    if lineInput.getNodeA == null || lineInput.getNodeB == null then
       throw new InvalidGridException(
         s"Nodes of line ${lineInput.getUuid} are missing." +
           s"NodeA: ${lineInput.getNodeA}, NodeB: ${lineInput.getNodeB}."
@@ -215,69 +211,65 @@ case object LineModel extends LazyLogging {
     val vRatedNodeA = lineInput.getNodeA.getVoltLvl.getNominalVoltage
     val vRatedNodeB = lineInput.getNodeB.getVoltLvl.getNominalVoltage
 
-    if (
-      lineType
+    if lineType
         .getvRated()
         .isLessThan(vRatedNodeA.subtract(ratedVoltageTolerance))
-    )
+    then
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a rated voltage of $vRatedNodeA."
       )
-    else if (
-      lineType
+    else if lineType
         .getvRated()
         .isLessThan(vRatedNodeB.subtract(ratedVoltageTolerance))
-    )
+    then
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a rated voltage of $vRatedNodeB."
       )
-    else if (
-      lineType
+    else if lineType
         .getvRated()
         .isGreaterThan(vRatedNodeA.add(ratedVoltageTolerance))
-    )
+    then
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node A (${lineInput.getNodeA.getUuid} / ${lineInput.getNodeA.getId}), which has a lower rated voltage of $vRatedNodeA."
       )
-    else if (
-      lineType
+    else if lineType
         .getvRated()
         .isGreaterThan(vRatedNodeB.add(ratedVoltageTolerance))
-    )
+    then
       logger.warn(
         s"Line ${lineInput.getUuid} (${lineInput.getId}) has a rated voltage of ${lineType
             .getvRated()} but is connected to node B (${lineInput.getNodeB.getUuid} / ${lineInput.getNodeB.getId}), which has a lower rated voltage of $vRatedNodeB."
       )
 
     // length
-    if (lineInput.getLength.getValue.doubleValue() <= 0)
+    if lineInput.getLength.getValue.doubleValue() <= 0 then
       throw new InvalidGridException(
         s"Line ${lineInput.getUuid} has an invalid length of ${lineInput.getLength}"
       )
 
     // electric params
-    if (lineType.getR.getValue.doubleValue() <= 0)
+    if lineType.getR.getValue.doubleValue() <= 0 then
       throw new InvalidGridException(
         s"Resistance r of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller, " +
           s"which is not allowed! Please correct parameters!"
       )
 
-    if (lineType.getX.getValue.doubleValue() <= 0)
+    if lineType.getX.getValue.doubleValue() <= 0 then
       throw new InvalidGridException(
         s"Reactance x of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is 0 or smaller," +
           s" which is not allowed! Please correct parameters!"
       )
 
-    if (lineType.getB.getValue.doubleValue() < 0)
+    if lineType.getB.getValue.doubleValue() < 0 then
       throw new InvalidGridException(
         s"Susceptance b of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
           s"than 0, which is not allowed! Please correct parameters!"
       )
 
-    if (lineType.getG.getValue.doubleValue() < 0)
+    if lineType.getG.getValue.doubleValue() < 0 then
       throw new InvalidGridException(
         s"Conductance g of lineType ${lineType.getUuid} used in line ${lineInput.getUuid} is smaller " +
           s"than 0, which is not allowed! Please correct parameters!"

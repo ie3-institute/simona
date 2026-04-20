@@ -10,7 +10,7 @@ import edu.ie3.datamodel.models.voltagelevels.{
   GermanVoltageLevelUtils,
   VoltageLevel,
 }
-import edu.ie3.simona.config.SimonaConfig.Simona.GridConfig
+import edu.ie3.simona.config.SimonaConfig.GridConfig
 import edu.ie3.simona.config.SimonaConfig.{
   RefSystemConfig,
   VoltLvlConfig,
@@ -25,8 +25,8 @@ import squants.energy.{Kilowatts, Megawatts}
 
 object GridConfigParser {
   abstract class ParsedGridConfig[T](
-      protected val gridIdMap: Map[Int, T],
-      protected val voltLvlMap: Map[VoltageLevel, T],
+      val gridIdMap: Map[Int, T],
+      val voltLvlMap: Map[VoltageLevel, T],
   ) {
 
     /** Returns a [[GridConfig]] based on the provided gridId or the voltLvl as
@@ -116,7 +116,7 @@ object GridConfigParser {
       refSystem => RefSystem(refSystem.sNom, refSystem.vNom),
       (gridIds, voltLvls) => ConfigRefSystems(gridIds, voltLvls),
       defaultRefSystems,
-    )("refSystems")
+    )(using "refSystems")
   }
 
   /** Parses the configuration based [[VoltageLimits]] information based on a
@@ -153,10 +153,10 @@ object GridConfigParser {
       voltageLimit => VoltageLimits(voltageLimit.vMin, voltageLimit.vMax),
       (gridIds, voltLvls) => ConfigVoltageLimits(gridIds, voltLvls),
       defaultVoltageLimits,
-    )("voltageLimits")
+    )(using "voltageLimits")
   }
 
-  def parseWithDefaults[C, E, T <: ParsedGridConfig[_]](
+  def parseWithDefaults[C, E, T <: ParsedGridConfig[E]](
       configs: Option[List[C]],
       gridIds: C => Option[List[String]],
       voltLvls: C => Option[List[VoltLvlConfig]],
@@ -201,20 +201,25 @@ object GridConfigParser {
           )
         }
 
-      if (CollectionUtils.listHasDuplicates(parsedIdList)) {
+      if CollectionUtils.listHasDuplicates(parsedIdList) then {
         throw new InvalidConfigParameterException(
           s"The provided gridIds in simona.gridConfig.$gridConfigType contain duplicates. " +
             "Please check if there are either duplicate entries or overlapping ranges!"
         )
       }
 
-      if (CollectionUtils.listHasDuplicates(parsedVoltLvlList))
+      if CollectionUtils.listHasDuplicates(parsedVoltLvlList) then
         throw new InvalidConfigParameterException(
           s"The provided voltLvls in simona.gridConfig.$gridConfigType contain duplicates. " +
             "Please check your configuration for duplicates in voltLvl entries!"
         )
 
-      builder(parsedIdList.toMap, parsedVoltLvlList.toMap)
+      // this will use the default values as a base and overrides those with the config values
+      val idListWithDefaults = defaults.gridIdMap ++ parsedIdList.toMap
+      val voltLvlListWithDefaults =
+        defaults.voltLvlMap ++ parsedVoltLvlList.toMap
+
+      builder(idListWithDefaults, voltLvlListWithDefaults)
     case _ =>
       defaults
   }

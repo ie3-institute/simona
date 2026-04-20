@@ -64,20 +64,19 @@ object ConfigParams {
     *   The path of the csv source.
     * @param isHierarchic
     *   True, if a hierarchical structure is used.
-    * @param timePattern
-    *   Used for the data (default: [[ConfigParams.defaultTimePattern]]).
     */
   final case class TimeStampedCsvParams(
       override val csvSep: String,
       override val directoryPath: String,
       override val isHierarchic: Boolean,
-      timePattern: String = defaultTimePattern,
   ) extends CsvParams
       derives ConfigConvert
 
   /** Csv parameters used by the [[edu.ie3.datamodel.io.sink.CsvFileSink]].
     * @param compressOutputs
     *   If output files should be compressed (default: false).
+    * @param csvSep
+    *   Separator for data in a csv line.
     * @param fileFormat
     *   That is used (default: .csv).
     * @param filePrefix
@@ -89,6 +88,7 @@ object ConfigParams {
     */
   final case class PsdmSinkCsvParams(
       compressOutputs: Boolean = false,
+      csvSep: String = ",",
       fileFormat: String = ".csv",
       filePrefix: String = "",
       fileSuffix: String = "",
@@ -175,8 +175,6 @@ object ConfigParams {
     *   For login.
     * @param schemaName
     *   Name of the schema (default: public).
-    * @param timePattern
-    *   Used for the data (default: [[ConfigParams.defaultTimePattern]]).
     * @param userName
     *   For login.
     */
@@ -184,7 +182,6 @@ object ConfigParams {
       override val jdbcUrl: String,
       override val password: String,
       override val schemaName: String = "public",
-      timePattern: String = defaultTimePattern,
       override val userName: String,
   ) extends SqlParams
       derives ConfigConvert

@@ -7,7 +7,14 @@
 package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigValue}
-import edu.ie3.simona.config.SimonaConfig.writer
+import edu.ie3.simona.config.SimonaConfig.{
+  CongestionManagement,
+  Control,
+  GridConfig,
+  Powerflow,
+  Time,
+  writer,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.util.TimeUtil
 import pureconfig.error.*
@@ -20,12 +27,20 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.deriving.Mirror
 
 final case class SimonaConfig(
-    simona: SimonaConfig.Simona
+    congestionManagement: CongestionManagement = CongestionManagement(),
+    control: Option[Control] = None,
+    gridConfig: GridConfig = GridConfig(),
+    input: InputConfig,
+    output: OutputConfig,
+    powerflow: Option[Powerflow] = None,
+    runtime: RuntimeConfig = RuntimeConfig(),
+    simulationName: String,
+    time: Time,
 ) derives ConfigConvert {
 
-  /** Returns the default config values.
+  /** Returns the values of this config.
     */
-  def defaults: ConfigValue = writer.to(this)
+  def values: ConfigValue = writer.to(this)
 }
 
 object SimonaConfig {
@@ -45,7 +60,7 @@ object SimonaConfig {
     apply(ConfigSource.fromConfig(typeSafeConfig))
 
   def apply(confSrc: ConfigObjectSource): SimonaConfig =
-    confSrc.load[SimonaConfig] match {
+    confSrc.at("simona").load[SimonaConfig] match {
       case Left(readerFailures) =>
         val detailedErrors = readerFailures.toList
           .map {
@@ -68,19 +83,6 @@ object SimonaConfig {
     }
 
   // pure config end
-
-  /** Case class contains default and individual configs for assets.
-    * @param defaultConfig
-    *   to use
-    * @param individualConfigs
-    *   specific configs, that are used instead of the [[defaultConfig]]
-    * @tparam T
-    *   type of asset config
-    */
-  final case class AssetConfigs[T](
-      defaultConfig: T,
-      individualConfigs: List[T] = List.empty,
-  )
 
   sealed trait GridConfigParams {
     val gridIds: Option[List[String]]
@@ -115,58 +117,41 @@ object SimonaConfig {
   ) extends GridConfigParams
       derives ConfigConvert
 
-  final case class Simona(
-      congestionManagement: Simona.CongestionManagement =
-        Simona.CongestionManagement(),
-      control: Option[Simona.Control] = None,
-      gridConfig: Simona.GridConfig = Simona.GridConfig(),
-      input: InputConfig,
-      output: OutputConfig,
-      powerflow: Option[Simona.Powerflow] = None,
-      runtime: RuntimeConfig = RuntimeConfig(),
-      simulationName: String,
-      time: Simona.Time = Simona.Time(),
+  final case class CongestionManagement(enableDetection: Boolean = false)
+
+  final case class Control(
+      transformer: List[TransformerControlGroup] = List.empty
   ) derives ConfigConvert
-  object Simona {
-    final case class CongestionManagement(
-        enableDetection: Boolean = false,
-        timeout: FiniteDuration = 30.seconds,
-    )
 
-    final case class Control(
-        transformer: List[TransformerControlGroup] = List.empty
+  final case class GridConfig(
+      refSystems: Option[List[RefSystemConfig]] = None,
+      voltageLimits: Option[List[VoltageLimitsConfig]] = None,
+  ) derives ConfigConvert
+
+  final case class Powerflow(
+      maxSweepPowerDeviation: Double = 1e-5,
+      newtonraphson: Powerflow.Newtonraphson,
+      resolution: FiniteDuration = 1.hours,
+      stopOnFailure: Boolean = false,
+  ) derives ConfigConvert
+
+  object Powerflow {
+    final case class Newtonraphson(
+        epsilon: List[Double] = List.empty,
+        iterations: Int = 50,
     ) derives ConfigConvert
+  }
 
-    final case class GridConfig(
-        refSystems: Option[List[RefSystemConfig]] = None,
-        voltageLimits: Option[List[VoltageLimitsConfig]] = None,
-    ) derives ConfigConvert
+  final case class Time(
+      endDateTime: String,
+      schedulerReadyCheckWindow: Option[Int] = None,
+      startDateTime: String,
+  ) derives ConfigConvert {
 
-    final case class Powerflow(
-        maxSweepPowerDeviation: Double,
-        newtonraphson: Powerflow.Newtonraphson,
-        resolution: FiniteDuration = 1.hours,
-        stopOnFailure: Boolean = false,
-        sweepTimeout: FiniteDuration = 30.seconds,
-    ) derives ConfigConvert
-    object Powerflow {
-      final case class Newtonraphson(
-          epsilon: List[Double] = List.empty,
-          iterations: Int,
-      ) derives ConfigConvert
-    }
+    val simStartTime: ZonedDateTime =
+      TimeUtil.withDefaults.toZonedDateTime(startDateTime)
 
-    final case class Time(
-        endDateTime: String = "2011-05-01T01:00:00Z",
-        schedulerReadyCheckWindow: Option[Int] = None,
-        startDateTime: String = "2011-05-01T00:00:00Z",
-    ) derives ConfigConvert {
-
-      val simStartTime: ZonedDateTime =
-        TimeUtil.withDefaults.toZonedDateTime(startDateTime)
-
-      val simEndTime: ZonedDateTime =
-        TimeUtil.withDefaults.toZonedDateTime(endDateTime)
-    }
+    val simEndTime: ZonedDateTime =
+      TimeUtil.withDefaults.toZonedDateTime(endDateTime)
   }
 }

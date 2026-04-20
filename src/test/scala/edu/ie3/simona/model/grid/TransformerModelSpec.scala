@@ -24,16 +24,15 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestGrid,
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.util.quantities.PowerSystemUnits._
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Kilovoltamperes,
   Voltamperes,
 }
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
-import squants.Each
-import squants.electro.Amperes
-import tech.units.indriya.quantity.Quantities
+import squants.{Dimensionless, Each}
+import squants.electro.{Amperes, ElectricCurrent}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -45,10 +44,9 @@ class TransformerModelSpec
     with ConfigTestData {
   val quantityTolerance: Double = 1e-5
   val testingTolerancePf = 1e-9
-  implicit val electricCurrentTolerance: squants.electro.ElectricCurrent =
-    Amperes(1e-9)
-  implicit val dimensionlessTolerance: squants.Dimensionless = Each(1e-9)
-  implicit val powerTolerance: ApparentPower = Voltamperes(1e-3)
+  given electricCurrentTolerance: ElectricCurrent = Amperes(1e-9)
+  given dimensionlessTolerance: Dimensionless = Each(1e-9)
+  given powerTolerance: ApparentPower = Voltamperes(1e-3)
 
   "A valid TransformerInput " should {
     "be validated without an exception" in new TransformerTestData {
@@ -67,16 +65,14 @@ class TransformerModelSpec
       val inputModel: Transformer2WInput = transformerInputTapHv
       val validTransformerTappingModel: TransformerTappingModel =
         TransformerTappingModel(
-          inputModel.getType.getdV(),
+          inputModel.getType.getdV.toSquants,
           inputModel.getTapPos,
           inputModel.getType.getTapMax,
           inputModel.getType.getTapMin,
           inputModel.getType.getTapNeutr,
           inputModel.isAutoTap, {
-            if (inputModel.getType.isTapSide)
-              ConnectorPort.B
-            else
-              ConnectorPort.A
+            if inputModel.getType.isTapSide then ConnectorPort.B
+            else ConnectorPort.A
           },
         )
 
@@ -145,21 +141,21 @@ class TransformerModelSpec
           case Complex(g, b) => (g, b)
         }
       (abs(gii - 0.0) < quantityTolerance) shouldBe true
-      (abs(bii - (-1.875e-3)) < quantityTolerance) shouldBe true
+      (abs(bii - -1.875e-3) < quantityTolerance) shouldBe true
 
       val (gjj, bjj) =
         TransformerModel.y0(dut, ConnectorPort.B) match {
           case Complex(g, b) => (g, b)
         }
       (abs(gjj - 0.0) < quantityTolerance) shouldBe true
-      (abs(bjj - (-1.875e-3)) < quantityTolerance) shouldBe true
+      (abs(bjj - -1.875e-3) < quantityTolerance) shouldBe true
 
       val (gij, bij) =
         TransformerModel.yij(dut) match {
           case Complex(g, b) => (g, b)
         }
       (abs(gij - 11.40619406) < quantityTolerance) shouldBe true
-      (abs(bij - (-37.68667292)) < quantityTolerance) shouldBe true
+      (abs(bij - -37.68667292) < quantityTolerance) shouldBe true
     }
 
     "result in an enabled TransformerModel if the TransformerInputModel is enabled" in new TransformerTestData {
@@ -281,8 +277,8 @@ class TransformerModelSpec
             expected: Int,
         ) =>
           {
-            val vChange = Quantities.getQuantity(vChangeVal, PU)
-            val deadBand = Quantities.getQuantity(deadBandVal, PU)
+            val vChange = Each(vChangeVal)
+            val deadBand = Each(deadBandVal)
 
             transformerModelTapHv.updateTapPos(currentTapPos)
             transformerModelTapHv.computeDeltaTap(
@@ -368,7 +364,7 @@ class TransformerModelSpec
         ) =>
           {
             logger.debug(
-              if (tapSide == ConnectorPort.A)
+              if tapSide == ConnectorPort.A then
                 s"Test grid with transformer tap changer hat HV side at tapPos $tapPos and active power of $p p.u."
               else
                 s"Test grid with transformer tap changer hat LV side at tapPos $tapPos and active power of $p p.u."
@@ -423,7 +419,7 @@ class TransformerModelSpec
                 abs(v.imag - f) < testingTolerancePf shouldBe true
               case _: PowerFlowResult.FailedPowerFlowResult =>
                 fail(
-                  if (tapSide == ConnectorPort.A)
+                  if tapSide == ConnectorPort.A then
                     s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on HV side) and active power of $p p.u."
                   else
                     s"Unable to calculate the power flow on transformer tap position $tapPos (tap changer on LV side) and active power of $p p.u."

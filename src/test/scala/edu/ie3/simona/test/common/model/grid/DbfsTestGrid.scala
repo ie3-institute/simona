@@ -8,7 +8,7 @@ package edu.ie3.simona.test.common.model.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.{
   LineTypeInput,
   Transformer2WTypeInput,
@@ -23,13 +23,13 @@ import edu.ie3.datamodel.models.input.{
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.datamodel.utils.GridAndGeoUtils
 import edu.ie3.simona.util.TestGridFactory
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.util.UUID
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Provides the high voltage level of SIMONA's test grid. Only consists of
   * lines, nodes and transformers.
@@ -413,4 +413,13 @@ trait DbfsTestGrid extends SubGridGateMokka {
       subGridGates,
     )
   }
+
+  protected val assetsHv: Seq[UUID] =
+    hvGridContainer.allEntitiesAsList.asScala.map(_.getUuid).toSeq
+  protected val assetsHvPF: Seq[UUID] =
+    hvGridContainerPF.allEntitiesAsList.asScala.map(_.getUuid).toSeq
+
+  protected val assetsEhv: Seq[UUID] =
+    ehvGridContainer.allEntitiesAsList.asScala.map(_.getUuid).toSeq
+
 }

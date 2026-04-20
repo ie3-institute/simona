@@ -6,16 +6,14 @@
 
 package edu.ie3.simona.agent.participant
 
-import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.participant.ParticipantGridAdapter._
+import edu.ie3.simona.agent.participant.ParticipantGridAdapter.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroMVAr, zeroMW}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
-import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import squants.energy.Megawatts
-import squants.{Dimensionless, Each, Energy, Power}
+import squants.{Dimensionless, Energy, Power}
 
 import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success}
@@ -32,8 +30,6 @@ import scala.util.{Failure, Success}
   * preliminarily used, until the next communication with the grid establishes a
   * proper new voltage valid for the new time frame.
   *
-  * @param gridAgent
-  *   The actor reference to the [[GridAgent]].
   * @param expectedRequestTick
   *   The tick at which next power request is expected.
   * @param nodalVoltage
@@ -47,7 +43,6 @@ import scala.util.{Failure, Success}
   *   recalculate reactive power.
   */
 final case class ParticipantGridAdapter(
-    gridAgent: ActorRef[GridAgent.Message],
     nodalVoltage: Dimensionless,
     private val expectedRequestTick: Long,
     private val tickToPower: SortedMap[Long, ComplexPower],
@@ -106,7 +101,7 @@ final case class ParticipantGridAdapter(
       ],
       log: Logger,
   ): ParticipantGridAdapter = {
-    if (currentTick != expectedRequestTick)
+    if currentTick != expectedRequestTick then
       throw new CriticalFailureException(
         s"Power request expected for $expectedRequestTick, but not for current tick $currentTick"
       )
@@ -115,7 +110,7 @@ final case class ParticipantGridAdapter(
       case Some(cache @ AvgPowerResult(windowStart, windowEnd, voltage, _, _))
           if windowEnd == currentTick =>
         // Results have been calculated for the same tick...
-        if (voltage =~ newVoltage) {
+        if voltage =~ newVoltage then {
           // ... and same voltage, return cached result
           Left(cache)
         } else {
@@ -194,17 +189,15 @@ object ParticipantGridAdapter {
   )
 
   def apply(
-      gridAgentRef: ActorRef[GridAgent.Message],
       expectedRequestTick: Long,
       requestVoltageDeviationTolerance: Dimensionless,
   ): ParticipantGridAdapter =
     new ParticipantGridAdapter(
-      gridAgent = gridAgentRef,
-      nodalVoltage = Each(1d),
+      nodalVoltage = onePU,
       expectedRequestTick = expectedRequestTick,
       tickToPower = SortedMap.empty,
       avgPowerResult = None,
-    )(
+    )(using
       requestVoltageDeviationTolerance = requestVoltageDeviationTolerance
     )
 
@@ -242,7 +235,7 @@ object ParticipantGridAdapter {
       windowEnd: Long,
       activeToReactivePowerFuncOpt: Option[
         Power => ReactivePower
-      ] = None,
+      ],
       log: Logger,
   ): ComplexPower = {
     val p = QuantityUtil.average[Power, Energy](

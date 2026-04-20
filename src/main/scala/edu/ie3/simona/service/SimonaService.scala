@@ -12,8 +12,8 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
   ServiceRegistrationMessage,
+  ServiceResponseMessage,
 }
 import edu.ie3.simona.ontology.messages.{
   Activation,
@@ -25,14 +25,12 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import org.apache.pekko.actor.typed.scaladsl.{
-  ActorContext,
-  Behaviors,
-  StashBuffer,
-}
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import org.slf4j.Logger
+import squants.Time
 
+import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
 /** Abstract description of a service agent, that is able to announce new
@@ -44,104 +42,46 @@ abstract class SimonaService {
     */
   type Message >: ServiceMessage | Activation
 
-  /** The service specific type of the [[ServiceStateData]]
+  /** The service specific type of the [[ServiceStateData]].
     */
   type S <: ServiceBaseStateData
 
   def apply(
       scheduler: ActorRef[SchedulerMessage],
-      bufferSize: Int = 10000,
-  ): Behavior[Message] =
-    Behaviors.withStash[Message](bufferSize) { buffer =>
-      uninitialized(using scheduler, buffer)
+      initializeStateData: InitializeServiceStateData,
+      scheduleKey: ScheduleKey,
+  ): Behavior[Message] = Behaviors.setup { ctx =>
+    init(initializeStateData)(using ctx.log) match {
+      case Success((serviceStateData, maybeNewTick)) =>
+        maybeNewTick match {
+          case Some(newTick) =>
+            scheduler ! ScheduleActivation(
+              ctx.self,
+              newTick,
+              Some(scheduleKey),
+            )
+          case None =>
+            scheduleKey.unlock()
+        }
+        idle(using serviceStateData, scheduler)
+      case Failure(exception) =>
+        scheduleKey.unlock()
+
+        // if a service fails startup we don't want to go on with the simulation
+        throw new CriticalFailureException(
+          "Error during service initialization.",
+          exception,
+        )
     }
-
-  /** Receive method that is used before the service is initialized. Represents
-    * the state "Uninitialized".
-    *
-    * @return
-    *   IdleInternal methods for the uninitialized state
-    */
-  def uninitialized(using
-      scheduler: ActorRef[SchedulerMessage],
-      buffer: StashBuffer[Message],
-  ): Behavior[Message] = Behaviors.receive {
-    case (
-          ctx,
-          Create(
-            initializeStateData: InitializeServiceStateData,
-            unlockKey: ScheduleKey,
-          ),
-        ) =>
-      scheduler ! ScheduleActivation(
-        ctx.self,
-        INIT_SIM_TICK,
-        Some(unlockKey),
-      )
-
-      initializing(initializeStateData)
-
-    // not ready yet to handle registrations, stash request away
-    case (_, msg: ServiceRegistrationMessage) =>
-      buffer.stash(msg)
-      Behaviors.same
-  }
-
-  private def initializing(
-      initializeStateData: InitializeServiceStateData
-  )(using
-      scheduler: ActorRef[SchedulerMessage],
-      buffer: StashBuffer[Message],
-  ): Behavior[Message] = Behaviors.receive {
-    case (ctx, Activation(INIT_SIM_TICK)) =>
-      // init might take some time and could go wrong if invalid initialize service data is received
-      // execute complete and unstash only if init is carried out successfully
-      init(initializeStateData) match {
-        case Success((serviceStateData, maybeNewTick)) =>
-          scheduler ! Completion(
-            ctx.self,
-            maybeNewTick,
-          )
-          buffer.unstashAll(idle(using serviceStateData, scheduler))
-        case Failure(exception) =>
-          // initialize service trigger with invalid data
-          ctx.log.error(
-            "Error during service initialization." +
-              s"\nReceivedData: {}" +
-              s"\nException: {}",
-            initializeStateData,
-            exception,
-          )
-
-          // if a service fails startup we don't want to go on with the simulation
-          throw new CriticalFailureException(
-            "Error during service initialization.",
-            exception,
-          )
-      }
-
-    // not ready yet to handle registrations, stash request away
-    case (_, msg: ServiceRegistrationMessage) =>
-      buffer.stash(msg)
-      Behaviors.same
-
-    case (_, msg: Activation) =>
-      buffer.stash(msg)
-      Behaviors.same
-
-    // unhandled message
-    case (ctx, x) =>
-      ctx.log.error(s"Received unhandled message: $x")
-      Behaviors.unhandled
   }
 
   /** Default receive method when the service is initialized. Requires the
     * actual state data of this service to be ready to be used.
     *
     * @param stateData
-    *   The state data of this service
+    *   The state data of this service.
     * @return
-    *   Default idleInternal method when the service is initialized
+    *   Default idleInternal method when the service is initialized.
     */
   final protected def idle(using
       stateData: S,
@@ -182,10 +122,19 @@ abstract class SimonaService {
       val (updatedStateData, maybeNextTick) =
         announceInformation(tick)(using stateData, ctx)
 
-      scheduler ! Completion(
-        ctx.self,
-        maybeNextTick,
-      )
+      maybeNextTick match {
+        case Some(nextTick) if nextTick == tick =>
+          // we need to do an additional activation of this service
+          ctx.self ! Activation(tick)
+
+        case Some(nextTick) if nextTick == -1 =>
+        // this indicated that no completion should be sent
+        case _ =>
+          scheduler ! Completion(
+            ctx.self,
+            maybeNextTick,
+          )
+      }
 
       idle(using updatedStateData, scheduler)
   }
@@ -219,27 +168,44 @@ abstract class SimonaService {
     * the initialized service and b) optional triggers that should be sent to
     * the [[edu.ie3.simona.scheduler.Scheduler]] together with the completion
     * message that is sent in response to the trigger that is sent to start the
-    * initialization process
+    * initialization process.
     *
     * @param initServiceData
-    *   The data that should be used for initialization
+    *   The data that should be used for initialization.
+    * @param log
+    *   The logger for logging.
     * @return
     *   The state data of this service and optional tick that should be included
-    *   in the completion message
+    *   in the completion message.
     */
   def init(
       initServiceData: InitializeServiceStateData
-  ): Try[(S, Option[Long])]
+  )(using log: Logger): Try[(S, Option[Long])]
 
-  /** Handle a request to register for information from this service
+  /** Handles some service response messages that are received during
+    * initialization.
+    * @param serviceResponse
+    *   To handle.
+    * @param ctx
+    *   The actor context of this service.
+    */
+  protected def handleServiceResponse(
+      serviceResponse: ServiceResponseMessage
+  )(using
+      ctx: ActorContext[Message]
+  ): Unit = ctx.log.warn(
+    s"This service (${ctx.self}) received an unhandled service response message during initialization. Msg: $serviceResponse"
+  )
+
+  /** Handle a request to register for information from this service.
     *
     * @param registrationMessage
-    *   Registration message to handle
+    *   Registration message to handle.
     * @param serviceStateData
-    *   Current state data of the actor
+    *   Current state data of the actor.
     * @return
     *   The service stata data that should be used in the next state (normally
-    *   with updated values)
+    *   with updated values).
     */
   protected def handleRegistrationRequest(
       registrationMessage: ServiceRegistrationMessage
@@ -248,20 +214,53 @@ abstract class SimonaService {
       ctx: ActorContext[Message],
   ): Try[S]
 
-  /** Send out the information to all registered recipients
+  /** Send out the information to all registered recipients.
     *
     * @param tick
-    *   Current tick data should be announced for
+    *   The current tick.
     * @param serviceStateData
-    *   The current state data of this service
+    *   The current state data of this service.
     * @return
     *   The service stata data that should be used in the next state (normally
-    *   with updated values) together with the completion message that is sent
-    *   in response to the trigger that was sent to start this announcement
+    *   with updated values) together with an optional next activation tick that
+    *   is used in response to the trigger that was sent to start this
+    *   announcement.
     */
   protected def announceInformation(tick: Long)(using
       serviceStateData: S,
       ctx: ActorContext[Message],
   ): (S, Option[Long])
+
+  /** Reduces the resolution of given time series to at least given resolution
+    * by removing elements from the time series.
+    *
+    * @param timeSeries
+    *   The time series to adapt.
+    * @param resolution
+    *   The time resolution to aim for.
+    * @tparam T
+    *   The type of time series data.
+    * @return
+    *   The adapted time series.
+    */
+  def reduceTimeSeriesResolution[T](
+      timeSeries: SortedMap[Long, T],
+      resolution: Time,
+  ): SortedMap[Long, T] = {
+    val resolutionSeconds = resolution.toSeconds.toLong
+
+    timeSeries.foldLeft(timeSeries) { case (result, (tick, _)) =>
+      result.maxBefore(tick) match {
+        case Some((last, _)) =>
+          if last + resolutionSeconds > tick then
+            // interval from last to current key is too short
+            result.removed(tick)
+          else result
+        case None =>
+          // no data before the current key, keep it
+          result
+      }
+    }
+  }
 
 }

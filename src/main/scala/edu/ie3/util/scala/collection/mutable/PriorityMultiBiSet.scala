@@ -97,7 +97,7 @@ final case class PriorityMultiBiSet[K, V](
       table.get(key).exists { set =>
         val existed = set.remove(value)
 
-        if (set.isEmpty) {
+        if set.isEmpty then {
           table -= key
           queue -= key
         }

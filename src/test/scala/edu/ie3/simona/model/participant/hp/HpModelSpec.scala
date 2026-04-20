@@ -18,6 +18,8 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalHouseTestData
+import edu.ie3.simona.ontology.messages.flex.FlexType
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -47,6 +49,7 @@ class HpModelSpec
       val ambientTemperature = Celsius(10)
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,
@@ -104,7 +107,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(0), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           16.3142322,
@@ -116,7 +124,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(2), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           17.9516937,
@@ -128,7 +141,12 @@ class HpModelSpec
             thermalGridState = thermalState(Celsius(17), ambientTemperature),
             lastHpOperatingPoint = HpOperatingPoint(
               Kilowatts(80),
-              ThermalGridOperatingPoint(Kilowatts(80), Kilowatts(80), zeroKW),
+              ThermalGridOperatingPoint(
+                Kilowatts(80),
+                Kilowatts(80),
+                zeroKW,
+                zeroKW,
+              ),
             ),
           ),
           30.232655,
@@ -151,6 +169,7 @@ class HpModelSpec
               zeroKW,
               state.lastHpOperatingPoint.thermalOps.qDotHouse,
               zeroKW,
+              zeroKW,
             )
           )
           val expectedDemand = ThermalDemandWrapper(
@@ -162,6 +181,8 @@ class HpModelSpec
               KilowattHours(exptHeatStorageDemand._1),
               KilowattHours(exptHeatStorageDemand._2),
             ),
+            ThermalEnergyDemand.noDemand,
+            ThermalEnergyDemand(zeroKWh, zeroKWh),
           )
 
           val updatedState = hpModel.determineState(
@@ -174,7 +195,8 @@ class HpModelSpec
           updatedState match {
             case HpState(
                   tick,
-                  ThermalGridState(Some(thermalHouseState), _),
+                  _,
+                  ThermalGridState(Some(thermalHouseState), _, _),
                   _,
                   thermalDemands,
                 ) =>
@@ -227,8 +249,10 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
+            defaultSimulationStart,
             ThermalGridState(
               Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
+              None,
               None,
             ),
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -237,7 +261,9 @@ class HpModelSpec
                 KilowattHours(requiredDemandHouse),
                 KilowattHours(requiredDemandHouse),
               ),
-              ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ThermalEnergyDemand.noDemand,
+              ThermalEnergyDemand.noDemand,
+              ThermalEnergyDemand.noDemand,
             ),
           )
 
@@ -251,6 +277,8 @@ class HpModelSpec
 
     "determine operating point with flex control correctly" in {
       val ambientTemperature = Celsius(10)
+
+      val flexModel = hpModel.flexModels(FlexType.PowerLimit)
 
       val cases = Table(
         (
@@ -276,8 +304,10 @@ class HpModelSpec
         ) =>
           val state = HpState(
             tick,
+            defaultSimulationStart,
             ThermalGridState(
               Some(ThermalHouseState(tick, ambientTemperature, Celsius(19))),
+              None,
               None,
             ),
             HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
@@ -286,12 +316,20 @@ class HpModelSpec
                 KilowattHours(requiredDemandHouse),
                 KilowattHours(requiredDemandHouse),
               ),
-              ThermalEnergyDemand(zeroKWh, zeroKWh),
+              ThermalEnergyDemand.noDemand,
+              ThermalEnergyDemand.noDemand,
+              ThermalEnergyDemand.noDemand,
             ),
           )
           val setPower = Kilowatts(setPwr)
 
-          val (op, threshold) = hpModel.determineOperatingPoint(state, setPower)
+          val op = hpModel.determineOperatingPoint(state, setPower)
+          val threshold = flexModel.determineNextActivation(
+            state,
+            op,
+            setPower,
+            DataTimeType.Current,
+          )
 
           op.activePower shouldBe Kilowatts(expectedHpQDot)
           threshold.changesAtTick shouldBe expectedTick

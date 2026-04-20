@@ -6,26 +6,42 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.datamodel.graph.SubGridGate
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.model.grid.GridModel
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.{MultiMap, valueSet}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
 
 /** Wrapper class containing all information on the grid environment a
-  * [[GridAgent]] has access to
+  * [[GridAgent]] has access to.
   *
   * @param gridModel
-  *   [[GridModel]] with all asset information
-  * @param subgridGateToActorRef
-  *   a mapping of all [[SubGridGate]] s to their corresponding [[ActorRef]] s
+  *   [[GridModel]] with all asset information.
+  * @param inferiorConnections
+  *   A map of actor refs to all inferior grids.
+  * @param superiorConnections
+  *   A map of actor refs to all superior grids with the corresponding superior
+  *   nodes.
   * @param nodeToAssetAgents
-  *   a mapping of all node uuids to a set of asset [[ActorRef]] s at those
-  *   nodes
+  *   A mapping of all node uuids to a set of asset [[ActorRef]] s at those
+  *   nodes.
+  * @param refToSubgrid
+  *   A mapping of all known references to their subgrid id.
+  * @param superiorGridIds
+  *   A map of all superior grid uuids to their grid ids.
   */
 final case class GridEnvironment(
     gridModel: GridModel,
-    subgridGateToActorRef: Map[SubGridGate, ActorRef[GridAgent.Message]],
-    nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
-)
+    inferiorConnections: MultiMap[GridAgentRef, UUID],
+    superiorConnections: MultiMap[GridAgentRef, UUID],
+    nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]],
+    refToSubgrid: Map[GridAgentRef, Int],
+    superiorGridIds: Map[UUID, Int],
+) {
+
+  def inferiorNodeUuids: Set[UUID] = inferiorConnections.valueSet
+
+  def superiorNodeUuids: Set[UUID] = superiorConnections.valueSet
+}

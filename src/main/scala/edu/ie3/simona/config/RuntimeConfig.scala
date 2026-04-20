@@ -7,8 +7,8 @@
 package edu.ie3.simona.config
 
 import edu.ie3.simona.config.ConfigParams.RuntimeKafkaParams
-import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig.{AssetConfigs, VoltLvlConfig}
+import edu.ie3.simona.config.RuntimeConfig.*
+import edu.ie3.simona.config.SimonaConfig.VoltLvlConfig
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
 import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
@@ -28,7 +28,7 @@ import scala.deriving.Mirror
   *   Option for selected voltage levels (default: None).
   */
 final case class RuntimeConfig(
-    em: AssetConfigs[EmRuntimeConfig] = AssetConfigs(EmRuntimeConfig()),
+    em: EmRuntimeConfigs = EmRuntimeConfigs(),
     listener: Listener = Listener(),
     participant: Participant = Participant(),
     selectedSubgrids: Option[List[Int]] = None,
@@ -42,18 +42,6 @@ object RuntimeConfig {
   extension (c: ConfigConvert.type)
     private inline def derived[A](using m: Mirror.Of[A]): ConfigConvert[A] =
       deriveConvert[A]
-
-  /** Wraps an [[BaseRuntimeConfig]] with a [[ParticipantRuntimeConfigs]].
-    *
-    * @param config
-    *   To wrap.
-    * @tparam T
-    *   Type of config.
-    * @return
-    *   A [[AssetConfigs]].
-    */
-  implicit def wrap[T <: BaseRuntimeConfig](config: T): AssetConfigs[T] =
-    AssetConfigs(config)
 
   final case class Listener(
       eventsToProcess: Option[List[String]] = None,
@@ -81,16 +69,15 @@ object RuntimeConfig {
     *   Runtime configs for wind energy converters.
     */
   final case class Participant(
-      bm: AssetConfigs[BmRuntimeConfig] = BmRuntimeConfig(),
-      evcs: AssetConfigs[EvcsRuntimeConfig] = EvcsRuntimeConfig(),
-      fixedFeedIn: AssetConfigs[FixedFeedInRuntimeConfig] =
-        FixedFeedInRuntimeConfig(),
-      hp: AssetConfigs[HpRuntimeConfig] = HpRuntimeConfig(),
-      load: AssetConfigs[LoadRuntimeConfig] = LoadRuntimeConfig(),
-      pv: AssetConfigs[PvRuntimeConfig] = PvRuntimeConfig(),
+      bm: BmRuntimeConfigs = BmRuntimeConfigs(),
+      evcs: EvcsRuntimeConfigs = EvcsRuntimeConfigs(),
+      fixedFeedIn: FixedFeedInRuntimeConfigs = FixedFeedInRuntimeConfigs(),
+      hp: HpRuntimeConfigs = HpRuntimeConfigs(),
+      load: LoadRuntimeConfigs = LoadRuntimeConfigs(),
+      pv: PvRuntimeConfigs = PvRuntimeConfigs(),
       requestVoltageDeviationThreshold: Double = 1e-14,
-      storage: AssetConfigs[StorageRuntimeConfig] = StorageRuntimeConfig(),
-      wec: AssetConfigs[WecRuntimeConfig] = WecRuntimeConfig(),
+      storage: StorageRuntimeConfigs = StorageRuntimeConfigs(),
+      wec: WecRuntimeConfigs = WecRuntimeConfigs(),
   ) derives ConfigConvert
 
   /** Basic trait for all runtime configs.
@@ -112,17 +99,30 @@ object RuntimeConfig {
     *   value is ignored.
     * @param chargingStrategy
     *   The charging strategy to use.
-    * @param lowestEvSoc
-    *   The lowest SOC possible for EV batteries (inverse of max dod).
+    * @param departureTargetSoc
+    *   The minimum SOC that an EV should have at departure.
     */
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
       chargingStrategy: String = "maxPower",
-      lowestEvSoc: Double = 0.2,
+      departureTargetSoc: Double = 0.75,
   ) extends BaseRuntimeConfig
       derives ConfigConvert
+
+  /** Case class contains default and individual configs for electric vehicle
+    * charging stations.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class EvcsRuntimeConfigs(
+      defaultConfig: EvcsRuntimeConfig = EvcsRuntimeConfig(),
+      individualConfigs: List[EvcsRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
 
   /** Runtime configuration for energy management systems.
     * @param calculateMissingReactivePowerWithModel
@@ -147,6 +147,19 @@ object RuntimeConfig {
   ) extends BaseRuntimeConfig
       derives ConfigConvert
 
+  /** Case class contains default and individual configs for energy management
+    * systems.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class EmRuntimeConfigs(
+      defaultConfig: EmRuntimeConfig = EmRuntimeConfig(),
+      individualConfigs: List[EmRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
+
   /** Runtime configuration for fixed feed ins.
     * @param calculateMissingReactivePowerWithModel
     *   If missing reactive power may be filled up with model function (default:
@@ -164,6 +177,18 @@ object RuntimeConfig {
   ) extends BaseRuntimeConfig
       derives ConfigConvert
 
+  /** Case class contains default and individual configs for fixed feed ins.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class FixedFeedInRuntimeConfigs(
+      defaultConfig: FixedFeedInRuntimeConfig = FixedFeedInRuntimeConfig(),
+      individualConfigs: List[FixedFeedInRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
+
   /** Runtime configuration for heat pumps.
     * @param calculateMissingReactivePowerWithModel
     *   If missing reactive power may be filled up with model function (default:
@@ -180,6 +205,18 @@ object RuntimeConfig {
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
       derives ConfigConvert
+
+  /** Case class contains default and individual configs for heat pumps.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class HpRuntimeConfigs(
+      defaultConfig: HpRuntimeConfig = HpRuntimeConfig(),
+      individualConfigs: List[HpRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
 
   /** Runtime configuration for loads.
     * @param calculateMissingReactivePowerWithModel
@@ -205,6 +242,18 @@ object RuntimeConfig {
   ) extends BaseRuntimeConfig
       derives ConfigConvert
 
+  /** Case class contains default and individual configs for loads.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class LoadRuntimeConfigs(
+      defaultConfig: LoadRuntimeConfig = LoadRuntimeConfig(),
+      individualConfigs: List[LoadRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
+
   /** Runtime configuration for photovoltaic plants.
     * @param calculateMissingReactivePowerWithModel
     *   If missing reactive power may be filled up with model function (default:
@@ -221,6 +270,19 @@ object RuntimeConfig {
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
       derives ConfigConvert
+
+  /** Case class contains default and individual configs for photovoltaic
+    * plants.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class PvRuntimeConfigs(
+      defaultConfig: PvRuntimeConfig = PvRuntimeConfig(),
+      individualConfigs: List[PvRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
 
   /** Runtime configuration for electrical storages.
     * @param calculateMissingReactivePowerWithModel
@@ -245,6 +307,19 @@ object RuntimeConfig {
   ) extends BaseRuntimeConfig
       derives ConfigConvert
 
+  /** Case class contains default and individual configs for electrical
+    * storages.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class StorageRuntimeConfigs(
+      defaultConfig: StorageRuntimeConfig = StorageRuntimeConfig(),
+      individualConfigs: List[StorageRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
+
   /** Runtime configuration for wind energy converters.
     * @param calculateMissingReactivePowerWithModel
     *   If missing reactive power may be filled up with model function (default:
@@ -262,6 +337,19 @@ object RuntimeConfig {
   ) extends BaseRuntimeConfig
       derives ConfigConvert
 
+  /** Case class contains default and individual configs for wind energy
+    * converters.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class WecRuntimeConfigs(
+      defaultConfig: WecRuntimeConfig = WecRuntimeConfig(),
+      individualConfigs: List[WecRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
+
   /** Runtime configuration for biomass plants.
     * @param calculateMissingReactivePowerWithModel
     *   If missing reactive power may be filled up with model function (default:
@@ -278,4 +366,16 @@ object RuntimeConfig {
       override val uuids: List[String] = List.empty,
   ) extends BaseRuntimeConfig
       derives ConfigConvert
+
+  /** Case class contains default and individual configs for biomass plants.
+    *
+    * @param defaultConfig
+    *   The default config used for all asset, that have no individual config.
+    * @param individualConfigs
+    *   Specific configs, that are used instead of the [[defaultConfig]].
+    */
+  final case class BmRuntimeConfigs(
+      defaultConfig: BmRuntimeConfig = BmRuntimeConfig(),
+      individualConfigs: List[BmRuntimeConfig] = List.empty,
+  ) derives ConfigConvert
 }

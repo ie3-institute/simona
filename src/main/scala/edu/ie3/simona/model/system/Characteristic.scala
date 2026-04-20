@@ -8,7 +8,7 @@ package edu.ie3.simona.model.system
 
 import edu.ie3.simona.exceptions.CharacteristicsException
 import edu.ie3.simona.model.system.Characteristic.XYPair
-import edu.ie3.simona.util.CollectionUtils._
+import edu.ie3.simona.util.CollectionUtils.*
 import squants.Quantity
 
 import scala.collection.SortedSet
@@ -87,10 +87,8 @@ object Characteristic {
       */
     override def compare(that: XYPair[A, O]): Int = {
       val xCompare = x.compare(that.x)
-      if (xCompare != 0)
-        xCompare
-      else
-        y.compare(that.y)
+      if xCompare != 0 then xCompare
+      else y.compare(that.y)
     }
   }
 

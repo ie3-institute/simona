@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.exceptions
 
-import edu.ie3.simona.model.system.Characteristic
-
 /** Exception that should be used whenever an exception occurs in
   * [[Characteristic]]
   *

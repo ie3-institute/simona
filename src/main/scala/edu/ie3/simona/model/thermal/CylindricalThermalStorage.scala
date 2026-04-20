@@ -12,30 +12,13 @@ import edu.ie3.datamodel.models.input.thermal.{
   CylindricalStorageInput,
   ThermalBusInput,
 }
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageThreshold.{
-  StorageEmpty,
-  StorageFull,
-}
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  PowerConversionSimona,
-  TemperatureConversionSimona,
-  VolumeConversionSimona,
-  toSquants,
-}
-import edu.ie3.util.scala.quantities.SpecificHeatCapacity
-import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
-import squants.space.Volume
-import squants.time.Seconds
-import squants.{Energy, Power, Temperature}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import squants.{Energy, Power}
 
 import java.util.UUID
 
-/** A cylindrical thermal storage used for implementations, which require a
-  * mutable storage. <p> <strong>Important:</strong> The field storageLvl is a
-  * variable.
+/** A cylindrical thermal storage.
   *
   * @param uuid
   *   the element's uuid
@@ -63,7 +46,7 @@ final case class CylindricalThermalStorage(
     maxEnergyThreshold: Energy,
     pThermalMax: Power,
     storedEnergy: Energy,
-) extends ThermalStorage(
+) extends AbstractThermalStorage(
       uuid,
       id,
       operatorInput,
@@ -71,81 +54,10 @@ final case class CylindricalThermalStorage(
       bus,
       maxEnergyThreshold,
       pThermalMax,
-    )
-    with ThermalStorageCalculations {
+    ) {
 
-  /** Updates the given last state. Based on the then set thermal influx, the
-    * current state is calculated. Positive values of influx are consider to
-    * flow into the storage.
-    *
-    * @param tick
-    *   Tick, where this change happens.
-    * @param lastThermalStorageState
-    *   Last state of the heat storage.
-    * @param qDotHeatStorage
-    *   Influx of the heat storage.
-    * @return
-    *   The state of the instance.
-    */
-  override def determineState(
-      tick: Long,
-      lastThermalStorageState: ThermalStorageState,
-      qDotHeatStorage: Power,
-  ): ThermalStorageState = {
-    /* Determine new state based on time difference and given state */
-    val energyBalance =
-      qDotHeatStorage * Seconds(
-        tick - lastThermalStorageState.tick
-      )
-    val newEnergy = lastThermalStorageState.storedEnergy + energyBalance
-    val updatedEnergy =
-      if (isFull(newEnergy))
-        maxEnergyThreshold
-      else if (isEmpty(newEnergy))
-        zeroKWh
-      else
-        newEnergy
-
-    ThermalStorageState(tick, updatedEnergy)
-  }
-
-  /** Calculates the tick, when the next threshold of the instance is reached.
-    *
-    * @param thermalStorageState
-    *   State of the heat storage.
-    * @param qDotHeatStorage
-    *   Operating point of the heat storage.
-    * @return
-    *   The next threshold if there is one.
-    */
-  override def determineNextThreshold(
-      thermalStorageState: ThermalStorageState,
-      qDotHeatStorage: Power,
-  ): Option[ThermalThreshold] = {
-    if (qDotHeatStorage > zeroKW) {
-      val duration =
-        (maxEnergyThreshold - thermalStorageState.storedEnergy) / qDotHeatStorage
-      val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if (durationInTicks <= 0L)
-        None
-      else
-        Some(StorageFull(thermalStorageState.tick + durationInTicks))
-    } else if (qDotHeatStorage < zeroKW) {
-      val duration =
-        thermalStorageState.storedEnergy / qDotHeatStorage * -1
-      val durationInTicks = Math.floor(duration.toSeconds).toLong
-      if (durationInTicks <= 0L)
-        None
-      else
-        Some(StorageEmpty(thermalStorageState.tick + durationInTicks))
-    } else
-      None
-  }
-
-  override def startingState: ThermalStorageState = ThermalStorageState(
-    0L,
-    zeroKWh,
-  )
+  /** Cylindrical storage starts empty */
+  override protected def initialEnergyLevel: Energy = zeroKWh
 }
 
 object CylindricalThermalStorage extends ThermalStorageCalculations {
@@ -159,20 +71,14 @@ object CylindricalThermalStorage extends ThermalStorageCalculations {
     * @param initialStoredEnergy
     *   initial stored energy
     * @return
-    *   a ready-to-use [[CylindricalThermalStorage]] with referenced electric
-    *   parameters
+    *   a ready-to-use [[CylindricalThermalStorage]] with referenced parameters
     */
   def apply(
       input: CylindricalStorageInput,
       initialStoredEnergy: Energy = zeroKWh,
   ): CylindricalThermalStorage = {
-    val maxEnergyThreshold = volumeToEnergy(
-      input.getStorageVolumeLvl.toSquants,
-      input.getC.toSquants,
-      input.getInletTemp.toSquants,
-      input.getReturnTemp.toSquants,
-    )
-
+    val maxEnergyThreshold =
+      AbstractThermalStorage.calculateMaxEnergyThreshold(input)
     val pThermalMax = input.getpThermalMax().toSquants
 
     new CylindricalThermalStorage(

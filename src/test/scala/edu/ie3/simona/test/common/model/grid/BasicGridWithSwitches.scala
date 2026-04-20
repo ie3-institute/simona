@@ -210,11 +210,13 @@ trait BasicGridWithSwitches extends BasicGrid {
     // copy components because they are mutable and are altered by some tests
     // also enable components, otherwise they are not considered in building admittance matrices
     val gridNodes = nodes
-    gridNodes.foreach(node => if (!node.isInOperation) node.enable())
+    gridNodes.foreach(node => if !node.isInOperation then node.enable())
     val gridLines = lines
     gridLines.foreach(_.enable())
     val gridSwitches = switches.map(_.copy())
-    gridSwitches.foreach(switch => if (!switch.isInOperation) switch.enable())
+    gridSwitches.foreach(switch =>
+      if !switch.isInOperation then switch.enable()
+    )
 
     new GridModel(
       1,
@@ -234,13 +236,13 @@ trait BasicGridWithSwitches extends BasicGrid {
 
   def openSwitches(gridModel: GridModel): Unit = {
     gridModel.gridComponents.switches.foreach(switch =>
-      if (!switch.isOpen) switch.open()
+      if !switch.isOpen then switch.open()
     )
   }
 
   def closeSwitches(gridModel: GridModel): Unit = {
     gridModel.gridComponents.switches.foreach(switch =>
-      if (!switch.isClosed) switch.close()
+      if !switch.isClosed then switch.close()
     )
   }
 

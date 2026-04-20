@@ -6,31 +6,31 @@
 
 package edu.ie3.simona.event
 
-import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
   Transformer2WResult,
 }
 import edu.ie3.datamodel.models.result.system.{
+  EmResult,
   FlexOptionsResult,
+  HpResult,
   SystemParticipantResult,
 }
 import edu.ie3.datamodel.models.result.thermal.{
-  CylindricalStorageResult,
+  AbstractThermalStorageResult,
   ThermalHouseResult,
   ThermalUnitResult,
 }
-import edu.ie3.datamodel.models.result.system.{EmResult, HpResult}
+import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.listener.ResultEventListener
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import javax.measure.quantity.{Energy, Power, Temperature}
 
-sealed trait ResultEvent extends Event with ResultEventListener.Request
+sealed trait ResultEvent extends Event
 
 /** Calculation result events
   */
@@ -111,8 +111,8 @@ object ResultEvent {
       }
   }
 
-  object CylindricalThermalStorageResult {
-    def unapply(cylindricalStorageResult: CylindricalStorageResult): Option[
+  object AbstractThermalStorageResult {
+    def unapply(storageResult: AbstractThermalStorageResult): Option[
       (
           ZonedDateTime,
           UUID,
@@ -120,7 +120,7 @@ object ResultEvent {
           ComparableQuantity[Energy],
       )
     ] = {
-      Option(cylindricalStorageResult).map { result =>
+      Option(storageResult).map { result =>
         (
           result.getTime,
           result.getInputModel,

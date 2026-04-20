@@ -6,15 +6,10 @@
 
 package edu.ie3.simona.service.ev
 
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.api.data.ev.ExtEvDataConnection
-import edu.ie3.simona.api.data.ev.model.EvModel
-import edu.ie3.simona.api.data.ev.ontology.*
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.api.data.connection.ExtEvDataConnection
+import edu.ie3.simona.api.data.model.ev.EvModel
+import edu.ie3.simona.api.ontology.ev.*
+import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
@@ -22,14 +17,19 @@ import edu.ie3.simona.exceptions.{
   ServiceException,
 }
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData.ArrivingEvs
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{ExtDataSupport, ServiceStateData, SimonaService}
+import edu.ie3.simona.service.{
+  DataTimeType,
+  ExtDataSupport,
+  ServiceStateData,
+  SimonaService,
+}
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
@@ -47,7 +47,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
   final case class ExtEvStateData(
       extEvData: ExtEvDataConnection,
-      uuidToActorRef: Map[UUID, ActorRef[ParticipantAgent.Request]] = Map.empty,
+      uuidToActorRef: Map[UUID, ActorRef[ServiceMessage.Response]] = Map.empty,
       extEvMessage: Option[EvDataMessageFromExt] = None,
       freeLots: ReceiveDataMap[UUID, Int] = ReceiveDataMap.empty,
       departingEvResponses: ReceiveDataMap[UUID, Seq[EvModelWrapper]] =
@@ -60,7 +60,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
-  ): Try[
+  )(using log: Logger): Try[
     (
         ExtEvStateData,
         Option[Long],
@@ -92,7 +92,11 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): Try[S] =
     registrationMessage match {
-      case SecondaryServiceRegistrationMessage(requestingActor, evcs: UUID) =>
+      case SecondaryServiceRegistrationMessage(
+            requestingActor,
+            DataTimeType.Current,
+            evcs: UUID,
+          ) =>
         Success(handleRegistrationRequest(requestingActor, evcs))
       case invalidMessage =>
         Failure(
@@ -117,7 +121,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
     *   information if the registration has been carried out successfully
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
+      agentToBeRegistered: ActorRef[ServiceMessage.Response],
       evcs: UUID,
   )(using
       serviceStateData: ExtEvStateData,
@@ -162,7 +166,6 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       map.asScala.view.mapValues(_.asScala.toSeq).toMap
 
     given context: ActorContext[Message] = ctx
-    given log: Logger = ctx.log
 
     serviceStateData.extEvMessage
       .map {
@@ -179,7 +182,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
           handleArrivingEvs(
             tick,
             asScala(arrivingEvsProvision.arrivals),
-            arrivingEvsProvision.maybeNextTick.toScala.map(Long2long),
+            arrivingEvsProvision.maybeNextTick.toScala,
           )
       }
       .getOrElse(
@@ -222,7 +225,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       }.toSet
 
     // if there are no evcs, we're sending response right away
-    if (freeLots.isEmpty)
+    if freeLots.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideEvcsFreeLots())
 
     (
@@ -262,7 +265,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
     // if there are no departing evs during this tick,
     // we're sending response right away
-    if (departingEvResponses.isEmpty)
+    if departingEvResponses.isEmpty then
       serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
 
     (
@@ -283,7 +286,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): (ExtEvStateData, Option[Long]) = {
 
-    if (tick == INIT_SIM_TICK) {
+    if tick == INIT_SIM_TICK then {
       // During initialization, an empty ProvideArrivingEvs message
       // is sent, which includes the first relevant tick
 
@@ -334,14 +337,15 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
     }
 
   override protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(using serviceStateData: ExtEvStateData): ExtEvStateData = {
     extResponseMsg match {
       case DepartingEvsResponse(evcs, evModels) =>
         val updatedResponses =
           serviceStateData.departingEvResponses.addData(evcs, evModels)
 
-        if (updatedResponses.nonComplete) {
+        if updatedResponses.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             departingEvResponses = updatedResponses
@@ -362,7 +366,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
       case FreeLotsResponse(evcs, freeLots) =>
         val updatedFreeLots = serviceStateData.freeLots.addData(evcs, freeLots)
 
-        if (updatedFreeLots.nonComplete) {
+        if updatedFreeLots.nonComplete then {
           // responses are still incomplete
           serviceStateData.copy(
             freeLots = updatedFreeLots

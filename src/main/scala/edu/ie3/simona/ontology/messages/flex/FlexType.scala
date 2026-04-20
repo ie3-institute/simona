@@ -10,5 +10,5 @@ package edu.ie3.simona.ontology.messages.flex
   * in subclasses of [[FlexOptions]].
   */
 enum FlexType {
-  case PowerLimit
+  case PowerLimit, EnergyBoundaries
 }

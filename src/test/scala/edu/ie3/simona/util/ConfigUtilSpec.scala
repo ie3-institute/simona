@@ -20,15 +20,15 @@ import edu.ie3.datamodel.models.result.{
   ResultEntity,
 }
 import edu.ie3.simona.config.ConfigParams.ResultKafkaParams
-import edu.ie3.simona.config.OutputConfig.GridOutputConfig
-import edu.ie3.simona.config.RuntimeConfig._
-import edu.ie3.simona.config.SimonaConfig.{apply => _, _}
+import edu.ie3.simona.config.OutputConfig.*
+import edu.ie3.simona.config.RuntimeConfig.*
+import edu.ie3.simona.config.SimonaConfig.apply as _
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier._
-import edu.ie3.simona.util.ConfigUtil._
+import edu.ie3.simona.util.ConfigUtil.*
+import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 import java.util.UUID
@@ -53,9 +53,7 @@ class ConfigUtilSpec
         emRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.EmConfigUtil(
-        simonaConfig.simona.runtime.em
-      )
+      val actual = ConfigUtil.EmConfigUtil(simonaConfig.runtime.em)
 
       inside(actual) { case EmConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, EmRuntimeConfig]
@@ -89,9 +87,7 @@ class ConfigUtilSpec
         emRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.EmConfigUtil(
-        simonaConfig.simona.runtime.em
-      )
+      val actual = ConfigUtil.EmConfigUtil(simonaConfig.runtime.em)
 
       inside(actual) { case EmConfigUtil(configs, _) =>
         configs.size shouldBe 1
@@ -125,9 +121,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, LoadRuntimeConfig]
@@ -181,9 +176,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs.size shouldBe 1
@@ -240,9 +234,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -293,9 +286,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -345,9 +337,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, FixedFeedInRuntimeConfig]
@@ -392,9 +383,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs.size shouldBe 1
@@ -443,9 +433,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -490,9 +479,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -594,9 +582,8 @@ class ConfigUtilSpec
         combinedParticipantConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 4
@@ -637,14 +624,14 @@ class ConfigUtilSpec
 
   "The grid output config util" should {
     "return the correct result entity classes to consider" in {
-      val ddt: TableFor2[GridOutputConfig, Set[Class[_ <: ResultEntity]]] =
+      val ddt: TableFor2[GridOutputConfig, Set[Class[? <: ResultEntity]]] =
         Table(
           ("config", "expected"),
           (
             new GridOutputConfig(
               false, false, false, false, false, false,
             ),
-            Set.empty[Class[_ <: ResultEntity]],
+            Set.empty[Class[? <: ResultEntity]],
           ),
           (
             new GridOutputConfig(
@@ -696,7 +683,7 @@ class ConfigUtilSpec
         )
 
       forAll(ddt) {
-        (config: GridOutputConfig, expected: Set[Class[_ <: ResultEntity]]) =>
+        (config: GridOutputConfig, expected: Set[Class[? <: ResultEntity]]) =>
           val actual =
             GridOutputConfigUtil(config).simulationResultEntitiesToConsider
           actual shouldBe expected
@@ -705,7 +692,7 @@ class ConfigUtilSpec
   }
 
   "The participant model output config util" should {
-    val validInput = AssetConfigs(
+    val validInput = OutputConfig.ParticipantOutputConfigs(
       OutputConfig.ParticipantOutputConfig(
         notifier = "default"
       ),
@@ -761,7 +748,7 @@ class ConfigUtilSpec
     }
 
     "return the correct notifier identifiers when the default is to inform about new simulation results" in {
-      val inputConfig = AssetConfigs(
+      val inputConfig = OutputConfig.ParticipantOutputConfigs(
         OutputConfig.ParticipantOutputConfig(
           notifier = "default",
           simulationResult = true,
@@ -790,7 +777,7 @@ class ConfigUtilSpec
     }
 
     "return the correct notifier identifiers when the default is to NOT inform about new simulation results" in {
-      val inputConfig = AssetConfigs(
+      val inputConfig = OutputConfig.ParticipantOutputConfigs(
         OutputConfig.ParticipantOutputConfig(
           notifier = "default"
         ),
@@ -815,7 +802,7 @@ class ConfigUtilSpec
     }
 
     "return the correct result entity classes to be considered " in {
-      val inputConfig = AssetConfigs(
+      val inputConfig = OutputConfig.ParticipantOutputConfigs(
         OutputConfig.ParticipantOutputConfig(
           notifier = "default"
         ),
@@ -832,7 +819,7 @@ class ConfigUtilSpec
         ),
       )
       val currentConfigUtil = OutputConfigUtil.participants(inputConfig)
-      val expectedResult = Set[Class[_ <: ResultEntity]](classOf[LoadResult])
+      val expectedResult = Set[Class[? <: ResultEntity]](classOf[LoadResult])
 
       currentConfigUtil.simulationResultEntitiesToConsider(
         false

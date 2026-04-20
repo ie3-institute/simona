@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  PowerLimitFlexOptionsResult,
+}
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
@@ -59,11 +62,11 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       flexOptions: PowerLimitFlexOptions,
       setPower: Power,
   ): Unit = {
-    if (setPower < flexOptions.min)
+    if setPower < flexOptions.min then
       throw new FlexException(
         s"The set power $setPower must not be lower than the minimum power ${flexOptions.min}!"
       )
-    else if (setPower > flexOptions.max)
+    else if setPower > flexOptions.max then
       throw new FlexException(
         s"The set power $setPower must not be greater than the maximum power ${flexOptions.max}!"
       )
@@ -90,13 +93,15 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       modelUuid: UUID,
       dateTime: ZonedDateTime,
   ): FlexOptionsResult =
-    new FlexOptionsResult(
+    new PowerLimitFlexOptionsResult(
       dateTime,
       modelUuid,
       flexOptions.ref.toMegawatts.asMegaWatt,
       flexOptions.min.toMegawatts.asMegaWatt,
       flexOptions.max.toMegawatts.asMegaWatt,
     )
+
+  override def zero(tick: Long): PowerLimitFlexOptions = noFlexOption(zeroKW)
 
   extension (flexOptions: Iterable[PowerLimitFlexOptions]) {
     def flexSum: PowerLimitFlexOptions =
@@ -127,12 +132,12 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       min: Power,
       max: Power,
   ): PowerLimitFlexOptions = {
-    if (min > ref)
+    if min > ref then
       throw new CriticalFailureException(
         s"Minimum power $min is greater than reference power $ref"
       )
 
-    if (ref > max)
+    if ref > max then
       throw new CriticalFailureException(
         s"Reference power $ref is greater than maximum power $max"
       )

@@ -12,6 +12,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LineInputTestData
 import edu.ie3.simona.test.common.model.grid.FiveLinesWithNodes
 import edu.ie3.util.scala.OperationInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import squants.Each
 import squants.electro.{Amperes, Kilovolts}
 import squants.energy.Kilowatts
@@ -38,7 +39,7 @@ class LineSpec extends UnitSpec with LineInputTestData {
       Amperes(300d),
       Each(0.0013109999999999999d),
       Each(0.0010680000000000002d),
-      Each(0d),
+      zeroPU,
       Each(0.60375d),
     )
 
@@ -90,13 +91,13 @@ class LineSpec extends UnitSpec with LineInputTestData {
 
           r should approximate(Each(0.0013109999999999999d))
           x should approximate(Each(0.0010680000000000002d))
-          g should approximate(Each(0d))
+          g should approximate(zeroPU)
           b should approximate(Each(0.00000060375d))
       }
 
       validLineModel.b0() should approximate(Each(0.000000301875d))
       validLineModel.bij() should approximate(Each(-373.5121155369499d))
-      validLineModel.g0() should approximate(Each(0d))
+      validLineModel.g0() should approximate(zeroPU)
       validLineModel.gij() should approximate(Each(458.4966137349637d))
     }
 

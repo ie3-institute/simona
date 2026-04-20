@@ -8,31 +8,31 @@ package edu.ie3.simona.test.common.model.grid
 
 import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.connector._
+import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
 import edu.ie3.datamodel.models.input.container.{
   RawGridElements,
   SystemParticipants,
 }
+import edu.ie3.datamodel.models.input.system.{AcInput, *}
 import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
-import edu.ie3.datamodel.models.input.system._
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
   OperatorInput,
 }
-import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.util.TestGridFactory
-import edu.ie3.util.quantities.PowerSystemUnits._
+import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units._
+import tech.units.indriya.unit.Units.*
 
 import java.util.UUID
 import javax.measure.quantity.{Energy, Power}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters._
+import scala.jdk.CollectionConverters.*
 
 /** Provides the high voltage level of SIMONA's test grid. Only consists of
   * lines, nodes and transformers.
@@ -103,7 +103,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
     node1,
     new CosPhiFixed("cosPhiFixed:{(0.0,0.95)}"),
     null,
-    LoadProfile.DefaultLoadProfiles.NO_LOAD_PROFILE,
+    BdewStandardLoadProfile.H0.getKey,
     Quantities.getQuantity(300000, KILOWATTHOUR): ComparableQuantity[Energy],
     Quantities.getQuantity(150, MEGAVOLTAMPERE): ComparableQuantity[Power],
     0.9,
@@ -131,6 +131,7 @@ trait DbfsTestGridWithParticipants extends SubGridGateMokka {
       Set.empty[EvInput].asJava,
       Set.empty[FixedFeedInInput].asJava,
       Set.empty[HpInput].asJava,
+      Set.empty[AcInput].asJava,
       Set(load1).asJava,
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,

@@ -9,8 +9,9 @@ package edu.ie3.simona.service.weather
 import edu.ie3.datamodel.io.source.IdCoordinateSource
 import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.util.TickUtil
-import edu.ie3.simona.util.TickUtil._
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
@@ -26,7 +27,8 @@ import java.time.temporal.ChronoField.{HOUR_OF_DAY, MONTH_OF_YEAR, YEAR}
 import java.util
 import java.util.{Collections, Optional}
 import javax.measure.quantity.Length
-import scala.jdk.CollectionConverters._
+import scala.collection.immutable.SortedMap
+import scala.jdk.CollectionConverters.*
 
 final class SampleWeatherSource(
     private implicit val simulationStart: ZonedDateTime
@@ -38,20 +40,17 @@ final class SampleWeatherSource(
   override val maxCoordinateDistance: ComparableQuantity[Length] =
     Quantities.getQuantity(50000d, Units.METRE)
 
-  /** Get the weather data for the given tick as a weighted average taking into
-    * account the given weighting of weather coordinates.
-    *
-    * @param tick
-    *   Simulation date in question
-    * @param weightedCoordinates
-    *   The coordinate in question
-    * @return
-    *   Matching weather data
-    */
   override def getWeather(
-      tick: Long,
-      weightedCoordinates: WeatherSource.WeightedCoordinates,
-  ): WeatherData = getWeather(tick)
+      startTick: Long,
+      endTick: Long,
+      weightedCoordinates: WeightedCoordinates,
+  ): SortedMap[ZonedDateTime, WeatherData] =
+    Range.Long
+      .inclusive(startTick, endTick, resolution)
+      .map { tick =>
+        tick.toDateTime -> getWeather(tick)
+      }
+      .to(SortedMap)
 
   /** Get the weather data for the given tick and coordinate. Here, the weather
     * data is taken repeatedly from a store The coordinate is not considered at
@@ -69,10 +68,9 @@ final class SampleWeatherSource(
     val month = simulationTime.get(MONTH_OF_YEAR) - 1
     val hour = simulationTime.get(HOUR_OF_DAY)
     val year =
-      if (
-        simulationTime.get(YEAR) != 2011 && !(simulationTime
+      if simulationTime.get(YEAR) != 2011 && !(simulationTime
           .get(YEAR) == 2012 && month == 0)
-      ) 2011
+      then 2011
       else simulationTime.get(YEAR)
     val index = (((year - 2011) * 288) + (month * 24) + hour) + 1
     WeatherData(
@@ -143,30 +141,28 @@ object SampleWeatherSource {
         n: Int,
         distance: ComparableQuantity[Length],
     ): util.List[CoordinateDistance] = {
-      if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
+      if coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180 then
         Vector(
           new CoordinateDistance(
             coordinate,
             coordinate,
           )
         ).asJava
-      else
-        Vector.empty[CoordinateDistance].asJava
+      else Vector.empty[CoordinateDistance].asJava
     }
 
     override def getNearestCoordinates(
         coordinate: Point,
         i: Int,
     ): util.List[CoordinateDistance] = {
-      if (coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180)
+      if coordinate.getY.abs <= 90 && coordinate.getX.abs <= 180 then
         Vector(
           new CoordinateDistance(
             coordinate,
             coordinate,
           )
         ).asJava
-      else
-        Vector.empty[CoordinateDistance].asJava
+      else Vector.empty[CoordinateDistance].asJava
     }
 
     override def findCornerPoints(

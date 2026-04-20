@@ -10,11 +10,7 @@ import breeze.numerics.{abs, floor, signum}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.exceptions.InvalidActionRequestException
-import edu.ie3.util.quantities.PowerSystemUnits._
-
-import javax.measure.Quantity
-import javax.measure.quantity.Dimensionless
-import tech.units.indriya.quantity.Quantities
+import squants.{Dimensionless, Each}
 
 /** Holds all functions a transformer with tapping control is capable of. If
   * used by a transformer model, it is recommended to be used via
@@ -22,22 +18,22 @@ import tech.units.indriya.quantity.Quantities
   * [[TransformerModel]] for a sample implementation.
   *
   * @param deltaV
-  *   the voltage change by one tap increase or decrease as delta value in
-  *   percentage
+  *   The voltage change by one tap increase or decrease as delta value in
+  *   percentage.
   * @param tapMax
-  *   the maximum tap position
+  *   The maximum tap position.
   * @param tapMin
-  *   the minimum tap position
+  *   The minimum tap position.
   * @param tapNeutr
-  *   the neutral tap position
+  *   The neutral tap position.
   * @param autoTap
-  *   enable/disable automatic tapping
+  *   Enable/disable automatic tapping.
   * @param tapSide
-  *   the position of the tap changer, only has to be provided if position is
-  *   NOT on the HV side
+  *   The position of the tap changer, only has to be provided if position is
+  *   NOT on the HV side.
   */
 final case class TransformerTappingModel(
-    deltaV: Quantity[Dimensionless],
+    deltaV: Dimensionless,
     private var _currentTapPos: Int,
     tapMax: Int,
     tapMin: Int,
@@ -46,7 +42,7 @@ final case class TransformerTappingModel(
     tapSide: ConnectorPort = ConnectorPort.A,
 ) extends LazyLogging {
 
-  private val deltaVval = deltaV.to(PU).getValue.doubleValue()
+  private val deltaVval = deltaV.toEach
 
   def currentTapPos: Int = _currentTapPos
 
@@ -59,7 +55,7 @@ final case class TransformerTappingModel(
     */
   def incrTapPos(deltaTap: Int = 1): Double = {
     val newTapPos = Math.min(_currentTapPos + Math.abs(deltaTap), tapMax)
-    if (_currentTapPos == newTapPos)
+    if _currentTapPos == newTapPos then
       logger.warn(
         "Maximal tap position reached. Cannot increase tap position anymore!"
       )
@@ -75,7 +71,7 @@ final case class TransformerTappingModel(
     */
   def decrTapPos(deltaTap: Int = 1): Double = {
     val newTapPos = Math.max(_currentTapPos - Math.abs(deltaTap), tapMin)
-    if (_currentTapPos == newTapPos)
+    if _currentTapPos == newTapPos then
       logger.warn(
         "Minimal tap position reached. Cannot decrease tap position anymore!"
       )
@@ -91,7 +87,7 @@ final case class TransformerTappingModel(
     *   the new tap ratio of the transformer
     */
   def updateTapPos(newTapPos: Int): Double = {
-    if (newTapPos > tapMax | newTapPos < tapMin)
+    if newTapPos > tapMax | newTapPos < tapMin then
       throw new InvalidActionRequestException(
         s"Provided tap pos $newTapPos is not between allowed tapping range of tapMin: $tapMin and tapMax: $tapMax!"
       )
@@ -118,33 +114,31 @@ final case class TransformerTappingModel(
     * possible anymore.
     *
     * @param vChangeRequest
-    *   desired change in voltage magnitude (> 0 --> increase voltage, < 0 -->
-    *   decrease voltage)
+    *   Desired change in voltage magnitude (> 0 --> increase voltage, < 0 -->
+    *   decrease voltage).
     * @param deadBandPerTap
-    *   as a portion of the transformer voltage ratio per tap, prevents
-    *   fluctuating. It defaults to 75 % of the deltaV of the step
+    *   As a portion of the transformer voltage ratio per tap, prevents
+    *   fluctuating. It defaults to 75 % of the deltaV of the step.
     * @return
-    *   the needed in- or decrease of the transformer tap position to reach the
+    *   The needed in- or decrease of the transformer tap position to reach the
     *   desired change in voltage magnitude or the minimum permissible change if
-    *   not possible
+    *   not possible.
     */
   def computeDeltaTap(
-      vChangeRequest: Quantity[Dimensionless],
-      deadBandPerTap: Quantity[Dimensionless] = Quantities.getQuantity(0.75, PU),
+      vChangeRequest: Dimensionless,
+      deadBandPerTap: Dimensionless = Each(0.75),
   ): Int = {
     /* Determine the tap change, that has to be done in any case, as well as the remainder to fully
      * fulfill the voltage change request */
-    val vChangeVal = vChangeRequest.getValue.doubleValue()
+    val vChangeVal = vChangeRequest.toEach
     val deltaAnyways =
       (signum(vChangeVal) * floor(abs(vChangeVal / deltaVval))).intValue
     val remainder = vChangeVal % deltaVval
 
     /* If the remainder is at least as big as the dead band per tap, add another step into the
      * correct direction */
-    val deadBandVal = deadBandPerTap
-      .to(PU)
-      .getValue
-      .doubleValue * deltaVval
+    val deadBandVal = deadBandPerTap.toEach * deltaVval
+
     val deltaTap = remainder match {
       case _ if abs(remainder) > deadBandVal =>
         deltaAnyways + signum(remainder).intValue
@@ -163,7 +157,7 @@ final case class TransformerTappingModel(
 case object TransformerTappingModel {
 
   def apply(
-      deltaV: Quantity[Dimensionless],
+      deltaV: Dimensionless,
       currentTapPos: Int,
       tapMax: Int,
       tapMin: Int,

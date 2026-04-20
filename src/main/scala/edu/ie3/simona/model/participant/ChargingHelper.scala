@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import squants.{Dimensionless, Each, Energy, Power, Seconds}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
+import squants.{Dimensionless, Energy, Power, Seconds}
 
 /** Provides some basic functionality that can be used wherever energy is stored
   * within some kind of storage system.
@@ -43,7 +43,7 @@ object ChargingHelper {
       endTick: Long,
       maxEnergy: Energy,
       minEnergy: Energy = zeroKWh,
-      eta: Dimensionless = Each(1),
+      eta: Dimensionless = onePU,
   ): Energy = {
     val timespan = Seconds(endTick - startTick)
     val energyChange = calcNetPower(power, eta) * timespan
@@ -78,15 +78,15 @@ object ChargingHelper {
       currentTick: Long,
       chargingEnergyTarget: () => Energy,
       dischargingEnergyTarget: () => Energy,
-      eta: Dimensionless = Each(1),
+      eta: Dimensionless = onePU,
   )(implicit tolerance: Power): Option[Long] = {
     val netPower = calcNetPower(power, eta)
 
     val maybeTimeSpan =
-      if (netPower ~= zeroKW) {
+      if netPower ~= zeroKW then {
         // we're at 0 kW, do nothing
         None
-      } else if (netPower > zeroKW) {
+      } else if netPower > zeroKW then {
         val energyToFull = chargingEnergyTarget() - storedEnergy
         Some(energyToFull / netPower)
       } else {
@@ -96,7 +96,7 @@ object ChargingHelper {
 
     // calculate the tick from time span
     maybeTimeSpan.map { timeSpan =>
-      val timeSpanTicks = Math.floor(timeSpan.toSeconds).toLong
+      val timeSpanTicks = timeSpan.toSeconds.toLong
       currentTick + timeSpanTicks
     }
   }
@@ -111,7 +111,7 @@ object ChargingHelper {
     *   The net power.
     */
   def calcNetPower(setPower: Power, eta: Dimensionless): Power =
-    if (setPower > zeroKW) {
+    if setPower > zeroKW then {
       // multiply eta if we're charging
       setPower * eta.toEach
     } else {
