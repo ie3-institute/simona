@@ -144,12 +144,37 @@ object LineSegmentThermalModel {
 
   def startingState(
       groundTemperature: Temperature
-  ): LineState =
+  ): LineState = {
+    val cableMaterialResistivity = KelvinMetersPerWatt(4)
+    val cableGeoA = Millimeters(10)
+    val cableGeoB = Millimeters(12)
+    val t1 = calcThermalResistanceCableShells(
+      cableMaterialResistivity,
+      cableGeoA,
+      cableGeoB,
+    )
+    val t4 = calcThermalResistanceToSoil(
+      cableMaterialResistivity,
+      cableGeoA,
+      cableGeoB,
+    )
+    val initialLineSegmentThermalModel = new LineSegmentThermalModel(
+      UUID.randomUUID(),
+      "initialLineSegmentThermalModel",
+      t1,
+      t1,
+      t1,
+      t4,
+      Celsius(90),
+    )
+
     LineState(
       0L,
+      initialLineSegmentThermalModel,
       groundTemperature,
       groundTemperature,
     )
+  }
 
   object LineModelThreshold {
     final case class LineModelTemperatureUpperBoundaryReached(
