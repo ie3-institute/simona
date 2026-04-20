@@ -8,14 +8,17 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{SetPoint, FlexOptions}
+import edu.ie3.simona.api.data.model.em.{FlexOptions, SetPoint}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.service.DataTimeType.Current
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.ReceiveDataMap
+import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -52,6 +55,7 @@ import scala.jdk.CollectionConverters.MapHasAsScala
   *   A set of uuids of models that simulated internally.
   */
 final case class EmServiceBaseCore(
+    override val emUnitsToRegister: Set[UUID],
     override val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -107,6 +111,7 @@ final case class EmServiceBaseCore(
       }
 
     copy(
+      emUnitsToRegister = emUnitsToRegister.excl(uuid),
       uuidToAgent = uuidToAgent.updated(uuid, ref),
       agentToUuid = agentToUuid.updated(ref, uuid),
       uncontrolled = updatedUncontrolled,
@@ -241,6 +246,25 @@ final case class EmServiceBaseCore(
     }
 
     flexResponse match {
+      case scheduleFlexActivation @ ScheduleFlexActivation(
+            modelUuid,
+            _,
+            scheduleKey,
+          ) if tick < FIRST_TICK_IN_SIMULATION =>
+        receiver match {
+          case Left(uuid) =>
+            log.debug(s"Unlocking msg: $scheduleFlexActivation")
+            scheduleFlexActivation.scheduleKey.foreach(_.unlock())
+
+            uuidToAgent(uuid) ! FlexInit(PowerLimit, Current)
+
+          case Right(ref) =>
+            log.debug(s"Forwarding the message to: $ref")
+            ref ! scheduleFlexActivation
+        }
+
+        (this, None)
+
       case provideFlexOptions: ProvideFlexOptions =>
         val updated = handleFlexOptions(receiverUuid, provideFlexOptions)
 
@@ -339,6 +363,7 @@ final case class EmServiceBaseCore(
   }
 
   /** Method to handle flex options.
+    *
     * @param receiver
     *   The receiver of the flex options.
     * @param provideFlexOptions
@@ -368,5 +393,18 @@ final case class EmServiceBaseCore(
 
     case _ => flexOptions
   }
+}
 
+object EmServiceBaseCore {
+
+  def apply(core: EmServiceCore): EmServiceBaseCore = EmServiceBaseCore(
+    core.emUnitsToRegister,
+    core.uuidToAgent,
+    core.agentToUuid,
+    core.uncontrolled,
+    core.uuidToInferior,
+    core.uuidToParent,
+    core.completions,
+    core.nextActivation,
+  )
 }

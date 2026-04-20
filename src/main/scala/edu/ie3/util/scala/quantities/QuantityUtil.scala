@@ -73,7 +73,7 @@ object QuantityUtil {
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,
-  )(using defaultUnit: UnitOfMeasure[Q]): Try[Q] = {
+  ): Try[Q] = {
     if windowStart == windowEnd then
       Failure(
         new IllegalArgumentException("Cannot average over trivial time window.")
@@ -114,7 +114,7 @@ object QuantityUtil {
       values: Map[Long, Q],
       windowStart: Long,
       windowEnd: Long,
-  )(using defaultUnit: UnitOfMeasure[Q]): QI = {
+  ): QI = {
 
     /** Case class to hold current state of integration
       *
@@ -136,7 +136,11 @@ object QuantityUtil {
     /* Determine the unit from the first best value */
     val unit = sortedValues.values.headOption
       .map(_.unit)
-      .getOrElse(defaultUnit)
+      .getOrElse(
+        throw new QuantityException(
+          "Unable to determine unit for dummy starting value."
+        )
+      )
     val zeroValue = unit(0d)
 
     /* the first relevant value for integration is placed before or at windowStart */

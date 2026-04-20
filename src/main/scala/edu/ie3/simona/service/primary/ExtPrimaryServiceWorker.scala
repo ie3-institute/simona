@@ -30,7 +30,7 @@ import org.slf4j.Logger
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsScala
-import scala.jdk.OptionConverters.RichOptional
+import scala.jdk.OptionConverters.{RichOptional, RichOptionalLong}
 import scala.util.{Failure, Success, Try}
 
 object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
@@ -193,7 +193,7 @@ object ExtPrimaryServiceWorker extends SimonaService with ExtDataSupport {
     )
 
     val uuidToAgent = serviceStateData.uuidToActorRef
-    val maybeNextTick = primaryDataMessage.maybeNextTick.toScala.map(Long2long)
+    val maybeNextTick = primaryDataMessage.maybeNextTick.toScala
 
     primaryDataMessage.primaryData.asScala.foreach { case (agentUuid, data) =>
       data.toPrimaryData match {

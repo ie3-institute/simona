@@ -13,6 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   DoCongestionManagement,
   FinishStep,
+  GotoIdle,
 }
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
@@ -41,7 +42,10 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
 }
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.util.ReceiveDataMap
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.SimonaConstants.{
+  FIRST_TICK_IN_SIMULATION,
+  INIT_SIM_TICK,
+}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}

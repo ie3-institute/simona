@@ -10,14 +10,23 @@ import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
 import edu.ie3.simona.api.FlexConversion
 import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
-import edu.ie3.simona.api.data.model.em.{EmCommunicationMessage, EmData, FlexOptionRequest, SetPoint, FlexOptions as ExtFlexOptions}
+import edu.ie3.simona.api.data.model.em.{
+  EmCommunicationMessage,
+  EmData,
+  FlexOptionRequest,
+  SetPoint,
+  FlexOptions as ExtFlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.service.DataTimeType.Current
 import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
+import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -28,104 +37,8 @@ import scala.jdk.CollectionConverters.*
 import scala.math.max
 import scala.util.Try
 
-object EmCommunicationCore {
-
-  def apply(core: EmServiceCore): EmCommunicationCore = {
-    val uuidToAgent = core.uuidToAgent
-
-    EmCommunicationCore(
-      uuidToAgent,
-      core.agentToUuid,
-      core.uncontrolled,
-      core.uuidToInferior,
-      core.uuidToParent,
-      core.completions,
-      core.nextActivation,
-      uuidToAgent.keys.map(uuid => uuid -> EmAgentState()).toMap,
-    )
-  }
-
-  final case class EmAgentState(
-      private var receivedActivation: Boolean = false,
-      private val awaitedFlexOptions: mutable.Set[UUID] = mutable.Set.empty,
-      private var awaitedSetPoint: Boolean = false,
-      private var waitingForInternal: Boolean = false,
-      private var waitingForRelease: Boolean = false,
-  ) {
-    def setReceivedRequest(): Unit = {
-      receivedActivation = true
-      waitingForInternal = true
-      awaitedSetPoint = true
-    }
-
-    def setWaitingForRelease(): Unit = {
-      waitingForRelease = true
-    }
-
-    def setReceivedRelease(): Unit = {
-      receivedActivation = true
-      waitingForInternal = false
-      waitingForRelease = false
-    }
-
-    def addSendRequest(request: UUID): Unit = {
-      awaitedFlexOptions.add(request)
-    }
-
-    def handleReceivedFlexOption(flexOption: UUID): Unit = {
-      awaitedFlexOptions.remove(flexOption)
-
-      if awaitedFlexOptions.isEmpty then {
-        waitingForInternal = true
-      } else {
-        waitingForInternal = false
-      }
-    }
-
-    def handleReceivedFlexOptions(flexOptions: Seq[UUID]): Unit = {
-      flexOptions.foreach(awaitedFlexOptions.remove)
-
-      if awaitedFlexOptions.isEmpty then {
-        waitingForInternal = true
-      } else {
-        waitingForInternal = false
-      }
-    }
-
-    def setReceivedSetPoint(): Unit = {
-      awaitedSetPoint = false
-      waitingForInternal = true
-    }
-
-    def setWaitingForInternal(value: Boolean): Unit = {
-      waitingForInternal = value
-    }
-
-    def getAwaited: Set[UUID] = awaitedFlexOptions.toSet
-
-    def isWaitingForActivation: Boolean = !receivedActivation
-
-    def isWaitingForExtern: Boolean =
-      (awaitedFlexOptions.nonEmpty || awaitedSetPoint) && !waitingForInternal
-
-    def isWaitingForSetPoint: Boolean = awaitedSetPoint
-
-    def isWaitingForRelease: Boolean = waitingForRelease
-
-    def isWaitingForInternal: Boolean = waitingForInternal
-
-    def isActivated: Boolean = receivedActivation
-
-    def clear(): Unit = {
-      receivedActivation = false
-      awaitedFlexOptions.clear
-      awaitedSetPoint = false
-      waitingForInternal = false
-    }
-  }
-}
-
 case class EmCommunicationCore(
+    override val emUnitsToRegister: Set[UUID],
     override val uuidToAgent: Map[UUID, ActorRef[Message]] = Map.empty,
     override val agentToUuid: Map[
       ActorRef[FlexRequest] | ActorRef[FlexResponse],
@@ -179,6 +92,7 @@ case class EmCommunicationCore(
       }
 
     copy(
+      emUnitsToRegister = emUnitsToRegister.excl(uuid),
       uuidToAgent = uuidToAgent.updated(uuid, ref),
       agentToUuid = agentToUuid.updated(ref, uuid),
       uncontrolled = updatedUncontrolled,
@@ -235,7 +149,7 @@ case class EmCommunicationCore(
             // update the em state
             emStates(uuid).setReceivedRequest()
 
-            agent ! FlexActivation(tick, request.disaggregated, true)
+            agent ! FlexActivation(tick, true)
 
             val count = Try(uuidToInferior(uuid).size).getOrElse(0)
 
@@ -296,7 +210,7 @@ case class EmCommunicationCore(
                 // update the em state
                 emStates(receiver).setReceivedRequest()
 
-                agent ! FlexActivation(tick, request.disaggregated, true)
+                agent ! FlexActivation(tick, true)
 
                 val count = max(
                   Try {
@@ -387,7 +301,7 @@ case class EmCommunicationCore(
             _,
             scheduleKey,
           ) =>
-        log.warn(s"$scheduleFlexActivation not handled!")
+        scheduleKey.foreach(_.unlock())
         (this, None)
 
       case ProvideFlexOptions(sender, flexOptions) =>
@@ -466,7 +380,11 @@ case class EmCommunicationCore(
     val sender = uuidToParent(receiverUuid) // the controlling em
 
     val updated = flexRequest match {
-      case FlexActivation(tick, disaggregated, _) =>
+      case flexInit: FlexInit =>
+        receiver ! flexInit
+        expectDataFrom
+
+      case FlexActivation(tick, _) =>
         // update the em state => waiting for external flex option provision
         emStates(sender).addSendRequest(receiverUuid)
 
@@ -476,7 +394,7 @@ case class EmCommunicationCore(
           new EmCommunicationMessage(
             receiverUuid,
             sender,
-            new FlexOptionRequest(receiverUuid, disaggregated),
+            new FlexOptionRequest(receiverUuid),
           ),
         )
 
@@ -552,6 +470,88 @@ case class EmCommunicationCore(
 
       if awaited.isEmpty then None
       else Some(new EmResultResponse(Map.empty.asJava))
+    }
+  }
+}
+
+object EmCommunicationCore {
+
+  final case class EmAgentState(
+      private var receivedActivation: Boolean = false,
+      private val awaitedFlexOptions: mutable.Set[UUID] = mutable.Set.empty,
+      private var awaitedSetPoint: Boolean = false,
+      private var waitingForInternal: Boolean = false,
+      private var waitingForRelease: Boolean = false,
+  ) {
+    def setReceivedRequest(): Unit = {
+      receivedActivation = true
+      waitingForInternal = true
+      awaitedSetPoint = true
+    }
+
+    def setWaitingForRelease(): Unit = {
+      waitingForRelease = true
+    }
+
+    def setReceivedRelease(): Unit = {
+      receivedActivation = true
+      waitingForInternal = false
+      waitingForRelease = false
+    }
+
+    def addSendRequest(request: UUID): Unit = {
+      awaitedFlexOptions.add(request)
+    }
+
+    def handleReceivedFlexOption(flexOption: UUID): Unit = {
+      awaitedFlexOptions.remove(flexOption)
+
+      if awaitedFlexOptions.isEmpty then {
+        waitingForInternal = true
+      } else {
+        waitingForInternal = false
+      }
+    }
+
+    def handleReceivedFlexOptions(flexOptions: Seq[UUID]): Unit = {
+      flexOptions.foreach(awaitedFlexOptions.remove)
+
+      if awaitedFlexOptions.isEmpty then {
+        waitingForInternal = true
+      } else {
+        waitingForInternal = false
+      }
+    }
+
+    def setReceivedSetPoint(): Unit = {
+      awaitedSetPoint = false
+      waitingForInternal = true
+    }
+
+    def setWaitingForInternal(value: Boolean): Unit = {
+      waitingForInternal = value
+    }
+
+    def getAwaited: Set[UUID] = awaitedFlexOptions.toSet
+
+    def isWaitingForActivation: Boolean = !receivedActivation
+
+    def isWaitingForExtern: Boolean =
+      (awaitedFlexOptions.nonEmpty || awaitedSetPoint) && !waitingForInternal
+
+    def isWaitingForSetPoint: Boolean = awaitedSetPoint
+
+    def isWaitingForRelease: Boolean = waitingForRelease
+
+    def isWaitingForInternal: Boolean = waitingForInternal
+
+    def isActivated: Boolean = receivedActivation
+
+    def clear(): Unit = {
+      receivedActivation = false
+      awaitedFlexOptions.clear
+      awaitedSetPoint = false
+      waitingForInternal = false
     }
   }
 }

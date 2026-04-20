@@ -98,7 +98,6 @@ object ResultListener {
                 finalFileName,
                 new ResultEntityProcessor(resultClass),
                 enableCompression,
-                csv.bufferOutputs,
                 csv.delimiter,
               ),
             )

@@ -6,35 +6,36 @@
 
 package edu.ie3.simona.service.em
 
-import edu.ie3.datamodel.models.value.{PValue, SValue}
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.FlexConversion
-import edu.ie3.simona.api.data.model.em.{FlexOptions, SetPoint}
+import edu.ie3.simona.api.data.model.em.SetPoint
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
   ServiceResponseMessage,
 }
+import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.service.DataTimeType.Current
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 import squants.Power
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
-import java.util.{Optional, OptionalLong, UUID}
+import java.util.{OptionalLong, UUID}
 import javax.measure.quantity.Power as PsdmPower
-import scala.jdk.CollectionConverters.MapHasAsJava
-import scala.jdk.OptionConverters.{RichOption, RichOptional, RichOptionalLong}
+import scala.jdk.OptionConverters.RichOptionalLong
 
 /** Trait for all em service cores.
   */
 trait EmServiceCore {
+
+  val emUnitsToRegister: Set[UUID]
 
   /** Map: uuid to em agent reference.
     */
@@ -65,6 +66,10 @@ trait EmServiceCore {
   given Conversion[Option[Long], OptionalLong] = {
     case Some(value) => OptionalLong.of(value)
     case None        => OptionalLong.empty
+  }
+
+  final def init(): Unit = {
+    uncontrolled.foreach(uuidToAgent(_) ! FlexInit(PowerLimit, Current))
   }
 
   /** Method to handle a registration message.

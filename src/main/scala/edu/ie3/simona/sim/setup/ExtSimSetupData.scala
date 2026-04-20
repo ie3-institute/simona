@@ -14,6 +14,7 @@ import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.results.ExtResultProvider
 import org.apache.pekko.actor.typed.ActorRef
+import org.slf4j.Logger
 
 /** Case class that holds information regarding the external data connections as
   * well as the actor references of the created services.
@@ -51,7 +52,7 @@ final case class ExtSimSetupData(
   private[setup] def update(
       connection: ExtDataConnection,
       ref: ActorRef[?],
-  ): ExtSimSetupData = (connection, ref) match {
+  )(using log: Logger): ExtSimSetupData = (connection, ref) match {
     case (
           primaryConnection: ExtPrimaryDataConnection,
           serviceRef: ActorRef[ServiceMessage],
@@ -74,7 +75,8 @@ final case class ExtSimSetupData(
           serviceRef: ActorRef[ExtResultProvider.Message],
         ) =>
       copy(resultProviders = resultProviders ++ Seq(serviceRef))
-    case (_, _) =>
+    case (con, ref) =>
+      log.warn(s"Cannot add service $ref with connection: $con")
       this
   }
 

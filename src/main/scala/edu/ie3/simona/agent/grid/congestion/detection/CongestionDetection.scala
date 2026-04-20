@@ -69,11 +69,9 @@ trait CongestionDetection {
     case (ctx, response: CongestionResponse) =>
       processReceivedData(stateData, awaitingData, response, ctx)
 
-    case (ctx, FinishStep) =>
+    case (ctx, GotoIdle) =>
       // inform my inferior grids about the end of the congestion management
-      stateData.inferiorGridRefs.keys.foreach(
-        _ ! FinishStep
-      )
+      stateData.inferiorGridRefs.keys.foreach(_ ! GotoIdle)
 
       // directly finish congestion management, since we don't have any steps
       finishCongestionManagement(stateData, ctx)
@@ -140,7 +138,6 @@ trait CongestionDetection {
         updatedCongestions,
       )
 
-      ctx.self ! FinishStep
       checkForCongestion(stateData, updatedData)
     } else {
       // un-stash all messages
