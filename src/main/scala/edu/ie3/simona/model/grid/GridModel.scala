@@ -535,7 +535,7 @@ object GridModel {
               (coord(0).as[Double], coord(1).as[Double])
             }
 
-          if (coordinates.size >= 2) {
+          if coordinates.size >= 2 then {
             Some(
               coordinates
                 .sliding(2)
