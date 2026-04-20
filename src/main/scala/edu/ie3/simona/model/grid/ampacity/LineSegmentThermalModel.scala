@@ -11,9 +11,11 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
   LineState,
   temperatureTolerance,
 }
+import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.util.scala.quantities.{KelvinMetersPerWatt, ThermalResistivity}
+import squants.space.Millimeters
 import squants.thermal.Celsius
 import squants.{ElectricCurrent, Kelvin, Power, Seconds, Temperature}
 
