@@ -8,7 +8,7 @@ package edu.ie3.simona.test.common.model.grid
 
 import edu.ie3.simona.model.control.GridControls
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.ampacity.ThermalLineSegmentModel
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.model.grid.*
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
@@ -224,7 +224,7 @@ trait BasicGridWithSwitches extends BasicGrid {
       GridComponents(
         gridNodes,
         gridLines,
-        Set.empty[ThermalLineSegmentModel],
+        Set.empty[LineSegmentThermalModel],
         Set(transformer2wModel),
         Set.empty[Transformer3wModel],
         gridSwitches,

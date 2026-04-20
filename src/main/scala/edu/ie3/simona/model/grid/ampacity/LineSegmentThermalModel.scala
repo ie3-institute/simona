@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.LineModel
-import edu.ie3.simona.model.grid.ampacity.ThermalLineSegmentModel.{
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
   LineState,
   temperatureTolerance,
 }
@@ -36,7 +36,7 @@ import java.util.UUID
   * @param upperBoundaryTemperature
   *   Upper boundary temperature
   */
-final case class ThermalLineSegmentModel(
+final case class LineSegmentThermalModel(
     uuid: UUID,
     id: String,
     thermalResistanceT1: ThermalResistivity,
@@ -112,11 +112,11 @@ final case class ThermalLineSegmentModel(
   }
 }
 
-object ThermalLineSegmentModel {
+object LineSegmentThermalModel {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
 
-  def apply(input: LineModel): ThermalLineSegmentModel =
-    new ThermalLineSegmentModel(
+  def apply(input: LineModel): LineSegmentThermalModel =
+    new LineSegmentThermalModel(
       input.uuid,
       input.id,
       KelvinMetersPerWatt(1),
@@ -137,6 +137,7 @@ object ThermalLineSegmentModel {
     */
   final case class LineState(
       override val tick: Long,
+      currentLineSegmentThermalMode: LineSegmentThermalModel,
       groundTemperature: Temperature,
       lineTemperature: Temperature,
   ) extends ModelState

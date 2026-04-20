@@ -17,7 +17,7 @@ import edu.ie3.simona.model.grid.GridModel.{
   GridComponents,
   updateUuidToIndexMap,
 }
-import edu.ie3.simona.model.grid.ampacity.ThermalLineSegmentModel
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
@@ -211,7 +211,7 @@ class GridSpec
         GridComponents(
           nodes,
           lines,
-          Set.empty[ThermalLineSegmentModel],
+          Set.empty[LineSegmentThermalModel],
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           switches,
@@ -249,7 +249,7 @@ class GridSpec
         GridComponents(
           nodes,
           adaptedLines,
-          Set.empty[ThermalLineSegmentModel],
+          Set.empty[LineSegmentThermalModel],
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           switches,
@@ -355,7 +355,7 @@ class GridSpec
           GridComponents(
             nodes,
             lines,
-            Set.empty[ThermalLineSegmentModel],
+            Set.empty[LineSegmentThermalModel],
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             switches,
@@ -409,7 +409,7 @@ class GridSpec
           GridComponents(
             nodes,
             lines,
-            Set.empty[ThermalLineSegmentModel],
+            Set.empty[LineSegmentThermalModel],
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
@@ -464,7 +464,7 @@ class GridSpec
           GridComponents(
             nodes,
             lines,
-            Set.empty[ThermalLineSegmentModel],
+            Set.empty[LineSegmentThermalModel],
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             switches,
@@ -546,7 +546,7 @@ class GridSpec
           GridComponents(
             nodes,
             Set.empty,
-            Set.empty[ThermalLineSegmentModel],
+            Set.empty[LineSegmentThermalModel],
             Set.empty,
             Set.empty,
             switches,

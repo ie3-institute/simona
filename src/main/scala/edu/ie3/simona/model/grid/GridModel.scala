@@ -23,7 +23,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
-import edu.ie3.simona.model.grid.ampacity.ThermalLineSegmentModel
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.scala.quantities.KelvinMetersPerWatt
 import org.jgrapht.Graph
@@ -91,7 +91,7 @@ object GridModel {
   final case class GridComponents(
       nodes: Seq[NodeModel],
       lines: Set[LineModel],
-      thermalLineSegements: Set[ThermalLineSegmentModel],
+      thermalLineSegments: Set[LineSegmentThermalModel],
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel],
@@ -524,7 +524,7 @@ object GridModel {
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
-    val thermalLineSegments: Set[ThermalLineSegmentModel] =
+    val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala
         .flatMap { lineInput =>
           val jsonStringLineInput = lineInputToJson(lineInput)
@@ -540,7 +540,7 @@ object GridModel {
               coordinates
                 .sliding(2)
                 .collect { case Seq(start, end) =>
-                  ThermalLineSegmentModel(
+                  LineSegmentThermalModel(
                     UUID.randomUUID(),
                     lineInput.getId + "_" + start.toString + "_" + end.toString,
                     KelvinMetersPerWatt(1),
