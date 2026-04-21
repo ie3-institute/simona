@@ -10,13 +10,7 @@ import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
 import edu.ie3.simona.api.FlexConversion
 import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
-import edu.ie3.simona.api.data.model.em.{
-  EmCommunicationMessage,
-  EmData,
-  FlexOptionRequest,
-  SetPoint,
-  FlexOptions as ExtFlexOptions,
-}
+import edu.ie3.simona.api.data.model.em.{DisaggregatedFlexOptions, EmCommunicationMessage, EmData, FlexOptionRequest, SetPoint, FlexOptions as ExtFlexOptions}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
@@ -50,6 +44,7 @@ case class EmCommunicationCore(
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
     override val nextActivation: Map[UUID, Long] = Map.empty,
+    allFlexOptions: Map[UUID, ExtFlexOptions] = Map.empty,
     emStates: Map[UUID, EmAgentState] = Map.empty,
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
@@ -147,7 +142,7 @@ case class EmCommunicationCore(
 
           uuidToAgent.get(uuid).map { agent =>
             // update the em state
-            emStates(uuid).setReceivedRequest()
+            emStates(uuid).setReceivedRequest(request.disaggregated)
 
             agent ! FlexActivation(tick, true)
 
@@ -208,7 +203,7 @@ case class EmCommunicationCore(
             uuidToAgent.get(receiver) match {
               case Some(agent) =>
                 // update the em state
-                emStates(receiver).setReceivedRequest()
+                emStates(receiver).setReceivedRequest(request.disaggregated)
 
                 agent ! FlexActivation(tick, true)
 
@@ -306,8 +301,16 @@ case class EmCommunicationCore(
 
       case ProvideFlexOptions(sender, flexOptions) =>
         // flex option to ext
-        val resultToExt = flexOptions.toExt(receiverUuid, sender)
-
+        val convertedOption = flexOptions.toExt(receiverUuid, sender)
+        
+        val resultToExt = if emStates(receiverUuid).sentDisaggregated then {
+          val disaggregatedOptions = uuidToInferior(receiverUuid).map { uuid => 
+            uuid -> allFlexOptions(uuid)
+          }.toMap.asJava
+          
+          new DisaggregatedFlexOptions(receiverUuid, disaggregatedOptions)
+        } else convertedOption
+        
         // wrap the result, if sender and receiver are not the same, since we want to use ext communication
         val msg = if receiverUuid != sender then {
           new EmCommunicationMessage(receiverUuid, sender, resultToExt)
@@ -322,12 +325,18 @@ case class EmCommunicationCore(
           data.keys.foreach(emStates(_).setWaitingForInternal(false))
 
           (
-            copy(expectDataFrom = updatedExpectDataFrom),
+            copy(
+              expectDataFrom = updatedExpectDataFrom,
+              allFlexOptions = allFlexOptions.updated(sender, convertedOption)
+            ),
             Some(new EmResultResponse(data.asJava)),
           )
         } else {
           (
-            copy(expectDataFrom = updated),
+            copy(
+              expectDataFrom = updated,
+              allFlexOptions = allFlexOptions.updated(sender, convertedOption)
+            ),
             None,
           )
         }
@@ -478,13 +487,15 @@ object EmCommunicationCore {
 
   final case class EmAgentState(
       private var receivedActivation: Boolean = false,
+      private var disaggregated: Boolean = false,
       private val awaitedFlexOptions: mutable.Set[UUID] = mutable.Set.empty,
       private var awaitedSetPoint: Boolean = false,
       private var waitingForInternal: Boolean = false,
       private var waitingForRelease: Boolean = false,
   ) {
-    def setReceivedRequest(): Unit = {
+    def setReceivedRequest(value: Boolean = false): Unit = {
       receivedActivation = true
+      disaggregated = value
       waitingForInternal = true
       awaitedSetPoint = true
     }
@@ -534,6 +545,8 @@ object EmCommunicationCore {
 
     def getAwaited: Set[UUID] = awaitedFlexOptions.toSet
 
+    def sentDisaggregated: Boolean = disaggregated
+    
     def isWaitingForActivation: Boolean = !receivedActivation
 
     def isWaitingForExtern: Boolean =
@@ -549,6 +562,7 @@ object EmCommunicationCore {
 
     def clear(): Unit = {
       receivedActivation = false
+      disaggregated = false
       awaitedFlexOptions.clear
       awaitedSetPoint = false
       waitingForInternal = false
