@@ -262,12 +262,7 @@ object ResultServiceProxy {
       }.toMap
 
       val allChangedResults = newMainResults.map { case (uuid, result) =>
-        newAdditional.get(uuid) match {
-          case Some(additional) =>
-            uuid -> Seq(result, additional)
-          case None =>
-            uuid -> Seq(result)
-        }
+        uuid -> Seq(Some(result), newAdditional.get(uuid)).flatten
       }
 
       // notify listener
@@ -277,7 +272,7 @@ object ResultServiceProxy {
       val tick = newMainResults.values
         .find(_ => true)
         .map(_.getTime.toTick(using simStartTime))
-        .getOrElse(-1L)
+        .getOrElse(INIT_SIM_TICK)
 
       val lastUpdatedTicks = newMainResults.keys.map(k => k -> tick).toMap
 
@@ -310,7 +305,7 @@ object ResultServiceProxy {
           waitingForResults.removed(uuid)
         } else waitingForResults
 
-      val (updatedPrimary, updatedAdditional) = mainResult.get(uuid) match {
+      val (updatedMain, updatedAdditional) = mainResult.get(uuid) match {
         case Some(oldResult) if isUnchanged(result, oldResult) =>
           (mainResult, additionalResults)
 
@@ -322,7 +317,7 @@ object ResultServiceProxy {
       }
 
       copy(
-        mainResult = updatedPrimary,
+        mainResult = updatedMain,
         additionalResults = updatedAdditional,
         waitingForResults = updatedWaitingForResults,
         requiresSetPoint = requiresSetPoint.excl(uuid),
@@ -338,7 +333,7 @@ object ResultServiceProxy {
 
       val updatedAdditional = lastUpdate.get(uuid) match {
         case Some(value) if value == tick =>
-          // primary result was updated this tick
+          // main result was updated this tick
           // check additional result for change
           getUpdateOption(additionalResults, uuid, result)
         case _ => additionalResults
