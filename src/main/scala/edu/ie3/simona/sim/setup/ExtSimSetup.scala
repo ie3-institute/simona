@@ -48,6 +48,8 @@ object ExtSimSetup {
     *   The simona config.
     * @param grid
     *   The electrical grid.
+    * @param inputBaseDirectory
+    *   The base input directory.
     * @param outputBaseDirectory
     *   The base directory of the simulation output.
     * @param context
@@ -68,6 +70,7 @@ object ExtSimSetup {
       args: Array[String],
       config: Config,
       grid: JointGridContainer,
+      inputBaseDirectory: Path,
       outputBaseDirectory: Path,
   )(using
       context: ActorContext[?],
@@ -85,8 +88,13 @@ object ExtSimSetup {
 
       // creating the data connection
       val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-
-      val setUpData = new SetupData(args, config, grid, outputBaseDirectory)
+      val setUpData = new SetupData(
+        args,
+        config,
+        grid,
+        inputBaseDirectory,
+        outputBaseDirectory,
+      )
 
       Try {
         // sets up the external simulation

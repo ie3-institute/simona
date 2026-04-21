@@ -38,7 +38,7 @@ import org.scalatest.prop.TableDrivenPropertyChecks.forAll
 import org.scalatest.prop.Tables.Table
 import org.scalatest.wordspec.AnyWordSpecLike
 
-import java.util.UUID
+import java.util.{OptionalLong, UUID}
 import scala.jdk.OptionConverters.RichOption
 import scala.language.{existentials, implicitConversions}
 
@@ -88,11 +88,7 @@ class ExtSimAdapterSpec
 
       // external simulation sends completion
       val nextTick = 900L
-      extData.send(
-        new ExtCompletionMessage(
-          Option[java.lang.Long](nextTick).toJava
-        )
-      )
+      extData.send(new ExtCompletionMessage(OptionalLong.of(nextTick)))
 
       scheduler.expectMessage(Completion(extSimAdapter, Some(nextTick)))
     }
