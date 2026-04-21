@@ -686,14 +686,11 @@ class EmAgentIT
           )
         }
 
-        // we receive a message, since new data arrived
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+        resultServiceProxy.receiveMessages(4) should contain allOf (
+          // we receive a message, since new data arrived
           ExpectResult(pvInput.getUuid, 7200, true),
-          ExpectResult(hpInputModelEmIT.getUuid, 7200, true)
-        )
-
-        // we receive update messages, since a new set point was provided
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(hpInputModelEmIT.getUuid, 7200, true),
+          // we receive update messages, since a new set point was provided
           ExpectResult(pvInput.getUuid, 7200),
           ExpectResult(hpInputModelEmIT.getUuid, 7200)
         )
@@ -785,14 +782,11 @@ class EmAgentIT
           )
         }
 
-        // we receive a message, since new data arrived
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+        resultServiceProxy.receiveMessages(4) should contain allOf (
+          // we receive a message, since new data arrived
           ExpectResult(pvInput.getUuid, 10800, true),
-          ExpectResult(hpInputModelEmIT.getUuid, 10800, true)
-        )
-
-        // we receive update messages, since a new set point was provided
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(hpInputModelEmIT.getUuid, 10800, true),
+          // we receive update messages, since a new set point was provided
           ExpectResult(pvInput.getUuid, 10800),
           ExpectResult(hpInputModelEmIT.getUuid, 10800)
         )
@@ -859,14 +853,11 @@ class EmAgentIT
           )
         }
 
-        // we receive a message, since new data arrived
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+        resultServiceProxy.receiveMessages(4) should contain allOf (
+          // we receive a message, since new data arrived
           ExpectResult(pvInput.getUuid, 11000, true),
-          ExpectResult(hpInputModelEmIT.getUuid, 11000, true)
-        )
-
-        // we receive update messages, since a new set point was provided
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(hpInputModelEmIT.getUuid, 11000, true),
+          // we receive update messages, since a new set point was provided
           ExpectResult(pvInput.getUuid, 11000),
           ExpectResult(hpInputModelEmIT.getUuid, 11000)
         )
@@ -906,14 +897,11 @@ class EmAgentIT
           )
         }
 
-        // we receive a message, since new data arrived
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+        resultServiceProxy.receiveMessages(4) should contain allOf (
+          // we receive a message, since new data arrived
           ExpectResult(pvInput.getUuid, 11500, true),
-          ExpectResult(hpInputModelEmIT.getUuid, 11500, true)
-        )
-
-        // we receive update messages, since a new set point was provided
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+          ExpectResult(hpInputModelEmIT.getUuid, 11500, true),
+          // we receive update messages, since a new set point was provided
           ExpectResult(pvInput.getUuid, 11500),
           ExpectResult(hpInputModelEmIT.getUuid, 11500)
         )
