@@ -8,9 +8,11 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
+  KelvinMetersPerWatt,
   ThermalCapacitance,
   ThermalResistivity,
 }
+import squants.Power
 import squants.space.Length
 import squants.thermal.ThermalCapacity
 
@@ -47,11 +49,11 @@ object LineThermalModelCalculations {
   }
 
   /** Calculates the thermal resistivity between the cable layers and the
-    * surrounding soil.
+    * surrounding soil for a single cable (e.g. Three-Core-Cable).
     *
-    * @param specificThermalResistivity
-    *   The material dependent specific thermal resistance of the layer in
-    *   question.
+    * @param specificThermalResistivityGround
+    *   The material dependent specific thermal resistance of the surrounding
+    *   soil.
     * @param depthCable
     *   The laying depth of the cable.
     * @param cableDiameter
@@ -60,16 +62,119 @@ object LineThermalModelCalculations {
     *   The thermal resistance between cable and its surrounding soil in Kelvin
     *   * Meter / Watt per unit cable length.
     */
-  def calcThermalResistanceToSoil(
-      specificThermalResistivity: ThermalResistivity,
+  def calcThermalResistanceToSoilSingleCable(
+      specificThermalResistivityGround: ThermalResistivity,
       depthCable: Length,
       cableDiameter: Length,
   ): ThermalResistivity = {
-    (specificThermalResistivity / (2 * Pi)) * log(
+    (specificThermalResistivityGround / (2 * Pi)) * calcGeometricFactor(
+      depthCable,
+      cableDiameter,
+    )
+  }
+
+  /** Calculates the geometrical factor of the single core cable to its mirrored
+    * (Kennelly method).
+    *
+    * @param depthCable
+    *   The laying depth of the cable.
+    * @param cableDiameter
+    *   The outer diameter of the cable.
+    * @return
+    *   The thermal resistance between cable and its surrounding soil in Kelvin
+    *   * Meter / Watt per unit cable length.
+    */
+  def calcGeometricFactor(
+      depthCable: Length,
+      cableDiameter: Length,
+  ): Double = {
+    log(
       (2d * depthCable.toMeters / cableDiameter.toMeters) + sqrt(
         pow(2 * depthCable.toMeters / cableDiameter.toMeters, 2) - 1
       )
     )
+  }
+
+  /** Calculates the thermal resistivity of the middle single core cable
+    * (hottest cable) for a flat formation of three single core cables. Cable
+    * formation: (A) --- (B) --- (C). Reference Anders Rating of electric power
+    * cables: ampacity computations for transmission, distribution, and
+    * industrial applications p. 215
+    *
+    * @param specificThermalResistivityGround
+    *   The material dependent specific thermal resistance of the surrounding
+    *   soil.
+    * @param depthCables
+    *   The laying depth of the cables.
+    * @param diameterCableB
+    *   The outer diameter of the cable B.
+    * @param distanceOfCables
+    *   The distance between the cables. Assuming same distance between A, B and
+    *   C. Distance is from the cables centers.
+    * @param diameterCableA
+    *   The losses of the cable A.
+    * @param diameterCableB
+    *   The losses of the cable B.
+    * @param diameterCableC
+    *   The losses of the cable C.
+    * @return
+    *   The thermal resistance between cable and its surrounding soil in Kelvin
+    *   * Meter / Watt per unit cable length.
+    */
+  def calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
+      specificThermalResistivityGround: ThermalResistivity,
+      depthCables: Length,
+      diameterCableB: Length,
+      distanceOfCables: Length,
+      lossesCableA: Power,
+      lossesCableB: Power,
+      lossesCableC: Power,
+  ): ThermalResistivity = {
+    val distancePtoKDash = sqrt(
+      pow(distanceOfCables.toMeters, 2) + pow(2 * depthCables.toMeters, 2)
+    )
+    val thermalInfluenceCableAonB =
+      (lossesCableA / lossesCableB) * log(
+        distancePtoKDash / distanceOfCables.toMeters
+      )
+    val thermalInfluenceCableConB =
+      (lossesCableC / lossesCableB) * log(
+        distancePtoKDash / distanceOfCables.toMeters
+      )
+
+    val thermalResistanceShareOfCableB =
+      calcGeometricFactor(depthCables, diameterCableB)
+
+    specificThermalResistivityGround / (2d * Pi) * (thermalResistanceShareOfCableB + thermalInfluenceCableAonB + thermalInfluenceCableConB)
+  }
+
+  /** Calculates the thermal resistivity of the top single core cable (hottest
+    * cable) for a trefoil touching formation. Reference: Anders Rating of
+    * electric power cables: ampacity computations for transmission,
+    * distribution, and industrial applications p. 220
+    *
+    * @param specificThermalResistivityGround
+    *   The material dependent specific thermal resistance of the surrounding
+    *   soil.
+    * @param depthToCenter
+    *   The laying depth of the cables measured to the center of the trefoil
+    *   group
+    * @param diameterCable
+    *   The outer diameter of one of the single cables.
+    * @return
+    *   The thermal resistance between cable and its surrounding soil in Kelvin
+    *   * Meter / Watt per unit cable length.
+    */
+  def calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching(
+      specificThermalResistivityGround: ThermalResistivity,
+      depthToCenter: Length,
+      diameterCable: Length,
+  ): ThermalResistivity = {
+    val u = 2 * depthToCenter.toMeters / diameterCable.toMeters
+
+    KelvinMetersPerWatt(
+      1.5 * specificThermalResistivityGround.toKelvinMetersPerWatt / Pi
+    ) * (log(2 * u) - 0.63)
   }
 
   /** Calculates the thermal resistivity between the cable layers and the

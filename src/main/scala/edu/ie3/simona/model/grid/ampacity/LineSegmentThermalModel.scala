@@ -155,7 +155,7 @@ object LineSegmentThermalModel {
       cableGeoA,
       cableGeoB,
     )
-    val t4 = calcThermalResistanceToSoil(
+    val t4 = calcThermalResistanceToSoilSingleCable(
       cableMaterialResistivity,
       cableGeoA,
       cableGeoB,
