@@ -8,7 +8,10 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.FlexConversion
-import edu.ie3.simona.api.data.model.em.SetPoint
+import edu.ie3.simona.api.data.model.em.{
+  SetPoint,
+  FlexOptions as ExtFlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
@@ -18,6 +21,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.DataTimeType.Current
+import edu.ie3.simona.service.em.EmServiceCore.EmAgentState
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
@@ -29,31 +33,23 @@ import tech.units.indriya.ComparableQuantity
 import java.time.ZonedDateTime
 import java.util.{OptionalLong, UUID}
 import javax.measure.quantity.Power as PsdmPower
+import scala.collection.mutable
 import scala.jdk.OptionConverters.RichOptionalLong
 
 /** Trait for all em service cores.
   */
-trait EmServiceCore {
-
-  val emUnitsToRegister: Set[UUID]
-
-  /** Map: uuid to em agent reference.
-    */
-  val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]]
-
-  val agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID]
-
-  val uncontrolled: Set[UUID]
-
-  val uuidToInferior: Map[UUID, Set[UUID]]
-
-  val uuidToParent: Map[UUID, UUID]
-
-  /** ReceiveDataMap: uuid to completions.
-    */
-  val completions: ReceiveDataMap[UUID, FlexCompletion]
-
-  val nextActivation: Map[UUID, Long]
+abstract class EmServiceCore(
+    emUnitsToRegister: Set[UUID],
+    uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]],
+    agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID],
+    uncontrolled: Set[UUID],
+    uuidToInferior: Map[UUID, Set[UUID]],
+    uuidToParent: Map[UUID, UUID],
+    completions: ReceiveDataMap[UUID, FlexCompletion],
+    nextActivation: Map[UUID, Long],
+    allFlexOptions: Map[UUID, ExtFlexOptions],
+    emStates: Map[UUID, EmAgentState],
+) {
 
   /** Extension to convert a squants power value to a psdm power value.
     */
@@ -81,6 +77,63 @@ trait EmServiceCore {
     */
   def handleRegistration(
       emServiceRegistration: EmServiceRegistration
+  ): EmServiceCore = {
+    val uuid = emServiceRegistration.inputUuid
+    val ref = emServiceRegistration.requestingActor
+
+    val (
+      updatedUncontrolled,
+      updatedInferior,
+      updatedUuidToParent,
+      updatedCompletions,
+    ) =
+      emServiceRegistration.parentUuid match {
+        case Some(parent) =>
+          val inferior = uuidToInferior.get(parent) match {
+            case Some(inferiorUuids) =>
+              inferiorUuids ++ Seq(uuid)
+            case None =>
+              Set(uuid)
+          }
+
+          (
+            uncontrolled,
+            uuidToInferior.updated(parent, inferior),
+            uuidToParent.updated(uuid, parent),
+            completions,
+          )
+        case None =>
+          (
+            uncontrolled + uuid,
+            uuidToInferior,
+            uuidToParent,
+            completions.addExpectedKey(uuid),
+          )
+      }
+
+    updated(
+      emUnitsToRegister = emUnitsToRegister.excl(uuid),
+      uuidToAgent = uuidToAgent.updated(uuid, ref),
+      agentToUuid = agentToUuid.updated(ref, uuid),
+      uncontrolled = updatedUncontrolled,
+      uuidToInferior = updatedInferior,
+      uuidToParent = updatedUuidToParent,
+      completions = updatedCompletions,
+      nextActivation = nextActivation.updated(uuid, 0),
+      emStates = emStates.updated(uuid, EmAgentState()),
+    )
+  }
+
+  def updated(
+      emUnitsToRegister: Set[UUID],
+      uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]],
+      agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID],
+      uncontrolled: Set[UUID],
+      uuidToInferior: Map[UUID, Set[UUID]],
+      uuidToParent: Map[UUID, UUID],
+      completions: ReceiveDataMap[UUID, FlexCompletion],
+      nextActivation: Map[UUID, Long],
+      emStates: Map[UUID, EmAgentState],
   ): EmServiceCore
 
   /** Method to handle the received message from the external simulation.
@@ -263,5 +316,92 @@ trait EmServiceCore {
     } ++ nextActivation.values.filter(_ > tick)
 
     allActivations.minOption
+  }
+}
+
+object EmServiceCore {
+
+  final case class EmAgentState(
+      private var receivedActivation: Boolean = false,
+      private var disaggregated: Boolean = false,
+      private val awaitedFlexOptions: mutable.Set[UUID] = mutable.Set.empty,
+      private var awaitedSetPoint: Boolean = false,
+      private var waitingForInternal: Boolean = false,
+      private var waitingForRelease: Boolean = false,
+  ) {
+    def setReceivedRequest(value: Boolean = false): Unit = {
+      receivedActivation = true
+      disaggregated = value
+      waitingForInternal = true
+      awaitedSetPoint = true
+    }
+
+    def setWaitingForRelease(): Unit = {
+      waitingForRelease = true
+    }
+
+    def setReceivedRelease(): Unit = {
+      receivedActivation = true
+      waitingForInternal = false
+      waitingForRelease = false
+    }
+
+    def addSendRequest(request: UUID): Unit = {
+      awaitedFlexOptions.add(request)
+    }
+
+    def handleReceivedFlexOption(flexOption: UUID): Unit = {
+      awaitedFlexOptions.remove(flexOption)
+
+      if awaitedFlexOptions.isEmpty then {
+        waitingForInternal = true
+      } else {
+        waitingForInternal = false
+      }
+    }
+
+    def handleReceivedFlexOptions(flexOptions: Seq[UUID]): Unit = {
+      flexOptions.foreach(awaitedFlexOptions.remove)
+
+      if awaitedFlexOptions.isEmpty then {
+        waitingForInternal = true
+      } else {
+        waitingForInternal = false
+      }
+    }
+
+    def setReceivedSetPoint(): Unit = {
+      awaitedSetPoint = false
+      waitingForInternal = true
+    }
+
+    def setWaitingForInternal(value: Boolean): Unit = {
+      waitingForInternal = value
+    }
+
+    def getAwaited: Set[UUID] = awaitedFlexOptions.toSet
+
+    def sentDisaggregated: Boolean = disaggregated
+
+    def isWaitingForActivation: Boolean = !receivedActivation
+
+    def isWaitingForExtern: Boolean =
+      (awaitedFlexOptions.nonEmpty || awaitedSetPoint) && !waitingForInternal
+
+    def isWaitingForSetPoint: Boolean = awaitedSetPoint
+
+    def isWaitingForRelease: Boolean = waitingForRelease
+
+    def isWaitingForInternal: Boolean = waitingForInternal
+
+    def isActivated: Boolean = receivedActivation
+
+    def clear(): Unit = {
+      receivedActivation = false
+      disaggregated = false
+      awaitedFlexOptions.clear
+      awaitedSetPoint = false
+      waitingForInternal = false
+    }
   }
 }

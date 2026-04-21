@@ -8,14 +8,18 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{FlexOptions, SetPoint}
+import edu.ie3.simona.api.data.model.em.{
+  FlexOptions,
+  SetPoint,
+  FlexOptions as ExtFlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.service.DataTimeType.Current
+import edu.ie3.simona.service.em.EmServiceCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.ReceiveDataMap
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
@@ -67,60 +71,48 @@ final case class EmServiceBaseCore(
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
     override val nextActivation: Map[UUID, Long] = Map.empty,
+    override val allFlexOptions: Map[UUID, ExtFlexOptions] = Map.empty,
+    override val emStates: Map[UUID, EmAgentState] = Map.empty,
     flexOptions: ReceiveDataMap[UUID, FlexOptions] = ReceiveDataMap.empty,
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, SetPoint]] = None,
     internal: Set[UUID] = Set.empty,
-) extends EmServiceCore {
+) extends EmServiceCore(
+      emUnitsToRegister,
+      uuidToAgent,
+      agentToUuid,
+      uncontrolled,
+      uuidToInferior,
+      uuidToParent,
+      completions,
+      nextActivation,
+      allFlexOptions,
+      emStates,
+    ) {
 
-  def handleRegistration(
-      emServiceRegistration: EmServiceRegistration
-  ): EmServiceBaseCore = {
-    val uuid = emServiceRegistration.inputUuid
-    val ref = emServiceRegistration.requestingActor
-
-    val (
-      updatedUncontrolled,
-      updatedInferior,
-      updatedUuidToParent,
-      updatedCompletions,
-    ) =
-      emServiceRegistration.parentUuid match {
-        case Some(parent) =>
-          val inferior = uuidToInferior.get(parent) match {
-            case Some(inferiorUuids) =>
-              inferiorUuids ++ Seq(uuid)
-            case None =>
-              Set(uuid)
-          }
-
-          (
-            uncontrolled,
-            uuidToInferior.updated(parent, inferior),
-            uuidToParent.updated(uuid, parent),
-            completions,
-          )
-        case None =>
-          (
-            uncontrolled + uuid,
-            uuidToInferior,
-            uuidToParent,
-            completions.addExpectedKey(uuid),
-          )
-      }
-
+  override def updated(
+      emUnitsToRegister: Set[UUID],
+      uuidToAgent: Map[UUID, ActorRef[Message]],
+      agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID],
+      uncontrolled: Set[UUID],
+      uuidToInferior: Map[UUID, Set[UUID]],
+      uuidToParent: Map[UUID, UUID],
+      completions: ReceiveDataMap[UUID, FlexCompletion],
+      nextActivation: Map[UUID, Long],
+      emStates: Map[UUID, EmAgentState],
+  ): EmServiceCore =
     copy(
-      emUnitsToRegister = emUnitsToRegister.excl(uuid),
-      uuidToAgent = uuidToAgent.updated(uuid, ref),
-      agentToUuid = agentToUuid.updated(ref, uuid),
-      uncontrolled = updatedUncontrolled,
-      uuidToInferior = updatedInferior,
-      uuidToParent = updatedUuidToParent,
-      completions = updatedCompletions,
-      nextActivation = nextActivation.updated(uuid, -1),
+      emUnitsToRegister = emUnitsToRegister,
+      uuidToAgent = uuidToAgent,
+      agentToUuid = agentToUuid,
+      uncontrolled = uncontrolled,
+      uuidToInferior = uuidToInferior,
+      uuidToParent = uuidToParent,
+      completions = completions,
+      nextActivation = nextActivation,
+      emStates = emStates,
     )
-  }
 
   override def handleExtMessage(tick: Long, extMsg: EmDataMessageFromExt)(using
       log: Logger
@@ -397,5 +389,7 @@ object EmServiceBaseCore {
     core.uuidToParent,
     core.completions,
     core.nextActivation,
+    core.allFlexOptions,
+    core.emStates,
   )
 }

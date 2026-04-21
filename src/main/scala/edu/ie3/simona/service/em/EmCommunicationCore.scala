@@ -10,17 +10,21 @@ import edu.ie3.datamodel.models.value.PValue
 import edu.ie3.simona.agent.em.EmAgent.Message
 import edu.ie3.simona.api.FlexConversion
 import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
-import edu.ie3.simona.api.data.model.em.{DisaggregatedFlexOptions, EmCommunicationMessage, EmData, FlexOptionRequest, SetPoint, FlexOptions as ExtFlexOptions}
+import edu.ie3.simona.api.data.model.em.{
+  DisaggregatedFlexOptions,
+  EmCommunicationMessage,
+  EmData,
+  FlexOptionRequest,
+  SetPoint,
+  FlexOptions as ExtFlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.service.DataTimeType.Current
-import edu.ie3.simona.service.em.EmCommunicationCore.EmAgentState
+import edu.ie3.simona.service.em.EmServiceCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
-import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -44,60 +48,44 @@ case class EmCommunicationCore(
     override val completions: ReceiveDataMap[UUID, FlexCompletion] =
       ReceiveDataMap.empty,
     override val nextActivation: Map[UUID, Long] = Map.empty,
-    allFlexOptions: Map[UUID, ExtFlexOptions] = Map.empty,
-    emStates: Map[UUID, EmAgentState] = Map.empty,
+    override val allFlexOptions: Map[UUID, ExtFlexOptions] = Map.empty,
+    override val emStates: Map[UUID, EmAgentState] = Map.empty,
     expectDataFrom: ReceiveMultiDataMap[UUID, EmData] =
       ReceiveMultiDataMap.empty,
-) extends EmServiceCore {
+) extends EmServiceCore(
+      emUnitsToRegister,
+      uuidToAgent,
+      agentToUuid,
+      uncontrolled,
+      uuidToInferior,
+      uuidToParent,
+      completions,
+      nextActivation,
+      allFlexOptions,
+      emStates,
+    ) {
 
-  def handleRegistration(
-      emServiceRegistration: EmServiceRegistration
-  ): EmServiceCore = {
-    val uuid = emServiceRegistration.inputUuid
-    val ref = emServiceRegistration.requestingActor
-
-    val (
-      updatedUncontrolled,
-      updatedInferior,
-      updatedUuidToParent,
-      updatedCompletions,
-    ) =
-      emServiceRegistration.parentUuid match {
-        case Some(parent) =>
-          val inferior = uuidToInferior.get(parent) match {
-            case Some(inferiorUuids) =>
-              inferiorUuids ++ Seq(uuid)
-            case None =>
-              Set(uuid)
-          }
-
-          (
-            uncontrolled,
-            uuidToInferior.updated(parent, inferior),
-            uuidToParent.updated(uuid, parent),
-            completions,
-          )
-        case None =>
-          (
-            uncontrolled + uuid,
-            uuidToInferior,
-            uuidToParent,
-            completions.addExpectedKey(uuid),
-          )
-      }
-
-    copy(
-      emUnitsToRegister = emUnitsToRegister.excl(uuid),
-      uuidToAgent = uuidToAgent.updated(uuid, ref),
-      agentToUuid = agentToUuid.updated(ref, uuid),
-      uncontrolled = updatedUncontrolled,
-      uuidToInferior = updatedInferior,
-      uuidToParent = updatedUuidToParent,
-      completions = updatedCompletions,
-      nextActivation = nextActivation.updated(uuid, 0),
-      emStates = emStates.updated(uuid, EmAgentState()),
-    )
-  }
+  override def updated(
+      emUnitsToRegister: Set[UUID],
+      uuidToAgent: Map[UUID, ActorRef[Message]],
+      agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID],
+      uncontrolled: Set[UUID],
+      uuidToInferior: Map[UUID, Set[UUID]],
+      uuidToParent: Map[UUID, UUID],
+      completions: ReceiveDataMap[UUID, FlexCompletion],
+      nextActivation: Map[UUID, Long],
+      emStates: Map[UUID, EmAgentState],
+  ): EmServiceCore = copy(
+    emUnitsToRegister = emUnitsToRegister,
+    uuidToAgent = uuidToAgent,
+    agentToUuid = agentToUuid,
+    uncontrolled = uncontrolled,
+    uuidToInferior = uuidToInferior,
+    uuidToParent = uuidToParent,
+    completions = completions,
+    nextActivation = nextActivation,
+    emStates = emStates,
+  )
 
   override def handleExtMessage(tick: Long, extMsg: EmDataMessageFromExt)(using
       log: Logger
@@ -302,15 +290,18 @@ case class EmCommunicationCore(
       case ProvideFlexOptions(sender, flexOptions) =>
         // flex option to ext
         val convertedOption = flexOptions.toExt(receiverUuid, sender)
-        
+
         val resultToExt = if emStates(sender).sentDisaggregated then {
-          val disaggregatedOptions = uuidToInferior(receiverUuid).map { uuid => 
-            uuid -> allFlexOptions(uuid)
-          }.toMap.asJava
-          
+          val disaggregatedOptions = uuidToInferior(receiverUuid)
+            .map { uuid =>
+              uuid -> allFlexOptions(uuid)
+            }
+            .toMap
+            .asJava
+
           new DisaggregatedFlexOptions(receiverUuid, disaggregatedOptions)
         } else convertedOption
-        
+
         // wrap the result, if sender and receiver are not the same, since we want to use ext communication
         val msg = if receiverUuid != sender then {
           new EmCommunicationMessage(receiverUuid, sender, resultToExt)
@@ -327,7 +318,7 @@ case class EmCommunicationCore(
           (
             copy(
               expectDataFrom = updatedExpectDataFrom,
-              allFlexOptions = allFlexOptions.updated(sender, convertedOption)
+              allFlexOptions = allFlexOptions.updated(sender, convertedOption),
             ),
             Some(new EmResultResponse(data.asJava)),
           )
@@ -335,7 +326,7 @@ case class EmCommunicationCore(
           (
             copy(
               expectDataFrom = updated,
-              allFlexOptions = allFlexOptions.updated(sender, convertedOption)
+              allFlexOptions = allFlexOptions.updated(sender, convertedOption),
             ),
             None,
           )
@@ -423,25 +414,12 @@ case class EmCommunicationCore(
           state.setWaitingForInternal(false)
 
           // send set point to ext
-          val power = control match {
-            case IssueNoControl(tick) =>
-              new PValue(null)
-
-            case IssuePowerControl(tick, setPower) =>
-              new PValue(setPower.toQuantity)
-
-            case other =>
-              throw new CriticalFailureException(
-                s"Flex control $other is not supported!"
-              )
-          }
-
           expectDataFrom.addData(
             sender,
             new EmCommunicationMessage(
               receiverUuid,
               sender,
-              new SetPoint.AggregatedSetPoint(receiverUuid, power),
+              control.toExt(receiverUuid),
             ),
           )
         }
@@ -485,87 +463,16 @@ case class EmCommunicationCore(
 
 object EmCommunicationCore {
 
-  final case class EmAgentState(
-      private var receivedActivation: Boolean = false,
-      private var disaggregated: Boolean = false,
-      private val awaitedFlexOptions: mutable.Set[UUID] = mutable.Set.empty,
-      private var awaitedSetPoint: Boolean = false,
-      private var waitingForInternal: Boolean = false,
-      private var waitingForRelease: Boolean = false,
-  ) {
-    def setReceivedRequest(value: Boolean = false): Unit = {
-      receivedActivation = true
-      disaggregated = value
-      waitingForInternal = true
-      awaitedSetPoint = true
-    }
-
-    def setWaitingForRelease(): Unit = {
-      waitingForRelease = true
-    }
-
-    def setReceivedRelease(): Unit = {
-      receivedActivation = true
-      waitingForInternal = false
-      waitingForRelease = false
-    }
-
-    def addSendRequest(request: UUID): Unit = {
-      awaitedFlexOptions.add(request)
-    }
-
-    def handleReceivedFlexOption(flexOption: UUID): Unit = {
-      awaitedFlexOptions.remove(flexOption)
-
-      if awaitedFlexOptions.isEmpty then {
-        waitingForInternal = true
-      } else {
-        waitingForInternal = false
-      }
-    }
-
-    def handleReceivedFlexOptions(flexOptions: Seq[UUID]): Unit = {
-      flexOptions.foreach(awaitedFlexOptions.remove)
-
-      if awaitedFlexOptions.isEmpty then {
-        waitingForInternal = true
-      } else {
-        waitingForInternal = false
-      }
-    }
-
-    def setReceivedSetPoint(): Unit = {
-      awaitedSetPoint = false
-      waitingForInternal = true
-    }
-
-    def setWaitingForInternal(value: Boolean): Unit = {
-      waitingForInternal = value
-    }
-
-    def getAwaited: Set[UUID] = awaitedFlexOptions.toSet
-
-    def sentDisaggregated: Boolean = disaggregated
-    
-    def isWaitingForActivation: Boolean = !receivedActivation
-
-    def isWaitingForExtern: Boolean =
-      (awaitedFlexOptions.nonEmpty || awaitedSetPoint) && !waitingForInternal
-
-    def isWaitingForSetPoint: Boolean = awaitedSetPoint
-
-    def isWaitingForRelease: Boolean = waitingForRelease
-
-    def isWaitingForInternal: Boolean = waitingForInternal
-
-    def isActivated: Boolean = receivedActivation
-
-    def clear(): Unit = {
-      receivedActivation = false
-      disaggregated = false
-      awaitedFlexOptions.clear
-      awaitedSetPoint = false
-      waitingForInternal = false
-    }
-  }
+  def apply(core: EmServiceCore): EmCommunicationCore = EmCommunicationCore(
+    core.emUnitsToRegister,
+    core.uuidToAgent,
+    core.agentToUuid,
+    core.uncontrolled,
+    core.uuidToInferior,
+    core.uuidToParent,
+    core.completions,
+    core.nextActivation,
+    core.allFlexOptions,
+    core.emStates,
+  )
 }
