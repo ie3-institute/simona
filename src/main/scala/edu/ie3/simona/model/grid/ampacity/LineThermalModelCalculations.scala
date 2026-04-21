@@ -6,15 +6,20 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
   ThermalCapacitance,
   ThermalResistivity,
+  SquantsUtils as RichElectricPotential,
 }
-import squants.Power
-import squants.space.Length
+import squants.electro.*
+import squants.energy.Watts
+import squants.space.{Area, Length}
 import squants.thermal.ThermalCapacity
+import squants.time.Frequency
+import squants.{ElectricCurrent, Power, Temperature}
 
 import scala.math.*
 
@@ -22,6 +27,112 @@ import scala.math.*
   * [[LineSegmentThermalModel]].
   */
 object LineThermalModelCalculations {
+
+  /** \@param
+    *
+    * @return
+    */
+  def calcAcResistance(
+      resistivity: Resistivity,
+      conductorArea: Area,
+      temperatureCorrectionFactor: Double,
+      operatingTemperature: Temperature,
+      factorSkinEffect: Double,
+      factorProximityEffect: Double,
+  ): ElectricalResistance = {
+    // normally in Ohms/Meter...
+    Ohms(
+      (1 + factorSkinEffect + factorProximityEffect) * (resistivity.toOhmMeters / conductorArea.toSquareMeters) *
+        (1 + temperatureCorrectionFactor * (operatingTemperature.toCelsiusScale - 20))
+    )
+  }
+
+  /** Calculates the thermal losses of the cable segment per unit cable length.
+    * @param specificThermalResistivity
+    *
+    * @return
+    */
+  def calcThermalLosses(
+  ): Power = {
+    ???
+    // Stromwärmeverluste
+    // + Mantel- und Schirmverluste
+    // + Wirbelstrom-, Längsstrom- und Magnetisierungsverluste
+    // + dielektrische Verluste
+    // + ohmsche Verluste (stromunabhängig)
+  }
+
+  /** Calculates the thermal losses of the cable segment per unit cable length.
+    *
+    * @param specificThermalResistivity
+    * @return
+    */
+  def calcLossesConductor(
+      acResistance: ElectricalResistance,
+      current: ElectricCurrent,
+  ): Power = {
+    Watts(current.toAmperes * current.toAmperes * acResistance.toOhms)
+  }
+
+  /** Calculates the losses within the cable sheath. Zero / Not applicable if
+    * cable has no sheath.
+    *
+    * @param circulatingSheathLossFactor
+    *   Determines the losses in the sheath caused by circulating currents.
+    *   Often given as lambda_1_dash.
+    * @param eddyCurrentsSheathLossFactor
+    *   Determines the losses in the sheath caused by eddy currents. Often given
+    *   as lambda_1_dash_dash.
+    * @return
+    */
+  def calcLossesSheath(
+      circulatingSheathLossFactor: Double,
+      eddyCurrentsSheathLossFactor: Double,
+      conductorLosses: Power,
+  ): Power = {
+    // lambda_1 = lambda_1_dash + lambda_1_dash_dash
+    val lambdaOne = circulatingSheathLossFactor + eddyCurrentsSheathLossFactor
+    conductorLosses * lambdaOne
+  }
+
+  /** Calculates the losses within the cable armor. Zero / Not applicable if
+    * cable has no armor.
+    *
+    * @param circulatingArmorLossFactor
+    *   Determines the losses in the armor caused by circulating currents. Often
+    *   given as lambda_2_dash.
+    * @param eddyCurrentsArmorLossFactor
+    *   Determines the losses in the armor caused by eddy currents. Often given
+    *   as lambda_2_dash_dash.
+    * @return
+    */
+  def calcLossesArmor(
+      circulatingArmorLossFactor: Double,
+      eddyCurrentsArmorLossFactor: Double,
+      conductorLosses: Power,
+  ): Power = {
+    // lambda_2 = lambda_2_dash + lambda_2_dash_dash
+    val lambdaTwo = circulatingArmorLossFactor + eddyCurrentsArmorLossFactor
+    conductorLosses * lambdaTwo
+  }
+
+  /** Calculates the losses within the cable that are not current-dependent.
+    *
+    * @param voltage
+    * @param frequency
+    *   the frequency of the system (50 Hz) in general.
+    * @param tanDelta
+    * @param dielectricCapacity
+    * @return
+    */
+  def calcDielectricLosses(
+      voltage: ElectricPotential,
+      frequency: Frequency,
+      tanDelta: Double,
+      dielectricCapacity: Capacitance,
+  ): Power = {
+    dielectricCapacity.calculateDielectricLosses(voltage, frequency, tanDelta)
+  }
 
   /** Calculates the thermal resistivity of the individual layers of the cable
     * (e.g. for isolation shell as the first shell between conductor and further

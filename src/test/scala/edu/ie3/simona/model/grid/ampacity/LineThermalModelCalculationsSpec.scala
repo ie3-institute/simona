@@ -9,17 +9,137 @@ package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{KelvinMetersPerWatt, ThermalResistivity}
-import squants.Meters
-import squants.energy.Watts
+import squants.electro.*
+import squants.energy.{Power, Watts}
+import squants.space.SquareMeters
+import squants.thermal.Celsius
+import squants.time.Hertz
+import squants.{Amperes, Meters}
 
 class LineThermalModelCalculationsSpec extends UnitSpec {
 
   implicit val resistanceTolerance: ThermalResistivity = KelvinMetersPerWatt(
     1e-10
   )
+  implicit val electricResistanceTolerance: ElectricalResistance = Ohms(1e-10)
+  implicit val powerTolerance: Power = Watts(1e-7)
   implicit val tolerance: Double = 1e-10
 
   "A LineSegmentThermalModel" should {
+
+    "calculate correctly the AC Resistance" in {
+      val cases = Table(
+        (
+          "resistancePerMeter",
+          "conductorGrossSection", // in mm²
+          "temperatureCorrection",
+          "operatingTemperature",
+          "skinEffect",
+          "proximityEffect",
+          "expected",
+        ),
+        // (1.7241e-8, 150, 3.93e-3, 90.0, 0d, 0d, 1), // CU,
+        (2.8264e-8, 176, 4.03e-3, 90.0, 0d, 0d,
+          0.20589360454545457e-3), // FIXME Nennquerschnitt 150mm² vs. d²Pi/4 = 176mm² => ggf. einfach r aus LineModel? // AL NA2XS2Y 1x150 RM/25 12/20 kV https://shop.faberkabel.de/Starkstromkabel-1-30-kV/Mittelspannungskabel/Mittelspannungskabel-NA2XS2Y/011325.html
+        (1.809e-8, 240, 3.93e-3, 90.0, 8.835e-3, 6.6227e-3,
+          9.759631228772626e-5), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 197
+      )
+
+      forAll(cases) {
+        (
+            resistancePerMeter,
+            conductorGrossSection,
+            temperatureCorrection,
+            operatingTemperature,
+            skinEffect,
+            proximityEffect,
+            expected,
+        ) =>
+
+          val specificResistance = OhmMeters(resistancePerMeter)
+          val conductorArea = SquareMeters(conductorGrossSection * 1e-6)
+          val operatingTemp = Celsius(operatingTemperature)
+          val expectedResult = Ohms(expected)
+
+          val actual = calcAcResistance(
+            specificResistance,
+            conductorArea,
+            temperatureCorrection,
+            operatingTemp,
+            skinEffect,
+            proximityEffect,
+          )
+
+          actual should approximate(expectedResult)
+      }
+    }
+
+    "calculate correctly the conductor losses" in {
+      val cases = Table(
+        (
+          "current",
+          "acResistance",
+          "expected",
+        ),
+        (100, 9.759631228772626e-5, 0.975963123),
+      )
+
+      forAll(cases) {
+        (
+            currentInAmps,
+            acResistance,
+            expected,
+        ) =>
+
+          val current = Amperes(currentInAmps)
+          val acRes = Ohms(acResistance)
+          val expectedResult = Watts(expected)
+
+          val actual = calcLossesConductor(acRes, current)
+
+          actual should approximate(expectedResult)
+      }
+    }
+
+    "calculate correctly the dielectric losses" in {
+      val cases = Table(
+        (
+          "voltage",
+          "tanDelta",
+          "dielectricCapaNanoF",
+          "expected",
+        ),
+        (
+          19052.5588,
+          0.004,
+          0.237683304,
+          0.10842143853,
+        ), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 198f
+      )
+
+      forAll(cases) {
+        (
+            voltage,
+            tanDelta,
+            dielectricCapaNanoF,
+            expected,
+        ) =>
+
+          val voltageU0 = Volts(voltage)
+          val frequency = Hertz(50)
+          val dielectricCapacity = Nanofarads(dielectricCapaNanoF)
+          val expectedResult = Watts(expected)
+
+          val actual = calcDielectricLosses(
+            voltageU0,
+            frequency,
+            tanDelta,
+            dielectricCapacity,
+          )
+
+          actual should approximate(expectedResult)
+      }
+    }
 
     "return all correct thermal resistance for cable shells" in {
 

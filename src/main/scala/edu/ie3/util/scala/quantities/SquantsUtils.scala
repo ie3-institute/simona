@@ -6,11 +6,14 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.electro.{ElectricPotential, Volts}
-import squants.energy.Energy
+import squants.electro.{Capacitance, ElectricPotential, Volts}
+import squants.energy.{Energy, Power, Watts}
 import squants.space.{CubicMeters, Volume}
 import squants.thermal.ThermalCapacity
+import squants.time.Frequency
 import squants.{Dimensionless, Each}
+
+import scala.math.Pi
 
 object SquantsUtils {
   implicit class RichEnergy(energy: Energy) {
@@ -32,7 +35,6 @@ object SquantsUtils {
     ): ElectricPotential = Volts(
       electricPotential.toVolts * that.toEach
     )
-
   }
 
   implicit class RichThermalCapacity(
@@ -42,5 +44,18 @@ object SquantsUtils {
       this.thermalCapacity.toJoulesPerKelvin / 3600
     def toWattSecondsPerKelvin: Double =
       this.thermalCapacity.toJoulesPerKelvin // Joule == Ws
+  }
+
+  implicit class RichCapacitance(
+      electricCapacity: Capacitance
+  ) {
+
+    def calculateDielectricLosses(
+        voltage: ElectricPotential,
+        frequency: Frequency,
+        tanDelta: Double,
+    ): Power = Watts(
+      electricCapacity.toFarads * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
+    )
   }
 }
