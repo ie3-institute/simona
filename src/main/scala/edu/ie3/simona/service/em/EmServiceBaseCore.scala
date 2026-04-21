@@ -93,7 +93,7 @@ final case class EmServiceBaseCore(
 
   override def updated(
       emUnitsToRegister: Set[UUID],
-      uuidToAgent: Map[UUID, ActorRef[Message]],
+      uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]],
       agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID],
       uncontrolled: Set[UUID],
       uuidToInferior: Map[UUID, Set[UUID]],

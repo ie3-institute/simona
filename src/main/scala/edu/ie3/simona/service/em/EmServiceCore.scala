@@ -39,16 +39,16 @@ import scala.jdk.OptionConverters.RichOptionalLong
 /** Trait for all em service cores.
   */
 abstract class EmServiceCore(
-    emUnitsToRegister: Set[UUID],
-    uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]],
-    agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID],
-    uncontrolled: Set[UUID],
-    uuidToInferior: Map[UUID, Set[UUID]],
-    uuidToParent: Map[UUID, UUID],
-    completions: ReceiveDataMap[UUID, FlexCompletion],
-    nextActivation: Map[UUID, Long],
-    allFlexOptions: Map[UUID, ExtFlexOptions],
-    emStates: Map[UUID, EmAgentState],
+    val emUnitsToRegister: Set[UUID],
+    val uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]],
+    val agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID],
+    val uncontrolled: Set[UUID],
+    val uuidToInferior: Map[UUID, Set[UUID]],
+    val uuidToParent: Map[UUID, UUID],
+    val completions: ReceiveDataMap[UUID, FlexCompletion],
+    val nextActivation: Map[UUID, Long],
+    val allFlexOptions: Map[UUID, ExtFlexOptions],
+    val emStates: Map[UUID, EmAgentState],
 ) {
 
   /** Extension to convert a squants power value to a psdm power value.
