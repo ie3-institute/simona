@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{EmSetPoint, FlexOptionRequest}
+import edu.ie3.simona.api.data.model.em.{SetPoint, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
@@ -361,11 +361,11 @@ class ExtEmDataServiceSpec
           Map.empty.asJava,
           Map.empty.asJava,
           Map(
-            emAgent1UUID -> new EmSetPoint(
+            emAgent1UUID -> new SetPoint.AggregatedSetPoint(
               emAgent1UUID,
               -3d.asKiloWatt,
             ),
-            emAgent2UUID -> new EmSetPoint(
+            emAgent2UUID -> new SetPoint.AggregatedSetPoint(
               emAgent2UUID,
               0d.asKiloWatt,
             ),
