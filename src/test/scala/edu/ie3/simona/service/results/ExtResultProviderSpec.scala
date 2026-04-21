@@ -82,7 +82,7 @@ class ExtResultProviderSpec
       provider ! Activation(3600L)
 
       resultProxy.expectMessage(
-        RequestResult(Seq(dummyInputModel), 3600L, provider.ref)
+        RequestResult(Seq(dummyInputModel), 3600L, provider.ref, Some(-1))
       )
 
       provider ! ResultResponse(Map(dummyInputModel -> List(dummyPvResult)))
