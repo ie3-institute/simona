@@ -253,27 +253,19 @@ class ThermalGridIT
           time shouldBe 0.toDateTime
           qDot should equalWithTolerance(0.asMegaWatt)
           indoorTemp should equalWithTolerance(20.asDegreeCelsius)
+        case ThermalResultEvent(
+              AbstractThermalStorageResult(time, inputModel, qDot, energy)
+            ) if inputModel == typicalHeatStorage.getUuid =>
+          time shouldBe 0.toDateTime
+          qDot should equalWithTolerance(0.011.asMegaWatt)
+          energy should equalWithTolerance(0.asMegaWattHour)
+        case ThermalResultEvent(
+              AbstractThermalStorageResult(time, inputModel, qDot, energy)
+            ) if inputModel == littleDomesticHotWaterStorageInput.getUuid =>
+          time shouldBe 0.toDateTime
+          qDot should equalWithTolerance(-0.005405957260274.asMegaWatt)
+          energy should equalWithTolerance(0.000522.asMegaWattHour)
       }
-
-      events0
-        .collect {
-          case ThermalResultEvent(
-                AbstractThermalStorageResult(time, inputModel, qDot, energy)
-              ) =>
-            (inputModel, time, qDot, energy)
-        }
-        .foreach {
-          case (uuid, time, qDot, energy)
-              if uuid == typicalHeatStorage.getUuid =>
-            time shouldBe 0.toDateTime
-            qDot should equalWithTolerance(0.011.asMegaWatt)
-            energy should equalWithTolerance(0.asMegaWattHour)
-          case (uuid, time, qDot, energy)
-              if uuid == littleDomesticHotWaterStorageInput.getUuid =>
-            time shouldBe 0.toDateTime
-            qDot should equalWithTolerance(-0.005405957260274.asMegaWatt)
-            energy should equalWithTolerance(0.000522.asMegaWattHour)
-        }
       resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(heatPumpAgent, Some(45)))
 
@@ -1320,27 +1312,19 @@ class ThermalGridIT
           time shouldBe 0.toDateTime
           qDot should equalWithTolerance(0.asMegaWatt)
           indoorTemp should equalWithTolerance(20.asDegreeCelsius)
+        case ThermalResultEvent(
+              AbstractThermalStorageResult(time, inputModel, qDot, energy)
+            ) if inputModel == typicalHeatStorage.getUuid =>
+          time shouldBe 0.toDateTime
+          qDot should equalWithTolerance(0.asMegaWatt)
+          energy should equalWithTolerance(0.asMegaWattHour)
+        case ThermalResultEvent(
+              AbstractThermalStorageResult(time, inputModel, qDot, energy)
+            ) if inputModel == smallDomesticHotWaterStorageInput.getUuid =>
+          time shouldBe 0.toDateTime
+          qDot should equalWithTolerance(-0.005496056547945205.asMegaWatt)
+          energy should equalWithTolerance(0.00149814.asMegaWattHour)
       }
-
-      msg0
-        .collect {
-          case ThermalResultEvent(
-                AbstractThermalStorageResult(time, inputModel, qDot, energy)
-              ) =>
-            (inputModel, time, qDot, energy)
-        }
-        .foreach {
-          case (uuid, time, qDot, energy)
-              if uuid == typicalHeatStorage.getUuid =>
-            time shouldBe 0.toDateTime
-            qDot should equalWithTolerance(0.asMegaWatt)
-            energy should equalWithTolerance(0.asMegaWattHour)
-          case (uuid, time, qDot, energy)
-              if uuid == smallDomesticHotWaterStorageInput.getUuid =>
-            time shouldBe 0.toDateTime
-            qDot should equalWithTolerance(-0.005496056547945205.asMegaWatt)
-            energy should equalWithTolerance(0.00149814.asMegaWattHour)
-        }
       resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(150)))
 

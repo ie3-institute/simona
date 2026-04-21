@@ -237,11 +237,10 @@ class EmAgentIT
           Some(7200),
         )
 
-        // we receive a message, since new data arrived
-        resultServiceProxy.expectMessage(ExpectResult(pvInput.getUuid, 0, true))
-
-        // we receive update messages, since new set points were provided
-        resultServiceProxy.receiveMessages(3) should contain allOf (
+        resultServiceProxy.receiveMessages(4) should contain allOf (
+          // we receive a message, since new data arrived
+          ExpectResult(pvInput.getUuid, 0, true),
+          // we receive update messages, since new set points were provided
           ExpectResult(pvInput.getUuid, 0),
           ExpectResult(storageInput.getUuid, 0),
           ExpectResult(loadInput.getUuid, 0)
@@ -312,13 +311,10 @@ class EmAgentIT
          */
         emAgentActivation ! Activation(12772)
 
-        // the result proxy will receive ExpectResult messages
-        resultServiceProxy.expectMessage(
-          ExpectResult(storageInput.getUuid, 12772, true)
-        )
-
-        // we receive an update message, since a new set point were provided
-        resultServiceProxy.expectMessage(
+        resultServiceProxy.receiveMessages(2) should contain allOf (
+          // the result proxy will receive ExpectResult messages
+          ExpectResult(storageInput.getUuid, 12772, true),
+          // we receive an update message, since a new set point were provided
           ExpectResult(storageInput.getUuid, 12772)
         )
 
@@ -540,14 +536,11 @@ class EmAgentIT
           )
         }
 
-        // we receive a message, since new data arrived
-        resultServiceProxy.receiveMessages(2) should contain allOf (
+        resultServiceProxy.receiveMessages(5) should contain allOf (
+          // we receive a message, since new data arrived
           ExpectResult(pvInput.getUuid, 0, true),
-          ExpectResult(hpInputModelEmIT.getUuid, 0, true)
-        )
-
-        // we receive update messages, since a new set point was provided
-        resultServiceProxy.receiveMessages(3) should contain allOf (
+          ExpectResult(hpInputModelEmIT.getUuid, 0, true),
+          // we receive update messages, since a new set point was provided
           ExpectResult(pvInput.getUuid, 0),
           ExpectResult(hpInputModelEmIT.getUuid, 0),
           ExpectResult(loadInput.getUuid, 0)
