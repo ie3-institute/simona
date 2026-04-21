@@ -61,6 +61,8 @@ trait SimonaSetup {
   lazy val thermalGridsByThermalBus: Map[ThermalBusInput, ThermalGrid] =
     GridProvider.getThermalGridsFromConfig(simonaConfig.input.grid.datasource)
 
+  lazy val baseInputPath: Path = Path.of(simonaConfig.input.baseInputDir)
+
   /** Directory of the log output.
     */
   def logOutputDir: Path

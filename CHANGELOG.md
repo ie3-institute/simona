@@ -93,6 +93,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplified initialization of services [#1751](https://github.com/ie3-institute/simona/issues/1751)
 - Simplifications in `ThermalGrid` [#1765](https://github.com/ie3-institute/simona/issues/1765)
 - Moved next tick determination to `ParticipantFlexModel` [#1692](https://github.com/ie3-institute/simona/issues/1692)
+- Adapting to changes in simonaAPI version `0.14.0` [#1773](https://github.com/ie3-institute/simona/issues/1773)
 - Simplify handling of results [#1752](https://github.com/ie3-institute/simona/issues/1752)
 
 ### Fixed
@@ -123,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `EnergyPriceService` initialization [#1747](https://github.com/ie3-institute/simona/issues/1747)
 - Fixed EVCS `OperationChangeIndiactor` in edge cases [#1762](https://github.com/ie3-institute/simona/issues/1762)
 - Fixed `AbstractEnergyBoundariesFlexModel` next tick determination [#1769](https://github.com/ie3-institute/simona/issues/1769)
+- Fixed energy limit handling in `OptimizedFlexStrat` [#1772](https://github.com/ie3-institute/simona/issues/1772)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
