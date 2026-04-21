@@ -375,17 +375,8 @@ final case class EmServiceBaseCore(
       receiver: UUID,
       provideFlexOptions: ProvideFlexOptions,
   ): ReceiveDataMap[UUID, FlexOptions] = provideFlexOptions match {
-    case ProvideFlexOptions(
-          modelUuid: UUID,
-          PowerLimitFlexOptions(ref, min, max),
-        ) =>
-      val result = new em.PowerLimitFlexOptions(
-        receiver,
-        modelUuid,
-        min.toQuantity,
-        ref.toQuantity,
-        max.toQuantity,
-      )
+    case ProvideFlexOptions(modelUuid: UUID, fo) =>
+      val result = fo.toExt(receiver, modelUuid)
 
       if flexOptions.expects(modelUuid) then {
         flexOptions.addData(modelUuid, result)
