@@ -303,7 +303,7 @@ case class EmCommunicationCore(
         // flex option to ext
         val convertedOption = flexOptions.toExt(receiverUuid, sender)
         
-        val resultToExt = if emStates(receiverUuid).sentDisaggregated then {
+        val resultToExt = if emStates(sender).sentDisaggregated then {
           val disaggregatedOptions = uuidToInferior(receiverUuid).map { uuid => 
             uuid -> allFlexOptions(uuid)
           }.toMap.asJava
