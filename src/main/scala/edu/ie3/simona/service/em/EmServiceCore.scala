@@ -49,6 +49,7 @@ abstract class EmServiceCore(
     val nextActivation: Map[UUID, Long],
     val allFlexOptions: Map[UUID, ExtFlexOptions],
     val emStates: Map[UUID, EmAgentState],
+    val internal: Set[UUID],
 ) {
 
   /** Extension to convert a squants power value to a psdm power value.

@@ -77,7 +77,7 @@ final case class EmServiceBaseCore(
     sendOptionsToExt: Boolean = false,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, SetPoint]] = None,
-    internal: Set[UUID] = Set.empty,
+    override val internal: Set[UUID] = Set.empty,
 ) extends EmServiceCore(
       emUnitsToRegister,
       uuidToAgent,
@@ -89,6 +89,7 @@ final case class EmServiceBaseCore(
       nextActivation,
       allFlexOptions,
       emStates,
+      internal
     ) {
 
   override def updated(
