@@ -7,14 +7,22 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.datamodel.models.input.AssetInput
+import edu.ie3.datamodel.models.value.PValue
+import edu.ie3.simona.api.data.model.em.SetPoint
+import edu.ie3.simona.api.data.model.em.SetPoint.{
+  AggregatedSetPoint,
+  DisaggregatedSetPoints,
+}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toQuantity
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
 import java.util.UUID
+import scala.jdk.CollectionConverters.MapHasAsJava
 
 /** Messages used to facilitate flexibility-based communication between
   * [[edu.ie3.simona.agent.em.EmAgent]] and
@@ -105,7 +113,10 @@ object FlexibilityMessage {
     * a feasible set point is delivered that the controlled asset model should
     * adhere to. Sending agent expects a [[FlexCompletion]] as a reply.
     */
-  trait IssueFlexControl extends FlexRequest
+  trait IssueFlexControl extends FlexRequest {
+
+    def toExt(receiver: UUID): SetPoint
+  }
 
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] that specifies a power
     * target that needs to be produced/consumed by the system participant.
@@ -119,7 +130,35 @@ object FlexibilityMessage {
   final case class IssuePowerControl(
       override val tick: Long,
       setPower: Power,
-  ) extends IssueFlexControl
+  ) extends IssueFlexControl {
+    override def toExt(receiver: UUID): SetPoint = new AggregatedSetPoint(
+      receiver,
+      setPower.toQuantity,
+    )
+  }
+
+  /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] that specifies
+    * disaggregated power values that needs to be produced/consumed by the
+    * system participant.
+    *
+    * @param tick
+    *   The current tick
+    * @param setPowers
+    *   A map: uuid to power that should be produced (negative) or consumed
+    *   (positive)
+    */
+  final case class IssueDisaggregatedControl(
+      override val tick: Long,
+      setPowers: Map[UUID, Power],
+  ) extends IssueFlexControl {
+    override def toExt(receiver: UUID): SetPoint = {
+      val disaggregated = setPowers.map { case (uuid, power) =>
+        uuid -> new PValue(power.toQuantity)
+      }.asJava
+
+      new DisaggregatedSetPoints(receiver, disaggregated)
+    }
+  }
 
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] indicating that no
     * power target is set and the reference power communicated by
@@ -129,7 +168,11 @@ object FlexibilityMessage {
     *   The current tick
     */
   final case class IssueNoControl(override val tick: Long)
-      extends IssueFlexControl
+      extends IssueFlexControl {
+    override def toExt(receiver: UUID): SetPoint = new AggregatedSetPoint(
+      receiver
+    )
+  }
 
   /** Message sent by controlled asset models that transports the result after
     * flex control has been handled. Has to be sent before [[FlexCompletion]],

@@ -95,6 +95,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved next tick determination to `ParticipantFlexModel` [#1692](https://github.com/ie3-institute/simona/issues/1692)
 - Adapting to changes in simonaAPI version `0.14.0` [#1773](https://github.com/ie3-institute/simona/issues/1773)
 - Simplify handling of results [#1752](https://github.com/ie3-institute/simona/issues/1752)
+- Simplify conversion of flex options and setpoints between SIMONA and its API [#1785](https://github.com/ie3-institute/simona/issues/1785)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -126,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `AbstractEnergyBoundariesFlexModel` next tick determination [#1769](https://github.com/ie3-institute/simona/issues/1769)
 - Fixed energy limit handling in `OptimizedFlexStrat` [#1772](https://github.com/ie3-institute/simona/issues/1772)
 - Fix unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
+- Fixed initialization problems when using `ExtEmDataService` [#1780](https://github.com/ie3-institute/simona/issues/1780)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

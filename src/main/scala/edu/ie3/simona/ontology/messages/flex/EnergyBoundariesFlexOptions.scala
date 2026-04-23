@@ -10,6 +10,10 @@ import edu.ie3.datamodel.models.result.system.{
   EnergyBoundariesFlexOptionsResult,
   FlexOptionsResult,
 }
+import edu.ie3.simona.api.data.model.em.{
+  EnergyBoundariesFlexOptions as ExtEnergyBoundariesFlexOptions,
+  FlexOptions as ExtFlexOptions,
+}
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
@@ -19,6 +23,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaWattHour}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
@@ -28,6 +33,8 @@ import squants.{Dimensionless, Energy, Power}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.immutable.SortedMap
+import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+import scala.jdk.OptionConverters.RichOptionalLong
 
 /** Energy boundaries for one or several assets. See [[AssetEnergyBoundaries]]
   * for more details.
@@ -50,6 +57,11 @@ final case class EnergyBoundariesFlexOptions(
       energyBoundaries
         .map(_.powerLimits.getUpper)
         .sum,
+    )
+
+  override def toExt(recipient: UUID, model: UUID): ExtFlexOptions =
+    throw new FlexException(
+      "Converting EnergyBoundariesFlexOptions to external model is not supported yet."
     )
 }
 
@@ -148,6 +160,42 @@ object EnergyBoundariesFlexOptions
       singleBoundaries: AssetEnergyBoundaries
   ): EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(Seq(singleBoundaries))
+
+  def apply(
+      extOptions: ExtEnergyBoundariesFlexOptions
+  ): EnergyBoundariesFlexOptions = {
+    val convertedAssetBoundaries = extOptions.energyBoundaries.asScala.map {
+      assertBoundary =>
+        val energyLimits = assertBoundary.energyLimits.asScala
+          .map {
+            case (tick: Long, limits) =>
+              tick -> new ClosedInterval(
+                limits.getLower.toSquants,
+                limits.getUpper.toSquants,
+              )
+            case _ =>
+              throw new FlexException(
+                "Error occurred while converting EnergyBoundariesFlexOptions."
+              )
+          }
+          .to(SortedMap)
+
+        val powerLimits = assertBoundary.powerLimits
+
+        AssetEnergyBoundaries(
+          energyLimits,
+          new ClosedInterval(
+            powerLimits.getLower.toSquants,
+            powerLimits.getUpper.toSquants,
+          ),
+          assertBoundary.etaCharge.toSquants,
+          assertBoundary.etaDischarge.toSquants,
+          assertBoundary.tickDisconnect.toScala,
+        )
+    }
+
+    EnergyBoundariesFlexOptions(convertedAssetBoundaries.toSeq)
+  }
 
   /** Energy boundaries for an asset. The energy limits (valid for the interval
     * from tick to the next) constitute the boundaries between which flexibility

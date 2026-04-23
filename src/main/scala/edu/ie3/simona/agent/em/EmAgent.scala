@@ -35,8 +35,10 @@ import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
+import squants.Power
 
 import java.time.ZonedDateTime
+import java.util.UUID
 import scala.util.{Failure, Try}
 
 /** Energy management agent that receives flex options from and issues control
@@ -52,7 +54,7 @@ object EmAgent {
   /** Data that is supposed to stay (mostly) constant during simulation.
     *
     * @param outputConfig
-    *   Config for the output behaviour of simulation results.
+    *   Config for the output behavior of simulation results.
     * @param simulationStartDate
     *   Date of the very first tick in the simulation.
     * @param parent
@@ -297,8 +299,17 @@ object EmAgent {
       modelShell: EmModelShell[?],
       inputHandler: DataInputHandler,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Message] = Behaviors.receiveMessagePartial {
-    case flexCtrl: IssueFlexControl =>
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (_, IssueDisaggregatedControl(_, setPowers)) =>
+      handleFlexControl(
+        emData,
+        modelShell,
+        inputHandler,
+        flexOptionsCore,
+        setPowers,
+      )
+
+    case (_, flexCtrl: IssueFlexControl) =>
       val setPointActivePower =
         Try(modelShell.determineFlexPower(flexCtrl))
           .recoverWith(exception =>
@@ -322,16 +333,36 @@ object EmAgent {
           inputHandler.getSecondaryData,
         )
 
-      val (allFlexMsgs, newCore) = flexOptionsCore
-        .handleFlexCtrl(ctrlSetPoints)
-        .fillInMissingIssueCtrl()
-        .complete()
+      handleFlexControl(
+        emData,
+        modelShell,
+        inputHandler,
+        flexOptionsCore,
+        ctrlSetPoints,
+      )
 
-      allFlexMsgs.foreach { case (actor, msg) =>
-        actor ! msg
-      }
+    case (ctx, unhandled) =>
+      ctx.log.warn(s"Unhandled (awaiting control): $unhandled")
+      Behaviors.same
+  }
 
-      awaitingCompletions(emData, modelShell, inputHandler, newCore)
+  private def handleFlexControl(
+      emData: EmData,
+      modelShell: EmModelShell[?],
+      inputHandler: DataInputHandler,
+      flexOptionsCore: EmDataCore.AwaitingFlexOptions,
+      ctrlSetPoints: Iterable[(UUID, Power)],
+  ): Behavior[Message] = {
+    val (allFlexMsgs, newCore) = flexOptionsCore
+      .handleFlexCtrl(ctrlSetPoints)
+      .fillInMissingIssueCtrl()
+      .complete()
+
+    allFlexMsgs.foreach { case (actor, msg) =>
+      actor ! msg
+    }
+
+    awaitingCompletions(emData, modelShell, inputHandler, newCore)
   }
 
   /** Behavior of an [[EmAgent]] waiting for completions messages to be received
