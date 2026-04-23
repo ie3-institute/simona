@@ -545,6 +545,33 @@ class EvcsModelSpec
         service.expectMessage(FreeLotsResponse(evcsModel.uuid, 2))
       }
 
+      "very small power does not lead to overflow in next tick calculation" in {
+
+        val ev = EvModelWrapper(
+          ev1.copyWith(1.0.asKiloWattHour)
+        )
+
+        val extremelySmallPower = Kilowatts(1e-20)
+
+        noException shouldBe thrownBy {
+          evcsModel.determineChargingLimitEvent(
+            ev,
+            extremelySmallPower,
+            Long.MaxValue / 2,
+          )
+        }
+      }
+
+      "tolerance comparison (~=) treats small power as zero" in {
+        val ev = EvModelWrapper(ev1)
+
+        val tolerance = evcsModel.calcPowerTolerance(ev)
+
+        val smallPower = tolerance / 10
+
+        smallPower.~=(Kilowatts(0.0))(using tolerance) shouldBe true
+      }
+
     }
 
   }
