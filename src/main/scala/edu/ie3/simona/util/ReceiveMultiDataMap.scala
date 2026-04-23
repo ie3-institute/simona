@@ -69,7 +69,7 @@ final case class ReceiveMultiDataMap[K, V](
     }
   }
 
-  def addExpectedKeys(keys: Set[K]): ReceiveMultiDataMap[K, V] = 
+  def addExpectedKeys(keys: Set[K]): ReceiveMultiDataMap[K, V] =
     addExpectedKeys(keys.map(key => key -> 1).toMap)
 
   def addExpectedKeys(keys: Map[K, Int]): ReceiveMultiDataMap[K, V] = {
@@ -87,10 +87,10 @@ object ReceiveMultiDataMap {
   private val log: Logger = LoggerFactory.getLogger("ReceiveMultiDataMap")
 
   def apply[K, V](
-                   expectedKeys: Set[K]
-                 ): ReceiveMultiDataMap[K, V] =
+      expectedKeys: Set[K]
+  ): ReceiveMultiDataMap[K, V] =
     apply(expectedKeys.map(key => key -> 1).toMap)
-  
+
   def apply[K, V](
       expectedKeys: Map[K, Int]
   ): ReceiveMultiDataMap[K, V] =

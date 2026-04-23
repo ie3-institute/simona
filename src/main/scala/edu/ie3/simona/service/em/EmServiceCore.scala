@@ -36,15 +36,11 @@ import edu.ie3.simona.util.SimonaConstants.{
   INIT_SIM_TICK,
 }
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
-import edu.ie3.util.quantities.QuantityUtils.asMegaWatt
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
-import squants.Power
-import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.{OptionalLong, UUID}
-import javax.measure.quantity.Power as PsdmPower
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.{
   CollectionHasAsScala,
@@ -73,9 +69,11 @@ import scala.util.Try
   * @param nextActivation
   *   A map: uuid to next activation tick.
   * @param allFlexOptions
+  *   A map: uuid to flex options
   * @param emStates
+  *   A map: uuid to em agent state.
   * @param emDataStore
-  *   ReceiveDataMap: uuid to flex option.
+  *   ReceiveMultiDataMap: uuid to flex option.
   * @param internal
   *   A set of uuids of models that simulated internally.
   * @param sendDataToExt
@@ -106,12 +104,6 @@ case class EmServiceCore(
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, SetPoint]] = None,
 ) {
-
-  /** Extension to convert a squants power value to a psdm power value.
-    */
-  extension (value: Power) {
-    def toQuantity: ComparableQuantity[PsdmPower] = value.toMegawatts.asMegaWatt
-  }
 
   given Conversion[OptionalLong, Option[Long]] =
     (x: OptionalLong) => x.toScala
