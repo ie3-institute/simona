@@ -97,8 +97,13 @@ object FlexibilityMessage {
     *
     * @param tick
     *   The tick to request [[FlexOptions]] for.
+    * @param force
+    *   If true all connected controlled assets will be activated.
     */
-  final case class FlexActivation(override val tick: Long) extends FlexRequest
+  final case class FlexActivation(
+      override val tick: Long,
+      force: Boolean = false,
+  ) extends FlexRequest
 
   /** Message that provides [[FlexOptions]] to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
