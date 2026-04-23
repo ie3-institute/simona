@@ -112,10 +112,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
       case InitExtEmData(scheduler, extEmDataConnection, startTime, emUnits) =>
-        val serviceCore = extEmDataConnection.mode match {
-          case EmMode.BASE             => EmServiceBaseCore(emUnits)
-          case EmMode.EM_COMMUNICATION => EmCommunicationCore(emUnits)
-        }
+        val serviceCore = EmServiceCore(extEmDataConnection.mode, emUnits)
 
         val emDataInitializedStateData =
           ExtEmDataStateData(
