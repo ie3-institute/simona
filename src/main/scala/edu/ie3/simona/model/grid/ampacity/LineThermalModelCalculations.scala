@@ -28,15 +28,30 @@ import scala.math.*
   */
 object LineThermalModelCalculations {
 
-  /** \@param
   // Constants for thermal calculations
   private val TWO_PI: Double = 2 * Pi
   private val PI_OVER_FOUR: Double = Pi / 4
   private val TREFOIL_COEFFICIENT: Double = 1.5
   private val TREFOIL_ADJUSTMENT: Double = 0.63
   private val REFERENCE_TEMPERATURE: Double = 20
+
+  /** Calculates the AC resistance of a conductor accounting for temperature and
+    * high-frequency effects (skin effect, proximity effect).
     *
+    * @param resistivity
+    *   The resistivity of the conductor material
+    * @param conductorArea
+    *   The cross-sectional area of the conductor
+    * @param temperatureCorrectionFactor
+    *   Temperature coefficient for resistance variation
+    * @param operatingTemperature
+    *   The operating temperature of the conductor
+    * @param factorSkinEffect
+    *   Factor accounting for skin effect at operating frequency
+    * @param factorProximityEffect
+    *   Factor accounting for proximity effect
     * @return
+    *   The AC resistance in Ohms per meter
     */
   def calcAcResistance(
       resistivity: Resistivity,
