@@ -334,16 +334,16 @@ object LineThermalModelCalculations {
     )
   }
 
-  /** Determines the Van-Woermer-Coefficient for long-duration transients.
+  /** Determines the Van-Wormer-Coefficient for long-duration transients.
     *
     * @param diameterDielectric
     *   The inner diameter of this layer.
     * @param diameterConductor
     *   The outer diameter of this layer.
     * @return
-    *   Van-Woermer coefficient as Double.
+    *   Van-Wormer coefficient as Double.
     */
-  def vanWoermerCoefficientLongDurationTransients(
+  def vanWormerCoefficientLongDurationTransients(
       diameterDielectric: Length,
       diameterConductor: Length,
   ): Double = {
@@ -351,20 +351,20 @@ object LineThermalModelCalculations {
     (1 / (2 * log(diameterRatio))) - (1 / (pow(diameterRatio, 2) - 1))
   }
 
-  /** Determines the Van-Woermer-Coefficient for short-duration transients.
+  /** Determines the Van-Wormer-Coefficient for short-duration transients.
     *
     * @param diameterDielectric
     *   The inner diameter of this layer.
     * @param diameterConductor
     *   The outer diameter of this layer.
     * @return
-    *   Van-Woermer coefficient as Double.
+    *   Van-Wormer coefficient as Double.
     */
-  def vanWoermerCoefficientShortTermDurationTransients(
+  def vanWormerCoefficientShortTermDurationTransients(
       diameterDielectric: Length,
       diameterConductor: Length,
   ): Double = {
     val diameterRatio = diameterDielectric / diameterConductor
-    (1 / (2 * log(diameterRatio))) - (1 / (diameterRatio - 1))
+    (1 / (log(diameterRatio))) - (1 / (diameterRatio - 1))
   }
 }

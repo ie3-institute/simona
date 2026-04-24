@@ -231,6 +231,67 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
       }
     }
   }
+    "calculate correctly the Van-Wormer-Coefficient for long-duration transients" in {
+      val cases = Table(
+        (
+          "diameterDielectric",
+          "diameterConductor",
+          "expectedCoefficient",
+        ),
+        (0.04, 0.02, 0.3880141871111484),
+        (0.1, 0.05, 0.3880141871111484),
+        (0.1, 0.01, 0.20704623085061577), // large diameter ratio
+        (0.1, 0.1001, 0.5001665833820539), // small diameter ratio
+      )
+
+      forAll(cases) {
+        (
+            diameterDielectric,
+            diameterConductor,
+            expectedCoefficient,
+        ) =>
+          val diamDielectric = Meters(diameterDielectric)
+          val diamConductor = Meters(diameterConductor)
+
+          val actual = vanWormerCoefficientLongDurationTransients(
+            diamDielectric,
+            diamConductor,
+          )
+
+          actual should approximate(expectedCoefficient)
+      }
+    }
+
+    "calculate correctly the Van-Wormer-Coefficient for short-duration transients" in {
+      val cases = Table(
+        (
+          "diameterDielectric",
+          "diameterConductor",
+          "expectedCoefficient",
+        ),
+        (0.04, 0.02, 0.4426950408889634),
+        (0.1, 0.05, 0.4426950408889634),
+        (0.1, 0.01, 0.32318337079214066), // large diameter ratio
+        (0.1, 0.1001, 0.5000832916929312), // small diameter ratio
+      )
+
+      forAll(cases) {
+        (
+            diameterDielectric,
+            diameterConductor,
+            expectedCoefficient,
+        ) =>
+          val diamDielectric = Meters(diameterDielectric)
+          val diamConductor = Meters(diameterConductor)
+
+          val actual = vanWormerCoefficientShortTermDurationTransients(
+            diamDielectric,
+            diamConductor,
+          )
+
+          actual should approximate(expectedCoefficient)
+      }
+    }
 
   "calculate correctly the geometric factor for the Kennelly method" in {
 
