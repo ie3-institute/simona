@@ -29,6 +29,12 @@ import scala.math.*
 object LineThermalModelCalculations {
 
   /** \@param
+  // Constants for thermal calculations
+  private val TWO_PI: Double = 2 * Pi
+  private val PI_OVER_FOUR: Double = Pi / 4
+  private val TREFOIL_COEFFICIENT: Double = 1.5
+  private val TREFOIL_ADJUSTMENT: Double = 0.63
+  private val REFERENCE_TEMPERATURE: Double = 20
     *
     * @return
     */
@@ -43,7 +49,7 @@ object LineThermalModelCalculations {
     // normally in Ohms/Meter...
     Ohms(
       (1 + factorSkinEffect + factorProximityEffect) * (resistivity.toOhmMeters / conductorArea.toSquareMeters) *
-        (1 + temperatureCorrectionFactor * (operatingTemperature.toCelsiusScale - 20))
+        (1 + temperatureCorrectionFactor * (operatingTemperature.toCelsiusScale - REFERENCE_TEMPERATURE))
     )
   }
 
@@ -154,7 +160,7 @@ object LineThermalModelCalculations {
       innerRadius: Length,
       outerRadius: Length,
   ): ThermalResistivity = {
-    (specificThermalResistivity / (2 * Pi)) * log(
+    (specificThermalResistivity / TWO_PI) * log(
       outerRadius.toMeters / innerRadius.toMeters
     )
   }
@@ -178,7 +184,7 @@ object LineThermalModelCalculations {
       depthCable: Length,
       cableDiameter: Length,
   ): ThermalResistivity = {
-    (specificThermalResistivityGround / (2 * Pi)) * calcGeometricFactor(
+    (specificThermalResistivityGround / TWO_PI) * calcGeometricFactor(
       depthCable,
       cableDiameter,
     )
@@ -256,7 +262,7 @@ object LineThermalModelCalculations {
     val thermalResistanceShareOfCableB =
       calcGeometricFactor(depthCables, diameterCableB)
 
-    specificThermalResistivityGround / (2d * Pi) * (thermalResistanceShareOfCableB + thermalInfluenceCableAonB + thermalInfluenceCableConB)
+    specificThermalResistivityGround / TWO_PI * (thermalResistanceShareOfCableB + thermalInfluenceCableAonB + thermalInfluenceCableConB)
   }
 
   /** Calculates the thermal resistivity of the top single core cable (hottest
@@ -284,8 +290,8 @@ object LineThermalModelCalculations {
     val u = 2 * depthToCenter.toMeters / diameterCable.toMeters
 
     KelvinMetersPerWatt(
-      1.5 * specificThermalResistivityGround.toKelvinMetersPerWatt / Pi
-    ) * (log(2 * u) - 0.63)
+      TREFOIL_COEFFICIENT * specificThermalResistivityGround.toKelvinMetersPerWatt / Pi
+    ) * (log(2 * u) - TREFOIL_ADJUSTMENT)
   }
 
   /** Calculates the thermal resistivity between the cable layers and the
@@ -307,11 +313,12 @@ object LineThermalModelCalculations {
       innerDiameter: Length,
       outerDiameter: Length,
   ): ThermalCapacitance = {
+    val areaDifference = pow(outerDiameter.toMeters, 2) - pow(
+      innerDiameter.toMeters,
+      2,
+    )
     JoulesPerMeterKelvin(
-      (Pi / 4) * (pow(outerDiameter.toMeters, 2) - pow(
-        innerDiameter.toMeters,
-        2,
-      )) * specificThermalCapacity.toJoulesPerKelvin
+      PI_OVER_FOUR * areaDifference * specificThermalCapacity.toJoulesPerKelvin
     )
   }
 
@@ -328,10 +335,8 @@ object LineThermalModelCalculations {
       diameterDielectric: Length,
       diameterConductor: Length,
   ): Double = {
-    (1 / (2 * log(diameterDielectric / diameterConductor))) - (1 / (pow(
-      diameterDielectric / diameterConductor,
-      2,
-    ) - 1))
+    val diameterRatio = diameterDielectric / diameterConductor
+    (1 / (2 * log(diameterRatio))) - (1 / (pow(diameterRatio, 2) - 1))
   }
 
   /** Determines the Van-Woermer-Coefficient for short-duration transients.
@@ -347,8 +352,7 @@ object LineThermalModelCalculations {
       diameterDielectric: Length,
       diameterConductor: Length,
   ): Double = {
-    (1 / (2 * log(
-      diameterDielectric / diameterConductor
-    ))) - (1 / ((diameterDielectric / diameterConductor) - 1))
+    val diameterRatio = diameterDielectric / diameterConductor
+    (1 / (2 * log(diameterRatio))) - (1 / (diameterRatio - 1))
   }
 }
