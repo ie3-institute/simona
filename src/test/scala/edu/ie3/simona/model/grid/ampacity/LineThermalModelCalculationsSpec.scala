@@ -1,5 +1,5 @@
 /*
- * © 2024. TU Dortmund University,
+ * © 2026. TU Dortmund University,
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
@@ -8,11 +8,16 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.scala.quantities.{KelvinMetersPerWatt, ThermalResistivity}
+import edu.ie3.util.scala.quantities.{
+  JoulesPerMeterKelvin,
+  KelvinMetersPerWatt,
+  ThermalCapacitance,
+  ThermalResistivity,
+}
 import squants.electro.*
 import squants.energy.{Power, Watts}
 import squants.space.SquareMeters
-import squants.thermal.Celsius
+import squants.thermal.{Celsius, JoulesPerKelvin}
 import squants.time.Hertz
 import squants.{Amperes, Meters}
 
@@ -24,6 +29,8 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
   implicit val electricResistanceTolerance: ElectricalResistance = Ohms(1e-10)
   implicit val powerTolerance: Power = Watts(1e-7)
   implicit val tolerance: Double = 1e-10
+  implicit val thermalCapacitanceTolerance: ThermalCapacitance =
+    JoulesPerMeterKelvin(1e-10)
 
   "A LineSegmentThermalModel" should {
 
@@ -39,10 +46,16 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
           "expected",
         ),
         // (1.7241e-8, 150, 3.93e-3, 90.0, 0d, 0d, 1), // CU,
-        (2.8264e-8, 176, 4.03e-3, 90.0, 0d, 0d,
-          0.20589360454545457e-3), // FIXME Nennquerschnitt 150mm² vs. d²Pi/4 = 176mm² => ggf. einfach r aus LineModel? // AL NA2XS2Y 1x150 RM/25 12/20 kV https://shop.faberkabel.de/Starkstromkabel-1-30-kV/Mittelspannungskabel/Mittelspannungskabel-NA2XS2Y/011325.html
-        (1.809e-8, 240, 3.93e-3, 90.0, 8.835e-3, 6.6227e-3,
-          9.759631228772626e-5), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 197
+        (2.8264E-8, 176, 4.03E-3, 90.0, 0d, 0d,
+          0.20589360454545457E-3), // FIXME Nennquerschnitt 150mm² vs. d²Pi/4 = 176mm² => ggf. einfach r aus LineModel? // AL NA2XS2Y 1x150 RM/25 12/20 kV https://shop.faberkabel.de/Starkstromkabel-1-30-kV/Mittelspannungskabel/Mittelspannungskabel-NA2XS2Y/011325.html
+        (1.809E-8, 240, 3.93E-3, 90.0, 8.835E-3, 6.6227E-3,
+          9.759631228772626E-5), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 197
+        (1.809E-8, 240, 3.93E-3, 90d,  0d, 0d,
+          9.611066250000001E-5), // CU conductor, no skin or proximity effect
+        (1.809E-8, 240, 3.93E-3, 250.0, 0d, 0d,
+          1.435064625E-4), // high operating temperature
+        (1.809E-8, 16, 3.93E-3, 90.0, 0d, 0d,
+          0.0014416599375), // small conductor area
       )
 
       forAll(cases) {
@@ -81,7 +94,9 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
           "acResistance",
           "expected",
         ),
-        (100, 9.759631228772626e-5, 0.975963123),
+        (100.0, 9.759631228772626e-5, 0.975963123),
+        (10000d, 1.0e-5, 1000d), // high current
+        (0.1, 1.0e-5, 1e-7), // small current
       )
 
       forAll(cases) {
@@ -308,7 +323,7 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
           "expectedThermalCapacitance",
         ),
         (1000.0, 0.01, 0.02, 0.2356194490192345),
-        (2000.0, 0.0, 0.01, 0.15707963267948966), // small outer diameter
+        (2000.0, 0.0, 0.01, 0.15707963267948966), // small inner diameter
         (1500.0, 0.02, 0.03, 0.5890486225480862),
       )
 
