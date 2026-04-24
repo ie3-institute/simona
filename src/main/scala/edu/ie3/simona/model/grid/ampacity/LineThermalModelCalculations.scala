@@ -220,11 +220,8 @@ object LineThermalModelCalculations {
       depthCable: Length,
       cableDiameter: Length,
   ): Double = {
-    log(
-      (2d * depthCable.toMeters / cableDiameter.toMeters) + sqrt(
-        pow(2 * depthCable.toMeters / cableDiameter.toMeters, 2) - 1
-      )
-    )
+    val normalizationFactor = 2d * depthCable.toMeters / cableDiameter.toMeters
+    log(normalizationFactor + sqrt(pow(normalizationFactor, 2) - 1))
   }
 
   /** Calculates the thermal resistivity of the middle single core cable
