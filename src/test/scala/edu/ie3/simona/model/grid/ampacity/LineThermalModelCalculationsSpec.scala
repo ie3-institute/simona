@@ -230,7 +230,114 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
           actual should approximate(expectedThermalResistance)
       }
     }
-  }
+
+    "calculate correctly the losses in cable sheath" in {
+      val cases = Table(
+        (
+          "circulatingSheathLossFactor",
+          "eddyCurrentsSheathLossFactor",
+          "conductorLosses",
+          "expectedSheathLosses",
+        ),
+        (0.01, 0.015, 100.0, 2.5),
+        (0.05, 0.05, 50.0, 5.0),
+        (0.0, 0.0, 100.0, 0.0),
+        (0.1, 0.2, 200.0, 60.0),
+      )
+
+      forAll(cases) {
+        (
+            circulatingSheathLossFactor,
+            eddyCurrentsSheathLossFactor,
+            conductorLosses,
+            expectedSheathLosses,
+        ) =>
+          val conductorLossesW = Watts(conductorLosses)
+          val expectedLosses = Watts(expectedSheathLosses)
+
+          val actual = calcLossesSheath(
+            circulatingSheathLossFactor,
+            eddyCurrentsSheathLossFactor,
+            conductorLossesW,
+          )
+
+          actual should approximate(expectedLosses)
+      }
+    }
+
+    "calculate correctly the losses in cable armor" in {
+      val cases = Table(
+        (
+          "circulatingArmorLossFactor",
+          "eddyCurrentsArmorLossFactor",
+          "conductorLosses",
+          "expectedArmorLosses",
+        ),
+        (0.02, 0.03, 100.0, 5.0),
+        (0.1, 0.1, 50.0, 10.0),
+        (0.0, 0.0, 100.0, 0.0),
+        (0.15, 0.25, 200.0, 80.0),
+      )
+
+      forAll(cases) {
+        (
+            circulatingArmorLossFactor,
+            eddyCurrentsArmorLossFactor,
+            conductorLosses,
+            expectedArmorLosses,
+        ) =>
+          val conductorLossesW = Watts(conductorLosses)
+          val expectedLosses = Watts(expectedArmorLosses)
+
+          val actual = calcLossesArmor(
+            circulatingArmorLossFactor,
+            eddyCurrentsArmorLossFactor,
+            conductorLossesW,
+          )
+
+          actual should approximate(expectedLosses)
+      }
+    }
+
+    "calculate correctly the thermal capacity of cylindrical layers" in {
+      val cases = Table(
+        (
+          "specificThermalCapacity",
+          "innerDiameter",
+          "outerDiameter",
+          "expectedThermalCapacitance",
+        ),
+        (1000.0, 0.01, 0.02, 0.2356194490192345),
+        (2000.0, 0.0, 0.01, 0.15707963267948966), // small outer diameter
+        (1500.0, 0.02, 0.03, 0.5890486225480862),
+      )
+
+      forAll(cases) {
+        (
+            specificThermalCapacity,
+            innerDiameter,
+            outerDiameter,
+            expectedThermalCapacitance,
+        ) =>
+          val specThermalCap = JoulesPerKelvin(
+            specificThermalCapacity
+          )
+          val innerDia = Meters(innerDiameter)
+          val outerDia = Meters(outerDiameter)
+          val expectedCapacitance = JoulesPerMeterKelvin(
+            expectedThermalCapacitance
+          )
+
+          val actual = calcThermalCapacityCylindrical(
+            specThermalCap,
+            innerDia,
+            outerDia,
+          )
+
+          actual should approximate(expectedCapacitance)
+      }
+    }
+
     "calculate correctly the Van-Wormer-Coefficient for long-duration transients" in {
       val cases = Table(
         (
@@ -293,32 +400,35 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
       }
     }
 
-  "calculate correctly the geometric factor for the Kennelly method" in {
+    "calculate correctly the geometric factor for the Kennelly method" in {
 
-    val cases = Table(
-      (
-        "depthCable",
-        "cableDiameter",
-        "expectedResult",
-      ),
-      (1.0, 1.0, 1.31695789692),
-      (1.0, 0.0358, 4.716021634569044),
-      (0.7, 0.044, 4.15293803195116),
-    )
+      val cases = Table(
+        (
+          "depthCable",
+          "cableDiameter",
+          "expectedResult",
+        ),
+        (1.0, 1.0, 1.31695789692),
+        (1.0, 0.0358, 4.716021634569044),
+        (0.7, 0.044, 4.15293803195116),
+        (0.1, 0.01, 3.6882538673612966), // small depth
+        (2.0, 0.01, 6.6846101651642655), // large diameter ratio
+      )
 
-    forAll(cases) {
-      (
-          depthCable,
-          cableDiameter,
-          expectedResult,
-      ) =>
+      forAll(cases) {
+        (
+            depthCable,
+            cableDiameter,
+            expectedResult,
+        ) =>
 
-        val depth = Meters(depthCable)
-        val cableDia = Meters(cableDiameter)
+          val depth = Meters(depthCable)
+          val cableDia = Meters(cableDiameter)
 
-        val actual = calcGeometricFactor(depth, cableDia)
+          val actual = calcGeometricFactor(depth, cableDia)
 
-        actual should approximate(expectedResult)
+          actual should approximate(expectedResult)
+      }
     }
   }
 
