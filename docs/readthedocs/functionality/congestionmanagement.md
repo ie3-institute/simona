@@ -33,4 +33,3 @@ The measure will consider all transformers that are configured to support automa
 mitigation {cite:p}`11443104`. The main focus of this measure is to fix over- and undervoltages, but it can also be used
 to reduce line overloading. To do this, for each line an equivalent voltage change delta is calculated (see: {cite:p}`11443104`).
 With this, the line current can be considered.
-
