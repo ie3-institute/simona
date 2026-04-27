@@ -26,20 +26,22 @@ import java.util.UUID
   * same time the suggestion is set to the delta plus, because having a too high
   * voltage is more severe.
   *
-  * @param deltaPlus
+  * @param possibleIncrease
   *   Maximal possible voltage increase.
-  * @param deltaMinus
+  * @param possibleDecrease
   *   Maximal possible voltage decrease.
   * @param suggestion
   *   For voltage change.
   */
 final case class VoltageRange(
-    deltaPlus: Dimensionless,
-    deltaMinus: Dimensionless,
+    possibleIncrease: Dimensionless,
+    possibleDecrease: Dimensionless,
     suggestion: Dimensionless,
 ) {
 
-  /** Method to update this voltage range with voltage delta.
+  /** Method to limit the voltage decrease. This is used to prevent a line
+    * overloading due to voltage decrease. <p> For more information please refer
+    * to the docs.
     *
     * @param deltaV
     *   The voltage difference to consider for the range limits.
@@ -54,15 +56,15 @@ final case class VoltageRange(
       this
     } else if deltaV < zeroPU then {
       // we have limit the maximal decrease
-      val minus = deltaMinus.max(deltaV)
+      val minus = possibleDecrease.max(deltaV)
 
-      VoltageRange(deltaPlus, minus)
+      VoltageRange(possibleIncrease, minus)
 
     } else {
       // we have to increase the voltage by at least the specified delta
-      val minus = deltaV.max(deltaMinus).min(deltaPlus)
+      val minus = deltaV.max(possibleDecrease).min(possibleIncrease)
 
-      VoltageRange(deltaPlus, minus)
+      VoltageRange(possibleIncrease, minus)
     }
   }
 
@@ -84,25 +86,28 @@ final case class VoltageRange(
         val (possiblePlus, possibleMinus) = getTappingOptions(tappings)
 
         val increase =
-          range.deltaPlus + possibleMinus <= inferiorRange.deltaPlus
+          range.possibleIncrease + possibleMinus <= inferiorRange.possibleIncrease
         val decrease =
-          range.deltaMinus + possiblePlus >= inferiorRange.deltaMinus
+          range.possibleDecrease + possiblePlus >= inferiorRange.possibleDecrease
 
         (increase, decrease) match {
           case (true, true) =>
-            VoltageRange(range.deltaPlus, range.deltaMinus)
+            VoltageRange(range.possibleIncrease, range.possibleDecrease)
           case (true, false) =>
             VoltageRange(
-              range.deltaPlus,
-              inferiorRange.deltaMinus - possiblePlus,
+              range.possibleIncrease,
+              inferiorRange.possibleDecrease - possiblePlus,
             )
           case (false, true) =>
             VoltageRange(
-              inferiorRange.deltaPlus - possibleMinus,
-              range.deltaMinus,
+              inferiorRange.possibleIncrease - possibleMinus,
+              range.possibleDecrease,
             )
           case (false, false) =>
-            VoltageRange(inferiorRange.deltaPlus, inferiorRange.deltaMinus)
+            VoltageRange(
+              inferiorRange.possibleIncrease,
+              inferiorRange.possibleDecrease,
+            )
         }
     }
   }
@@ -292,10 +297,11 @@ object VoltageRange {
       offset: Dimensionless,
   ): VoltageRange = {
     // finds the minimal voltage increase
-    val minPlus = ranges.minByOption(_.deltaPlus).map(_.deltaPlus)
+    val minPlus = ranges.minByOption(_.possibleIncrease).map(_.possibleIncrease)
 
     // finds the maximal voltage decrease
-    val maxMinus = ranges.maxByOption(_.deltaMinus).map(_.deltaMinus)
+    val maxMinus =
+      ranges.maxByOption(_.possibleDecrease).map(_.possibleDecrease)
 
     (minPlus, maxMinus) match {
       case (Some(plus), Some(minus)) if offset ~= zeroPU =>

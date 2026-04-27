@@ -168,8 +168,8 @@ class VoltageRangeSpec
         subnetNo = 1,
       )
 
-      range.deltaPlus should approximate(Each(0.05))
-      range.deltaMinus should approximate(Each(-0.03))
+      range.possibleIncrease should approximate(Each(0.05))
+      range.possibleDecrease should approximate(Each(-0.03))
       range.suggestion should approximate(zeroPU)
     }
 
@@ -219,8 +219,8 @@ class VoltageRangeSpec
         subnetNo = 1,
       )
 
-      range.deltaPlus should approximate(Each(0.04))
-      range.deltaMinus should approximate(Each(-0.02))
+      range.possibleIncrease should approximate(Each(0.04))
+      range.possibleDecrease should approximate(Each(-0.02))
       range.suggestion should approximate(zeroPU)
     }
 
@@ -237,8 +237,8 @@ class VoltageRangeSpec
 
       forAll(cases1) { (deltaV, plus, minus) =>
         val updated = range1.updateWithVoltageDelta(deltaV)
-        updated.deltaPlus should approximate(Each(plus))
-        updated.deltaMinus should approximate(Each(minus))
+        updated.possibleIncrease should approximate(Each(plus))
+        updated.possibleDecrease should approximate(Each(minus))
       }
 
       val range2 = VoltageRange(-0.01, -0.05)
@@ -253,8 +253,8 @@ class VoltageRangeSpec
 
       forAll(cases2) { (deltaV, plus, minus) =>
         val updated = range2.updateWithVoltageDelta(deltaV)
-        updated.deltaPlus should approximate(Each(plus))
-        updated.deltaMinus should approximate(Each(minus))
+        updated.possibleIncrease should approximate(Each(plus))
+        updated.possibleDecrease should approximate(Each(minus))
       }
 
       val range3 = VoltageRange(0.05, 0.01)
@@ -269,8 +269,8 @@ class VoltageRangeSpec
 
       forAll(cases3) { (deltaV, plus, minus) =>
         val updated = range3.updateWithVoltageDelta(deltaV)
-        updated.deltaPlus should approximate(Each(plus))
-        updated.deltaMinus should approximate(Each(minus))
+        updated.possibleIncrease should approximate(Each(plus))
+        updated.possibleDecrease should approximate(Each(minus))
       }
 
     }
@@ -317,8 +317,12 @@ class VoltageRangeSpec
           )
         )
 
-        updatedRange.deltaPlus should approximate(expected.deltaPlus)
-        updatedRange.deltaMinus should approximate(expected.deltaMinus)
+        updatedRange.possibleIncrease should approximate(
+          expected.possibleIncrease
+        )
+        updatedRange.possibleDecrease should approximate(
+          expected.possibleDecrease
+        )
       }
     }
 
@@ -365,8 +369,12 @@ class VoltageRangeSpec
           )
         )
 
-        updatedRange.deltaPlus should approximate(expected.deltaPlus)
-        updatedRange.deltaMinus should approximate(expected.deltaMinus)
+        updatedRange.possibleIncrease should approximate(
+          expected.possibleIncrease
+        )
+        updatedRange.possibleDecrease should approximate(
+          expected.possibleDecrease
+        )
       }
     }
 

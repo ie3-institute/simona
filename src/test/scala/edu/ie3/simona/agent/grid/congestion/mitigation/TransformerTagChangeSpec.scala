@@ -111,8 +111,8 @@ class TransformerTagChangeSpec
       val (voltageRange, actualTransformers) =
         superiorAgent.expectMessageType[VoltageRangeResponse].value
 
-      voltageRange.deltaPlus should approximate(Each(-0.01))
-      voltageRange.deltaMinus should approximate(Each(-0.01))
+      voltageRange.possibleIncrease should approximate(Each(-0.01))
+      voltageRange.possibleDecrease should approximate(Each(-0.01))
       voltageRange.suggestion should approximate(Each(-0.011))
 
       actualTransformers shouldBe transformers
@@ -162,8 +162,8 @@ class TransformerTagChangeSpec
       val (voltageRange, actualTransformers) =
         superiorAgent.expectMessageType[VoltageRangeResponse].value
 
-      voltageRange.deltaPlus should approximate(Each(0.04))
-      voltageRange.deltaMinus should approximate(Each(-0.01))
+      voltageRange.possibleIncrease should approximate(Each(0.04))
+      voltageRange.possibleDecrease should approximate(Each(-0.01))
       voltageRange.suggestion should approximate(Each(0.0))
 
       actualTransformers shouldBe transformers
