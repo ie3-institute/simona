@@ -46,15 +46,15 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
           "expected",
         ),
         // (1.7241e-8, 150, 3.93e-3, 90.0, 0d, 0d, 1), // CU,
-        (2.8264E-8, 176, 4.03E-3, 90.0, 0d, 0d,
-          0.20589360454545457E-3), // FIXME Nennquerschnitt 150mm² vs. d²Pi/4 = 176mm² => ggf. einfach r aus LineModel? // AL NA2XS2Y 1x150 RM/25 12/20 kV https://shop.faberkabel.de/Starkstromkabel-1-30-kV/Mittelspannungskabel/Mittelspannungskabel-NA2XS2Y/011325.html
-        (1.809E-8, 240, 3.93E-3, 90.0, 8.835E-3, 6.6227E-3,
-          9.759631228772626E-5), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 197
-        (1.809E-8, 240, 3.93E-3, 90d,  0d, 0d,
-          9.611066250000001E-5), // CU conductor, no skin or proximity effect
-        (1.809E-8, 240, 3.93E-3, 250.0, 0d, 0d,
-          1.435064625E-4), // high operating temperature
-        (1.809E-8, 16, 3.93E-3, 90.0, 0d, 0d,
+        (2.8264e-8, 176, 4.03e-3, 90.0, 0d, 0d,
+          0.20589360454545457e-3), // FIXME Nennquerschnitt 150mm² vs. d²Pi/4 = 176mm² => ggf. einfach r aus LineModel? // AL NA2XS2Y 1x150 RM/25 12/20 kV https://shop.faberkabel.de/Starkstromkabel-1-30-kV/Mittelspannungskabel/Mittelspannungskabel-NA2XS2Y/011325.html
+        (1.809e-8, 240, 3.93e-3, 90.0, 8.835e-3, 6.6227e-3,
+          9.759631228772626e-5), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 197
+        (1.809e-8, 240, 3.93e-3, 90d, 0d, 0d,
+          9.611066250000001e-5), // CU conductor, no skin or proximity effect
+        (1.809e-8, 240, 3.93e-3, 250.0, 0d, 0d,
+          1.435064625e-4), // high operating temperature
+        (1.809e-8, 16, 3.93e-3, 90.0, 0d, 0d,
           0.0014416599375), // small conductor area
       )
 
