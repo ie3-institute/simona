@@ -407,8 +407,8 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
           val diamConductor = Meters(diameterConductor)
 
           val actual = vanWormerCoefficientShortTermDurationTransients(
-            diamDielectric,
             diamConductor,
+            diamDielectric,
           )
 
           actual should approximate(expectedCoefficient)
