@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import breeze.linalg.{DenseMatrix, DenseVector}
 import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
@@ -15,11 +16,12 @@ import edu.ie3.util.scala.quantities.{
   SquantsUtils as RichElectricPotential,
 }
 import squants.electro.*
+import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import squants.energy.Watts
-import squants.space.{Area, Length}
-import squants.thermal.ThermalCapacity
+import squants.space.{Area, Length, Millimeters}
+import squants.thermal.{Celsius, JoulesPerKelvin, ThermalCapacity}
 import squants.time.Frequency
-import squants.{ElectricCurrent, Power, Temperature}
+import squants.{ElectricCurrent, Meters, Power, Temperature}
 
 import scala.math.*
 
@@ -366,5 +368,216 @@ object LineThermalModelCalculations {
   ): Double = {
     val diameterRatio = outerDiameter / innerDiameter
     (1 / (log(diameterRatio))) - (1 / (diameterRatio - 1))
+  }
+
+  def createAndCalcRCNetworkMvCableShortDuration(): Double = {
+
+    val acResistance = Ohms(1.0)
+    val current = Amperes(10d)
+
+    val conductorLosses = calcLossesConductor(acResistance, current)
+
+    val circulatingSheathLossFactor = 0.01
+    val eddyCurrentsSheathLossFactor = 0.01
+
+    val sheatLosses = calcLossesSheath(
+      circulatingSheathLossFactor,
+      eddyCurrentsSheathLossFactor,
+      conductorLosses,
+    )
+
+    val thermalTotalLossesCableA =
+      conductorLosses + sheatLosses // FIXME: Same as CableB?
+    val thermalTotalLossesCableB = conductorLosses + sheatLosses
+    val thermalTotalLossesCableC =
+      conductorLosses + sheatLosses // FIXME: Same as CableB?
+
+    val thermalResistivityDielectric = KelvinMetersPerWatt(2 * 2.275)
+    val thermalResistivityJack = KelvinMetersPerWatt(4 * 10.1)
+    val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
+
+    val specificThermalCapacityConductor = JoulesPerKelvin(50)
+    val specificThermalCapacityDielectric = JoulesPerKelvin(1)
+    val specificThermalCapacitySheat = JoulesPerKelvin(50)
+    val specificThermalCapacityJack = JoulesPerKelvin(1)
+
+    val conductorDiaIn = Millimeters(0)
+    val conductorDiaOut = Millimeters(10)
+    val dielectricDiaOut = Millimeters(20)
+    val dielectricDiaMid =
+      conductorDiaOut + (dielectricDiaOut - conductorDiaOut) / 2
+    val sheatDiaOut = Millimeters(22)
+    val jackDiaOut = Millimeters(30)
+    val jackDiaMid = sheatDiaOut + (jackDiaOut - sheatDiaOut) / 2
+
+    val depthCables = Meters(1d)
+    val distanceCables = Meters(0.3d)
+
+    val t1 = calcThermalResistanceCableShells(
+      thermalResistivityDielectric,
+      conductorDiaOut,
+      dielectricDiaOut,
+    )
+    val t3 = calcThermalResistanceCableShells(
+      thermalResistivityJack,
+      sheatDiaOut,
+      jackDiaOut,
+    )
+    // FIXME Check for Trefoil
+    val t4 = calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
+      thermalResistivitySoil,
+      depthCables,
+      jackDiaOut,
+      distanceCables,
+      thermalTotalLossesCableA,
+      thermalTotalLossesCableB,
+      thermalTotalLossesCableC,
+    )
+
+    val conductorThermCapacitanceCc = calcThermalCapacityCylindrical(
+      specificThermalCapacityConductor,
+      conductorDiaIn,
+      conductorDiaOut,
+    )
+    val dielectricThermCapacitanceCd = calcThermalCapacityCylindrical(
+      specificThermalCapacityDielectric,
+      conductorDiaOut,
+      dielectricDiaOut,
+    )
+    val vanWormerDielectricFirstHalf =
+      vanWormerCoefficientShortTermDurationTransients(
+        conductorDiaOut,
+        dielectricDiaMid,
+      )
+    val dielectricThermCapacitanceC11 =
+      dielectricThermCapacitanceCd * vanWormerDielectricFirstHalf
+    val dielectricThermCapacitanceC12 =
+      dielectricThermCapacitanceCd * (1 - vanWormerDielectricFirstHalf)
+    val vanWormerDielectricSecondHalf =
+      vanWormerCoefficientShortTermDurationTransients(
+        dielectricDiaMid,
+        dielectricDiaOut,
+      )
+    val dielectricThermCapacitanceC21 =
+      dielectricThermCapacitanceCd * vanWormerDielectricSecondHalf
+    val dielectricThermCapacitanceC22 =
+      dielectricThermCapacitanceCd * (1 - vanWormerDielectricSecondHalf)
+    val sheathThermCapacitanceCs = calcThermalCapacityCylindrical(
+      specificThermalCapacitySheat,
+      dielectricDiaOut,
+      sheatDiaOut,
+    )
+    val jackThermCapacitanceCj = calcThermalCapacityCylindrical(
+      specificThermalCapacityJack,
+      sheatDiaOut,
+      jackDiaOut,
+    )
+    val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
+
+    val vanWormerJackFirstHalf =
+      vanWormerCoefficientShortTermDurationTransients(sheatDiaOut, jackDiaMid)
+    val jackThermCapacitanceC11 =
+      jackThermCapacitanceCj * vanWormerJackFirstHalf
+    val jackThermCapacitanceC12 =
+      jackThermCapacitanceCj * (1 - vanWormerJackFirstHalf)
+    val vanWormerJackSecondHalf =
+      vanWormerCoefficientShortTermDurationTransients(jackDiaMid, jackDiaOut)
+    val jackThermCapacitanceC21 =
+      jackThermCapacitanceCj * vanWormerJackSecondHalf
+    val jackThermCapacitanceC22 =
+      jackThermCapacitanceCj * (1 - vanWormerJackSecondHalf)
+
+    val ambientSoilTemp = Celsius(20)
+
+    // in case of short durations we have a RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
+    // However, it simplifies if we transform them to conductance
+    val g1 = 2d / t1.toKelvinMetersPerWatt // FIXME, Squants should convert this
+    val g2 = 2d / t1.toKelvinMetersPerWatt
+    val g3 = 2d / t3.toKelvinMetersPerWatt
+    val g4 = 2d / t3.toKelvinMetersPerWatt
+    val g5 = 1d / t4.toKelvinMetersPerWatt
+
+    // the RC-Network can be simplified since all parallel capacitance can be merged
+    // Conductor capacitance and first part of the first half of the dielectric
+    val c1 =
+      (conductorThermCapacitanceCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin * 3600 // FIXME check conversion factor !
+    // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
+    val c2 =
+      (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin * 3600
+    // Capacitance of the second part of second half of the dielectric + the sheat + the first part of the first half of the jack
+    val c3 =
+      (dielectricThermCapacitanceC22 + sheathThermCapacitanceCs + jackThermCapacitanceC11).toJoulesPerMeterKelvin * 3600
+    // Capacitance of the second part of first half of the jack + first part of the second half of the jack
+    val c4 =
+      (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerMeterKelvin * 3600
+    // Capacitance of the second part of second half of the jack + the capacitance of the soil
+    val c5 =
+      (jackThermCapacitanceC22 + soilThermCapacitance).toJoulesPerMeterKelvin * 3600
+
+    // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
+    val matrixA = DenseMatrix(
+      (-g1 / c1, g1 / c1, 0.0, 0.0, 0.0),
+      (g1 / c2, (-g1 - g2) / c2, g2 / c2, 0.0, 0.0),
+      (0.0, g2 / c3, (-g2 - g3) / c3, g3 / c3, 0.0),
+      (0.0, 0.0, g3 / c4, (-g3 - g4) / c4, g4 / c4),
+      (0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
+    )
+
+    /*
+
+    val matrixA = DenseMatrix(
+      (-8d/15d,8d/15d,0d,0d,0d),
+      (4d/5d,-8d/5d,4d/5d,0d,0d),
+      (0d,8d/35d,-2d/7d,2d/35d,0d),
+      (0d,0d,1d/5d,-2d/5d,1d/5d),
+      (0d,0d,0d,1d/105d,-1d/84d),
+    )
+     */
+    val vectorB = DenseVector(
+      conductorLosses.toWatts / c1,
+      0d,
+      sheatLosses.toWatts / c3,
+      0d,
+      (g5 * ambientSoilTemp.toCelsiusScale) / c5,
+    )
+
+    // val vectorB = DenseVector(40d / 3d, 0d, 4d / 35d, 0d, 1d / 21d)
+
+    val (eigenvalues, eigenvectors) =
+      LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrixA)
+
+    // sanity check
+    if eigenvalues.length != 5 ||
+      eigenvectors.rows != eigenvalues.length ||
+      eigenvectors.cols != eigenvalues.length
+    then
+      throw new IllegalStateException(
+        s"Unexpected number of Eigenvalues or Eigenvectors. Expected are 5 each, Got: Eigenvalues: $eigenvalues, Eigenvectors: $eigenvectors."
+      )
+
+    // The Steady-State Vector Vp (Particulate solution)
+    // val vp = DenseVector(682.0, 657.0, 632.0, 530.0, 428.0) //FIXME
+
+    val vp = matrixA \ (-vectorB)
+
+    val c = eigenvectors \ (-vp)
+
+    def getV1(t: Long, node: Int): Double = {
+      var voltage = vp(node) // Start with the steady-state value of Node
+
+      for i <- 0 until 5 do {
+        // Add the transient responses of the 5 e-functions
+        // c(i) is the coefficient, v_eigen(0, i) is the Node 1 component of the i-th eigenvector
+        voltage += c(i) * eigenvectors(node, i) * math.exp(eigenvalues(i) * t)
+      }
+
+      voltage
+    }
+
+    val lastTick = 3600
+    val currentTick = 7200
+    val duration = currentTick - lastTick
+
+    getV1(duration, 0)
   }
 }
