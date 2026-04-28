@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import breeze.linalg.{DenseMatrix, DenseVector}
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
@@ -36,6 +37,10 @@ object LineThermalModelCalculations {
   private val TREFOIL_COEFFICIENT: Double = 1.5
   private val TREFOIL_ADJUSTMENT: Double = 0.63
   private val REFERENCE_TEMPERATURE: Double = 20
+  private val AC_RESISTIVITY_COOPER: Resistivity = OhmMeters(1.7241e-8)
+  private val TEMPERATURE_COEFFICIENT_COOPER: Double = 3.93e-3
+  private val AC_RESISTIVITY_ALUMINIUM: Resistivity = OhmMeters(2.8264e-8)
+  private val TEMPERATURE_COEFFICIENT_ALUMINIUM: Double = 4.03e-3
 
   /** Calculates the AC resistance of a conductor accounting for temperature and
     * high-frequency effects (skin effect, proximity effect).
@@ -370,28 +375,9 @@ object LineThermalModelCalculations {
     (1 / (log(diameterRatio))) - (1 / (diameterRatio - 1))
   }
 
-  def createAndCalcRCNetworkMvCableShortDuration(): Double = {
-
-    val acResistance = Ohms(1.0)
-    val current = Amperes(10d)
-
-    val conductorLosses = calcLossesConductor(acResistance, current)
-
-    val circulatingSheathLossFactor = 0.01
-    val eddyCurrentsSheathLossFactor = 0.01
-
-    val sheatLosses = calcLossesSheath(
-      circulatingSheathLossFactor,
-      eddyCurrentsSheathLossFactor,
-      conductorLosses,
-    )
-
-    val thermalTotalLossesCableA =
-      conductorLosses + sheatLosses // FIXME: Same as CableB?
-    val thermalTotalLossesCableB = conductorLosses + sheatLosses
-    val thermalTotalLossesCableC =
-      conductorLosses + sheatLosses // FIXME: Same as CableB?
-
+  def createAndCalcRCNetworkMvCableShortDuration(
+      state: LineState
+  ): Temperature = {
     val thermalResistivityDielectric = KelvinMetersPerWatt(2 * 2.275)
     val thermalResistivityJack = KelvinMetersPerWatt(4 * 10.1)
     val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
@@ -412,6 +398,37 @@ object LineThermalModelCalculations {
 
     val depthCables = Meters(1d)
     val distanceCables = Meters(0.3d)
+
+    val conductorAra = conductorDiaOut * conductorDiaOut * PI_OVER_FOUR
+    val proximityEffect = 0.01 // Check CIGRE for detailed method
+    val skinEffect = 0.01
+
+    val acResistance = calcAcResistance(
+      AC_RESISTIVITY_COOPER,
+      conductorAra,
+      TEMPERATURE_COEFFICIENT_COOPER,
+      state.lineTemperature,
+      skinEffect,
+      proximityEffect,
+    )
+    val current = Amperes(10d)
+
+    val conductorLosses = calcLossesConductor(acResistance, current)
+
+    val circulatingSheathLossFactor = 0.01
+    val eddyCurrentsSheathLossFactor = 0.01
+
+    val sheatLosses = calcLossesSheath(
+      circulatingSheathLossFactor,
+      eddyCurrentsSheathLossFactor,
+      conductorLosses,
+    )
+
+    val thermalTotalLossesCableA =
+      conductorLosses + sheatLosses // FIXME: Same as CableB?
+    val thermalTotalLossesCableB = conductorLosses + sheatLosses
+    val thermalTotalLossesCableC =
+      conductorLosses + sheatLosses // FIXME: Same as CableB?
 
     val t1 = calcThermalResistanceCableShells(
       thermalResistivityDielectric,
@@ -578,6 +595,6 @@ object LineThermalModelCalculations {
     val currentTick = 7200
     val duration = currentTick - lastTick
 
-    getV1(duration, 0)
+    Celsius(getV1(duration, 0))
   }
 }
