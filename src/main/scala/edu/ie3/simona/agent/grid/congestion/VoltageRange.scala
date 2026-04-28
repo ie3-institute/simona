@@ -9,6 +9,13 @@ package edu.ie3.simona.agent.grid.congestion
 import edu.ie3.datamodel.models.result.connector.LineResult
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.TransformerTappingSupport.getTappingOptions
+import edu.ie3.simona.agent.grid.congestion.VoltageRange.State
+import edu.ie3.simona.agent.grid.congestion.VoltageRange.State.{
+  BothPossible,
+  NoChange,
+  OnlyDecrease,
+  OnlyIncrease,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.grid.GridModel.GridComponents
@@ -32,11 +39,14 @@ import java.util.UUID
   *   Maximal possible voltage decrease.
   * @param suggestion
   *   For voltage change.
+  * @param state
+  *   Gives information about possible voltage changes.
   */
 final case class VoltageRange(
     possibleIncrease: Dimensionless,
     possibleDecrease: Dimensionless,
     suggestion: Dimensionless,
+    state: State,
 ) {
 
   /** Method to limit the voltage decrease. This is used to prevent a line
@@ -117,30 +127,45 @@ object VoltageRange {
 
   private given Dimensionless = Each(1e-3)
 
+  enum State {
+    case NoChange, OnlyDecrease, OnlyIncrease, BothPossible
+  }
+
+  private def getState(
+      increase: Dimensionless,
+      decrease: Dimensionless,
+  ): State = if increase > decrease then {
+    // we could have a voltage violation of one limit
+    BothPossible
+  } else {
+    (increase > zeroPU, decrease < zeroPU) match {
+      case (true, false) =>
+        // we have a voltage violation of the lower limit
+        // since the upper limit is fine, we can increase the voltage a bit
+        OnlyIncrease
+      case (false, true) =>
+        // we have a voltage violation of the upper limit
+        // since the lower limit is fine, we can decrease the voltage a bit
+        OnlyDecrease
+      case _ =>
+        // we have a voltage violation of both limits, we can't fix this
+        NoChange
+    }
+  }
+
   def apply(
       deltaPlus: Dimensionless,
       deltaMinus: Dimensionless,
   ): VoltageRange = {
     val plus = deltaPlus.toEach
     val minus = deltaMinus.toEach
+    val state = getState(deltaPlus, deltaMinus)
 
-    val value = if plus > minus then {
-      // we could have a voltage violation of one limit
-      (plus + minus) / 2
-    } else {
-      (plus > 0, minus < 0) match {
-        case (true, false) =>
-          // we have a voltage violation of the lower limit
-          // since the upper limit is fine, we can increase the voltage a bit
-          plus
-        case (false, true) =>
-          // we have a voltage violation of the upper limit
-          // since the lower limit is fine, we can decrease the voltage a bit
-          minus
-        case _ =>
-          // we have a voltage violation of both limits, we can't fix this
-          0
-      }
+    val value = state match {
+      case BothPossible => (plus + minus) / 2
+      case OnlyIncrease => plus
+      case OnlyDecrease => minus
+      case NoChange     => 0
     }
 
     val factor = 1e3
@@ -157,6 +182,7 @@ object VoltageRange {
         deltaPlus,
         deltaMinus,
         Each(suggestion),
+        state,
       )
     } else {
       // the voltage in this range is fine, set the suggested voltage change to zero
@@ -164,9 +190,21 @@ object VoltageRange {
         deltaPlus,
         deltaMinus,
         zeroPU,
+        BothPossible,
       )
     }
   }
+
+  def apply(
+      deltaPlus: Dimensionless,
+      deltaMinus: Dimensionless,
+      suggestion: Dimensionless,
+  ): VoltageRange = VoltageRange(
+    deltaPlus,
+    deltaMinus,
+    suggestion,
+    getState(deltaPlus, deltaMinus),
+  )
 
   /** Method to calculate the possible range of voltage changes.
     *
