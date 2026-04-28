@@ -570,4 +570,11 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
         actual should approximate(expectedThermalResistance)
     }
   }
+  "test " in {
+
+    val expected = 5.0
+    val actual = createAndCalcRCNetworkMvCableShortDuration()
+
+    actual should approximate(expected)
+  }
 }
