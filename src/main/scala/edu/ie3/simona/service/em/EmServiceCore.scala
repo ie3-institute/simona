@@ -11,18 +11,35 @@ import edu.ie3.simona.api.FlexConversion
 import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
-import edu.ie3.simona.api.data.model.em.{DisaggregatedFlexOptions, EmCommunicationMessage, EmData, FlexOptionRequest, SetPoint, FlexOptions as ExtFlexOptions}
+import edu.ie3.simona.api.data.model.em.{
+  DisaggregatedFlexOptions,
+  EmCommunicationMessage,
+  EmData,
+  FlexOptionRequest,
+  SetPoint,
+  FlexOptions as ExtFlexOptions,
+}
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
-import edu.ie3.simona.ontology.messages.ServiceMessage.{EmFlexMessage, EmServiceRegistration, ServiceResponseMessage}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  EmFlexMessage,
+  EmServiceRegistration,
+  ServiceResponseMessage,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.DataTimeType.Current
 import edu.ie3.simona.service.em.EmServiceCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
-import edu.ie3.simona.util.SimonaConstants.{FIRST_TICK_IN_SIMULATION, INIT_SIM_TICK}
+import edu.ie3.simona.util.SimonaConstants.{
+  FIRST_TICK_IN_SIMULATION,
+  INIT_SIM_TICK,
+}
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -30,7 +47,11 @@ import org.slf4j.Logger
 import java.time.ZonedDateTime
 import java.util.{OptionalLong, UUID}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{CollectionHasAsScala, MapHasAsJava, MapHasAsScala}
+import scala.jdk.CollectionConverters.{
+  CollectionHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+}
 import scala.jdk.OptionConverters.RichOptionalLong
 import scala.math.max
 import scala.util.Try
@@ -70,24 +91,24 @@ import scala.util.Try
   *   Option for em set points that needs to be handled at a later time.
   */
 case class EmServiceCore(
-                          mode: ExtEmDataConnection.EmMode,
-                          scheduler: ActorRef[SchedulerMessage],
-                          emUnitsToRegister: Set[UUID],
-                          uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
-                          agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID] =
+    mode: ExtEmDataConnection.EmMode,
+    scheduler: ActorRef[SchedulerMessage],
+    emUnitsToRegister: Set[UUID],
+    uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
+    agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID] =
       Map.empty,
-                          uncontrolled: Set[UUID] = Set.empty,
-                          uuidToInferior: Map[UUID, Set[UUID]] = Map.empty,
-                          uuidToParent: Map[UUID, UUID] = Map.empty,
-                          completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
-                          nextActivation: Map[UUID, Long] = Map.empty,
-                          allFlexOptions: Map[UUID, ExtFlexOptions] = Map.empty,
-                          emStates: Map[UUID, EmAgentState] = Map.empty,
-                          emDataStore: ReceiveMultiDataMap[UUID, EmData] = ReceiveMultiDataMap.empty,
-                          internal: Set[UUID] = Set.empty,
-                          sendDataToExt: Boolean = true,
-                          canHandleSetPoints: Boolean = false,
-                          setPointOption: Option[Map[UUID, SetPoint]] = None,
+    uncontrolled: Set[UUID] = Set.empty,
+    uuidToInferior: Map[UUID, Set[UUID]] = Map.empty,
+    uuidToParent: Map[UUID, UUID] = Map.empty,
+    completions: ReceiveDataMap[UUID, FlexCompletion] = ReceiveDataMap.empty,
+    nextActivation: Map[UUID, Long] = Map.empty,
+    allFlexOptions: Map[UUID, ExtFlexOptions] = Map.empty,
+    emStates: Map[UUID, EmAgentState] = Map.empty,
+    emDataStore: ReceiveMultiDataMap[UUID, EmData] = ReceiveMultiDataMap.empty,
+    internal: Set[UUID] = Set.empty,
+    sendDataToExt: Boolean = true,
+    canHandleSetPoints: Boolean = false,
+    setPointOption: Option[Map[UUID, SetPoint]] = None,
 ) {
 
   given Conversion[OptionalLong, Option[Long]] =
@@ -542,7 +563,7 @@ case class EmServiceCore(
             scheduler ! ScheduleActivation(
               uuidToAgent(uuid),
               tick,
-              scheduleKey
+              scheduleKey,
             )
 
           case Right(ref) =>
@@ -653,15 +674,15 @@ case class EmServiceCore(
           (copy(emDataStore = updated), None)
         }
 
-      case completion @ FlexCompletion(modelUuid, _, _) if mode == EmMode.EM_COMMUNICATION =>
+      case completion @ FlexCompletion(modelUuid, _, _)
+          if mode == EmMode.EM_COMMUNICATION =>
         val agent = uuidToAgent(receiverUuid)
 
-        if tick < FIRST_TICK_IN_SIMULATION && uncontrolled.contains(modelUuid) then {
+        if tick < FIRST_TICK_IN_SIMULATION && uncontrolled.contains(modelUuid)
+        then {
           scheduler ! Completion(agent)
         }
 
-        // the completion can be sent directly to the receiver, since it's not used by the external communication
-        agent ! completion
         emStates(modelUuid).setWaitingForInternal(false)
 
         val updatedData = completions.addData(modelUuid, completion)
@@ -694,7 +715,9 @@ case class EmServiceCore(
 
         if finished then {
           if tick < FIRST_TICK_IN_SIMULATION then {
-            uncontrolled.foreach(uuid => scheduler ! Completion(uuidToAgent(uuid)))
+            uncontrolled.foreach(uuid =>
+              scheduler ! Completion(uuidToAgent(uuid))
+            )
           }
 
           // the next activations

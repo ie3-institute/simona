@@ -14,7 +14,6 @@ import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.collection.mutable.PriorityMultiBiSet
 import org.apache.pekko.actor.typed.ActorRef
-import org.slf4j.Logger
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -483,9 +482,11 @@ object EmDataCore {
       */
     def handleCompletion(
         completion: FlexCompletion
-    )(using log: Logger): AwaitingCompletions = {
+    ): AwaitingCompletions = {
       if !awaitedCompletions.contains(completion.modelUuid) then
-        log.warn(s"Participant ${completion.modelUuid} is not part of the expected completing participants")
+        throw new CriticalFailureException(
+          s"Participant ${completion.modelUuid} is not part of the expected completing participants"
+        )
 
       // mutable queue
       completion.requestAtTick
