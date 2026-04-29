@@ -273,8 +273,6 @@ case class EmServiceCore(
         completions = completions.addExpectedKeys(mapping.keySet),
       )
 
-      log.warn(s"Updated store: ${newState.emDataStore.getExpected}")
-
       (newState, msgToExt)
 
     case provideEmData: ProvideEmData =>
@@ -417,10 +415,6 @@ case class EmServiceCore(
         emDataStore = emDataStore.addExpectedKeys(mapping),
         completions = completions.addExpectedKeys(mapping.keySet),
       )
-
-      log.warn(s"Old store: ${emDataStore.getExpected}")
-      log.warn(s"Mapping: $mapping")
-      log.warn(s"Store: ${newState.emDataStore.getExpected}")
 
       (newState, msgToExt)
 
