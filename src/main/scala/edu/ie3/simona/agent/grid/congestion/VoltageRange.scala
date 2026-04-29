@@ -65,16 +65,16 @@ final case class VoltageRange(
     if deltaV == zeroPU then {
       this
     } else if deltaV < zeroPU then {
-      // we have limit the maximal decrease
-      val minus = possibleDecrease.max(deltaV)
+      // we have to limit the maximal decrease
+      val decrease = possibleDecrease.max(deltaV)
 
-      VoltageRange(possibleIncrease, minus)
+      VoltageRange(possibleIncrease, decrease)
 
     } else {
       // we have to increase the voltage by at least the specified delta
-      val minus = deltaV.max(possibleDecrease).min(possibleIncrease)
+      val decrease = deltaV.max(possibleDecrease).min(possibleIncrease)
 
-      VoltageRange(possibleIncrease, minus)
+      VoltageRange(possibleIncrease, decrease)
     }
   }
 
@@ -135,7 +135,7 @@ object VoltageRange {
       increase: Dimensionless,
       decrease: Dimensionless,
   ): State = if increase > decrease then {
-    // we could have a voltage violation of one limit
+    // there could be a voltage violation of one limit
     BothPossible
   } else {
     (increase > zeroPU, decrease < zeroPU) match {
@@ -196,14 +196,14 @@ object VoltageRange {
   }
 
   def apply(
-      deltaPlus: Dimensionless,
-      deltaMinus: Dimensionless,
+      possibleIncrease: Dimensionless,
+      possibleDecrease: Dimensionless,
       suggestion: Dimensionless,
   ): VoltageRange = VoltageRange(
-    deltaPlus,
-    deltaMinus,
+    possibleIncrease,
+    possibleDecrease,
     suggestion,
-    getState(deltaPlus, deltaMinus),
+    getState(possibleIncrease, possibleDecrease),
   )
 
   /** Method to calculate the possible range of voltage changes.
