@@ -12,7 +12,6 @@ import edu.ie3.simona.util.CollectionUtils.*
 import squants.Quantity
 
 import scala.collection.SortedSet
-import scala.reflect.ClassTag
 
 /** Describes a mapping of an x-y-pairs with possibility to interpolate the y
   * values based on the provided x value
@@ -29,8 +28,6 @@ trait Characteristic[A <: Quantity[A], O <: Quantity[O]] {
     */
   def interpolateXy(
       requestedAbscissaQuantity: A
-  )(implicit
-      tag: ClassTag[O]
   ): (A, O) = {
 
     val xyCoords: Seq[(A, O)] =
