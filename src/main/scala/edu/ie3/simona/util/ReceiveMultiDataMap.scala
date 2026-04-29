@@ -41,31 +41,31 @@ final case class ReceiveMultiDataMap[K, V](
       value: V,
   ): ReceiveMultiDataMap[K, V] = {
     if !expectedKeys.contains(key) && !receivedData.contains(key) then {
-      throw new RuntimeException(
+      log.warn(
         s"Received value $value for key $key, but no data has been expected or received for this key."
       )
+    }
+
+    val count = expectedKeys.getOrElse(key, 1) - 1
+
+    val newValue = receivedData.get(key) match {
+      case Some(values) =>
+        values.appended(value)
+      case None =>
+        Seq(value)
+    }
+
+    if count == 0 then {
+      copy(
+        expectedKeys = expectedKeys.removed(key),
+        finishedKeys = finishedKeys + key,
+        receivedData = receivedData.updated(key, newValue),
+      )
     } else {
-      val count = expectedKeys(key) - 1
-
-      val newValue = receivedData.get(key) match {
-        case Some(values) =>
-          values.appended(value)
-        case None =>
-          Seq(value)
-      }
-
-      if count == 0 then {
-        copy(
-          expectedKeys = expectedKeys.removed(key),
-          finishedKeys = finishedKeys + key,
-          receivedData = receivedData.updated(key, newValue),
-        )
-      } else {
-        copy(
-          expectedKeys = expectedKeys.updated(key, count),
-          receivedData = receivedData.updated(key, newValue),
-        )
-      }
+      copy(
+        expectedKeys = expectedKeys.updated(key, count),
+        receivedData = receivedData.updated(key, newValue),
+      )
     }
   }
 

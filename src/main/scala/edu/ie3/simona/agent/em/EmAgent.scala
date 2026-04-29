@@ -163,9 +163,7 @@ object EmAgent {
         FlexInit(modelShell.getFlexType, modelShell.getDataTimeType)
       case _ => FlexActivation(msg.tick)
     }
-    toActivate.foreach {
-      _ ! activationMsg
-    }
+    toActivate.foreach(_ ! activationMsg)
 
     newCore.fold(
       awaitingFlexOptions(emData, modelShell, inputHandler, _),

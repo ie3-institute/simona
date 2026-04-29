@@ -244,15 +244,15 @@ case class EmServiceCore(
       }
 
       val flexRequests = provideEmData.flexRequests.asScala.flatMap {
-        case (entity, request) =>
-          uuidToAgent.get(entity).map { ref =>
+        case (entity, _) =>
+          agents.get(entity).map { ref =>
             ref ! FlexActivation(tick)
             entity
           }
       }.toSet
 
       val updatedState = copy(
-        emDataStore = ReceiveMultiDataMap(flexRequests),
+        emDataStore = emDataStore.addExpectedKeys(flexRequests),
         completions = completions.addExpectedKeys(flexRequests),
         sendDataToExt = flexRequests.nonEmpty,
       )
@@ -408,18 +408,18 @@ case class EmServiceCore(
     flexResponse match {
       case scheduleFlexActivation @ ScheduleFlexActivation(
             modelUuid,
-            _,
+            tick,
             scheduleKey,
           ) if tick < FIRST_TICK_IN_SIMULATION =>
         receiver match {
           case Left(uuid) =>
-            log.debug(s"Unlocking msg: $scheduleFlexActivation")
-            scheduleFlexActivation.scheduleKey.foreach(_.unlock())
-
-            uuidToAgent(uuid) ! FlexInit(PowerLimit, Current)
+            scheduler ! ScheduleActivation(
+              uuidToAgent(uuid),
+              tick,
+              scheduleKey,
+            )
 
           case Right(ref) =>
-            log.debug(s"Forwarding the message to: $ref")
             ref ! scheduleFlexActivation
         }
 
@@ -470,10 +470,16 @@ case class EmServiceCore(
         }
 
       case completion: FlexCompletion =>
-        val (updated, extMsgOption, nextTick, finished) =
+        val (updated, extMsgOption, _, finished) =
           handleCompletion(tick, completion)
 
         if finished then {
+          if tick < FIRST_TICK_IN_SIMULATION then {
+            uncontrolled.foreach(uuid =>
+              scheduler ! Completion(uuidToAgent(uuid))
+            )
+          }
+
           // the next activations
           val updatedNextActivation =
             nextActivation ++ updated.receivedData.flatMap { case (uuid, msg) =>
