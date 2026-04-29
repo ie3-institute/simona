@@ -35,11 +35,12 @@ In short, mergeable PRs have to meet our standards in several areas:
   - [SonarQube](https://simona.ie3.e-technik.tu-dortmund.de/sonar/dashboard?id=edu.ie3%3Asimona) run succeeds, i.e. 
     - No new code smells are found 
     - Code coverage is sufficient
-  - If the project uses readthedocs documentation, the sphinx compilation needs to succeed
-  - Other code checks such as Codacy and sonatype (exceptions can be made for some types of warnings)
+  - If the project uses ReadTheDocs documentation, the sphinx compilation needs to succeed
+  - Other code checks such as Codacy and Sonatype (exceptions can be made for some types of warnings)
 - Manual audits
+  - The PR is linked to some issue documenting the bug, task, or enhancement.
   - Changes made to the code have to be reflected within all types of documentation, i.e.
-    - Readthedocs for long form documentation
+    - ReadTheDocs for long form documentation
     - ScalaDoc/JavaDoc for interface documentation
     - Code commentary on crucial parts of the code
   - All vital parts of the new code need to be covered by tests (see [](#tests))
@@ -75,6 +76,24 @@ Furthermore, there are some functional programming paradigms that we like to fol
 
 These guidelines do not intend to be exhaustive. Feel free to extend them with rules that are yet missing.
 
+## API compatibility policy
+
+We follow a simple, strict policy for public API (interfaces) and method lifecycle to keep releases predictable for downstream users and integrations:
+
+- Major releases (x -> x+1) include big changes: new architecture, redesigned APIs, etc.
+- Minor releases (x.y -> x.y+1) include additive changes: new features or extensions.
+- Patch versions (x.y.z -> x.y.z+1). These may only contain bug fixes and non-API behavioral fixes, but no breaking changes.
+
+- No method deprecations: We avoid introducing deprecations. Instead, if an API must be changed, the change is scheduled for a minor or major release where breaking changes are allowed. This allows a simple maintainance without supporting a long deprecation period and keeps the codebase cleaner.
+
+## Reviewing and merging pull requests
+Reviewers should check that the PR meets the criteria outlined in the "Finalising your pull request" section above, including automated checks and manual review. If the PR is ready to merge, reviewers can approve it and merge it into the dev branch. If there are open issues that need to be addressed, reviewers should provide clear feedback to the contributor and request changes before approval.
+ 
+### Reviewer checklist
+- Does the PR add `@deprecated` or similar deprecation notes? If yes: ask for rationale and explicit approval; prefer scheduling the change for a minor/major release instead.
+- Is the new code is properly documented and / or are there any necessary follow-up tasks necessary that are excluded from the PR for reason. These should be tracked at least by creating a new issue for them.
+
+
 ## Protocols
 
 ```{toctree}
@@ -87,6 +106,10 @@ protocols
 ## Release Process
 
 We're following the git-flow approach to release new versions. The following steps are necessary to went through for a release:
+
+### Release Checklist
+- Does the release change any public types, method signatures, or class visibility? If yes: ensure the release will be minor/major release.
+- For patch branches: confirm the version bump is a patch, and check that only bug fixes / internal refactors are present.
 
 ### Pre-Release
 1. Update gradle to latest version: `./gradlew wrapper --gradle-version=<version> --distribution-type=bin`
@@ -124,10 +147,10 @@ We're following the git-flow approach to release new versions. The following ste
       - Are all necessary files there?
       - Is the deployment valid?
    3. If so, publish. Else, choose 'drop'.
-10. Final steps at Github
+10. Final steps at GitHub
    1. Create a new Tags and create the Release also there
-      1. Hint: Intellij -> Git -> Select 'Main-Branch' -> Choose commit
-      2. Push Tags to Github
+      1. Hint: IntelliJ -> Git -> Select 'Main-Branch' -> Choose commit
+      2. Push Tags to GitHub
    2. Create a new release with the new tag version and the change description (Copy from changelog and adapt accordingly if necessary)
    3. Increment MinorVersion of dev branch
       - Adapt `version.properties` by using gradle task `./gradlew incrementMinor`
