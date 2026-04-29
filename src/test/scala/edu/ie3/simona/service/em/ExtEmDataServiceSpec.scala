@@ -77,12 +77,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(
-            scheduler.ref,
-            extEmDataConnection,
-            simulationStart,
-            Set.empty,
-          ),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -116,12 +111,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(
-            scheduler.ref,
-            extEmDataConnection,
-            simulationStart,
-            Set(emAgent1UUID),
-          ),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -141,17 +131,12 @@ class ExtEmDataServiceSpec
         None,
       )
 
-      // the scheduler receives an additional schedule activation
-      // and sends an activation to the service for initializing the em agents
-      scheduler.expectMessage(ScheduleActivation(emService, INIT_SIM_TICK))
-      emService ! Activation(INIT_SIM_TICK)
-
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
       )
 
-      scheduler.expectMessage(Completion(emService))
+      scheduler.expectMessage(Completion(emAgent.ref))
 
       // we trigger em service and expect an exception
       emService ! Activation(0)
@@ -175,12 +160,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(
-            scheduler.ref,
-            extEmDataConnection,
-            simulationStart,
-            Set(emAgent1UUID, emAgent2UUID),
-          ),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -210,27 +190,17 @@ class ExtEmDataServiceSpec
         None,
       )
 
-      // the scheduler receives an additional schedule activation
-      // and sends an activation to the service for initializing the em agents
-      scheduler.expectMessage(ScheduleActivation(emService, INIT_SIM_TICK))
-      emService ! Activation(INIT_SIM_TICK)
-
-      emAgent1.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
-      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
-      )
-      emAgent2.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
       )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
       )
 
-      scheduler.expectMessage(Completion(emService))
+      scheduler.expectMessage(Completion(emAgent1.ref))
+      scheduler.expectMessage(Completion(emAgent2.ref))
 
       extEmDataConnection.sendExtMsg(
         new ProvideEmData(
@@ -302,12 +272,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(
-            scheduler.ref,
-            extEmDataConnection,
-            simulationStart,
-            Set(emAgent1UUID, emAgent2UUID),
-          ),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -337,27 +302,17 @@ class ExtEmDataServiceSpec
         None,
       )
 
-      // the scheduler receives an additional schedule activation
-      // and sends an activation to the service for initializing the em agents
-      scheduler.expectMessage(ScheduleActivation(emService, INIT_SIM_TICK))
-      emService ! Activation(INIT_SIM_TICK)
-
-      emAgent1.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
-      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
-      )
-      emAgent2.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
       )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
       )
 
-      scheduler.expectMessage(Completion(emService))
+      scheduler.expectMessage(Completion(emAgent1.ref))
+      scheduler.expectMessage(Completion(emAgent2.ref))
 
       extEmDataConnection.sendExtMsg(
         new ProvideEmData(

@@ -158,7 +158,6 @@ object ExtSimSetup {
       extSimAdapter: ActorRef[ControlResponseMessageFromExt],
       resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
-      apiSetupData: SetupData,
   ): ExtSimSetupData = {
     // the data connections this external simulation provides
     val connections = extSimulation.getDataConnections.asScala
@@ -183,18 +182,10 @@ object ExtSimSetup {
               )
               setupData
             } else {
-              val emUnits =
-                apiSetupData.gridContainer.getEmUnits.getEmUnitsMap.keySet.asScala.toSet
-
               val serviceRef = context.spawn(
                 ExtEmDataService(
                   scheduler,
-                  InitExtEmData(
-                    scheduler,
-                    extEmDataConnection,
-                    startTime,
-                    emUnits,
-                  ),
+                  InitExtEmData(scheduler, extEmDataConnection, startTime),
                   ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
                 ),
                 "ExtEmDataService",

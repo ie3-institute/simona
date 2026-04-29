@@ -20,7 +20,12 @@ import edu.ie3.simona.api.data.model.em.{
   FlexOptions as ExtFlexOptions,
 }
 import edu.ie3.simona.api.ontology.em.*
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{
+  Completion,
+  ScheduleActivation,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
@@ -53,6 +58,12 @@ import scala.util.Try
 
 /** Basic service core for an [[ExtEmDataService]].
   *
+  * @param mode
+  *   The mode of the em service core.
+  * @param scheduler
+  *   Actor reference to the SIMONA scheduler.
+  * @param sendDataToExt
+  *   True, if em data should be sent to the external simulation.
   * @param uuidToAgent
   *   Map: uuid to em agent reference.
   * @param agentToUuid
@@ -76,8 +87,6 @@ import scala.util.Try
   *   ReceiveMultiDataMap: uuid to flex option.
   * @param internal
   *   A set of uuids of models that simulated internally.
-  * @param sendDataToExt
-  *   True, if em data should be sent to the external simulation.
   * @param canHandleSetPoints
   *   True, if the core can sent the received em set points to the agent. It
   *   will only be true, of all em agent are activated for the current tick and
@@ -87,7 +96,7 @@ import scala.util.Try
   */
 case class EmServiceCore(
     mode: ExtEmDataConnection.EmMode,
-    emUnitsToRegister: Set[UUID],
+    scheduler: ActorRef[SchedulerMessage],
     sendDataToExt: Boolean = false,
     uuidToAgent: Map[UUID, ActorRef[EmAgent.Message]] = Map.empty,
     agentToUuid: Map[ActorRef[FlexRequest] | ActorRef[FlexResponse], UUID] =
@@ -160,7 +169,6 @@ case class EmServiceCore(
       }
 
     copy(
-      emUnitsToRegister = emUnitsToRegister.excl(uuid),
       uuidToAgent = uuidToAgent.updated(uuid, ref),
       agentToUuid = agentToUuid.updated(ref, uuid),
       uncontrolled = updatedUncontrolled,

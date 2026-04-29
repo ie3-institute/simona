@@ -10,6 +10,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{FlexOptionRequest, SetPoint}
 import edu.ie3.simona.api.ontology.em.ProvideEmData
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.EmServiceRegistration
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexActivation,
@@ -44,9 +45,10 @@ class EmServiceCoreSpec
     // logger used by some methods
     given Logger = LoggerFactory.getLogger(classOf[EmServiceCore])
     given Power = Watts(1e-3)
+    val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
     "handle registration of parentless em agent correctly" in {
-      val emptyCore = EmServiceCore(EmMode.BASE, Set.empty)
+      val emptyCore = EmServiceCore(EmMode.BASE, scheduler.ref)
 
       val emAgent = TestProbe[EmAgent.Message]("emAgent").ref
       val emUuid = UUID.randomUUID()
@@ -65,7 +67,7 @@ class EmServiceCoreSpec
     }
 
     "handle registration of em agent with parent correctly" in {
-      val emptyCore = EmServiceCore(EmMode.BASE, Set.empty)
+      val emptyCore = EmServiceCore(EmMode.BASE, scheduler.ref)
 
       val emAgent = TestProbe[EmAgent.Message]("emAgent").ref
       val emUuid = UUID.randomUUID()
@@ -95,7 +97,7 @@ class EmServiceCoreSpec
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
 
-      val core = EmServiceCore(EmMode.BASE, Set(emUuid)).handleRegistration(
+      val core = EmServiceCore(EmMode.BASE, scheduler.ref).handleRegistration(
         EmServiceRegistration(emAgent.ref, emUuid, None, None)
       )
 
@@ -128,7 +130,7 @@ class EmServiceCoreSpec
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
 
-      val core = EmServiceCore(EmMode.BASE, Set(emUuid)).handleRegistration(
+      val core = EmServiceCore(EmMode.BASE, scheduler.ref).handleRegistration(
         EmServiceRegistration(emAgent.ref, emUuid, None, None)
       )
 
@@ -201,7 +203,7 @@ class EmServiceCoreSpec
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
 
-      val core = EmServiceCore(EmMode.BASE, Set(emUuid)).handleRegistration(
+      val core = EmServiceCore(EmMode.BASE, scheduler.ref).handleRegistration(
         EmServiceRegistration(emAgent.ref, emUuid)
       )
 
