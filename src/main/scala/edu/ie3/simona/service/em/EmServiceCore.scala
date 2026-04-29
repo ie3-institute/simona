@@ -8,14 +8,10 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.FlexConversion
-import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{
-  DisaggregatedFlexOptions,
-  EmCommunicationMessage,
   EmData,
-  FlexOptionRequest,
   SetPoint,
   FlexOptions as ExtFlexOptions,
 }
@@ -47,14 +43,8 @@ import org.slf4j.Logger
 import java.time.ZonedDateTime
 import java.util.{OptionalLong, UUID}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.{
-  CollectionHasAsScala,
-  MapHasAsJava,
-  MapHasAsScala,
-}
+import scala.jdk.CollectionConverters.MapHasAsScala
 import scala.jdk.OptionConverters.RichOptionalLong
-import scala.math.max
-import scala.util.Try
 
 /** Basic service core for an [[ExtEmDataService]].
   *
