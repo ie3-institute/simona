@@ -112,7 +112,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
       case InitExtEmData(scheduler, extEmDataConnection, startTime, emUnits) =>
-        val serviceCore = EmServiceCore(extEmDataConnection.mode, emUnits)
+        val serviceCore = EmServiceCore(extEmDataConnection.mode, scheduler, emUnits)
 
         val emDataInitializedStateData =
           ExtEmDataStateData(
@@ -146,13 +146,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         val updatedCore =
           serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
 
-        if updatedCore.emUnitsToRegister.isEmpty then {
-          serviceStateData.scheduler ! ScheduleActivation(
-            ctx.self,
-            INIT_SIM_TICK,
-          )
-        }
-
         Success(serviceStateData.copy(serviceCore = updatedCore))
       case invalidMessage =>
         Failure(
@@ -167,48 +160,41 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       ctx: ActorContext[Message],
   ): (ExtEmDataStateData, Option[Long]) = {
     val core = serviceStateData.serviceCore
+    given Logger = ctx.log
 
-    if tick == INIT_SIM_TICK then {
-      core.init()
-      (serviceStateData, None)
-
-    } else {
-      given Logger = ctx.log
-
-      val extMsg = serviceStateData.extEmDataMessage.getOrElse(
-        throw ServiceException(
-          "ExtEmDataService was triggered without ExtEmDataMessage available"
-        )
+    val extMsg = serviceStateData.extEmDataMessage.getOrElse(
+      throw ServiceException(
+        "ExtEmDataService was triggered without ExtEmDataMessage available"
       )
+    )
 
-      val nonCompleted =
-        tick != serviceStateData.tick && core.completions.nonComplete
+    val nonCompleted =
+      tick != serviceStateData.tick && core.completions.nonComplete
 
-      core match {
-        case _ if nonCompleted =>
-          // we request a new activation for the same tick
-          (serviceStateData, Some(tick))
+    core match {
+      case _ if nonCompleted =>
+        // we request a new activation for the same tick
+        (serviceStateData, Some(tick))
 
-        case core =>
-          ctx.log.debug(
-            s"Tick ($tick): ServiceCore -> ${core.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
-          )
+      case core =>
+        ctx.log.debug(
+          s"Tick ($tick): ServiceCore -> ${core.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
+        )
 
-          val (updatedCore, msgToExt) = core.handleExtMessage(tick, extMsg)
+        val (updatedCore, msgToExt) = core.handleExtMessage(tick, extMsg)
 
-          msgToExt.foreach(
-            serviceStateData.extEmDataConnection.queueExtResponseMsg
-          )
+        msgToExt.foreach(
+          serviceStateData.extEmDataConnection.queueExtResponseMsg
+        )
 
-          (
-            serviceStateData.copy(
-              tick = tick,
-              serviceCore = updatedCore,
-              extEmDataMessage = None,
-            ),
-            None,
-          )
-      }
+        (
+          serviceStateData.copy(
+            tick = tick,
+            serviceCore = updatedCore,
+            extEmDataMessage = None,
+          ),
+          None,
+        )
     }
   }
 

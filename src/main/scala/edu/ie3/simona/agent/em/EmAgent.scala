@@ -395,7 +395,7 @@ object EmAgent {
       )
 
     case (ctx, completion: FlexCompletion) =>
-      val updatedCore = core.handleCompletion(completion)
+      val updatedCore = core.handleCompletion(completion)(using ctx.log)
 
       updatedCore
         .maybeComplete()
