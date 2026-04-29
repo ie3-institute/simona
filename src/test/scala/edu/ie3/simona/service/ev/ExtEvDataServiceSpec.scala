@@ -37,7 +37,6 @@ import tech.units.indriya.quantity.Quantities
 import java.util.{OptionalLong, UUID}
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.*
 import scala.language.implicitConversions
 
 class ExtEvDataServiceSpec

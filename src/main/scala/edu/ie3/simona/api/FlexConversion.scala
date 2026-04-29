@@ -26,10 +26,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   PowerLimitFlexOptions,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toQuantity,
-  toSquants,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.Power
 
 import scala.jdk.CollectionConverters.MapHasAsScala
