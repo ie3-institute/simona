@@ -35,7 +35,6 @@ import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.UUID
@@ -562,8 +561,8 @@ object ConfigFailFast extends LazyLogging {
       logger.warn("No primary data source configured.")
     } else {
       sourceConfigs.headOption match {
-        case Some(csvParams: TimeStampedCsvParams) =>
-        case Some(sqlParams: TimeStampedSqlParams) =>
+        case Some(_: TimeStampedCsvParams) =>
+        case Some(_: TimeStampedSqlParams) =>
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
