@@ -41,6 +41,9 @@ final case class GridEnvironment(
     superiorGridIds: Map[UUID, Int],
 ) {
 
+  lazy val allParticipants: Set[ActorRef[ParticipantAgent.Request]] =
+    nodeToAssetAgents.valueSet
+
   def inferiorNodeUuids: Set[UUID] = inferiorConnections.valueSet
 
   def superiorNodeUuids: Set[UUID] = superiorConnections.valueSet

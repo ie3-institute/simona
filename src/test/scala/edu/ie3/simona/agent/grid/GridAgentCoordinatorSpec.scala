@@ -8,11 +8,20 @@ package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  CongestionResult,
   RegisterAssets,
   StateData,
 }
 import edu.ie3.simona.agent.grid.GridAgentMessages.RegisterParticipants
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
+  GotoIdle,
+  NextStep,
+}
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
+import edu.ie3.simona.agent.grid.congestion.{
+  CongestionManagementParams,
+  Congestions,
+}
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentConstantData,
   GridAgentRef,
@@ -27,6 +36,7 @@ import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.testkit.typed.Effect.{Spawned, Watched}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   BehaviorTestKit,
@@ -123,7 +133,7 @@ class GridAgentCoordinatorSpec
 
       val stateData = StateData(
         scheduler.ref,
-        CongestionManagementParams(false),
+        CongestionManagementParams(false, false),
         resultProxy.ref,
         startTime,
         gridAgentsRef = Set(subgrid1.ref, subgrid2.ref),
@@ -148,6 +158,74 @@ class GridAgentCoordinatorSpec
       subgrid2
         .expectMessageType[RegisterParticipants]
         .nodeToAssets shouldBe Map(node21 -> Set(participant21.ref))
+    }
+
+    "awaits and handles no congestions correctly" in {
+      val superiorGrid1 = TestProbe[GridAgent.Message]("superiorGrid1")
+      val superiorGrid2 = TestProbe[GridAgent.Message]("superiorGrid2")
+
+      val gridRefs = Set(superiorGrid1.ref, superiorGrid2.ref)
+
+      val stateData = StateData(
+        scheduler.ref,
+        CongestionManagementParams(true, true),
+        resultProxy.ref,
+        startTime,
+        3600,
+        Some(3600),
+        gridRefs,
+        gridRefs,
+      )
+
+      val behavior = BehaviorTestKit(
+        GridAgentCoordinator.awaitCongestionResults(
+          stateData,
+          ReceiveDataMap(gridRefs),
+        )
+      )
+
+      behavior.run(CongestionResult(superiorGrid1.ref, Congestions.none))
+      behavior.run(CongestionResult(superiorGrid2.ref, Congestions.none))
+
+      superiorGrid1.expectMessageType[GotoIdle.type]
+      superiorGrid2.expectMessageType[GotoIdle.type]
+    }
+
+    "awaits and handles congestions correctly" in {
+      val superiorGrid1 = TestProbe[GridAgent.Message]("superiorGrid1")
+      val superiorGrid2 = TestProbe[GridAgent.Message]("superiorGrid2")
+
+      val gridRefs = Set(superiorGrid1.ref, superiorGrid2.ref)
+
+      val stateData = StateData(
+        scheduler.ref,
+        CongestionManagementParams(true, true),
+        resultProxy.ref,
+        startTime,
+        3600,
+        Some(3600),
+        gridRefs,
+        gridRefs,
+      )
+
+      val behavior = BehaviorTestKit(
+        GridAgentCoordinator.awaitCongestionResults(
+          stateData,
+          ReceiveDataMap(gridRefs),
+        )
+      )
+
+      behavior.run(CongestionResult(superiorGrid1.ref, Congestions.none))
+      behavior.run(
+        CongestionResult(superiorGrid2.ref, Congestions(true, false, false))
+      )
+
+      superiorGrid1
+        .expectMessageType[NextStep]
+        .step shouldBe MitigationSteps.TransformerTapChange
+      superiorGrid2
+        .expectMessageType[NextStep]
+        .step shouldBe MitigationSteps.TransformerTapChange
     }
 
     "build reference maps correctly" in {

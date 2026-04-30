@@ -17,6 +17,7 @@ about
 usersguide
 config
 models
+functionality
 developersguide
 references
 ```

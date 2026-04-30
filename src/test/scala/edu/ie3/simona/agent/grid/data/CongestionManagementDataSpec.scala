@@ -27,7 +27,7 @@ class CongestionManagementDataSpec
     val data = mock[GridAgentBaseData]
 
     val gridEnv = mock[GridEnvironment]
-    when(gridEnv.gridModel).thenReturn(gridModel)
+    when(gridEnv.gridModel).thenReturn(defaultGridModel)
 
     when(data.gridEnv).thenReturn(gridEnv)
 
@@ -36,9 +36,10 @@ class CongestionManagementDataSpec
 
   "The CongestionManagementData" should {
 
-    val lineMap = gridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
+    val lineMap =
+      defaultGridModel.gridComponents.lines.map(l => l.uuid -> l).toMap
     val transformerMap =
-      gridModel.gridComponents.transformers.map(t => t.uuid -> t).toMap
+      defaultGridModel.gridComponents.transformers.map(t => t.uuid -> t).toMap
 
     "return the congestion result correctly" in {
       val stateData = CongestionManagementData(
@@ -88,7 +89,7 @@ class CongestionManagementDataSpec
       congestionNode3.getInputModel shouldBe node3.getUuid
       congestionNode3.getType shouldBe InputModelType.NODE
       congestionNode3.getSubgrid shouldBe 2
-      congestionNode3.getValue should equalWithTolerance(89.asPercent)
+      congestionNode3.getValue should equalWithTolerance(91.asPercent)
       congestionNode3.getMin should equalWithTolerance(90.asPercent)
       congestionNode3.getMax should equalWithTolerance(110.asPercent)
 
