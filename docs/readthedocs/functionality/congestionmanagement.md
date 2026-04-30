@@ -33,3 +33,16 @@ The primary objective of this measure is to resolve over- and undervoltage issue
 that are configured with automatic tapping (`autoTap=true`). In addition to voltage management, it can also be used to
 mitigate line overloading by using an equivalent voltage change delta, that is calculated for each line (see: {cite:p}`11443104`).
 This allows the line current to be considered.
+
+### Mitigation via Transformer tap change
+
+One way to solve violations of the voltage band or line overloading is the transformer tap change. This mitigation measure
+performs the following steps:
+1. Calculating the possible voltage increase and decrease with the given voltage band and maximal and minimal voltage magnitude.
+2. Determine limitation imposed by inferior subgrids. Here the ability of the connecting transformers to change their tap position is also considered.
+3. Determine limitations or needed voltage increase imposed by the maximal line current.
+
+To consider the line currents, the current of the line with the highest loading is converted into an equivalent voltage
+delta. To derive a formula, the assumption is made that the power flow is constant. This formula can be found in {cite:p}`11443104`.
+This delta is then used to define, if possible, either a minimal needed voltage increase to reduce the current or a maximal
+possible increase to prevent line overloading.
