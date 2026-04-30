@@ -91,6 +91,8 @@ trait DCMAlgorithm
 
       nextStep.step match {
         case TransformerTapChange =>
+          ctx.self ! StartStep
+
           updateTransformerTapping(
             stateData,
             ReceiveDataMap(stateData.inferiorGridRefs.keySet),

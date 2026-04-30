@@ -15,7 +15,6 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   GotoIdle,
   NextStep,
 }
-import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.NoMeasure
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
@@ -157,11 +156,20 @@ object GridAgentCoordinator {
     def createAwaitingData[T]: AwaitingData[T] = ReceiveDataMap(gridAgentsRef)
 
     /** Method to inform all grid agents.
+      *
       * @param msg
       *   Message to send to the agents.
       */
     def informGridAgents(msg: GridAgent.Message): Unit =
       gridAgentsRef.foreach(_ ! msg)
+
+    /** Method to inform only superior grid agents.
+      *
+      * @param msg
+      *   Message to send to the agents.
+      */
+    def informSuperiorGridAgents(msg: GridAgent.Message): Unit =
+      superiorGrids.foreach(_ ! msg)
 
     /** Method to inform all grid agents.
       * @param msgBuilder
@@ -299,9 +307,10 @@ object GridAgentCoordinator {
   private def initPowerFlow(
       stateData: StateData,
       tick: Long,
+      sameTick: Boolean = false,
   ): Behavior[Message] = {
     // informing all grid agents
-    stateData.informGridAgents(DoPowerFlowTrigger(tick))
+    stateData.informGridAgents(DoPowerFlowTrigger(tick, sameTick))
 
     awaitGridSimulation(
       stateData.copy(currentTick = tick),
@@ -405,7 +414,7 @@ object GridAgentCoordinator {
 
             case _ =>
               // informs the grid agent about the next mitigation step
-              stateData.informGridAgents(NextStep(nextStep))
+              stateData.informSuperiorGridAgents(NextStep(nextStep))
 
               awaitMitigationStepCompletion(
                 stateData.copy(congestionManagementParams = updatedParams),
@@ -420,14 +429,14 @@ object GridAgentCoordinator {
       stateData: StateData,
       awaitingData: AwaitingData[StepFinished],
   ): Behavior[Message] = Behaviors.receivePartial {
-    case (ctx, stepFinished: StepFinished) =>
+    case (_, stepFinished: StepFinished) =>
       val updated = awaitingData.addData(stepFinished.sender, stepFinished)
 
       if updated.nonComplete then {
         awaitMitigationStepCompletion(stateData, updated)
 
       } else {
-        initPowerFlow(stateData, stateData.currentTick)
+        initPowerFlow(stateData, stateData.currentTick, true)
 
       }
   }

@@ -80,9 +80,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // first part of the grid simulation, same for all gridAgents on all levels
         // we start with a forward-sweep by requesting the data from our child assets and grids (if any)
         case (
-              _: DoPowerFlowTrigger,
+              DoPowerFlowTrigger(tick, sameTick),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
+          if sameTick then {
+            // inform every system participant about a new simulation for the same tick
+            gridAgentBaseData.gridEnv.allParticipants.foreach(
+              _ ! GridSimulationFinished(tick, tick)
+            )
+          }
+
           log.debug(
             "Start sweep number: {}",
             gridAgentBaseData.currentSweepNo,
@@ -496,7 +503,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       (message, gridAgentData) match {
         // main method for power flow calculations
         case (
-              DoPowerFlowTrigger(currentTick),
+              DoPowerFlowTrigger(currentTick, _),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           log.debug(
