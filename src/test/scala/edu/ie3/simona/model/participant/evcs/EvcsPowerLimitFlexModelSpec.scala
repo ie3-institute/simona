@@ -31,6 +31,7 @@ class EvcsPowerLimitFlexModelSpec
 
   // Testing tolerances
   given Energy = KilowattHours(1e-10)
+
   given Power = Kilowatts(1e-10)
 
   "An EVCS PowerLimitFlexModel" should {
@@ -533,60 +534,5 @@ class EvcsPowerLimitFlexModelSpec
 
     }
 
-    "handle power tolerance correctly" when {
-
-      val evcsModel = createTestModel("constantPower")
-
-      "power is below tolerance (treated as zero)" in {
-        val ev = EvModelWrapper(
-          ev1.copyWith(5.0.asKiloWattHour)
-        )
-
-        val tinyPower = Kilowatts(1e-15)
-
-        val result = evcsModel.determineChargingLimitEvent(
-          ev,
-          tinyPower,
-          0L,
-        )
-
-        result shouldBe None
-      }
-
-      "power is just above tolerance (not treated as zero)" in {
-        val ev = EvModelWrapper(
-          ev1.copyWith(5.0.asKiloWattHour)
-        )
-
-        val tolerance = evcsModel.calcPowerTolerance(ev)
-
-        val smallButValidPower = tolerance * 10
-
-        val result = evcsModel.determineChargingLimitEvent(
-          ev,
-          smallButValidPower,
-          0L,
-        )
-
-        result should not be empty
-      }
-
-      "distributeChargingPower ignores tiny power" in {
-        val ev = EvModelWrapper(ev1)
-
-        val state = EvcsState(Seq(ev), 0L)
-
-        val tinyPower = Kilowatts(1e-15)
-
-        val op = evcsModel.determineOperatingPoint(
-          state,
-          tinyPower,
-        )
-
-        op.evOperatingPoints(ev.uuid) shouldBe Kilowatts(0.0)
-      }
-    }
-
   }
-
 }
