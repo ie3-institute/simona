@@ -127,14 +127,8 @@ final case class EmServiceBaseCore(
         )
       }
 
-      val agents = if tick == 0 then {
-        uuidToAgent
-      } else {
-        uuidToAgent.filter { case (uuid, _) => nextActivation(uuid) <= tick }
-      }
-
       val flexRequests = provideEmData.flexRequests.asScala.flatMap {
-        case (entity, request) =>
+        case (entity, _) =>
           uuidToAgent.get(entity).map { ref =>
             ref ! FlexActivation(tick)
             entity
@@ -288,7 +282,7 @@ final case class EmServiceBaseCore(
         }
 
       case completion: FlexCompletion =>
-        val (updated, extMsgOption, nextTick, finished) =
+        val (updated, extMsgOption, _, finished) =
           handleCompletion(tick, completion)
 
         if finished then {

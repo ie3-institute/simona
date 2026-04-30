@@ -642,6 +642,7 @@ simona.powerflow = {
 ```
 simona.congestionManagement = {
     enableDetection = false
+    enableTransformerTapChange = false
 }
 ```
 

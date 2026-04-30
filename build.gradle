@@ -4,7 +4,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'com.diffplug.spotless' version '8.4.0' // code format
-  id "com.github.ben-manes.versions" version '0.53.0'
+  id "com.github.ben-manes.versions" version '0.54.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.4.1' // fat jar
@@ -23,7 +23,7 @@ ext {
   scalaBinaryVersion = '3.7.4'
   pekkoVersion = '1.5.0'
   jtsVersion = '1.20.0'
-  confluentKafkaVersion = '7.9.0'
+  confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
 
   junitVersion = '6.0.3'
@@ -134,7 +134,7 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.6'
+  implementation 'com.typesafe:config:1.4.7'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
@@ -153,7 +153,7 @@ dependencies {
   implementation "io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}"
   implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.15"
 
-  implementation 'commons-io:commons-io:2.21.0' // used for FilenameUtils
+  implementation 'commons-io:commons-io:2.22.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.3' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
