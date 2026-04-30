@@ -39,7 +39,7 @@ This allows the line current to be considered.
 One way to solve violations of the voltage band or line overloading is the transformer tap change. This mitigation measure
 performs the following steps:
 1. Calculating the possible voltage increase and decrease with the given voltage band and maximal and minimal voltage magnitude.
-2. Determine limitation imposed by inferior subgrids. Here the ability of the connecting transformers to change their tap position is also considered.
+2. Determine limitations imposed by inferior subgrids. Here the ability of the connecting transformers to change their tap position is also considered.
 3. Determine limitations or needed voltage increase imposed by the maximal line current.
 
 To consider the line currents, the current of the line with the highest loading is converted into an equivalent voltage
