@@ -73,8 +73,13 @@ object GridAgentMessages {
     *
     * @param tick
     *   Current tick.
+    * @param sameTick
+    *   If true, all participants will receive an update that a power flow
+    *   calculation for the given tick will be performed. This is needed for
+    *   doing multiple power flow calculations for the same tick (e.g.:
+    *   congestion management).
     */
-  final case class DoPowerFlowTrigger(tick: Long)
+  final case class DoPowerFlowTrigger(tick: Long, sameTick: Boolean = false)
       extends GridAgent.InternalRequest
 
   /** Trigger used inside of [[DBFSAlgorithm]] to activate the superior grid

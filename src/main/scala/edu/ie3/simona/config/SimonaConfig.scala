@@ -117,7 +117,10 @@ object SimonaConfig {
   ) extends GridConfigParams
       derives ConfigConvert
 
-  final case class CongestionManagement(enableDetection: Boolean = false)
+  final case class CongestionManagement(
+      enableDetection: Boolean = false,
+      enableTransformerTapChange: Boolean = false,
+  ) derives ConfigConvert
 
   final case class Control(
       transformer: List[TransformerControlGroup] = List.empty

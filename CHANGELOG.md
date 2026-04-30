@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented energy boundaries flex options for load model [#1705](https://github.com/ie3-institute/simona/issues/1705)
 - Added secondary data provision handling in EmAgent [#1652](https://github.com/ie3-institute/simona/issues/1652)
 - Added `GridAgentCoordinator` [#1617](https://github.com/ie3-institute/simona/issues/1617)
+- Added transformer tap change to congestion management [#1378](https://github.com/ie3-institute/simona/issues/1378)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
