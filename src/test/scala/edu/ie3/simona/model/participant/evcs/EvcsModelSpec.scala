@@ -564,9 +564,7 @@ class EvcsModelSpec
 
       "tolerance comparison (~=) treats small power as zero" in {
         val ev = EvModelWrapper(ev1)
-
         val tolerance = evcsModel.calcPowerTolerance(ev)
-
         val smallPower = tolerance / 10
 
         smallPower.~=(Kilowatts(0.0))(using tolerance) shouldBe true
