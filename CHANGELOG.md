@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented energy boundaries flex options for load model [#1705](https://github.com/ie3-institute/simona/issues/1705)
 - Added secondary data provision handling in EmAgent [#1652](https://github.com/ie3-institute/simona/issues/1652)
 - Added `GridAgentCoordinator` [#1617](https://github.com/ie3-institute/simona/issues/1617)
+- Added transformer tap change to congestion management [#1378](https://github.com/ie3-institute/simona/issues/1378)
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 
 ### Changed
@@ -127,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `AbstractEnergyBoundariesFlexModel` next tick determination [#1769](https://github.com/ie3-institute/simona/issues/1769)
 - Fixed energy limit handling in `OptimizedFlexStrat` [#1772](https://github.com/ie3-institute/simona/issues/1772)
 - Fix unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
+- Cleaned imports [#1791](https://github.com/ie3-institute/simona/issues/1791)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

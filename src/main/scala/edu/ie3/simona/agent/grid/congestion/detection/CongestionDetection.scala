@@ -52,9 +52,8 @@ trait CongestionDetection {
       // request congestion check if we have inferior grids
       askInferior(
         stateData.inferiorGridRefs,
-        CongestionCheckRequest.apply,
-        ctx,
-      )
+        (ref, _) => CongestionCheckRequest(ref),
+      )(using ctx)
 
       Behaviors.same
 
@@ -68,15 +67,6 @@ trait CongestionDetection {
 
     case (ctx, response: CongestionResponse) =>
       processReceivedData(stateData, awaitingData, response, ctx)
-
-    case (ctx, FinishStep) =>
-      // inform my inferior grids about the end of the congestion management
-      stateData.inferiorGridRefs.keys.foreach(
-        _ ! FinishStep
-      )
-
-      // directly finish congestion management, since we don't have any steps
-      finishCongestionManagement(stateData, ctx)
 
     case (ctx, msg) =>
       unsupported(msg, ctx.log)
@@ -100,6 +90,8 @@ trait CongestionDetection {
 
       // stash away the message, because we need to wait for data from inferior grids
       buffer.stash(congestionRequest)
+      checkForCongestion(stateData, awaitingData)
+
     } else {
       // check if there are any congestions in the grid
       val congestions = stateData.congestions
@@ -115,9 +107,10 @@ trait CongestionDetection {
         ctx.self,
         congestions.combine(awaitingData.values),
       )
-    }
 
-    checkForCongestion(stateData, awaitingData)
+      // wait for the next step, since the detection is completed
+      GridAgent.waitForNextStep(stateData)
+    }
   }
 
   private def processReceivedData(
@@ -140,8 +133,7 @@ trait CongestionDetection {
         updatedCongestions,
       )
 
-      ctx.self ! FinishStep
-      checkForCongestion(stateData, updatedData)
+      GridAgent.waitForNextStep(stateData)
     } else {
       // un-stash all messages
       buffer.unstashAll(checkForCongestion(stateData, updatedData))

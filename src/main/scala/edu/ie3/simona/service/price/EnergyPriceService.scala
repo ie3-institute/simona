@@ -44,7 +44,6 @@ import org.slf4j.Logger
 
 import java.nio.file.Paths
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
