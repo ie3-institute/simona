@@ -12,6 +12,7 @@ import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{
   EmData,
+  FlexOptionRequest,
   SetPoint,
   FlexOptions as ExtFlexOptions,
 }
@@ -188,45 +189,10 @@ case class EmServiceCore(
       log: Logger
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMsg match {
     case internal: EmSimulationInternal =>
-      // the service should simulate the tick internal
-      val internalTick = internal.tick
-
-      val uuids = uncontrolled
-        .filter { uuid => nextActivation(uuid) == internalTick }
-        .map { uuid =>
-          uuidToAgent(uuid) ! FlexActivation(tick)
-          uuid
-        }
-
-      (
-        copy(
-          completions = completions.addExpectedKeys(uuids),
-          emDataStore = emDataStore.addExpectedKeys(uuids),
-          internal = uuids,
-        ),
-        None,
-      )
+      simulateInternal(internal)
 
     case requestEmCompletion: RequestEmCompletion =>
-      // finish tick and return next tick
-      val extTick = requestEmCompletion.tick
-
-      if extTick != tick then {
-        throw new CriticalFailureException(
-          s"Received completion request for tick '$extTick', while being in tick '$tick'."
-        )
-      } else {
-        log.info(s"Request to finish for tick '$tick' received.")
-
-        val nextTick: OptionalLong = if emStates.exists(_._2.isActivated) then {
-          requestEmCompletion.maybeNextTick
-        } else getMaybeNextTick(tick)
-
-        (
-          this,
-          Some(new EmCompletion(nextTick)),
-        )
-      }
+      handleExtCompletion(tick, requestEmCompletion)
 
     case provideEmData: ProvideEmData =>
       if !provideEmData.flexOptions.isEmpty then {
@@ -235,19 +201,8 @@ case class EmServiceCore(
         )
       }
 
-      val agents = if tick == 0 then {
-        uuidToAgent
-      } else {
-        uuidToAgent.filter { case (uuid, _) => nextActivation(uuid) <= tick }
-      }
-
-      val flexRequests = provideEmData.flexRequests.asScala.flatMap {
-        case (entity, _) =>
-          agents.get(entity).map { ref =>
-            ref ! FlexActivation(tick)
-            entity
-          }
-      }.toSet
+      val flexRequests =
+        handleExtFlexRequests(tick, provideEmData.flexRequests.asScala)
 
       val updatedState = copy(
         emDataStore = emDataStore.addExpectedKeys(flexRequests),
@@ -424,92 +379,137 @@ case class EmServiceCore(
         (this, None)
 
       case provideFlexOptions: ProvideFlexOptions =>
-        val updated = handleFlexOptions(receiverUuid, provideFlexOptions)
-
-        if updated.isComplete then {
-          // we received all flex options
-
-          val (data, updatedStore) = updated.getFinished
-
-          val updatedCore = copy(
-            emDataStore = updatedStore,
-            canHandleSetPoints = true,
-          )
-
-          if internal.nonEmpty then {
-            internal.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
-
-            (updatedCore, None)
-
-          } else if sendDataToExt then {
-            val dataToSend = data
-
-            // we have received an option request, that will now be answered
-            (updatedCore, Some(new EmResultResponse(dataToSend.asJava)))
-
-          } else {
-
-            setPointOption match {
-              case Some(setPoints) =>
-                // we have received new set points, that are not handled yet => we will handle them now
-                handleSetPoint(tick, setPoints, log)
-
-                (updatedCore.copy(setPointOption = None), None)
-              case None =>
-                // we are now able to handle set points, but we have not yet received any
-                (updatedCore, None)
-            }
-          }
-
-        } else {
-          log.debug(s"Missing flex options for: ${updated.getExpectedKeys}")
-
-          (copy(emDataStore = updated), None)
-        }
+        handleFlexOptionProvision(
+          tick,
+          receiverUuid,
+          provideFlexOptions,
+        )
 
       case completion: FlexCompletion =>
-        val (updated, extMsgOption, _, finished) =
-          handleCompletion(tick, completion)
-
-        if finished then {
-          if tick < FIRST_TICK_IN_SIMULATION then {
-            uncontrolled.foreach(uuid =>
-              scheduler ! Completion(uuidToAgent(uuid))
-            )
-          }
-
-          // the next activations
-          val updatedNextActivation =
-            nextActivation ++ updated.receivedData.flatMap { case (uuid, msg) =>
-              msg.requestAtTick.map(uuid -> _)
-            }
-
-          val updatedStateData = copy(
-            completions = ReceiveDataMap.empty,
-            sendDataToExt = false,
-            canHandleSetPoints = false,
-            nextActivation = updatedNextActivation,
-            internal = Set.empty,
-          )
-
-          val msgToExt = if internal.nonEmpty then {
-            Some(new EmCompletion(updatedStateData.getMaybeNextTick(tick)))
-          } else extMsgOption
-
-          log.info(s"Em service completed for tick: $tick")
-
-          (updatedStateData, msgToExt)
-
-        } else {
-          log.debug(s"Missing completion for: ${updated.getExpectedKeys}")
-
-          (copy(completions = updated), extMsgOption)
-        }
+        handleCompletion(tick, completion)
 
       case _ =>
         (this, None)
     }
   }
+
+  /** Method to handle a request to simulate internally.
+    * @param internal
+    *   The request to handle.
+    * @return
+    *   An updated service core and an option for a message that should be sent
+    *   to the external simulation.
+    */
+  private def simulateInternal(
+      internal: EmSimulationInternal
+  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    // the service should simulate the tick internal
+    val internalTick = internal.tick
+
+    val uuids = uncontrolled
+      .filter { uuid => nextActivation(uuid) == internalTick }
+      .map { uuid =>
+        uuidToAgent(uuid) ! FlexActivation(internalTick)
+        uuid
+      }
+
+    (
+      copy(
+        completions = completions.addExpectedKeys(uuids),
+        emDataStore = emDataStore.addExpectedKeys(uuids),
+        internal = uuids,
+      ),
+      None,
+    )
+  }
+
+  /** Method to handle an external em service completion request.
+    *
+    * @param tick
+    *   The current simulation tick.
+    * @param requestEmCompletion
+    *   The request to handle.
+    * @return
+    *   An updated service core and an option for a message that should be sent
+    *   to the external simulation.
+    */
+  private def handleExtCompletion(
+      tick: Long,
+      requestEmCompletion: RequestEmCompletion,
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    // finish tick and return next tick
+    val extTick = requestEmCompletion.tick
+
+    if extTick != tick then {
+      throw new CriticalFailureException(
+        s"Received completion request for tick '$extTick', while being in tick '$tick'."
+      )
+    } else {
+      log.info(s"Request to finish for tick '$tick' received.")
+
+      val nextTick: OptionalLong = if emStates.exists(_._2.isActivated) then {
+        requestEmCompletion.maybeNextTick
+      } else getMaybeNextTick(tick)
+
+      (
+        this,
+        Some(new EmCompletion(nextTick)),
+      )
+    }
+  }
+
+  /** Method to handle external flex requests.
+    * @param tick
+    *   For which the request should be handled.
+    * @param flexRequests
+    *   The requests to handle.
+    * @return
+    *   A set of uuids of activated em agents.
+    */
+  private def handleExtFlexRequests(
+      tick: Long,
+      flexRequests: Iterable[(UUID, FlexOptionRequest)],
+  ): Set[UUID] = {
+    val agents = if tick == 0 then {
+      uuidToAgent
+    } else {
+      uuidToAgent.filter { case (uuid, _) => nextActivation(uuid) <= tick }
+    }
+
+    flexRequests.flatMap { case (uuid, request) =>
+      handleExtFlexRequest(tick, uuid, request, agents)
+    }.toSet
+  }
+
+  /** Method to handle an external flex request.
+    *
+    * @param tick
+    *   For which the request should be handled.
+    * @param receiver
+    *   The receiver uuid of the request.
+    * @param request
+    *   The request to handle.
+    * @param agents
+    *   A map: uuid to activatable em agents.
+    * @return
+    *   An option for an uuid. The option is [[None]] if no agent was activated.
+    */
+  private def handleExtFlexRequest(
+      tick: Long,
+      receiver: UUID,
+      request: FlexOptionRequest,
+      agents: Map[UUID, ActorRef[EmAgent.Message]],
+  ): Option[UUID] =
+    if emStates(receiver).isWaitingForActivation then {
+      agents.get(receiver).map { ref =>
+        // update the em state
+        emStates(receiver).setReceivedRequest(request.disaggregated)
+
+        ref ! FlexActivation(tick)
+        receiver
+      }
+
+    } else None
 
   /** Method to handle flex requests to the em agents.
     * @param flexRequest
@@ -538,6 +538,8 @@ case class EmServiceCore(
 
   /** Method to handle flex options.
     *
+    * @param tick
+    *   The current tick of the simulation.
     * @param receiver
     *   The receiver of the flex options.
     * @param provideFlexOptions
@@ -545,21 +547,66 @@ case class EmServiceCore(
     * @return
     *   An updated service core and a map: uuid to flex options
     */
-  private def handleFlexOptions(
+  private def handleFlexOptionProvision(
+      tick: Long,
       receiver: UUID,
       provideFlexOptions: ProvideFlexOptions,
-  ): ReceiveMultiDataMap[UUID, EmData] = provideFlexOptions match {
-    case ProvideFlexOptions(modelUuid: UUID, fo) =>
-      val result = fo.toExt(receiver, modelUuid)
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    val updated = provideFlexOptions match {
+      case ProvideFlexOptions(modelUuid: UUID, fo) =>
+        val result = fo.toExt(receiver, modelUuid)
 
-      if emDataStore.expects(modelUuid) then {
-        emDataStore.addData(modelUuid, result)
-      } else emDataStore
+        if emDataStore.expects(modelUuid) then {
+          emDataStore.addData(modelUuid, result)
+        } else emDataStore
 
-    case _ => emDataStore
+      case _ => emDataStore
+    }
+
+    if updated.isComplete then {
+      // we received all flex options
+
+      val (data, updatedStore) = updated.getFinished
+
+      val updatedCore = copy(
+        emDataStore = updatedStore,
+        canHandleSetPoints = true,
+      )
+
+      if internal.nonEmpty then {
+        internal.map(uuidToAgent).foreach(_ ! IssueNoControl(tick))
+
+        (updatedCore, None)
+
+      } else if sendDataToExt then {
+        val dataToSend = data
+
+        // we have received an option request, that will now be answered
+        (updatedCore, Some(new EmResultResponse(dataToSend.asJava)))
+
+      } else {
+
+        setPointOption match {
+          case Some(setPoints) =>
+            // we have received new set points, that are not handled yet => we will handle them now
+            handleSetPoint(tick, setPoints, log)
+
+            (updatedCore.copy(setPointOption = None), None)
+          case None =>
+            // we are now able to handle set points, but we have not yet received any
+            (updatedCore, None)
+        }
+      }
+
+    } else {
+      log.debug(s"Missing flex options for: ${updated.getExpectedKeys}")
+
+      (copy(emDataStore = updated), None)
+    }
   }
 
   /** Method to handle received completion messages.
+    *
     * @param tick
     *   Current tick of the service.
     * @param completion
@@ -569,30 +616,63 @@ case class EmServiceCore(
     *   sent to the external simulation and a boolean that tells, if all
     *   completions have been received.
     */
-  final def handleCompletion(tick: Long, completion: FlexCompletion): (
-      ReceiveDataMap[UUID, FlexCompletion],
-      Option[EmDataResponseMessageToExt],
-      Option[Long],
-      Boolean,
-  ) = {
-    val uuid = completion.modelUuid
+  private def handleCompletion(
+      tick: Long,
+      completion: FlexCompletion,
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
+    val (updated, extMsgOption, finished) = {
+      val uuid = completion.modelUuid
 
-    if completions.expects(uuid) then {
-      val updated = completions.addData(uuid, completion)
+      if completions.expects(uuid) then {
+        val updated = completions.addData(uuid, completion)
 
-      if updated.isComplete then {
-        val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
-          // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-          val option = getMaybeNextTick(tick)
+        if updated.isComplete then {
+          val extMsgOption = if tick != INIT_SIM_TICK then {
+            // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
+            val option = getMaybeNextTick(tick)
 
-          (Some(new EmCompletion(option)), option)
-        } else (None, None)
+            Some(new EmCompletion(option))
+          } else None
 
-        // every em agent has sent a completion message
-        (updated, extMsgOption, nextTickOption, true)
+          // every em agent has sent a completion message
+          (updated, extMsgOption, true)
 
-      } else (updated, None, None, false)
-    } else (completions, None, None, false)
+        } else (updated, None, false)
+      } else (completions, None, false)
+    }
+
+    if finished then {
+      if tick < FIRST_TICK_IN_SIMULATION then {
+        uncontrolled.foreach(uuid => scheduler ! Completion(uuidToAgent(uuid)))
+      }
+
+      // the next activations
+      val updatedNextActivation =
+        nextActivation ++ updated.receivedData.flatMap { case (uuid, msg) =>
+          msg.requestAtTick.map(uuid -> _)
+        }
+
+      val updatedStateData = copy(
+        completions = ReceiveDataMap.empty,
+        sendDataToExt = false,
+        canHandleSetPoints = false,
+        nextActivation = updatedNextActivation,
+        internal = Set.empty,
+      )
+
+      val msgToExt = if internal.nonEmpty then {
+        Some(new EmCompletion(updatedStateData.getMaybeNextTick(tick)))
+      } else extMsgOption
+
+      log.info(s"Em service completed for tick: $tick")
+
+      (updatedStateData, msgToExt)
+
+    } else {
+      log.debug(s"Missing completion for: ${updated.getExpectedKeys}")
+
+      (copy(completions = updated), extMsgOption)
+    }
   }
 
   /** Method to calculate the next tick option.
