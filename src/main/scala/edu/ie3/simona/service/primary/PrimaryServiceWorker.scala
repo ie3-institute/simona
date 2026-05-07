@@ -42,7 +42,6 @@ import org.slf4j.Logger
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}

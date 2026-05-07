@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.participant.storage
 
-import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
+import edu.ie3.simona.model.participant.ChargingHelper
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   OperationChangeIndicator,

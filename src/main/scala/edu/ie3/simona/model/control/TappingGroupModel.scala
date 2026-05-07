@@ -97,8 +97,8 @@ final case class TappingGroupModel(
       val possibleDeltas = tappings
         .map(
           _.getPossibleVoltageChanges(
-            range.deltaPlus,
-            range.deltaMinus,
+            range.possibleIncrease,
+            range.possibleDecrease,
             ConnectorPort.B,
           )
         )
