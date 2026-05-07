@@ -85,14 +85,15 @@ $$
 
 *with*\
 **$ST$** = local solar time (in hours)
+**Note:** The sun crosses the meridian of the observer at local noon (12:00 in local solar time), taking into account the eccentricity of earth's orbit.
 
 $$
 ST = LMT + ET
 $$
 
 *with*\
-**$LMT$** = local mean time (in minutes)\
-**$ET$** = equation of time (in minutes)
+**$LMT$** = local mean time (in minutes), follows the average movement of the sun over a year.\
+**$ET$** = equation of time (in minutes), difference between LMT and ST due to the eccentricity of the earth's orbit.
 
 $$
 LMT = hour_{TimeBasis} \cdot 60 + min_{TimeBasis} + 4 \cdot (L_{St} + \lambda)
