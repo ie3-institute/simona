@@ -16,20 +16,22 @@ class LineThermalModelNetworkSolverSpec extends UnitSpec {
   "A LineThermalModelNetworkSolver" should {
 
     "determine eigenvalues and eigenvectors for a diagonal matrix" in {
-      val matrix = DenseMatrix((2.0, 0.0), (0.0, 5.0))
+      val cases = Table(
+        ("matrix", "expected"),
+        (DenseMatrix((-2.0, 0.0), (0.0, -5.0)), Array(-2.0, -5.0)),
+        )
 
-      val (eigenvalues, eigenvectors) =
-        LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrix)
+      forAll(cases) { (matrix: DenseMatrix[Double], expected: Array[Double]) =>
 
-      eigenvalues.length shouldBe 2
-      eigenvectors.rows shouldBe 2
-      eigenvectors.cols shouldBe 2
+        val (eigenvalues, eigenvectors) =
+          LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrix)
 
-      eigenvalues.toArray.sorted shouldBe Array(2.0, 5.0)
+        eigenvalues.toArray.sorted shouldBe expected.sorted
+      }
     }
 
     "return eigenpairs that satisfy A * v = lambda * v" in {
-      val matrix = DenseMatrix((4.0, 1.0), (2.0, 3.0))
+      val matrix = DenseMatrix((-4.0, -1.0), (-2.0, -3.0))
 
       val (eigenvalues, eigenvectors) =
         LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrix)
@@ -43,6 +45,15 @@ class LineThermalModelNetworkSolverSpec extends UnitSpec {
 
         norm(left - right) should be <= tolerance
       }
+    }
+
+    "throw IllegalStateException for unstable (positive-eigenvalue) networks" in {
+      val unstable = DenseMatrix((2.0, 0.0), (0.0, 5.0))
+
+      val ex = intercept[IllegalStateException] {
+        LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(unstable)
+      }
+      ex.getMessage should include("Unstable RC network")
     }
   }
 }
