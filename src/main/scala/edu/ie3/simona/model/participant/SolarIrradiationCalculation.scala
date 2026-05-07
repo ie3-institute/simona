@@ -62,7 +62,7 @@ object SolarIrradiationCalculation {
     * on its axis at 15◦ per hour; morning negative, afternoon positive.
     *
     * @param time
-    *   The requested time (which is transformed to UTC and then to solar time).
+    *   The requested time (which is used to derive solar time).
     * @param angleJ
     *   The day angle J.
     * @param longitude
