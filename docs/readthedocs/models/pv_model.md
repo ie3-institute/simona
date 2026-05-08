@@ -74,13 +74,13 @@ It starts with a negative value in the morning, arrives at 0° at noon (solar ti
 The hour angle (in radian!) is calculated as follows
 
 $$
-\omega = ((12 - T\mathrm{sol}) \cdot 15) \cdot (\frac{\pi}{180})
+\omega = ((12 - T_\mathrm{sol}) \cdot 15) \cdot (\frac{\pi}{180})
 $$
 
 Since outside German literature the hour angle is defined as negative in the morning, we use the following adaption:
 
 $$
-\omega = ((T\mathrm{sol} - 12) \cdot 15) \cdot (\frac{\pi}{180})
+\omega = ((T_\mathrm{sol} - 12) \cdot 15) \cdot (\frac{\pi}{180})
 $$
 
 *with*\
