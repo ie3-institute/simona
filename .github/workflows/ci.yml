@@ -66,8 +66,8 @@ jobs:
           BASE_BRANCH: ${{ github.event.pull_request.base.ref }}
         run: bash scripts/run-version-check.sh
 
-      - name: Build Project
-        run: ./gradlew --refresh-dependencies clean assemble spotlessCheck
+      - name: Build Project anc Check
+        run: ./gradlew assemble spotlessCheck --parallel
 
       - name: Run Tests
         run: ./gradlew test reportScoverage checkScoverage
