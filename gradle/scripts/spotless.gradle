@@ -18,8 +18,7 @@ spotless {
   groovyGradle {
     // same as groovy, but for .gradle (defaults to '*.gradle')
     target('*.gradle', 'gradle/scripts/*.gradle')
-    prettier()
-    leadingTabsToSpaces(2)
+    indentWithSpaces(2)
   }
 
   //sets a license header, removes unused imports and formats conforming to the scala fmt formatter
