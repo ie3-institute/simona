@@ -17,7 +17,7 @@ spotless {
   /* cf. https://github.com/diffplug/spotless/tree/master/plugin-gradle */
   groovyGradle {
     // same as groovy, but for .gradle (defaults to '*.gradle')
-    target 'build.gradle', 'settings.gradle', 'gradle/*.gradle', 'gradle/scripts/*.gradle'
+    target('*.gradle', 'gradle/scripts/*.gradle')
     greclipse()
     leadingTabsToSpaces(2)
   }
@@ -39,7 +39,7 @@ spotless {
   /* Formats markdown files, just like the other misc files, but without trimming trailing white spaces (nested
    * enumerations) */
   format('md') {
-    target('docs/**/*.md')
+    target('**/*.md')
     leadingTabsToSpaces(2)
     endWithNewline()
   }
