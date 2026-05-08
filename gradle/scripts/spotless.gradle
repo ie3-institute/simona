@@ -1,7 +1,6 @@
 // spotless is a code formatter
 
 spotless {
-  ratchetFrom 'origin/main' // Only check files changed since main
   def ie3LicHead = '/*\n' +
       ' * © $YEAR. TU Dortmund University,\n' +
       ' * Institute of Energy Systems, Energy Efficiency and Energy Economics,\n' +
