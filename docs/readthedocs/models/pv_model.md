@@ -37,7 +37,7 @@ To calculate the overall feed in of the PV unit, the sum of the direct irradianc
 In the following, the formulas to calculate each of these radiances are presented and explained.
 The sections end with the formula to calculate the corresponding power feed in.
 
-The surface azimuth angle $\alpha_{e}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West ([Source](https://www.photovoltaik.org/wissen/azimutwinkel)).
+The surface azimuth angle $\alpha_{\mathrm{{e}}$ starts at negative values in the East and moves over 0° (South) towards positive values in the West ([Source](https://www.photovoltaik.org/wissen/azimutwinkel)).
 
 ### Declination Angle
 
@@ -96,13 +96,13 @@ $$
 **$ET$** = equation of time (in minutes), difference between LMT and ST due to the eccentricity of the earth's orbit.
 
 $$
-LMT = hour_{TimeBasis} \cdot 60 + min_{TimeBasis} + 4 \cdot (L_{St} + \lambda)
+LMT = hour_{\mathrm{TimeBasis}} \cdot 60 + min_{\mathrm{TimeBasis}} + 4 \cdot (L_{\mathrm{St}} + \lambda)
 $$
 
 *with*\
-**$hour_{TimeBasis}$** = Hour of the time basis (we choose UTC as time basis) \
-**$min_{TimeBasis}$** = Minute of the time basis (we choose UTC as time basis) \
-**$L_{St}$** = Standard meridian for the time basis (since we choose UTC as time basis, $L_{St}$ is zero) \
+**$hour_{\mathrm{TimeBasis}}$** = Hour of the time basis (we choose UTC as time basis) \
+**$min_{\mathrm{TimeBasis}}$** = Minute of the time basis (we choose UTC as time basis) \
+**$L_{\mathrm{St}}$** = Standard meridian for the time basis (since we choose UTC as time basis, $L_{\mathrm{St}}$ is zero) \
 **λ** = longitude of the location (in Degrees) of the PV panel
 
 **Note:** The formula in {cite:cts}`Duffie.2013` p. 11 is defining λ in degrees west being positive. However, since we are using the longitude directly, which is negative westwards, this changes the sign in the formula.
@@ -131,15 +131,15 @@ For international calculations a more general formulation that can be found in {
 ### Sunrise Angle
 
 The hour angles at sunrise and sunset are very useful quantities to know.
-These two values have the same absolute value, however the sunset angle ($\omega_{SS}$) is positive and the sunrise angle ($\omega_{SR}$) is negative.
+These two values have the same absolute value, however the sunset angle ($\omega_{\mathrm{SS}}$) is positive and the sunrise angle ($\omega_{\mathrm{SR}}$) is negative.
 Both can be calculated from:
 
 $$
-\omega_{SS}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))
+\omega_{\mathrm{SS}}=\cos^{-1}(-\tan (\phi) \cdot \tan (\delta))
 $$
 
 $$
-\omega_{SR}=-\omega_{SS}
+\omega_{\mathrm{SR}}=-\omega_{\mathrm{SS}}
 $$
 
 *with*\
@@ -157,18 +157,18 @@ $$
 Represents the angle between the horizontal and the line to the sun, that is, the complement of the zenith angle.
 
 $$
-\sin(\alpha_{s}) = \sin (\phi) \cdot \sin (\delta) + \cos (\delta) \cdot \cos (\omega) \cdot \cos (\phi)
+\sin(\alpha_{\mathrm{s}}) = \sin (\phi) \cdot \sin (\delta) + \cos (\delta) \cdot \cos (\omega) \cdot \cos (\phi)
 $$
 
 *with*\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
-**$\omega$**= hour angle
+**$\omega$** = hour angle
 
 **References:**
 
 * {cite:cts}`Maleki.2017` p. 5
-* {cite:cts}`Duffie.2013` p. 15 (formula 1.6.5) with $\sin (\alpha_s) = \cos (\theta_z)$
+* {cite:cts}`Duffie.2013` p. 15 (formula 1.6.5) with $\sin (\alpha_{\mathrm{s}}) = \cos (\theta_{\mathrm{z}})$
 
 
 ### Zenith Angle
@@ -176,11 +176,11 @@ $$
 Represents the angle between the vertical and the line to the sun, that is, the angle of incidence of beam radiance on a horizontal surface.
 
 $$
-\theta_{z} = (\frac{\pi}{2}) - \alpha_{s}
+\theta_{\mathrm{z}} = (\frac{\pi}{2}) - \alpha_{\mathrm{s}}
 $$
 
 *with*\
-**$\alpha_s$** = solar altitude angle
+**$\alpha_{\mathrm{s}}$** = solar altitude angle
 
 **References:**
 See Solar Altitude Angle
@@ -192,20 +192,20 @@ It can be calculated as follows:
 
 $$
 \begin{aligned}
-\theta_{g} = \arccos(\sin(\delta) \cdot \sin(\phi) \cdot
-\cos(\gamma_{e}) \\ - \sin(\delta) \cdot \cos(\phi) \cdot
-\sin(\gamma_{e}) \cdot \cos(\alpha_{e}) \\ +
-\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) \cdot
-\cos(\omega) \\ + \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e})
-\cdot \cos(\alpha_{e}) \cdot \cos(\omega) \\ +
-\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e}) \cdot
+\theta_{\mathrm{g}} = \arccos(\sin(\delta) \cdot \sin(\phi) \cdot
+\cos(\gamma_{\mathrm{e}}) \\ - \sin(\delta) \cdot \cos(\phi) \cdot
+\sin(\gamma_{\mathrm{e}}) \cdot \cos(\alpha_{\mathrm{e}}) \\ +
+\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{\mathrm{e}}) \cdot
+\cos(\omega) \\ + \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{\mathrm{e}})
+\cdot \cos(\alpha_{\mathrm{e}}) \cdot \cos(\omega) \\ +
+\cos(\delta) \cdot \sin(\gamma_{\mathrm{e}}) \cdot \sin(\alpha_{\mathrm{e}}) \cdot
 \sin(\omega))
 \end{aligned}
 $$
 
 *with*\
-**$\alpha_e$** = surface azimuth angle\
-**$\gamma_e$** = slope angle of the surface\
+**$\alpha_{\mathrm{e}}$** = surface azimuth angle\
+**$\gamma_{\mathrm{e}}$** = slope angle of the surface\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
 **$\omega$** = hour angle
@@ -225,7 +225,7 @@ $$
 $$
 
 $$
-\mathrm{airmass} = \sqrt{(707.8\overline{8} \cdot \cos({\theta_z}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_z)})
+\mathrm{airmass} = \sqrt{(707.8\overline{8} \cdot \cos({\theta_{\mathrm{z}}}))^2 +2 \cdot 707.8\overline{8} +1)} - 707.8\overline{8} \cdot \cos{(\theta_{\mathrm{z}})})
 $$
 
 **References:**
@@ -236,7 +236,7 @@ $$
 
 ### Extraterrestrial Radiance
 
-The extraterrestrial radiance $G_0$ is calculated by multiplying the eccentricity correction factor.
+The extraterrestrial radiance $G_{\mathrm{0}}$ is calculated by multiplying the eccentricity correction factor.
 
 $$
 \begin{aligned}
@@ -247,7 +247,7 @@ $$
 with the solar constant
 
 $$
-G_{SC} = 1367 {\frac{W}{m^2}}
+G_{\mathrm{SC}} = 1367 {\frac{W}{m^2}}
 $$
 
 *with*\
@@ -263,54 +263,54 @@ $$
 
 ### Beam Irradiance on Sloped Surface
 
-For our use case, $\omega_{2}$ is normally set to the hour angle one hour after $\omega_{1}$.
-Within one hour distance to sunrise/sunset, we adjust $\omega_{1}$ and $\omega_{2}$ accordingly:
+For our use case, $\omega_{\mathrm{2}}$ is normally set to the hour angle one hour after $\omega_{\mathrm{1}}$.
+Within one hour distance to sunrise/sunset, we adjust $\omega_{\mathrm{1}}$ and $\omega_{\mathrm{2}}$ accordingly:
 
 $$
 \begin{aligned}
-(\omega_{1}, \omega_{2}) = \begin{cases}
-(\omega_{SR}, \omega_{SR} + \Delta\omega), & \text{for}  (\omega_{SR}-\frac{\Delta \omega}{2}) < \omega < \omega_{SR} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{SR} \le \omega \le (\omega_{SS}- \Delta\omega) \\ (\omega_{SS}-\Delta\omega,\omega_{SS}), & \text{for }(\omega_{SR}-\Delta\omega) < \omega < (\omega_{SS}-\frac{\Delta\omega}{2})
+(\omega_{\mathrm{1}}, \omega_{\mathrm{2}}) = \begin{cases}
+(\omega_{\mathrm{SR}}, \omega_{\mathrm{SR}} + \Delta\omega), & \text{for}  (\omega_{\mathrm{SR}}-\frac{\Delta \omega}{2}) < \omega < \omega_{\mathrm{SR}} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{\mathrm{SR}} \le \omega \le (\omega_{\mathrm{SS}}- \Delta\omega) \\ (\omega_{\mathrm{SS}}-\Delta\omega,\omega_{\mathrm{SS}}), & \text{for }(\omega_{\mathrm{SR}}-\Delta\omega) < \omega < (\omega_{\mathrm{SS}}-\frac{\Delta\omega}{2})
 \end{cases}
 \end{aligned}
 $$
 
-Additionally, the condition $\theta_{g} < 90°$ must be met (the sun must not be behind the surface).
+Additionally, the condition $\theta_{\mathrm{g}} < 90°$ must be met (the sun must not be behind the surface).
 
 *with*\
 **$\omega$** = hour angle\
-**$\omega_{SS}$** = hour angle $\omega$ at sunset\
-**$\omega_{SR}$** = hour angle $\omega$ at sunrise\
+**$\omega_{\mathrm{SS}}$** = hour angle $\omega$ at sunset\
+**$\omega_{\mathrm{SR}}$** = hour angle $\omega$ at sunrise\
 **$\Delta\omega$** = $15^\circ \cdot (\frac {\pi}{180^\circ})$ (one hour worth of $\omega$)
 
 From here on, formulas from given reference below are used:
 
 $$
 \begin{aligned}
-a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{e}) - 
-\sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{e}) \cdot
-\cos(\alpha_{e})) \cdot (\omega_{2} - \omega_{1}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{e}) +
-\cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{e}) \cdot
-\cos(\alpha_{e})) \cdot (\sin(\omega_{2}) \\ -
-\sin(\omega_{1}))  - (\cos(\delta) \cdot \sin(\gamma_{e}) \cdot \sin(\alpha_{e})) \cdot (\cos(\omega_{2}) - \cos(\omega_{1}))
+a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{\mathrm{e}}) - 
+\sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{\mathrm{e}}) \cdot
+\cos(\alpha_{\mathrm{e}})) \cdot (\omega_{\mathrm{2}} - \omega_{\mathrm{1}}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{\mathrm{e}}) +
+\cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{\mathrm{e}}) \cdot
+\cos(\alpha_{\mathrm{e}})) \cdot (\sin(\omega_{\mathrm{2}}) \\ -
+\sin(\omega_{\mathrm{1}}))  - (\cos(\delta) \cdot \sin(\gamma_{\mathrm{e}}) \cdot \sin(\alpha_{\mathrm{e}})) \cdot (\cos(\omega_{\mathrm{2}}) - \cos(\omega_{\mathrm{1}}))
 \end{aligned}
 $$
 
 $$
-b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_{2}) - \sin(\omega_{1})) + (\sin(\phi) \cdot \sin(\delta)) \cdot (\omega_{2} - \omega_{1})
+b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_{\mathrm{2}}) - \sin(\omega_{\mathrm{1}})) + (\sin(\phi) \cdot \sin(\delta)) \cdot (\omega_{\mathrm{2}} - \omega_{\mathrm{1}})
 $$
 
 $$
-G_{\mathrm{beam},S} = G_{\mathrm{beam},H} \cdot \frac{a}{b}
+G_{\mathrm{beam,S}} = G_{\mathrm{beam,H}} \cdot \frac{a}{b}
 $$
 
 *with*\
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
-**$\gamma_{e}$** = slope angle of the surface\
-**$\omega_1$** = hour angle $\omega$\
-**$\omega_2$** = hour angle $\omega$ + 1 hour\
-**$\alpha_e$** = surface azimuth angle\
-**$G_{\mathrm{beam},H}$** = beam irradiance (horizontal surface)
+**$\gamma_{\mathrm{e}}$** = slope angle of the surface\
+**$\omega_{\mathrm{1}}$** = hour angle $\omega$\
+**$\omega_{\mathrm{2}}$** = hour angle $\omega$ + 1 hour\
+**$\alpha_{\mathrm{e}}$** = surface azimuth angle\
+**$G_{\mathrm{beam,H}}$** = beam irradiance (horizontal surface)
 
 **Please note:**
 1. $\frac{1}{180}\pi$ is omitted from these formulas, as we are already working with data in *radians*.
@@ -330,15 +330,15 @@ Furthermore, there is Rayleigh scattering, backscatter (which lead to increased 
 A cloud index is defined by
 
 $$
-\epsilon = \frac{\frac{G_{\mathrm{dif},H} + G_{\mathrm{beam},N}}{G_{\mathrm{dif},H}} + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{z}^3}
+\epsilon = \frac{\frac{G_{\mathrm{dif,H}} + G_{\mathrm{beam,N}}}{G_{\mathrm{dif,H}}} + 5.535 \cdot 10^{-6} \cdot \theta_{\mathrm{z}}^3}{1 + 5.535 \cdot 10^{-6} \cdot \theta_{\mathrm{z}}^3}
 $$
 
-with angle $\theta_z$ values in **degrees** ({cite:p}`Duffie.2013` p. 94) and $G_{\mathrm{beam},N} = \frac{G_{\mathrm{beam},H}}{\cos (\theta_z)}$ ({cite:p}`Duffie.2013` p. 95).
+with angle $\theta_{\mathrm{z}}$ values in **degrees** ({cite:p}`Duffie.2013` p. 94) and $G_{\mathrm{beam,N}} = \frac{G_{\mathrm{beam,H}}}{\cos (\theta_{\mathrm{z}})}$ ({cite:p}`Duffie.2013` p. 95).
 
 Calculating a brightness index
 
 $$
-\Delta = m \cdot \frac{G_{\mathrm{dif},H}}{G_{0}}
+\Delta = m \cdot \frac{G_{\mathrm{dif,H}}}{G_{\mathrm{0}}}
 $$
 
 **Perez Fij coefficients (Myers 2017):**
@@ -360,77 +360,77 @@ $\epsilon$ is sorted into one of eight bins according to its value:
 In order to calculate indexes representing the horizon brightness and the brightness in the vicinity of the sun, the following factors are computed.
 
 $$
-F_{11}(x) = -0.0161 \cdot x^3 + 0.1840 \cdot x^2 - 0.3806 \cdot x + 0.2324
+F_{\mathrm{11}}(x) = -0.0161 \cdot x^3 + 0.1840 \cdot x^2 - 0.3806 \cdot x + 0.2324
 $$
 
 $$
-F_{12}(x) = 0.0134 \cdot x^4 - 0.1938 \cdot x^3 + 0.8410 \cdot x^2 - 1.4018 \cdot x + 1.3579
+F_{\mathrm{12}}(x) = 0.0134 \cdot x^4 - 0.1938 \cdot x^3 + 0.8410 \cdot x^2 - 1.4018 \cdot x + 1.3579
 $$
 
 $$
-F_{13}(x) = 0.0032 \cdot x^3 - 0.028 \cdot x^2 - 0.0056
+F_{\mathrm{13}}(x) = 0.0032 \cdot x^3 - 0.028 \cdot x^2 - 0.0056
 \cdot x - 0.0385
 $$
 
 $$
-F_{21}(x) = -0.0048 \cdot x^3 + 0.0536 \cdot x^2 - 0.1049
+F_{\mathrm{21}}(x) = -0.0048 \cdot x^3 + 0.0536 \cdot x^2 - 0.1049
 \cdot x + 0.0034
 $$
 
 $$
-F_{22}(x) = 0.0012 \cdot x^3 - 0.0067 \cdot x^2 + 0.0091
+F_{\mathrm{22}}(x) = 0.0012 \cdot x^3 - 0.0067 \cdot x^2 + 0.0091
 \cdot x - 0.0269
 $$
 
 $$
-F_{23}(x) = 0.0052 \cdot x^3 - 0.0971 \cdot x^2 + 0.2856
+F_{\mathrm{23}}(x) = 0.0052 \cdot x^3 - 0.0971 \cdot x^2 + 0.2856
 \cdot x - 0.1389
 $$
 
 Horizon brightness index:
 
 $$
-F_{1} = F_{11}(x) + F_{12}(x) \cdot \Delta + F_{13}(x)
-\cdot \theta_{z}
+F_{\mathrm{1}} = F_{\mathrm{11}}(x) + F_{\mathrm{12}}(x) \cdot \Delta + F_{\mathrm{13}}(x)
+\cdot \theta_{\mathrm{z}}
 $$
 
 Sun ambient brightness index:
 
 $$
-F_{2} = F_{21}(x) + F_{22}(x) \cdot \Delta + F_{23}(x)
-\cdot \theta_{z}
+F_{\mathrm{2}} = F_{\mathrm{21}}(x) + F_{\mathrm{22}}(x) \cdot \Delta + F_{\mathrm{23}}(x)
+\cdot \theta_{\mathrm{z}}
 $$
 
 Using the factors
 
 $$
-a = max(0, \cos(\theta_{g}))
+a = max(0, \cos(\theta_{\mathrm{g}}))
 $$
 
 and
 
 $$
-b = max(0.087, \sin(\alpha_{s}))
+b = max(0.087, \sin(\alpha_{\mathrm{s}}))
 $$
 
 the diffuse irradiance can be calculated:
 
 $$
-G_{\mathrm{dif},S} = G_{\mathrm{dif},H} \cdot (\frac{1}{2} \cdot (1 +
-cos(\gamma_{e})) \cdot (1- F_{1}) + \frac{a}{b} \cdot F_{1} +
-F_{2} \cdot \sin(\gamma_{e}))
+G_{\mathrm{dif,S}} = G_{\mathrm{dif,H}} \cdot (\frac{1}{2} \cdot (1 +
+cos(\gamma_{\mathrm{e}})) \cdot (1- F_{\mathrm{1}}) + \frac{a}{b} \cdot F_{\mathrm{1}} +
+F_{\mathrm{2}} \cdot \sin(\gamma_{\mathrm{e}}))
 $$
 
 *with*\
-**$\theta_{z}$** = zenith angle\
-**$\theta_{g}$** = angle of incidence\
-**$\alpha_{s}$** = solar altitude angle\
-**$\gamma_{e}$** = slope angle of the surface\
-**$G_{0}$** = extraterrestrial radiance\
+**$\theta_{\mathrm{z}}$** = zenith angle\
+**$\theta_{\mathrm{g}}$** = angle of incidence\
+**$\alpha_{\mathrm{s}}$** = solar altitude angle\
+**$\gamma_{\mathrm{e}}$** = slope angle of the surface\
+**$G_{\mathrm{0}}$** = extraterrestrial radiance\
 **$m$** = air mass\
-**$G_{\mathrm{beam},H}$** = beam irradiance (horizontal surface)\
-**$G_{\mathrm{beam},N}$** = beam irradiance (normal incidence, thus irradiance on a plane normal to the direction of the beam)\
-**$G_{\mathrm{dif},H}$** = diffuse irradiance (horizontal surface)
+**$G_{\mathrm{beam,H}}$** = beam irradiance (horizontal surface)\
+**$G_{\mathrm{beam,N}}$** = beam irradiance (normal incidence, thus irradiance on a plane normal to the direction of the beam)\
+**$G_{\mathrm{dif,H}}$** = diffuse irradiance (horizontal surface)
 
 **Please note:** In contrast to the primary source {cite:p}`Duffie.2013`, radiance values instead of radiation values are used here, as described above.
 
@@ -445,13 +445,13 @@ $$
 ### Reflected Irradiance on Sloped Surface
 
 $$
-G_{\mathrm{ref},S} = G_{\mathrm{Ges},H} \cdot \frac{\rho}{2} \cdot (1-
-\cos(\gamma_{e}))
+G_{\mathrm{ref},S} = G_{\mathrm{Ges,H}} \cdot \frac{\rho}{2} \cdot (1-
+\cos(\gamma_{\mathrm{e}}))
 $$
 
 *with*\
-**$G_{\mathrm{Ges},H}$** = total horizontal irradiance ($G_{\mathrm{beam},H} + G_{\mathrm{dif},H})$\
-**$\gamma_e$** = slope angle of the surface\
+**$G_{\mathrm{Ges,H}}$** = total horizontal irradiance ($G_{\mathrm{beam,H}} + G_{\mathrm{dif,H}})$\
+**$\gamma_{\mathrm{e}}$** = slope angle of the surface\
 **$\rho$** = albedo
 
 **Reference:**
@@ -464,15 +464,15 @@ $$
 Received energy is calculated as the sum of all three types of irradiance.
 
 $$
-G_{\mathrm{total}} = G_{\mathrm{beam},S} + G_{\mathrm{dif},S} + G_{\mathrm{ref},S}
+G_{\mathrm{total}} = G_{\mathrm{beam,S}} + G_{\mathrm{dif,S}} + G_{\mathrm{ref,S}}
 $$
 
 *with*\
-**$G_{\mathrm{beam},S}$** = Beam irradiance\
-**$G_{\mathrm{dif},S}$** = Diffuse irradiance\
-**$G_{\mathrm{ref},S}$** = Reflected irradiance
+**$G_{\mathrm{beam,S}}$** = Beam irradiance\
+**$G_{\mathrm{dif,S}}$** = Diffuse irradiance\
+**$G_{\mathrm{ref,S}}$** = Reflected irradiance
 
-A generator correction factor (depending on month surface slope $\gamma_{e}$) and a temperature correction factor (depending on month) multiplied on top.
+A generator correction factor (depending on month surface slope $\gamma_{\mathrm{e}}$) and a temperature correction factor (depending on month) multiplied on top.
 
-It is checked whether proposed output exceeds maximum ($p_{max}$), in which case a warning is logged.
+It is checked whether proposed output exceeds maximum ($p_{\mathrm{max}}$), in which case a warning is logged.
 If output falls below activation threshold, it is set to 0.
