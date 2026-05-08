@@ -74,36 +74,36 @@ It starts with a negative value in the morning, arrives at 0° at noon (solar ti
 The hour angle (in radian!) is calculated as follows
 
 $$
-\omega = ((12 - ST) \cdot 15) \cdot (\frac{\pi}{180})
+\omega = ((12 - T\mathrm{sol}) \cdot 15) \cdot (\frac{\pi}{180})
 $$
 
 Since outside German literature the hour angle is defined as negative in the morning, we use the following adaption:
 
 $$
-\omega = ((ST - 12) \cdot 15) \cdot (\frac{\pi}{180})
+\omega = ((T\mathrm{sol} - 12) \cdot 15) \cdot (\frac{\pi}{180})
 $$
 
 *with*\
-**$ST$** = local solar time (in hours)
+**$T\mathrm{sol}$** = local solar time (in hours)
 **Note:** The sun crosses the meridian of the observer at local noon (12:00 in local solar time), taking into account the eccentricity of earth's orbit.
 
 $$
-ST = LMT + ET
+T_\mathrm{sol} = T_\mathrm{mean} + E_t
 $$
 
 *with*\
-**$LMT$** = local mean time (in minutes), follows the average movement of the sun over a year.\
-**$ET$** = equation of time (in minutes), difference between LMT and ST due to the eccentricity of the earth's orbit.
+**$T_\mathrm{mean}$** = local mean time (in minutes), follows the average movement of the sun over a year.\
+**$E_t$** = equation of time (in minutes), difference between $T_\mathrm{mean}$ and $T\mathrm{sol}$ due to the eccentricity of the earth's orbit.
 
 $$
-LMT = hour_{\mathrm{TimeBasis}} \cdot 60 + min_{\mathrm{TimeBasis}} + 4 \cdot (L_{\mathrm{St}} + \lambda)
+T_\mathrm{mean} = H_{\mathrm{UTC}} \cdot 60 + M_{\mathrm{UTC}} + 4 \cdot (\lambda_{\mathrm{std}} + \lambda)
 $$
 
 *with*\
-**$hour_{\mathrm{TimeBasis}}$** = Hour of the time basis (we choose UTC as time basis) \
-**$min_{\mathrm{TimeBasis}}$** = Minute of the time basis (we choose UTC as time basis) \
-**$L_{\mathrm{St}}$** = Standard meridian for the time basis (since we choose UTC as time basis, $L_{\mathrm{St}}$ is zero) \
-**λ** = longitude of the location (in Degrees) of the PV panel
+**$H_{\mathrm{UTC}}$** = Hour of the time basis (we choose UTC as time basis) \
+**$M_{\mathrm{UTC}}$** = Minute of the time basis (we choose UTC as time basis) \
+**$\lambda_{\mathrm{std}}$** = Standard meridian for the time basis (since we choose UTC as time basis, $\lambda_{\mathrm{std}}$ is zero) \
+**$\lambda$** = longitude of the location (in Degrees) of the PV panel
 
 **Note:** The formula in {cite:cts}`Duffie.2013` p. 11 is defining λ in degrees west being positive. However, since we are using the longitude directly, which is negative westwards, this changes the sign in the formula.
 

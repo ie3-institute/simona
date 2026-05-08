@@ -84,13 +84,13 @@ object SolarIrradiationCalculation {
     )
 
     val utcTime = time.withZoneSameInstant(ZoneId.of("UTC"))
-    val lmt = Minutes(
+    val tMean = Minutes(
       utcTime.getHour * 60d + utcTime.getMinute + 4d * (0d + lambda)
     )
 
-    val st = lmt + et
+    val tSol = tMean + et
 
-    Radians((st.toHours - 12).toRadians * 15d)
+    Radians((tSol.toHours - 12).toRadians * 15d)
   }
 
   /** Calculates the sunset hour angle omegaSS which represents the omega value
