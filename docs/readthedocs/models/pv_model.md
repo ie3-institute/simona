@@ -117,9 +117,6 @@ $$
 *with*\
 **J** = day angle (in radian!)
 
-**Note:** The used formulas are based on *\"DIN 5034-2: Tageslicht in Innenräumen, Grundlagen.\"* and therefore valid especially for Germany and Europe.
-For international calculations a more general formulation that can be found in {cite:p}`Maleki.2017` might be used.
-
 **References:**
 
 * {cite:cts}`Watter.2013` p. 14
