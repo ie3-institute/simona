@@ -97,6 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Moved next tick determination to `ParticipantFlexModel` [#1692](https://github.com/ie3-institute/simona/issues/1692)
 - Adapting to changes in simonaAPI version `0.14.0` [#1773](https://github.com/ie3-institute/simona/issues/1773)
 - Simplify handling of results [#1752](https://github.com/ie3-institute/simona/issues/1752)
+- Cleaned out unsed files in exceptions [#1308](https://github.com/ie3-institute/simona/issues/1308)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

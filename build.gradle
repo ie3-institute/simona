@@ -21,7 +21,7 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.7.4'
-  pekkoVersion = '1.5.0'
+  pekkoVersion = '1.6.0'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
@@ -134,7 +134,7 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.7'
+  implementation 'com.typesafe:config:1.4.8'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
