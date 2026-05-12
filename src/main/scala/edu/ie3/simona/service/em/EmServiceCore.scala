@@ -198,6 +198,7 @@ case class EmServiceCore(
     case internal: EmSimulationInternal =>
       // the service should simulate the tick internal
       val internalTick = internal.tick
+      checkTick(tick, internalTick)
 
       val uuids = uncontrolled
         .filter { uuid => nextActivation(uuid) == internalTick }
@@ -218,26 +219,22 @@ case class EmServiceCore(
     case requestEmCompletion: RequestEmCompletion =>
       // finish tick and return next tick
       val extTick = requestEmCompletion.tick
+      checkTick(tick, extTick)
 
-      if extTick != tick then {
-        throw new CriticalFailureException(
-          s"Received completion request for tick '$extTick', while being in tick '$tick'."
-        )
-      } else {
-        log.info(s"Request to finish for tick '$tick' received.")
+      log.info(s"Request to finish for tick '$tick' received.")
 
-        val nextTick: OptionalLong = if emStates.exists(_._2.isActivated) then {
-          requestEmCompletion.maybeNextTick
-        } else getMaybeNextTick(tick)
+      val nextTick: OptionalLong = if emStates.exists(_._2.isActivated) then {
+        requestEmCompletion.maybeNextTick
+      } else getMaybeNextTick(tick)
 
-        (
-          this,
-          Some(new EmCompletion(nextTick)),
-        )
-      }
+      (
+        this,
+        Some(new EmCompletion(nextTick)),
+      )
 
     case provideEmData: ProvideEmData if mode == EmMode.EM_COMMUNICATION =>
       log.debug(s"Handling ext message: $provideEmData")
+      checkTick(tick, provideEmData.tick)
 
       // handling of requests
       val flexRequests = provideEmData.flexRequests.asScala
@@ -297,6 +294,8 @@ case class EmServiceCore(
       (newState, msgToExt)
 
     case provideEmData: ProvideEmData =>
+      checkTick(tick, provideEmData.tick)
+
       if !provideEmData.flexOptions.isEmpty then {
         log.warn(
           s"We received the following data '$provideEmData'. The base service can currently not handle the provided flex options."
@@ -359,6 +358,8 @@ case class EmServiceCore(
       } else (updatedState, None)
 
     case comMsg: EmCommunicationMessages if mode == EmMode.EM_COMMUNICATION =>
+      checkTick(tick, comMsg.tick)
+
       val messages = comMsg.messages.asScala
 
       val mapping = messages.flatMap { msg =>
@@ -444,6 +445,19 @@ case class EmServiceCore(
         s"The EmServiceBaseCore is not able to handle the message: $extMsg"
       )
   }
+
+  /** Method for checking the ticks.
+    * @param tick
+    *   Current tick of SIMONA.
+    * @param extTick
+    *   Current tick of the external simulation.
+    */
+  private def checkTick(tick: Long, extTick: Long): Unit =
+    if tick != extTick then {
+      throw new CriticalFailureException(
+        s"Simulations out of sync. SIMONA at tick $tick, external simulation at tick $extTick."
+      )
+    }
 
   /** Method to handle data response messages from the em agents.
     * @param tick
