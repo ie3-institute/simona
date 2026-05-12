@@ -88,7 +88,7 @@ $$
 **Note:** The sun crosses the meridian of the observer at local noon (12:00 in local solar time), taking into account the eccentricity of earth's orbit.
 
 $$
-T_\mathrm{sol} = T_\mathrm{mean} + T_mathrm{ET}
+T_\mathrm{sol} = T_\mathrm{mean} + T_\mathrm{ET}
 $$
 
 *with*\
@@ -173,11 +173,11 @@ $$
 Represents the angle between the vertical and the line to the sun, that is, the angle of incidence of beam radiance on a horizontal surface.
 
 $$
-\theta_z = (\frac{\pi}{2}) - \alpha_s}
+\theta_z = (\frac{\pi}{2}) - \alpha_s
 $$
 
 *with*\
-**$\alpha_s}$** = solar altitude angle
+**$\alpha_s$** = solar altitude angle
 
 **References:**
 See Solar Altitude Angle
@@ -304,8 +304,8 @@ $$
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
 **$\gamma_e$** = slope angle of the surface\
-**$\omega_1}$** = hour angle $\omega$\
-**$\omega_2}$** = hour angle $\omega$ + 1 hour\
+**$\omega_1$** = hour angle $\omega$\
+**$\omega_2$** = hour angle $\omega$ + 1 hour\
 **$\alpha_e$** = surface azimuth angle\
 **$G_{\mathrm{beam,H}}$** = beam irradiance (horizontal surface)
 
@@ -387,15 +387,13 @@ $$
 Horizon brightness index:
 
 $$
-F_1 = F_{11}(x) + F_{12}(x) \cdot \Delta + F_{13}(x)
-\cdot \theta_z}
+F_1 = F_{11}(x) + F_{12}(x) \cdot \Delta + F_{13}(x) \cdot \theta_z
 $$
 
 Sun ambient brightness index:
 
 $$
-F_2 = F_{21}(x) + F_{22}(x) \cdot \Delta + F_{23}(x)
-\cdot \theta_z
+F_2 = F_{21}(x) + F_{22}(x) \cdot \Delta + F_{23}(x) \cdot \theta_z
 $$
 
 Using the factors

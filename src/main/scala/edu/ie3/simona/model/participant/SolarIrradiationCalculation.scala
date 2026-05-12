@@ -77,7 +77,7 @@ object SolarIrradiationCalculation {
   ): Angle = {
     val jInRad = angleJ.toRadians
     val lambda = longitude.toDegrees
-    val et = Minutes(
+    val tET = Minutes(
       0.0066 + 7.3525 * cos(jInRad + 1.4992378274631293) + 9.9359 * cos(
         2d * jInRad + 1.9006635554218247
       ) + 0.3387 * cos(3d * jInRad + 1.8360863730980346)
@@ -88,7 +88,7 @@ object SolarIrradiationCalculation {
       utcTime.getHour * 60d + utcTime.getMinute + 4d * (0d + lambda)
     )
 
-    val tSol = tMean + et
+    val tSol = tMean + tET
 
     Radians((tSol.toHours - 12).toRadians * 15d)
   }
@@ -360,10 +360,10 @@ object SolarIrradiationCalculation {
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
 
-        val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
+        val a = sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
             alphaEInRad
-          ))
+          )
           * (omega2InRad - omega1InRad)
           + (cos(deltaInRad) * cos(latInRad) * cos(gammaEInRad)
             + cos(deltaInRad) * sin(latInRad) * sin(gammaEInRad) * cos(
@@ -371,12 +371,12 @@ object SolarIrradiationCalculation {
             ))
           * (sin(omega2InRad) - sin(omega1InRad))
           - (cos(deltaInRad) * sin(gammaEInRad) * sin(alphaEInRad))
-          * (cos(omega2InRad) - cos(omega1InRad)))
+          * (cos(omega2InRad) - cos(omega1InRad))
 
-        val b = ((cos(latInRad) * cos(deltaInRad)) * (sin(omega2InRad) - sin(
+        val b = (cos(latInRad) * cos(deltaInRad)) * (sin(omega2InRad) - sin(
           omega1InRad
         ))
-          + (sin(latInRad) * sin(deltaInRad)) * (omega2InRad - omega1InRad))
+          + (sin(latInRad) * sin(deltaInRad)) * (omega2InRad - omega1InRad)
 
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
