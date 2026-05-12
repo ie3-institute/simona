@@ -360,10 +360,10 @@ object SolarIrradiationCalculation {
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
 
-        val a = sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
+        val a = (sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
             alphaEInRad
-          )
+          ))
           * (omega2InRad - omega1InRad)
           + (cos(deltaInRad) * cos(latInRad) * cos(gammaEInRad)
             + cos(deltaInRad) * sin(latInRad) * sin(gammaEInRad) * cos(
