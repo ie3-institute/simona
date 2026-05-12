@@ -189,12 +189,14 @@ case class EmServiceCore(
       log: Logger
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = extMsg match {
     case internal: EmSimulationInternal =>
-      simulateInternal(internal)
+      simulateInternal(tick, internal)
 
     case requestEmCompletion: RequestEmCompletion =>
       handleExtCompletion(tick, requestEmCompletion)
 
     case provideEmData: ProvideEmData =>
+      checkTick(tick, provideEmData.tick)
+
       if !provideEmData.flexOptions.isEmpty then {
         log.warn(
           s"We received the following data '$provideEmData'. The base service can currently not handle the provided flex options."
@@ -250,6 +252,19 @@ case class EmServiceCore(
         s"The EmServiceBaseCore is not able to handle the message: $extMsg"
       )
   }
+
+  /** Method for checking the ticks.
+    * @param tick
+    *   Current tick of SIMONA.
+    * @param extTick
+    *   Current tick of the external simulation.
+    */
+  private def checkTick(tick: Long, extTick: Long): Unit =
+    if tick != extTick then {
+      throw new CriticalFailureException(
+        s"Simulations out of sync. SIMONA at tick $tick, external simulation at tick $extTick."
+      )
+    }
 
   /** Method to handle data response messages from the em agents.
     * @param tick
@@ -394,6 +409,8 @@ case class EmServiceCore(
   }
 
   /** Method to handle a request to simulate internally.
+    * @param tick
+    *   The current simulation tick.
     * @param internal
     *   The request to handle.
     * @return
@@ -401,10 +418,12 @@ case class EmServiceCore(
     *   to the external simulation.
     */
   private def simulateInternal(
-      internal: EmSimulationInternal
+      tick: Long,
+      internal: EmSimulationInternal,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
     // the service should simulate the tick internal
     val internalTick = internal.tick
+    checkTick(tick, internalTick)
 
     val uuids = uncontrolled
       .filter { uuid => nextActivation(uuid) == internalTick }
@@ -439,6 +458,7 @@ case class EmServiceCore(
   )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
     // finish tick and return next tick
     val extTick = requestEmCompletion.tick
+    checkTick(tick, extTick)
 
     if extTick != tick then {
       throw new CriticalFailureException(
