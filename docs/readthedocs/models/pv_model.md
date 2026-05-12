@@ -88,12 +88,12 @@ $$
 **Note:** The sun crosses the meridian of the observer at local noon (12:00 in local solar time), taking into account the eccentricity of earth's orbit.
 
 $$
-T_\mathrm{sol} = T_\mathrm{mean} + E_t
+T_\mathrm{sol} = T_\mathrm{mean} + T_mathrm{ET}
 $$
 
 *with*\
 **$T_\mathrm{mean}$** = local mean time (in minutes), follows the average movement of the sun over a year.\
-**$E_t$** = equation of time (in minutes), difference between $T_\mathrm{mean}$ and $T\mathrm{sol}$ due to the eccentricity of the earth's orbit.
+**$T_\mathrm{ET}$** = equation of time (in minutes), difference between $T_\mathrm{mean}$ and $T\mathrm{sol}$ due to the eccentricity of the earth's orbit.
 
 $$
 T_\mathrm{mean} = H_{\mathrm{UTC}} \cdot 60 + M_{\mathrm{UTC}} + 4 \cdot (\lambda_{\mathrm{std}} + \lambda)
@@ -260,12 +260,12 @@ $$
 
 ### Beam Irradiance on Sloped Surface
 
-For our use case, $\omega_{\mathrm{2}}$ is normally set to the hour angle one hour after $\omega_{\mathrm{1}}$.
-Within one hour distance to sunrise/sunset, we adjust $\omega_{\mathrm{1}}$ and $\omega_{\mathrm{2}}$ accordingly:
+For our use case, $\omega_2$ is normally set to the hour angle one hour after $\omega_1$.
+Within one hour distance to sunrise/sunset, we adjust $\omega_1$ and $\omega_2$ accordingly:
 
 $$
 \begin{aligned}
-(\omega_{\mathrm{1}}, \omega_{\mathrm{2}}) = \begin{cases}
+(\omega_1, \omega_2) = \begin{cases}
 (\omega_{\mathrm{SR}}, \omega_{\mathrm{SR}} + \Delta\omega), & \text{for}  (\omega_{\mathrm{SR}}-\frac{\Delta \omega}{2}) < \omega < \omega_{\mathrm{SR}} \\ (\omega, \omega+ \Delta\omega), & \text{for } \omega_{\mathrm{SR}} \le \omega \le (\omega_{\mathrm{SS}}- \Delta\omega) \\ (\omega_{\mathrm{SS}}-\Delta\omega,\omega_{\mathrm{SS}}), & \text{for }(\omega_{\mathrm{SR}}-\Delta\omega) < \omega < (\omega_{\mathrm{SS}}-\frac{\Delta\omega}{2})
 \end{cases}
 \end{aligned}
@@ -285,15 +285,15 @@ $$
 \begin{aligned}
 a = (\sin(\delta) \cdot \sin(\phi) \cdot \cos(\gamma_{\mathrm{e}}) - 
 \sin(\delta) \cdot \cos(\phi) \cdot \sin(\gamma_{\mathrm{e}}) \cdot
-\cos(\alpha_{\mathrm{e}})) \cdot (\omega_{\mathrm{2}} - \omega_{\mathrm{1}}) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{\mathrm{e}}) +
+\cos(\alpha_{\mathrm{e}})) \cdot (\omega_2 - \omega_1) \\ + (\cos(\delta) \cdot \cos(\phi) \cdot \cos(\gamma_{\mathrm{e}}) +
 \cos(\delta) \cdot \sin(\phi) \cdot \sin(\gamma_{\mathrm{e}}) \cdot
-\cos(\alpha_{\mathrm{e}})) \cdot (\sin(\omega_{\mathrm{2}}) \\ -
-\sin(\omega_{\mathrm{1}}))  - (\cos(\delta) \cdot \sin(\gamma_{\mathrm{e}}) \cdot \sin(\alpha_{\mathrm{e}})) \cdot (\cos(\omega_{\mathrm{2}}) - \cos(\omega_{\mathrm{1}}))
+\cos(\alpha_{\mathrm{e}})) \cdot (\sin(\omega_2) \\ -
+\sin(\omega_1))  - (\cos(\delta) \cdot \sin(\gamma_{\mathrm{e}}) \cdot \sin(\alpha_{\mathrm{e}})) \cdot (\cos(\omega_2) - \cos(\omega_1))
 \end{aligned}
 $$
 
 $$
-b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_{\mathrm{2}}) - \sin(\omega_{\mathrm{1}})) + (\sin(\phi) \cdot \sin(\delta)) \cdot (\omega_{\mathrm{2}} - \omega_{\mathrm{1}})
+b = (\cos(\phi) \cdot \cos(\delta)) \cdot (\sin(\omega_2) - \sin(\omega_1)) + (\sin(\phi) \cdot \sin(\delta)) \cdot (\omega_2 - \omega_1)
 $$
 
 $$
@@ -304,8 +304,8 @@ $$
 **$\delta$** = the declination angle\
 **$\phi$** = observer's latitude\
 **$\gamma_{\mathrm{e}}$** = slope angle of the surface\
-**$\omega_{\mathrm{1}}$** = hour angle $\omega$\
-**$\omega_{\mathrm{2}}$** = hour angle $\omega$ + 1 hour\
+**$\omega_1}$** = hour angle $\omega$\
+**$\omega_2}$** = hour angle $\omega$ + 1 hour\
 **$\alpha_{\mathrm{e}}$** = surface azimuth angle\
 **$G_{\mathrm{beam,H}}$** = beam irradiance (horizontal surface)
 
@@ -357,30 +357,30 @@ $\epsilon$ is sorted into one of eight bins according to its value:
 In order to calculate indexes representing the horizon brightness and the brightness in the vicinity of the sun, the following factors are computed.
 
 $$
-F_{\mathrm{11}}(x) = -0.0161 \cdot x^3 + 0.1840 \cdot x^2 - 0.3806 \cdot x + 0.2324
+F_{11}(x) = -0.0161 \cdot x^3 + 0.1840 \cdot x^2 - 0.3806 \cdot x + 0.2324
 $$
 
 $$
-F_{\mathrm{12}}(x) = 0.0134 \cdot x^4 - 0.1938 \cdot x^3 + 0.8410 \cdot x^2 - 1.4018 \cdot x + 1.3579
+F_{12}(x) = 0.0134 \cdot x^4 - 0.1938 \cdot x^3 + 0.8410 \cdot x^2 - 1.4018 \cdot x + 1.3579
 $$
 
 $$
-F_{\mathrm{13}}(x) = 0.0032 \cdot x^3 - 0.028 \cdot x^2 - 0.0056
+F_{13}(x) = 0.0032 \cdot x^3 - 0.028 \cdot x^2 - 0.0056
 \cdot x - 0.0385
 $$
 
 $$
-F_{\mathrm{21}}(x) = -0.0048 \cdot x^3 + 0.0536 \cdot x^2 - 0.1049
+F_{21}(x) = -0.0048 \cdot x^3 + 0.0536 \cdot x^2 - 0.1049
 \cdot x + 0.0034
 $$
 
 $$
-F_{\mathrm{22}}(x) = 0.0012 \cdot x^3 - 0.0067 \cdot x^2 + 0.0091
+F_{22}(x) = 0.0012 \cdot x^3 - 0.0067 \cdot x^2 + 0.0091
 \cdot x - 0.0269
 $$
 
 $$
-F_{\mathrm{23}}(x) = 0.0052 \cdot x^3 - 0.0971 \cdot x^2 + 0.2856
+F_{23}(x) = 0.0052 \cdot x^3 - 0.0971 \cdot x^2 + 0.2856
 \cdot x - 0.1389
 $$
 
