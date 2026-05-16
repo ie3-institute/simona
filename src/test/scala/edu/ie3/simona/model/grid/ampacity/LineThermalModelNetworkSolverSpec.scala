@@ -19,7 +19,7 @@ class LineThermalModelNetworkSolverSpec extends UnitSpec {
       val cases = Table(
         ("matrix", "expected"),
         (DenseMatrix((-2.0, 0.0), (0.0, -5.0)), Array(-2.0, -5.0)),
-        )
+      )
 
       forAll(cases) { (matrix: DenseMatrix[Double], expected: Array[Double]) =>
 

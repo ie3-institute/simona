@@ -87,7 +87,12 @@ final case class LineSegmentThermalModel(
 
     lastLineState.copy(
       tick = tick,
-      lineTemperature = updatedLineTemperature,
+      lastTick = lastLineState.tick,
+      currentLineTemp1 = updatedLineTemperature,
+      currentLineTemp2 = updatedLineTemperature,
+      currentLineTemp3 = updatedLineTemperature,
+      currentLineTemp4 = updatedLineTemperature,
+      currentLineTemp5 = updatedLineTemperature,
     )
   }
 
@@ -139,9 +144,14 @@ object LineSegmentThermalModel {
     */
   final case class LineState(
       override val tick: Long,
-      currentLineSegmentThermalMode: LineSegmentThermalModel,
+      lastTick : Long,
+      currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
-      lineTemperature: Temperature,
+      currentLineTemp1: Temperature,
+      currentLineTemp2: Temperature,
+      currentLineTemp3: Temperature,
+      currentLineTemp4: Temperature,
+      currentLineTemp5: Temperature,
   ) extends ModelState
 
   def startingState(
@@ -172,7 +182,12 @@ object LineSegmentThermalModel {
 
     LineState(
       0L,
+      -1L,
       initialLineSegmentThermalModel,
+      groundTemperature,
+      groundTemperature,
+      groundTemperature,
+      groundTemperature,
       groundTemperature,
       groundTemperature,
     )

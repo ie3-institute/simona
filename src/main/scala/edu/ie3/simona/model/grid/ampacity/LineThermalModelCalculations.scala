@@ -572,12 +572,16 @@ object LineThermalModelCalculations {
         s"Unexpected number of Eigenvalues or Eigenvectors. Expected are 5 each, Got: Eigenvalues: $eigenvalues, Eigenvectors: $eigenvectors."
       )
 
-    // The Steady-State Vector Vp (Particulate solution)
-    // val vp = DenseVector(682.0, 657.0, 632.0, 530.0, 428.0) //FIXME
+    val vStart = DenseVector(
+      state.currentLineTemp1.toCelsiusScale,
+      state.currentLineTemp2.toCelsiusScale,
+      state.currentLineTemp3.toCelsiusScale,
+      state.currentLineTemp4.toCelsiusScale,
+      state.currentLineTemp5.toCelsiusScale)
 
     val vp = matrixA \ (-vectorB)
 
-    val c = eigenvectors \ (-vp)
+    val c = eigenvectors \ (vStart - vp)
 
     def getV1(t: Long, node: Int): Double = {
       var voltage = vp(node) // Start with the steady-state value of Node
