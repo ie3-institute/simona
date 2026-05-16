@@ -159,7 +159,7 @@ object LineSegmentThermalModel {
     */
   final case class LineState(
       override val tick: Long,
-      lastTick : Long,
+      lastTick: Long,
       currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
       currentLineTemp1: Temperature,

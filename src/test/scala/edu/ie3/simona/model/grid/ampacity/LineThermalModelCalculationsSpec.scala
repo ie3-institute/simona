@@ -598,7 +598,17 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
     val lineTemp = Celsius(2)
 
     val model: LineState =
-      LineState(tick, lastTick, thermalLineModel, groundTemp, lineTemp,lineTemp,lineTemp,lineTemp,lineTemp)
+      LineState(
+        tick,
+        lastTick,
+        thermalLineModel,
+        groundTemp,
+        lineTemp,
+        lineTemp,
+        lineTemp,
+        lineTemp,
+        lineTemp,
+      )
 
     val current = Amperes(10)
 

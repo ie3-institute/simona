@@ -375,6 +375,32 @@ object LineThermalModelCalculations {
     (1 / log(diameterRatio)) - (1 / (diameterRatio - 1))
   }
 
+  /** */
+
+  def splitCapacitancesByVanWormer(
+      capacitance: ThermalCapacitance,
+      innerDiameter: Length,
+      outerDiameter: Length,
+  ) = {
+
+    val diameterMid = innerDiameter + (outerDiameter - innerDiameter) / 2
+    val vanWormerJackFirstHalf =
+      vanWormerCoefficientShortTermDurationTransients(
+        innerDiameter,
+        diameterMid,
+      )
+    val capacitanceC11 = capacitance * vanWormerJackFirstHalf
+    val capacitanceC12 = capacitance * (1 - vanWormerJackFirstHalf)
+    val vanWormerJackSecondHalf =
+      vanWormerCoefficientShortTermDurationTransients(
+        diameterMid,
+        outerDiameter,
+      )
+    val capacitanceC21 = capacitance * vanWormerJackSecondHalf
+    val capacitanceC22 = capacitance * (1 - vanWormerJackSecondHalf)
+    (capacitanceC11, capacitanceC12, capacitanceC21, capacitanceC22)
+  }
+
   def createAndCalcRCNetworkMvCableShortDuration(
       state: LineState,
       lineCurrent: ElectricCurrent,
@@ -385,10 +411,8 @@ object LineThermalModelCalculations {
     val conductorDiaIn = Millimeters(0)
     val conductorDiaOut = Millimeters(10)
     val dielectricDiaOut = Millimeters(20)
-    val dielectricDiaMid = conductorDiaOut + (dielectricDiaOut - conductorDiaOut) / 2
     val sheatDiaOut = Millimeters(22)
     val jackDiaOut = Millimeters(30)
-    val jackDiaMid = sheatDiaOut + (jackDiaOut - sheatDiaOut) / 2
 
     val depthCables = Meters(1d)
     val distanceCables = Meters(0.3d)
@@ -423,10 +447,12 @@ object LineThermalModelCalculations {
     val thermalTotalLossesCableC =
       conductorLosses + sheatLosses // FIXME: Same as CableB?
 
+    // No changes for T1-T3
     val t1 = currentLineModel.thermalResistanceT1
     val t3 = currentLineModel.thermalResistanceT3
 
     // FIXME Check for Trefoil
+    // T4 changes since it depends on losses from neighbouring cables
     val t4 = calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
       thermalResistivitySoil,
       depthCables,
@@ -437,44 +463,37 @@ object LineThermalModelCalculations {
       thermalTotalLossesCableC,
     )
 
-    val conductorThermCapacitanceCc = state.currentLineSegmentThermalModel.thermalCapacityCc
-    val dielectricThermCapacitanceCd = state.currentLineSegmentThermalModel.thermalCapacityCd
-    val vanWormerDielectricFirstHalf =
-      vanWormerCoefficientShortTermDurationTransients(
+    val conductorThermCapacitanceCc = currentLineModel.thermalCapacityCc
+    val dielectricThermCapacitanceCd = currentLineModel.thermalCapacityCd
+
+    val (
+      dielectricThermCapacitanceC11,
+      dielectricThermCapacitanceC12,
+      dielectricThermCapacitanceC21,
+      dielectricThermCapacitanceC22,
+    ) =
+      splitCapacitancesByVanWormer(
+        dielectricThermCapacitanceCd,
         conductorDiaOut,
-        dielectricDiaMid,
-      )
-    val dielectricThermCapacitanceC11 =
-      dielectricThermCapacitanceCd * vanWormerDielectricFirstHalf
-    val dielectricThermCapacitanceC12 =
-      dielectricThermCapacitanceCd * (1 - vanWormerDielectricFirstHalf)
-    val vanWormerDielectricSecondHalf =
-      vanWormerCoefficientShortTermDurationTransients(
-        dielectricDiaMid,
         dielectricDiaOut,
       )
-    val dielectricThermCapacitanceC21 =
-      dielectricThermCapacitanceCd * vanWormerDielectricSecondHalf
-    val dielectricThermCapacitanceC22 =
-      dielectricThermCapacitanceCd * (1 - vanWormerDielectricSecondHalf)
-    val sheathThermCapacitanceCs = state.currentLineSegmentThermalModel.thermalCapacityCs
-    val jackThermCapacitanceCj = state.currentLineSegmentThermalModel.thermalCapacityCj
+
+    val sheathThermCapacitanceCs = currentLineModel.thermalCapacityCs
+    val jackThermCapacitanceCj = currentLineModel.thermalCapacityCj
+
+    val (
+      jackThermCapacitanceC11,
+      jackThermCapacitanceC12,
+      jackThermCapacitanceC21,
+      jackThermCapacitanceC22,
+    ) =
+      splitCapacitancesByVanWormer(
+        jackThermCapacitanceCj,
+        sheatDiaOut,
+        jackDiaOut,
+      )
 
     val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
-
-    val vanWormerJackFirstHalf =
-      vanWormerCoefficientShortTermDurationTransients(sheatDiaOut, jackDiaMid)
-    val jackThermCapacitanceC11 =
-      jackThermCapacitanceCj * vanWormerJackFirstHalf
-    val jackThermCapacitanceC12 =
-      jackThermCapacitanceCj * (1 - vanWormerJackFirstHalf)
-    val vanWormerJackSecondHalf =
-      vanWormerCoefficientShortTermDurationTransients(jackDiaMid, jackDiaOut)
-    val jackThermCapacitanceC21 =
-      jackThermCapacitanceCj * vanWormerJackSecondHalf
-    val jackThermCapacitanceC22 =
-      jackThermCapacitanceCj * (1 - vanWormerJackSecondHalf)
-
     val ambientSoilTemp = state.groundTemperature
 
     // in case of short durations we have an RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
@@ -489,7 +508,7 @@ object LineThermalModelCalculations {
     // Conductor capacitance and first part of the first half of the dielectric
     val c1 =
       (conductorThermCapacitanceCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin // FIXME check conversion factor !
-    // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
+        // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
     val c2 =
       (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin
     // Capacitance of the second part of second half of the dielectric + the sheat + the first part of the first half of the jack
@@ -536,7 +555,8 @@ object LineThermalModelCalculations {
       state.currentLineTemp2.toCelsiusScale,
       state.currentLineTemp3.toCelsiusScale,
       state.currentLineTemp4.toCelsiusScale,
-      state.currentLineTemp5.toCelsiusScale)
+      state.currentLineTemp5.toCelsiusScale,
+    )
 
     val vp = matrixA \ (-vectorB)
 
