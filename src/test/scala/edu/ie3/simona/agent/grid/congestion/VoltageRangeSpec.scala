@@ -13,7 +13,6 @@ import edu.ie3.simona.agent.grid.congestion.VoltageRange
 import edu.ie3.simona.agent.grid.congestion.VoltageRange.calculateVoltageDeltaFromLineCurrent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.simona.model.grid.VoltageLimits
 import edu.ie3.simona.test.common.model.grid.{
   DbfsTestGrid,
@@ -23,6 +22,8 @@ import edu.ie3.simona.test.common.model.grid.{
 import edu.ie3.simona.test.common.result.ResultMokka
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.util.quantities.QuantityUtils.{asAmpere, asPu}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -169,9 +170,9 @@ class VoltageRangeSpec
         subnetNo = 1,
       )
 
-      range.deltaPlus should approximate(Each(-0.03))
-      range.deltaMinus should approximate(Each(-0.03))
-      range.suggestion should approximate(Each(-0.031))
+      range.possibleIncrease should approximate(Each(0.05))
+      range.possibleDecrease should approximate(Each(-0.03))
+      range.suggestion should approximate(zeroPU)
     }
 
     "calculates the voltage range for a middle grid correctly" in {
@@ -221,58 +222,58 @@ class VoltageRangeSpec
         subnetNo = 1,
       )
 
-      range.deltaPlus should approximate(Each(-0.03))
-      range.deltaMinus should approximate(Each(-0.02))
-      range.suggestion should approximate(Each(-0.02))
+      range.possibleIncrease should approximate(Each(0.04))
+      range.possibleDecrease should approximate(Each(-0.02))
+      range.suggestion should approximate(zeroPU)
     }
 
     "be updated with a line voltage delta correctly" in {
       val range1 = VoltageRange(0.05, -0.05)
       val cases1 = Table(
         ("deltaV", "plus", "minus"),
-        (0.01, 0.01, -0.05),
-        (0.06, 0.05, -0.05),
-        (-0.01, -0.01, -0.05),
-        (-0.04, -0.04, -0.05),
-        (-0.06, -0.05, -0.05),
+        (0.01, 0.05, 0.01),
+        (0.06, 0.05, 0.05),
+        (-0.01, 0.05, -0.01),
+        (-0.04, 0.05, -0.04),
+        (-0.06, 0.05, -0.05),
       )
 
       forAll(cases1) { (deltaV, plus, minus) =>
         val updated = range1.updateWithVoltageDelta(deltaV)
-        updated.deltaPlus should approximate(Each(plus))
-        updated.deltaMinus should approximate(Each(minus))
+        updated.possibleIncrease should approximate(Each(plus))
+        updated.possibleDecrease should approximate(Each(minus))
       }
 
       val range2 = VoltageRange(-0.01, -0.05)
       val cases2 = Table(
         ("deltaV", "plus", "minus"),
-        (0.01, -0.01, -0.05),
-        (0.06, -0.01, -0.05),
-        (-0.01, -0.01, -0.05),
-        (-0.04, -0.04, -0.05),
-        (-0.06, -0.05, -0.05),
+        (0.01, -0.01, -0.01),
+        (0.06, -0.01, -0.01),
+        (-0.01, -0.01, -0.01),
+        (-0.04, -0.01, -0.04),
+        (-0.06, -0.01, -0.05),
       )
 
       forAll(cases2) { (deltaV, plus, minus) =>
         val updated = range2.updateWithVoltageDelta(deltaV)
-        updated.deltaPlus should approximate(Each(plus))
-        updated.deltaMinus should approximate(Each(minus))
+        updated.possibleIncrease should approximate(Each(plus))
+        updated.possibleDecrease should approximate(Each(minus))
       }
 
       val range3 = VoltageRange(0.05, 0.01)
       val cases3 = Table(
         ("deltaV", "plus", "minus"),
-        (0.01, 0.01, 0.01),
-        (0.06, 0.05, 0.01),
-        (-0.01, 0.01, 0.01),
-        (-0.04, 0.01, 0.01),
-        (-0.06, 0.01, 0.01),
+        (0.01, 0.05, 0.01),
+        (0.06, 0.05, 0.05),
+        (-0.01, 0.05, 0.01),
+        (-0.04, 0.05, 0.01),
+        (-0.06, 0.05, 0.01),
       )
 
       forAll(cases3) { (deltaV, plus, minus) =>
         val updated = range3.updateWithVoltageDelta(deltaV)
-        updated.deltaPlus should approximate(Each(plus))
-        updated.deltaMinus should approximate(Each(minus))
+        updated.possibleIncrease should approximate(Each(plus))
+        updated.possibleDecrease should approximate(Each(minus))
       }
 
     }
@@ -319,8 +320,12 @@ class VoltageRangeSpec
           )
         )
 
-        updatedRange.deltaPlus should approximate(expected.deltaPlus)
-        updatedRange.deltaMinus should approximate(expected.deltaMinus)
+        updatedRange.possibleIncrease should approximate(
+          expected.possibleIncrease
+        )
+        updatedRange.possibleDecrease should approximate(
+          expected.possibleDecrease
+        )
       }
     }
 
@@ -367,8 +372,12 @@ class VoltageRangeSpec
           )
         )
 
-        updatedRange.deltaPlus should approximate(expected.deltaPlus)
-        updatedRange.deltaMinus should approximate(expected.deltaMinus)
+        updatedRange.possibleIncrease should approximate(
+          expected.possibleIncrease
+        )
+        updatedRange.possibleDecrease should approximate(
+          expected.possibleDecrease
+        )
       }
     }
 

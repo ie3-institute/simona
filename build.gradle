@@ -8,7 +8,7 @@ plugins {
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.4.1' // fat jar
-  id "org.sonarqube" version "7.2.3.7755" // sonarqube
+  id "org.sonarqube" version "7.3.0.8198" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
@@ -21,9 +21,9 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.7.4'
-  pekkoVersion = '1.5.0'
+  pekkoVersion = '1.6.0'
   jtsVersion = '1.20.0'
-  confluentKafkaVersion = '7.9.0'
+  confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
 
   junitVersion = '6.0.3'
@@ -134,7 +134,7 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.7'
+  implementation 'com.typesafe:config:1.4.8'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"

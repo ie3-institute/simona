@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented energy boundaries flex options for load model [#1705](https://github.com/ie3-institute/simona/issues/1705)
 - Added secondary data provision handling in EmAgent [#1652](https://github.com/ie3-institute/simona/issues/1652)
 - Added `GridAgentCoordinator` [#1617](https://github.com/ie3-institute/simona/issues/1617)
+- Added transformer tap change to congestion management [#1378](https://github.com/ie3-institute/simona/issues/1378)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -89,12 +90,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated the publications and references with new publications [#1707](https://github.com/ie3-institute/simona/issues/1707)
 - Refactor initialization of `GridAgent` [#1686](https://github.com/ie3-institute/simona/issues/1686)
 - Update `README.md` and `AUTHORS.md` [#1728](https://github.com/ie3-institute/simona/issues/1728)
-- Updated/enhanced copernicus weather data manual [#1718](https://github.com/ie3-institute/simona/issues/1718)
+- Updated/enhanced Copernicus weather data manual [#1718](https://github.com/ie3-institute/simona/issues/1718)
 - Simplified initialization of services [#1751](https://github.com/ie3-institute/simona/issues/1751)
 - Simplifications in `ThermalGrid` [#1765](https://github.com/ie3-institute/simona/issues/1765)
 - Moved next tick determination to `ParticipantFlexModel` [#1692](https://github.com/ie3-institute/simona/issues/1692)
 - Adapting to changes in simonaAPI version `0.14.0` [#1773](https://github.com/ie3-institute/simona/issues/1773)
 - Simplify handling of results [#1752](https://github.com/ie3-institute/simona/issues/1752)
+- Cleaned out unused files in exceptions [#1308](https://github.com/ie3-institute/simona/issues/1308)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -126,6 +128,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `AbstractEnergyBoundariesFlexModel` next tick determination [#1769](https://github.com/ie3-institute/simona/issues/1769)
 - Fixed energy limit handling in `OptimizedFlexStrat` [#1772](https://github.com/ie3-institute/simona/issues/1772)
 - Fix unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
+- Cleaned imports [#1791](https://github.com/ie3-institute/simona/issues/1791)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
@@ -137,6 +140,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed message retrieval timeout from DBFS [#1422](https://github.com/ie3-institute/simona/issues/1422) 
 - Removed unused class in EmAgent [#1735](https://github.com/ie3-institute/simona/issues/1735)
 - Removed unnecessary subclass `simona` in config [#1749](https://github.com/ie3-institute/simona/issues/1749)
+- Removed `greclipse()`from spotless task for groovyGradle to resolve long CI-Pipeline runs [#1803](https://github.com/ie3-institute/simona/issues/1803)
 
 ### Updates
 - Updated Gradle to version 9.0.0 [#1528](https://github.com/ie3-institute/simona/issues/1528)

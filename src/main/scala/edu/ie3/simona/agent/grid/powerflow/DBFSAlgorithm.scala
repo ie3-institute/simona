@@ -14,7 +14,11 @@ import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.FailedPowerFlowResult.FailedNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
-import edu.ie3.simona.agent.grid.GridAgent.{afterPowerFlow, unsupported}
+import edu.ie3.simona.agent.grid.GridAgent.{
+  afterPowerFlow,
+  askInferior,
+  unsupported,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
@@ -76,9 +80,16 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
         // first part of the grid simulation, same for all gridAgents on all levels
         // we start with a forward-sweep by requesting the data from our child assets and grids (if any)
         case (
-              _: DoPowerFlowTrigger,
+              DoPowerFlowTrigger(tick, sameTick),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
+          if sameTick then {
+            // inform every system participant about a new simulation for the same tick
+            gridAgentBaseData.gridEnv.allParticipants.foreach(
+              _ ! GridSimulationFinished(tick, tick)
+            )
+          }
+
           log.debug(
             "Start sweep number: {}",
             gridAgentBaseData.currentSweepNo,
@@ -95,9 +106,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             gridAgentBaseData.gridEnv.gridModel.mainRefSystem,
           )
           // 2. inferior grids p/q values
-          askInferiorGridsForPowers(
-            gridAgentBaseData.currentSweepNo,
+          askInferior(
             gridAgentBaseData.inferiorGridRefs,
+            (ref, inferiorGridNodes) =>
+              RequestGridPower(
+                gridAgentBaseData.currentSweepNo,
+                inferiorGridNodes,
+                ref,
+              ),
           )
 
           // 3. superior grids slack voltage
@@ -487,7 +503,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
       (message, gridAgentData) match {
         // main method for power flow calculations
         case (
-              DoPowerFlowTrigger(currentTick),
+              DoPowerFlowTrigger(currentTick, _),
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           log.debug(
@@ -653,9 +669,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                 // 2. inferior grids p/q values
                 val askForInferiorGridPowersOpt =
-                  askInferiorGridsForPowers(
-                    updatedGridAgentBaseData.currentSweepNo,
-                    updatedGridAgentBaseData.inferiorGridRefs,
+                  askInferior(
+                    gridAgentBaseData.inferiorGridRefs,
+                    (ref, inferiorGridNodes) =>
+                      RequestGridPower(
+                        updatedGridAgentBaseData.currentSweepNo,
+                        inferiorGridNodes,
+                        ref,
+                      ),
                   )
 
                 // when we don't have inferior grids and no assets both methods return None, and we can skip doing another power
@@ -1118,36 +1139,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     case (ctx, msg) =>
       unsupported(msg, ctx.log)
       Behaviors.same
-  }
-
-  /** Triggers an execution of the pekko `ask` pattern for all power values @
-    * connection nodes of inferior grids (if any) of this [[GridAgent]].
-    *
-    * @param currentSweepNo
-    *   The current sweep number the DBFS is in.
-    * @param inferiorGridRefs
-    *   A map containing a mapping from [[ActorRef]]s to corresponding [[UUID]]s
-    *   of inferior nodes.
-    * @return
-    *   True if this grids has connected inferior grids or false if this no
-    *   inferior grids.
-    */
-  private def askInferiorGridsForPowers(
-      currentSweepNo: Int,
-      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]],
-  )(using ctx: ActorContext[GridAgent.Message]): Boolean = {
-    if inferiorGridRefs.nonEmpty then {
-      inferiorGridRefs.foreach {
-        case (inferiorGridAgentRef, inferiorGridGateNodes) =>
-          inferiorGridAgentRef ! RequestGridPower(
-            currentSweepNo,
-            inferiorGridGateNodes,
-            ctx.self,
-          )
-      }
-
-      true
-    } else false
   }
 
   /** Triggers an execution of the pekko `ask` pattern for all slack voltages of
