@@ -25,7 +25,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 }
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.util.scala.quantities.KelvinMetersPerWatt
+import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
@@ -547,6 +547,11 @@ object GridModel {
                     KelvinMetersPerWatt(1),
                     KelvinMetersPerWatt(1),
                     KelvinMetersPerWatt(1),
+                    JoulesPerMeterKelvin(1),
+                    JoulesPerMeterKelvin(1),
+                    JoulesPerMeterKelvin(1),
+                    JoulesPerMeterKelvin(1),
+                    JoulesPerMeterKelvin(1),
                     Celsius(90),
                   )
                 }

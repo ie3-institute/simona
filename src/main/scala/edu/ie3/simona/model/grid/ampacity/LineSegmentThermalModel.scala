@@ -14,9 +14,14 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
-import edu.ie3.util.scala.quantities.{KelvinMetersPerWatt, ThermalResistivity}
+import edu.ie3.util.scala.quantities.{
+  JoulesPerMeterKelvin,
+  KelvinMetersPerWatt,
+  ThermalCapacitance,
+  ThermalResistivity,
+}
 import squants.space.Millimeters
-import squants.thermal.Celsius
+import squants.thermal.{Celsius, JoulesPerKelvin}
 import squants.{ElectricCurrent, Kelvin, Power, Seconds, Temperature}
 
 import java.util.UUID
@@ -45,6 +50,11 @@ final case class LineSegmentThermalModel(
     thermalResistanceT2: ThermalResistivity,
     thermalResistanceT3: ThermalResistivity,
     thermalResistanceT4: ThermalResistivity,
+    thermalCapacityCc: ThermalCapacitance,
+    thermalCapacityCd: ThermalCapacitance,
+    thermalCapacityCs: ThermalCapacitance,
+    thermalCapacityCj: ThermalCapacitance,
+    thermalCapacityCe: ThermalCapacitance,
     upperBoundaryTemperature: Temperature,
 ) {
 
@@ -130,6 +140,11 @@ object LineSegmentThermalModel {
       KelvinMetersPerWatt(1),
       KelvinMetersPerWatt(1),
       KelvinMetersPerWatt(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
       Celsius(90),
     )
 
@@ -160,23 +175,64 @@ object LineSegmentThermalModel {
     val cableMaterialResistivity = KelvinMetersPerWatt(4)
     val cableGeoA = Millimeters(10)
     val cableGeoB = Millimeters(12)
+    val cableGeoC = Millimeters(16)
+    val cableGeoD = Millimeters(20)
+    val cableGeoE = Millimeters(26)
     val t1 = calcThermalResistanceCableShells(
       cableMaterialResistivity,
       cableGeoA,
       cableGeoB,
     )
+    val t2 = calcThermalResistanceCableShells(
+      cableMaterialResistivity,
+      cableGeoB,
+      cableGeoC,
+    )
+    val t3 = calcThermalResistanceCableShells(
+      cableMaterialResistivity,
+      cableGeoC,
+      cableGeoD,
+    )
     val t4 = calcThermalResistanceToSoilSingleCable(
       cableMaterialResistivity,
+      cableGeoD,
+      cableGeoE,
+    )
+
+    val thermalCapacityConductor = JoulesPerKelvin(100)
+    val thermalCapacityDielectric = JoulesPerKelvin(50)
+    val thermalCapacityS = JoulesPerKelvin(100)
+    val thermalCapacityJ = JoulesPerKelvin(50)
+    val thermalCapacityE = JoulesPerKelvin(30)
+
+    val thermalCapacityCc = calcThermalCapacityCylindrical(
+      thermalCapacityConductor,
+      Millimeters(0),
+      cableGeoA,
+    )
+    val thermalCapacityCd = calcThermalCapacityCylindrical(
+      thermalCapacityDielectric,
       cableGeoA,
       cableGeoB,
     )
+    val thermalCapacityCs =
+      calcThermalCapacityCylindrical(thermalCapacityS, cableGeoB, cableGeoC)
+    val thermalCapacityCj =
+      calcThermalCapacityCylindrical(thermalCapacityJ, cableGeoC, cableGeoD)
+
+    val thermalCapacityCe = JoulesPerMeterKelvin(5.0)
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       UUID.randomUUID(),
       "initialLineSegmentThermalModel",
       t1,
-      t1,
-      t1,
+      t2,
+      t3,
       t4,
+      thermalCapacityCc,
+      thermalCapacityCd,
+      thermalCapacityCs,
+      thermalCapacityCj,
+      thermalCapacityCe,
       Celsius(90),
     )
 
