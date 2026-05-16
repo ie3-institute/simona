@@ -378,20 +378,15 @@ object LineThermalModelCalculations {
   def createAndCalcRCNetworkMvCableShortDuration(
       state: LineState
   ): Temperature = {
-    val thermalResistivityDielectric = KelvinMetersPerWatt(2 * 2.275)
-    val thermalResistivityJack = KelvinMetersPerWatt(4 * 10.1)
-    val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
-
-    val specificThermalCapacityConductor = JoulesPerKelvin(50)
-    val specificThermalCapacityDielectric = JoulesPerKelvin(1)
-    val specificThermalCapacitySheat = JoulesPerKelvin(50)
-    val specificThermalCapacityJack = JoulesPerKelvin(1)
+    val currentLineModel = state.currentLineSegmentThermalModel
+    val thermalResistivityDielectric = currentLineModel.thermalResistanceT1
+    val thermalResistivityJack = currentLineModel.thermalResistanceT3
+    val thermalResistivitySoil = currentLineModel.thermalResistanceT4
 
     val conductorDiaIn = Millimeters(0)
     val conductorDiaOut = Millimeters(10)
     val dielectricDiaOut = Millimeters(20)
-    val dielectricDiaMid =
-      conductorDiaOut + (dielectricDiaOut - conductorDiaOut) / 2
+    val dielectricDiaMid = conductorDiaOut + (dielectricDiaOut - conductorDiaOut) / 2
     val sheatDiaOut = Millimeters(22)
     val jackDiaOut = Millimeters(30)
     val jackDiaMid = sheatDiaOut + (jackDiaOut - sheatDiaOut) / 2
@@ -407,7 +402,7 @@ object LineThermalModelCalculations {
       AC_RESISTIVITY_COOPER,
       conductorAra,
       TEMPERATURE_COEFFICIENT_COOPER,
-      state.lineTemperature,
+      state.currentLineTemp1,
       skinEffect,
       proximityEffect,
     )
@@ -451,16 +446,8 @@ object LineThermalModelCalculations {
       thermalTotalLossesCableC,
     )
 
-    val conductorThermCapacitanceCc = calcThermalCapacityCylindrical(
-      specificThermalCapacityConductor,
-      conductorDiaIn,
-      conductorDiaOut,
-    )
-    val dielectricThermCapacitanceCd = calcThermalCapacityCylindrical(
-      specificThermalCapacityDielectric,
-      conductorDiaOut,
-      dielectricDiaOut,
-    )
+    val conductorThermCapacitanceCc = state.currentLineSegmentThermalModel.thermalCapacityCc
+    val dielectricThermCapacitanceCd = state.currentLineSegmentThermalModel.thermalCapacityCd
     val vanWormerDielectricFirstHalf =
       vanWormerCoefficientShortTermDurationTransients(
         conductorDiaOut,
@@ -479,16 +466,9 @@ object LineThermalModelCalculations {
       dielectricThermCapacitanceCd * vanWormerDielectricSecondHalf
     val dielectricThermCapacitanceC22 =
       dielectricThermCapacitanceCd * (1 - vanWormerDielectricSecondHalf)
-    val sheathThermCapacitanceCs = calcThermalCapacityCylindrical(
-      specificThermalCapacitySheat,
-      dielectricDiaOut,
-      sheatDiaOut,
-    )
-    val jackThermCapacitanceCj = calcThermalCapacityCylindrical(
-      specificThermalCapacityJack,
-      sheatDiaOut,
-      jackDiaOut,
-    )
+    val sheathThermCapacitanceCs = state.currentLineSegmentThermalModel.thermalCapacityCs
+    val jackThermCapacitanceCj = state.currentLineSegmentThermalModel.thermalCapacityCj
+
     val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
 
     val vanWormerJackFirstHalf =
@@ -504,9 +484,9 @@ object LineThermalModelCalculations {
     val jackThermCapacitanceC22 =
       jackThermCapacitanceCj * (1 - vanWormerJackSecondHalf)
 
-    val ambientSoilTemp = Celsius(20)
+    val ambientSoilTemp = state.groundTemperature
 
-    // in case of short durations we have a RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
+    // in case of short durations we have an RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
     // However, it simplifies if we transform them to conductance
     val g1 = 2d / t1.toKelvinMetersPerWatt // FIXME, Squants should convert this
     val g2 = 2d / t1.toKelvinMetersPerWatt
@@ -595,9 +575,7 @@ object LineThermalModelCalculations {
       voltage
     }
 
-    val lastTick = 3600
-    val currentTick = 7200
-    val duration = currentTick - lastTick
+    val duration = state.tick - state.lastTick
 
     Celsius(getV1(duration, 0))
   }
