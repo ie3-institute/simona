@@ -600,8 +600,9 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
     val model: LineState =
       LineState(tick, lastTick, thermalLineModel, groundTemp, lineTemp,lineTemp,lineTemp,lineTemp,lineTemp)
 
+    val current = Amperes(10)
 
-    val actual = createAndCalcRCNetworkMvCableShortDuration(model)
+    val actual = createAndCalcRCNetworkMvCableShortDuration(model, current)
 
     actual should approximate(expected)
   }

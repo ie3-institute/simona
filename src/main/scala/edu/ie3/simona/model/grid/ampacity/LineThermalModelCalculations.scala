@@ -372,16 +372,15 @@ object LineThermalModelCalculations {
       outerDiameter: Length,
   ): Double = {
     val diameterRatio = outerDiameter / innerDiameter
-    (1 / (log(diameterRatio))) - (1 / (diameterRatio - 1))
+    (1 / log(diameterRatio)) - (1 / (diameterRatio - 1))
   }
 
   def createAndCalcRCNetworkMvCableShortDuration(
-      state: LineState
+      state: LineState,
+      lineCurrent: ElectricCurrent,
   ): Temperature = {
     val currentLineModel = state.currentLineSegmentThermalModel
-    val thermalResistivityDielectric = currentLineModel.thermalResistanceT1
-    val thermalResistivityJack = currentLineModel.thermalResistanceT3
-    val thermalResistivitySoil = currentLineModel.thermalResistanceT4
+    val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
 
     val conductorDiaIn = Millimeters(0)
     val conductorDiaOut = Millimeters(10)
@@ -406,9 +405,8 @@ object LineThermalModelCalculations {
       skinEffect,
       proximityEffect,
     )
-    val current = Amperes(10d)
 
-    val conductorLosses = calcLossesConductor(acResistance, current)
+    val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
 
     val circulatingSheathLossFactor = 0.01
     val eddyCurrentsSheathLossFactor = 0.01
@@ -425,16 +423,9 @@ object LineThermalModelCalculations {
     val thermalTotalLossesCableC =
       conductorLosses + sheatLosses // FIXME: Same as CableB?
 
-    val t1 = calcThermalResistanceCableShells(
-      thermalResistivityDielectric,
-      conductorDiaOut,
-      dielectricDiaOut,
-    )
-    val t3 = calcThermalResistanceCableShells(
-      thermalResistivityJack,
-      sheatDiaOut,
-      jackDiaOut,
-    )
+    val t1 = currentLineModel.thermalResistanceT1
+    val t3 = currentLineModel.thermalResistanceT3
+
     // FIXME Check for Trefoil
     val t4 = calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
       thermalResistivitySoil,
