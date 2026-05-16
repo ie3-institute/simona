@@ -520,16 +520,6 @@ object LineThermalModelCalculations {
       (0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
     )
 
-    /*
-
-    val matrixA = DenseMatrix(
-      (-8d/15d,8d/15d,0d,0d,0d),
-      (4d/5d,-8d/5d,4d/5d,0d,0d),
-      (0d,8d/35d,-2d/7d,2d/35d,0d),
-      (0d,0d,1d/5d,-2d/5d,1d/5d),
-      (0d,0d,0d,1d/105d,-1d/84d),
-    )
-     */
     val vectorB = DenseVector(
       conductorLosses.toWatts / c1,
       0d,
@@ -537,8 +527,6 @@ object LineThermalModelCalculations {
       0d,
       (g5 * ambientSoilTemp.toCelsiusScale) / c5,
     )
-
-    // val vectorB = DenseVector(40d / 3d, 0d, 4d / 35d, 0d, 1d / 21d)
 
     val (eigenvalues, eigenvectors) =
       LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrixA)
