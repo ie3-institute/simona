@@ -375,17 +375,18 @@ object LineThermalModelCalculations {
     (1 / log(diameterRatio)) - (1 / (diameterRatio - 1))
   }
 
-  /** Splits a given capacitance in case of short-term durations by the method of van-Wormer through its coefficient.
-   *
-   * @param capacitance
-   * The capacitance that should be split.
-   * @param innerDiameter
-   * The inner diameter of the shell that creates the capacitance.
-   * @param outerDiameter
-   * The outer diameter of the shell that creates the capacitance.
-   * @return
-   * Returns the four parts C11,C12,C21 and C22 of the input capacitance.
-   */
+  /** Splits a given capacitance in case of short-term durations by the method
+    * of van-Wormer through its coefficient.
+    *
+    * @param capacitance
+    *   The capacitance that should be split.
+    * @param innerDiameter
+    *   The inner diameter of the shell that creates the capacitance.
+    * @param outerDiameter
+    *   The outer diameter of the shell that creates the capacitance.
+    * @return
+    *   Returns the four parts C11,C12,C21 and C22 of the input capacitance.
+    */
 
   private def splitCapacitanceByVanWormerShortDuration(
       capacitance: ThermalCapacitance,
