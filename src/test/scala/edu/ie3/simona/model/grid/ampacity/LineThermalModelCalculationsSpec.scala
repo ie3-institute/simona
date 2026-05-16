@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{
@@ -17,9 +18,11 @@ import edu.ie3.util.scala.quantities.{
 import squants.electro.*
 import squants.energy.{Power, Watts}
 import squants.space.SquareMeters
-import squants.thermal.{Celsius, JoulesPerKelvin}
+import squants.thermal.{Celsius, JoulesPerKelvin, Temperature}
 import squants.time.Hertz
 import squants.{Amperes, Meters}
+
+import java.util.UUID
 
 class LineThermalModelCalculationsSpec extends UnitSpec {
 
@@ -31,6 +34,7 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
   implicit val tolerance: Double = 1e-10
   implicit val thermalCapacitanceTolerance: ThermalCapacitance =
     JoulesPerMeterKelvin(1e-10)
+  implicit val temperatureTolerance: Temperature = Celsius(1e-8)
 
   "A LineSegmentThermalModel" should {
 
@@ -572,8 +576,32 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
   }
   "test " in {
 
-    val expected = 5.0
-    val actual = createAndCalcRCNetworkMvCableShortDuration()
+    val expected = Celsius(5.1)
+    val tick = 7200L
+    val lastTick = 3600L
+
+    val thermalLineModel = LineSegmentThermalModel(
+      UUID.randomUUID(),
+      "test",
+      KelvinMetersPerWatt(1),
+      KelvinMetersPerWatt(1),
+      KelvinMetersPerWatt(1),
+      KelvinMetersPerWatt(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      Celsius(90),
+    )
+    val groundTemp = Celsius(5)
+    val lineTemp = Celsius(2)
+
+    val model: LineState =
+      LineState(tick, lastTick, thermalLineModel, groundTemp, lineTemp,lineTemp,lineTemp,lineTemp,lineTemp)
+
+
+    val actual = createAndCalcRCNetworkMvCableShortDuration(model)
 
     actual should approximate(expected)
   }
