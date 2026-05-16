@@ -497,19 +497,19 @@ object LineThermalModelCalculations {
     // the RC-Network can be simplified since all parallel capacitance can be merged
     // Conductor capacitance and first part of the first half of the dielectric
     val c1 =
-      (conductorThermCapacitanceCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin * 3600 // FIXME check conversion factor !
+      (conductorThermCapacitanceCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin // FIXME check conversion factor !
     // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
     val c2 =
-      (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin * 3600
+      (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin
     // Capacitance of the second part of second half of the dielectric + the sheat + the first part of the first half of the jack
     val c3 =
-      (dielectricThermCapacitanceC22 + sheathThermCapacitanceCs + jackThermCapacitanceC11).toJoulesPerMeterKelvin * 3600
+      (dielectricThermCapacitanceC22 + sheathThermCapacitanceCs + jackThermCapacitanceC11).toJoulesPerMeterKelvin
     // Capacitance of the second part of first half of the jack + first part of the second half of the jack
     val c4 =
-      (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerMeterKelvin * 3600
+      (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerMeterKelvin
     // Capacitance of the second part of second half of the jack + the capacitance of the soil
     val c5 =
-      (jackThermCapacitanceC22 + soilThermCapacitance).toJoulesPerMeterKelvin * 3600
+      (jackThermCapacitanceC22 + soilThermCapacitance).toJoulesPerMeterKelvin
 
     // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
     val matrixA = DenseMatrix(
