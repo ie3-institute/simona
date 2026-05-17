@@ -591,6 +591,7 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
       Millimeters(28),
       "XLPE",
       Millimeters(36),
+      "flat-distance",
       Meters(1),
       Meters(0.3),
     )

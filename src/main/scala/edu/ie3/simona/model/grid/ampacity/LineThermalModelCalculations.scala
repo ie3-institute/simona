@@ -470,18 +470,36 @@ object LineThermalModelCalculations {
     val t2 = currentLineModel.thermalResistanceT2
     val t3 = currentLineModel.thermalResistanceT3
 
-    // FIXME Check for Trefoil
-    // T4 changes since it depends on losses from neighbouring cables
-    val t4 = calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
-      thermalResistivitySoil,
-      cableSetup.depthCables,
-      cableSetup.jackDiameter,
-      cableSetup.distanceCables,
-      thermalTotalLossesCableA,
-      thermalTotalLossesCableB,
-      thermalTotalLossesCableC,
-    )
 
+    // T4 changes since it depends on losses from neighbouring cables
+    val t4 = cableSetup.layoutFormation match {
+      case "flat-distance" =>
+        calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
+          thermalResistivitySoil,
+          cableSetup.depthCables,
+          cableSetup.jackDiameter,
+          cableSetup.distanceCables,
+          thermalTotalLossesCableA,
+          thermalTotalLossesCableB,
+          thermalTotalLossesCableC,
+        )
+      case "flat-touching" =>
+        throw new IllegalArgumentException(
+          s"Flat-touching layout formation is currently not supported"
+        )
+      case "trefoil-not-touching" =>  // FIXME Check for Trefoil
+        throw new IllegalArgumentException(
+          s"Trefoil not touching layout formation is currently not supported"
+        )
+      case "trefoil-touching" =>     // FIXME Check for Trefoil
+        throw new IllegalArgumentException(
+          s"Trefoil touching layout formation is currently not supported"
+        )
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Unknown layout formation: ${cableSetup.layoutFormation}"
+        )
+    }
     val conductorThermCapacitanceCc = currentLineModel.thermalCapacityCc
     val dielectricThermCapacitanceCd = currentLineModel.thermalCapacityCd
 

@@ -34,6 +34,7 @@ final case class CableSetup(
     jackResistivity: ThermalResistivity,
     jackCapacitance: ThermalCapacitance,
     jackDiameter: Length,
+    layoutFormation: String,
     depthCables: Length,
     distanceCables: Length,
 ) {}
@@ -51,6 +52,7 @@ object CableSetup {
       sheatDiameter: Length,
       jackMaterial: String,
       jackDiameter: Length,
+      layoutFormation: String,
       depthCables: Length,
       distanceCables: Length,
   ): CableSetup = {
@@ -137,6 +139,7 @@ object CableSetup {
       jackResistivity,
       jackCapacitance,
       jackDiameter,
+      layoutFormation,
       depthCables,
       distanceCables,
     )
