@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{
@@ -22,8 +21,6 @@ import squants.thermal.{Celsius, Temperature}
 import squants.time.Hertz
 import squants.{Amperes, Meters}
 
-import java.util.UUID
-
 class LineThermalModelCalculationsSpec extends UnitSpec {
 
   implicit val resistanceTolerance: ThermalResistivity = KelvinMetersPerWatt(
@@ -34,7 +31,7 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
   implicit val tolerance: Double = 1e-10
   implicit val thermalCapacitanceTolerance: ThermalCapacitance =
     JoulesPerMeterKelvin(1e-10)
-  implicit val temperatureTolerance: Temperature = Celsius(1e-8)
+  implicit val temperatureTolerance: Temperature = Celsius(1e-5)
 
   "A LineSegmentThermalModel" should {
 
@@ -606,64 +603,42 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
   }
   "test " in {
 
-    val expected = Celsius(5.1)
-    val tick = 7200L
-    val lastTick = 3600L
+    val expected = Celsius(88.72615) // S. 205 CIGRE
+    val tick = 972000L
+    val lastTick = 0L
 
     val cableSetup = CableSetup.apply(
       "Cooper",
-      Millimeters(10),
+      Millimeters(19.4),
       "XLPE",
-      Millimeters(20),
+      Millimeters(36.8),
       "None",
-      Millimeters(20),
+      Millimeters(36.8),
       "Cooper",
-      Millimeters(28),
+      Millimeters(38.8),
       "XLPE",
-      Millimeters(36),
+      Millimeters(44.0),
       "flat-distance",
       Meters(1),
-      Meters(0.3),
-      Kilovolts(30),
+      Meters(0.44),
+      Kilovolts(33),
       Nanofarads(0.237683304),
       0.004,
     )
+    val groundTemp = Celsius(20)
 
-    val thermalLineModel = LineSegmentThermalModel(
-      UUID.randomUUID(),
-      "test",
-      KelvinMetersPerWatt(1),
-      KelvinMetersPerWatt(0),
-      KelvinMetersPerWatt(1),
-      KelvinMetersPerWatt(1),
-      JoulesPerMeterKelvin(1),
-      JoulesPerMeterKelvin(1),
-      JoulesPerMeterKelvin(1),
-      JoulesPerMeterKelvin(1),
-      JoulesPerMeterKelvin(1),
-      Celsius(90),
-    )
-    val groundTemp = Celsius(5)
-    val lineTemp = Celsius(2)
+    val startingState =
+      LineSegmentThermalModel.startingState(groundTemp, cableSetup)
+    val adaptedState = startingState.copy(tick = tick, lastTick = lastTick)
 
-    val model: LineState =
-      LineState(
-        tick,
-        lastTick,
-        cableSetup,
-        thermalLineModel,
-        groundTemp,
-        lineTemp,
-        lineTemp,
-        lineTemp,
-        lineTemp,
-        lineTemp,
-      )
-
-    val current = Amperes(10)
+    val current = Amperes(537.46)
 
     val actual =
-      createAndCalcRCNetworkMvCableShortDuration(model, cableSetup, current)
+      createAndCalcRCNetworkMvCableShortDuration(
+        adaptedState,
+        cableSetup,
+        current,
+      )
 
     actual should approximate(expected)
   }
