@@ -594,7 +594,7 @@ object LineThermalModelCalculations {
       (0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
     )
 
-   val vectorB = DenseVector(
+    val vectorB = DenseVector(
       (conductorLosses.toWatts + dielectricLosses.toWatts / 2) / c1,
       0d,
       (sheathLosses.toWatts + dielectricLosses.toWatts / 2) / c3,
