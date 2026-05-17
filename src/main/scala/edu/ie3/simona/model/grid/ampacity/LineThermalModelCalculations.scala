@@ -77,24 +77,13 @@ object LineThermalModelCalculations {
   }
 
   /** Calculates the thermal losses of the cable segment per unit cable length.
-    * @param specificThermalResistivity
     *
+    * @param acResistance
+    *   The ac resistance of the line segment per unit of cable length.
+    * @param current
+    *   The electric current of this line.
     * @return
-    */
-  def calcThermalLosses(
-  ): Power = {
-    ???
-    // Stromwärmeverluste
-    // + Mantel- und Schirmverluste
-    // + Wirbelstrom-, Längsstrom- und Magnetisierungsverluste
-    // + dielektrische Verluste
-    // + ohmsche Verluste (stromunabhängig)
-  }
-
-  /** Calculates the thermal losses of the cable segment per unit cable length.
-    *
-    * @param specificThermalResistivity
-    * @return
+    *   The thermal losses of this line segment in power per unit cable length.
     */
   def calcLossesConductor(
       acResistance: ElectricalResistance,
@@ -507,7 +496,6 @@ object LineThermalModelCalculations {
     val t2 = currentLineModel.thermalResistanceT2
     val t3 = currentLineModel.thermalResistanceT3
 
-
     // T4 changes since it depends on losses from neighbouring cables
     val t4 = cableSetup.layoutFormation match {
       case "flat-distance" =>
@@ -524,11 +512,11 @@ object LineThermalModelCalculations {
         throw new IllegalArgumentException(
           s"Flat-touching layout formation is currently not supported"
         )
-      case "trefoil-not-touching" =>  // FIXME Check for Trefoil
+      case "trefoil-not-touching" => // FIXME Check for Trefoil
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
         )
-      case "trefoil-touching" =>     // FIXME Check for Trefoil
+      case "trefoil-touching" => // FIXME Check for Trefoil
         throw new IllegalArgumentException(
           s"Trefoil touching layout formation is currently not supported"
         )
@@ -624,7 +612,7 @@ object LineThermalModelCalculations {
       state.currentLineTemp2.toCelsiusScale,
       state.currentLineTemp3.toCelsiusScale,
       state.currentLineTemp4.toCelsiusScale,
-      state.currentLineTemp5.toCelsiusScale,
+      state.currentLineTemp5.toCelsiusScale, // FIXME: Check if this is always ambientTemp, then it can be removed.
     )
 
     val vp = matrixA \ (-vectorB)
