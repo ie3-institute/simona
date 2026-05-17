@@ -418,10 +418,13 @@ object LineThermalModelCalculations {
       lineCurrent: ElectricCurrent,
   ): Temperature = {
     val currentLineModel = state.currentLineSegmentThermalModel
+
     val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
+    val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
 
     val conductorArea =
       cableSetup.conductorDiameter * cableSetup.conductorDiameter * PI_OVER_FOUR
+
     val proximityEffect = 0.01 // Check CIGRE for detailed method //FIXME
     val skinEffect = 0.01 // FIXME
 
@@ -506,9 +509,6 @@ object LineThermalModelCalculations {
         cableSetup.jackDiameter,
       )
 
-    val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
-    val ambientSoilTemp = state.groundTemperature
-
     // in case of short durations we have an RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
     // However, it simplifies if we transform them to conductance
     val g1 = 2d / t1.toKelvinMetersPerWatt // FIXME, Squants should convert this
@@ -548,7 +548,7 @@ object LineThermalModelCalculations {
       0d,
       sheathLosses.toWatts / c3,
       0d,
-      (g5 * ambientSoilTemp.toCelsiusScale) / c5,
+      (g5 * state.groundTemperature.toCelsiusScale) / c5,
     )
 
     val (eigenvalues, eigenvectors) =
