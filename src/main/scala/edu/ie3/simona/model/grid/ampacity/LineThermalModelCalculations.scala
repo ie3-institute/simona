@@ -594,11 +594,10 @@ object LineThermalModelCalculations {
       (0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
     )
 
-    // Todo: Add DielectricLosses here (not relevant for most cases however, should be possible)
-    val vectorB = DenseVector(
-      conductorLosses.toWatts / c1,
+   val vectorB = DenseVector(
+      (conductorLosses.toWatts + dielectricLosses.toWatts / 2) / c1,
       0d,
-      sheathLosses.toWatts / c3,
+      (sheathLosses.toWatts + dielectricLosses.toWatts / 2) / c3,
       0d,
       (g5 * state.groundTemperature.toCelsiusScale) / c5,
     )
