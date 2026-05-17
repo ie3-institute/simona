@@ -17,8 +17,8 @@ import edu.ie3.util.scala.quantities.{
 }
 import squants.electro.*
 import squants.energy.{Power, Watts}
-import squants.space.SquareMeters
-import squants.thermal.{Celsius, JoulesPerKelvin, Temperature}
+import squants.space.{Millimeters, SquareMeters}
+import squants.thermal.{Celsius, Temperature}
 import squants.time.Hertz
 import squants.{Amperes, Meters}
 
@@ -338,7 +338,7 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
             outerDiameter,
             expectedThermalCapacitance,
         ) =>
-          val specThermalCap = JoulesPerKelvin(
+          val specThermalCap = JoulesPerMeterKelvin(
             specificThermalCapacity
           )
           val innerDia = Meters(innerDiameter)
@@ -580,6 +580,21 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
     val tick = 7200L
     val lastTick = 3600L
 
+    val cableSetup = CableSetup.apply(
+      "Cooper",
+      Millimeters(10),
+      "XLPE",
+      Millimeters(20),
+      "None",
+      Millimeters(20),
+      "Cooper",
+      Millimeters(28),
+      "XLPE",
+      Millimeters(36),
+      Meters(1),
+      Meters(0.3),
+    )
+
     val thermalLineModel = LineSegmentThermalModel(
       UUID.randomUUID(),
       "test",
@@ -601,6 +616,7 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
       LineState(
         tick,
         lastTick,
+        cableSetup,
         thermalLineModel,
         groundTemp,
         lineTemp,
@@ -612,7 +628,8 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
 
     val current = Amperes(10)
 
-    val actual = createAndCalcRCNetworkMvCableShortDuration(model, current)
+    val actual =
+      createAndCalcRCNetworkMvCableShortDuration(model, cableSetup, current)
 
     actual should approximate(expected)
   }

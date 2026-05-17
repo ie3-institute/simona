@@ -21,7 +21,7 @@ import edu.ie3.util.scala.quantities.{
   ThermalResistivity,
 }
 import squants.space.Millimeters
-import squants.thermal.{Celsius, JoulesPerKelvin}
+import squants.thermal.Celsius
 import squants.{ElectricCurrent, Kelvin, Power, Seconds, Temperature}
 
 import java.util.UUID
@@ -76,16 +76,7 @@ final case class LineSegmentThermalModel(
       boundaryTemperature - temperatureTolerance
     )
 
-  /** Update the current state of the house.
-    *
-    * @param tick
-    *   The tick that the houseState should be updated to.
-    * @param lastThermalHouseState
-    *   The applicable state of thermalHouse until this tick.
-    * @param qDot
-    *   The thermal feed in to the thermal house.
-    * @return
-    *   Updated state of the instance.
+  /** Update the current state of the line segment
     */
   def determineState(
       tick: Long,
@@ -160,6 +151,7 @@ object LineSegmentThermalModel {
   final case class LineState(
       override val tick: Long,
       lastTick: Long,
+      cableSetup: CableSetup,
       currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
       currentLineTemp1: Temperature,
@@ -170,57 +162,58 @@ object LineSegmentThermalModel {
   ) extends ModelState
 
   def startingState(
-      groundTemperature: Temperature
+      groundTemperature: Temperature,
+      cableSetup: CableSetup,
   ): LineState = {
-    val cableMaterialResistivity = KelvinMetersPerWatt(4)
-    val cableGeoA = Millimeters(10)
-    val cableGeoB = Millimeters(12)
-    val cableGeoC = Millimeters(16)
-    val cableGeoD = Millimeters(20)
-    val cableGeoE = Millimeters(26)
     val t1 = calcThermalResistanceCableShells(
-      cableMaterialResistivity,
-      cableGeoA,
-      cableGeoB,
+      cableSetup.dielectricResistivity,
+      cableSetup.conductorDiameter,
+      cableSetup.dielectricDiameter,
     )
     val t2 = calcThermalResistanceCableShells(
-      cableMaterialResistivity,
-      cableGeoB,
-      cableGeoC,
+      cableSetup.fillerResistivity,
+      cableSetup.dielectricDiameter,
+      cableSetup.fillerDiameter,
     )
     val t3 = calcThermalResistanceCableShells(
-      cableMaterialResistivity,
-      cableGeoC,
-      cableGeoD,
-    )
-    val t4 = calcThermalResistanceToSoilSingleCable(
-      cableMaterialResistivity,
-      cableGeoD,
-      cableGeoE,
+      cableSetup.jackResistivity,
+      cableSetup.sheathDiameter,
+      cableSetup.jackDiameter,
     )
 
-    val thermalCapacityConductor = JoulesPerKelvin(100)
-    val thermalCapacityDielectric = JoulesPerKelvin(50)
-    val thermalCapacityS = JoulesPerKelvin(100)
-    val thermalCapacityJ = JoulesPerKelvin(50)
-    val thermalCapacityE = JoulesPerKelvin(30)
+    val soilResistivity = KelvinMetersPerWatt(1.0) // FIXME
+
+    val t4 = calcThermalResistanceToSoilSingleCable(
+      soilResistivity,
+      cableSetup.jackDiameter,
+      Millimeters(1000), // FIXME
+    )
 
     val thermalCapacityCc = calcThermalCapacityCylindrical(
-      thermalCapacityConductor,
+      cableSetup.conductorCapacitance,
       Millimeters(0),
-      cableGeoA,
+      cableSetup.conductorDiameter,
     )
     val thermalCapacityCd = calcThermalCapacityCylindrical(
-      thermalCapacityDielectric,
-      cableGeoA,
-      cableGeoB,
+      cableSetup.dielectricCapacitance,
+      cableSetup.conductorDiameter,
+      cableSetup.dielectricDiameter,
     )
     val thermalCapacityCs =
-      calcThermalCapacityCylindrical(thermalCapacityS, cableGeoB, cableGeoC)
+      calcThermalCapacityCylindrical(
+        cableSetup.sheathCapacitance,
+        cableSetup.fillerDiameter,
+        cableSetup.sheathDiameter,
+      )
     val thermalCapacityCj =
-      calcThermalCapacityCylindrical(thermalCapacityJ, cableGeoC, cableGeoD)
+      calcThermalCapacityCylindrical(
+        cableSetup.jackCapacitance,
+        cableSetup.sheathDiameter,
+        cableSetup.jackDiameter,
+      )
 
     val thermalCapacityCe = JoulesPerMeterKelvin(5.0)
+
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       UUID.randomUUID(),
       "initialLineSegmentThermalModel",
@@ -239,6 +232,7 @@ object LineSegmentThermalModel {
     LineState(
       0L,
       -1L,
+      cableSetup,
       initialLineSegmentThermalModel,
       groundTemperature,
       groundTemperature,

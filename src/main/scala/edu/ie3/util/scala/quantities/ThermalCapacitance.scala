@@ -11,7 +11,7 @@ import squants.energy.Joules
 
 import scala.util.Try
 
-/** Represents the thermal capacitance, in J/(m*K).
+/** Represents the thermal capacitance, in J/(m*K). //FIXME J/(m³*K)?
   */
 final class ThermalCapacitance private (
     val value: Double,

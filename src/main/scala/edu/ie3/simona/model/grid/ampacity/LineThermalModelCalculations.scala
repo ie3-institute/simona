@@ -8,6 +8,7 @@ package edu.ie3.simona.model.grid.ampacity
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
+import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
@@ -17,12 +18,11 @@ import edu.ie3.util.scala.quantities.{
   SquantsUtils as RichElectricPotential,
 }
 import squants.electro.*
-import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import squants.energy.Watts
-import squants.space.{Area, Length, Millimeters}
-import squants.thermal.{Celsius, JoulesPerKelvin, ThermalCapacity}
+import squants.space.{Area, Length}
+import squants.thermal.Celsius
 import squants.time.Frequency
-import squants.{ElectricCurrent, Meters, Power, Temperature}
+import squants.{ElectricCurrent, Power, Temperature}
 
 import scala.math.*
 
@@ -328,7 +328,7 @@ object LineThermalModelCalculations {
     *   length.
     */
   def calcThermalCapacityCylindrical(
-      specificThermalCapacity: ThermalCapacity,
+      specificThermalCapacity: ThermalCapacitance,
       innerDiameter: Length,
       outerDiameter: Length,
   ): ThermalCapacitance = {
@@ -337,7 +337,7 @@ object LineThermalModelCalculations {
       2,
     )
     JoulesPerMeterKelvin(
-      PI_OVER_FOUR * areaDifference * specificThermalCapacity.toJoulesPerKelvin
+      PI_OVER_FOUR * areaDifference * specificThermalCapacity.toJoulesPerMeterKelvin
     )
   }
 
@@ -414,28 +414,32 @@ object LineThermalModelCalculations {
 
   def createAndCalcRCNetworkMvCableShortDuration(
       state: LineState,
+      cableSetup: CableSetup,
       lineCurrent: ElectricCurrent,
   ): Temperature = {
     val currentLineModel = state.currentLineSegmentThermalModel
     val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
 
-    val conductorDiaIn = Millimeters(0)
-    val conductorDiaOut = Millimeters(10)
-    val dielectricDiaOut = Millimeters(20)
-    val sheatDiaOut = Millimeters(22)
-    val jackDiaOut = Millimeters(30)
+    val conductorArea =
+      cableSetup.conductorDiameter * cableSetup.conductorDiameter * PI_OVER_FOUR
+    val proximityEffect = 0.01 // Check CIGRE for detailed method //FIXME
+    val skinEffect = 0.01 // FIXME
 
-    val depthCables = Meters(1d)
-    val distanceCables = Meters(0.3d)
-
-    val conductorAra = conductorDiaOut * conductorDiaOut * PI_OVER_FOUR
-    val proximityEffect = 0.01 // Check CIGRE for detailed method
-    val skinEffect = 0.01
+    val (specificAcResistance, specificTempCoefficient) =
+      cableSetup.conductorMaterial match {
+        case "Cooper" => (AC_RESISTIVITY_COOPER, TEMPERATURE_COEFFICIENT_COOPER)
+        case "Aluminium" =>
+          (AC_RESISTIVITY_ALUMINIUM, TEMPERATURE_COEFFICIENT_ALUMINIUM)
+        case _ =>
+          throw new IllegalArgumentException(
+            s"Unknown conductor material: ${cableSetup.conductorMaterial}"
+          )
+      }
 
     val acResistance = calcAcResistance(
-      AC_RESISTIVITY_COOPER,
-      conductorAra,
-      TEMPERATURE_COEFFICIENT_COOPER,
+      specificAcResistance,
+      conductorArea,
+      specificTempCoefficient,
       state.currentLineTemp1,
       skinEffect,
       proximityEffect,
@@ -443,32 +447,33 @@ object LineThermalModelCalculations {
 
     val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
 
-    val circulatingSheathLossFactor = 0.01
-    val eddyCurrentsSheathLossFactor = 0.01
+    val circulatingSheathLossFactor = 0.01 // FIXME
+    val eddyCurrentsSheathLossFactor = 0.01 // FIXME
 
-    val sheatLosses = calcLossesSheath(
+    val sheathLosses = calcLossesSheath(
       circulatingSheathLossFactor,
       eddyCurrentsSheathLossFactor,
       conductorLosses,
     )
 
     val thermalTotalLossesCableA =
-      conductorLosses + sheatLosses // FIXME: Same as CableB?
-    val thermalTotalLossesCableB = conductorLosses + sheatLosses
+      conductorLosses + sheathLosses // FIXME: Same as CableB?
+    val thermalTotalLossesCableB = conductorLosses + sheathLosses
     val thermalTotalLossesCableC =
-      conductorLosses + sheatLosses // FIXME: Same as CableB?
+      conductorLosses + sheathLosses // FIXME: Same as CableB?
 
     // No changes for T1-T3
     val t1 = currentLineModel.thermalResistanceT1
+    val t2 = currentLineModel.thermalResistanceT2
     val t3 = currentLineModel.thermalResistanceT3
 
     // FIXME Check for Trefoil
     // T4 changes since it depends on losses from neighbouring cables
     val t4 = calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
       thermalResistivitySoil,
-      depthCables,
-      jackDiaOut,
-      distanceCables,
+      cableSetup.depthCables,
+      cableSetup.jackDiameter,
+      cableSetup.distanceCables,
       thermalTotalLossesCableA,
       thermalTotalLossesCableB,
       thermalTotalLossesCableC,
@@ -485,12 +490,9 @@ object LineThermalModelCalculations {
     ) =
       splitCapacitanceByVanWormerShortDuration(
         dielectricThermCapacitanceCd,
-        conductorDiaOut,
-        dielectricDiaOut,
+        cableSetup.conductorDiameter,
+        cableSetup.dielectricDiameter,
       )
-
-    val sheathThermCapacitanceCs = currentLineModel.thermalCapacityCs
-    val jackThermCapacitanceCj = currentLineModel.thermalCapacityCj
 
     val (
       jackThermCapacitanceC11,
@@ -499,9 +501,9 @@ object LineThermalModelCalculations {
       jackThermCapacitanceC22,
     ) =
       splitCapacitanceByVanWormerShortDuration(
-        jackThermCapacitanceCj,
-        sheatDiaOut,
-        jackDiaOut,
+        currentLineModel.thermalCapacityCj,
+        cableSetup.sheathDiameter,
+        cableSetup.jackDiameter,
       )
 
     val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
@@ -522,9 +524,9 @@ object LineThermalModelCalculations {
         // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
     val c2 =
       (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin
-    // Capacitance of the second part of second half of the dielectric + the sheat + the first part of the first half of the jack
+    // Capacitance of the second part of second half of the dielectric + the sheath + the first part of the first half of the jack
     val c3 =
-      (dielectricThermCapacitanceC22 + sheathThermCapacitanceCs + jackThermCapacitanceC11).toJoulesPerMeterKelvin
+      (dielectricThermCapacitanceC22 + currentLineModel.thermalCapacityCs + jackThermCapacitanceC11).toJoulesPerMeterKelvin
     // Capacitance of the second part of first half of the jack + first part of the second half of the jack
     val c4 =
       (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerMeterKelvin
@@ -544,7 +546,7 @@ object LineThermalModelCalculations {
     val vectorB = DenseVector(
       conductorLosses.toWatts / c1,
       0d,
-      sheatLosses.toWatts / c3,
+      sheathLosses.toWatts / c3,
       0d,
       (g5 * ambientSoilTemp.toCelsiusScale) / c5,
     )
