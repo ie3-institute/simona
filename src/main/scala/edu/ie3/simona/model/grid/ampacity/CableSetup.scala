@@ -12,6 +12,7 @@ import edu.ie3.util.scala.quantities.{
   ThermalCapacitance,
   ThermalResistivity,
 }
+import squants.electro.{Capacitance, ElectricPotential}
 import squants.space.Length
 
 import java.util.UUID
@@ -22,6 +23,7 @@ final case class CableSetup(
     conductorMaterial: String,
     conductorCapacitance: ThermalCapacitance,
     conductorDiameter: Length,
+    dielectricMaterial: String,
     dielectricResistivity: ThermalResistivity,
     dielectricCapacitance: ThermalCapacitance,
     dielectricDiameter: Length,
@@ -37,6 +39,9 @@ final case class CableSetup(
     layoutFormation: String,
     depthCables: Length,
     distanceCables: Length,
+    voltage: ElectricPotential,
+    electricCapacitance: Capacitance,
+    tanDelta: Double,
 ) {}
 
 object CableSetup {
@@ -55,6 +60,9 @@ object CableSetup {
       layoutFormation: String,
       depthCables: Length,
       distanceCables: Length,
+      voltage: ElectricPotential,
+      electricCapacitance: Capacitance,
+      tanDelta: Double,
   ): CableSetup = {
 
     val uuid = UUID.randomUUID()
@@ -127,6 +135,7 @@ object CableSetup {
       conductorMaterial,
       conductorCapacitance,
       conductorDiameter,
+      dielectricMaterial,
       dielectricResistivity,
       dielectricCapacitance,
       dielectricDiameter,
@@ -142,6 +151,9 @@ object CableSetup {
       layoutFormation,
       depthCables,
       distanceCables,
+      voltage,
+      electricCapacitance,
+      tanDelta,
     )
   }
 }

@@ -9,6 +9,7 @@ package edu.ie3.simona.model.grid.ampacity
 import breeze.linalg.{DenseMatrix, DenseVector}
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
@@ -21,7 +22,7 @@ import squants.electro.*
 import squants.energy.Watts
 import squants.space.{Area, Length}
 import squants.thermal.Celsius
-import squants.time.Frequency
+import squants.time.{Frequency, Hertz}
 import squants.{ElectricCurrent, Power, Temperature}
 
 import scala.math.*
@@ -146,20 +147,45 @@ object LineThermalModelCalculations {
 
   /** Calculates the losses within the cable that are not current-dependent.
     *
-    * @param voltage
+    * @param phaseToGroundVoltage
+    *   The phase-to-ground voltage U0 of the cable system
     * @param frequency
-    *   the frequency of the system (50 Hz) in general.
+    *   The frequency of the system (50 Hz) in general.
     * @param tanDelta
+    *   The dissipation factor of the cable.
     * @param dielectricCapacity
+    *   The electric capacity that is formed by the dielectric of the cable.
     * @return
+    *   The voltage dependent dielectric losses.
     */
   def calcDielectricLosses(
-      voltage: ElectricPotential,
+      dielectricMaterial: String,
+      phaseToGroundVoltage: ElectricPotential,
       frequency: Frequency,
       tanDelta: Double,
       dielectricCapacity: Capacitance,
   ): Power = {
-    dielectricCapacity.calculateDielectricLosses(voltage, frequency, tanDelta)
+    (dielectricMaterial, phaseToGroundVoltage) match {
+      case ("XLPE", voltage) if voltage < Kilovolts(127) => zeroKW
+      case ("PVC", voltage) if voltage < Kilovolts(6)    => zeroKW
+      case ("XLPE", voltage) if voltage >= Kilovolts(127) =>
+        dielectricCapacity.calculateDielectricLosses(
+          voltage,
+          frequency,
+          tanDelta,
+        )
+      case ("PVC", voltage) if voltage >= Kilovolts(6) =>
+        dielectricCapacity.calculateDielectricLosses(
+          voltage,
+          frequency,
+          tanDelta,
+        )
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Unknown material used for dielectric: $dielectricMaterial."
+        )
+    }
+
   }
 
   /** Calculates the thermal resistivity of the individual layers of the cable
@@ -459,11 +485,22 @@ object LineThermalModelCalculations {
       conductorLosses,
     )
 
+    val phaseToGroundVoltage = cableSetup.voltage / sqrt(3)
+
+    val dielectricLosses = calcDielectricLosses(
+      cableSetup.dielectricMaterial,
+      phaseToGroundVoltage,
+      Hertz(50),
+      cableSetup.tanDelta,
+      cableSetup.electricCapacitance,
+    )
+
     val thermalTotalLossesCableA =
-      conductorLosses + sheathLosses // FIXME: Same as CableB?
-    val thermalTotalLossesCableB = conductorLosses + sheathLosses
+      conductorLosses + sheathLosses + dielectricLosses // FIXME: Same as CableB?
+    val thermalTotalLossesCableB =
+      conductorLosses + sheathLosses + dielectricLosses
     val thermalTotalLossesCableC =
-      conductorLosses + sheathLosses // FIXME: Same as CableB?
+      conductorLosses + sheathLosses + dielectricLosses // FIXME: Same as CableB?
 
     // No changes for T1-T3
     val t1 = currentLineModel.thermalResistanceT1
@@ -561,6 +598,7 @@ object LineThermalModelCalculations {
       (0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
     )
 
+    // Todo: Add DielectricLosses here (not relevant for most cases however, should be possible)
     val vectorB = DenseVector(
       conductorLosses.toWatts / c1,
       0d,

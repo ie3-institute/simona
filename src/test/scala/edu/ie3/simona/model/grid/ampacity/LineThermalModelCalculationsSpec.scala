@@ -123,33 +123,51 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
     "calculate correctly the dielectric losses" in {
       val cases = Table(
         (
-          "voltage",
+          "dielectricMaterial",
+          "phaseToGroundVoltage",
           "tanDelta",
           "dielectricCapaNanoF",
           "expected",
         ),
         (
+          "PVC", // Changed to PVC to allow test
           19052.5588,
           0.004,
           0.237683304,
           0.10842143853,
-        ), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 198f
+        ), // CIGRÉ Working Group B1.56, Power cable rating examples for calculation tool verification, TB 880, p 198f
+        (
+          "PVC", // Changed to PVC to allow test
+          76210.2355,
+          0.001,
+          0.25506991358,
+          0.4654100053,
+        ), // CIGRÉ Working Group B1.56, Power cable rating examples for calculation tool verification, TB 880, p 132f
+        (
+          "XLPE", // Changed to PVC to allow test
+          230940.108,
+          0.001,
+          0.14978009691,
+          2.5095896112,
+        ), // CIGRÉ Working Group B1.56, Power cable rating examples for calculation tool verification, TB 880, p 242f
       )
 
       forAll(cases) {
         (
-            voltage,
+            dielectricMaterial,
+            phaseToGroundVoltage,
             tanDelta,
             dielectricCapaNanoF,
             expected,
         ) =>
 
-          val voltageU0 = Volts(voltage)
+          val voltageU0 = Volts(phaseToGroundVoltage)
           val frequency = Hertz(50)
           val dielectricCapacity = Nanofarads(dielectricCapaNanoF)
           val expectedResult = Watts(expected)
 
           val actual = calcDielectricLosses(
+            dielectricMaterial,
             voltageU0,
             frequency,
             tanDelta,
@@ -158,6 +176,18 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
 
           actual should approximate(expectedResult)
       }
+    }
+    "throw an exception for unsupported material for calculation of the dielectric losses" in {
+      val ex = intercept[IllegalArgumentException] {
+        calcDielectricLosses(
+          "PE",
+          Kilovolts(6),
+          Hertz(50),
+          0.001,
+          Nanofarads(0.1),
+        )
+      }
+      ex.getMessage should be("Unknown material used for dielectric: PE.")
     }
 
     "return all correct thermal resistance for cable shells" in {
@@ -594,6 +624,9 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
       "flat-distance",
       Meters(1),
       Meters(0.3),
+      Kilovolts(30),
+      Nanofarads(0.237683304),
+      0.004,
     )
 
     val thermalLineModel = LineSegmentThermalModel(

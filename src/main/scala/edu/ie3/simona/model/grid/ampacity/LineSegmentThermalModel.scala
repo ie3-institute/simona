@@ -145,8 +145,16 @@ object LineSegmentThermalModel {
     *   Last tick of temperature change.
     * @param groundTemperature
     *   The current ground temperature.
-    * @param lineTemperature
-    *   The temperature of the line element.
+    * @param currentLineTemp1
+    *   The current temperature of the conductor.
+    * @param currentLineTemp2
+    *   The current temperature of the dielectric.
+    * @param currentLineTemp3
+    *   The current temperature of the filler.
+    * @param currentLineTemp4
+    *   The current temperature of the jack.
+    * @param currentLineTemp5
+    *   The current temperature of the soil.
     */
   final case class LineState(
       override val tick: Long,
