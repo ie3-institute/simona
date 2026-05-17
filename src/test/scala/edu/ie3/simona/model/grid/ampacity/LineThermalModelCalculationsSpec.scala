@@ -633,7 +633,7 @@ class LineThermalModelCalculationsSpec extends UnitSpec {
       UUID.randomUUID(),
       "test",
       KelvinMetersPerWatt(1),
-      KelvinMetersPerWatt(1),
+      KelvinMetersPerWatt(0),
       KelvinMetersPerWatt(1),
       KelvinMetersPerWatt(1),
       JoulesPerMeterKelvin(1),

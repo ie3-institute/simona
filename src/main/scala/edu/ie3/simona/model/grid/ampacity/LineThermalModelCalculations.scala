@@ -437,6 +437,7 @@ object LineThermalModelCalculations {
     val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
     val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
 
+    /* Calculate the losses */
     val conductorArea =
       cableSetup.conductorDiameter * cableSetup.conductorDiameter * PI_OVER_FOUR
 
@@ -491,10 +492,17 @@ object LineThermalModelCalculations {
     val thermalTotalLossesCableC =
       conductorLosses + sheathLosses + dielectricLosses // FIXME: Same as CableB?
 
+    /* Update thermoelectric equivalent circuit */
     // No changes for T1-T3
     val t1 = currentLineModel.thermalResistanceT1
     val t2 = currentLineModel.thermalResistanceT2
     val t3 = currentLineModel.thermalResistanceT3
+
+    // Sanity Check t2 should be zero, else some simplifications further down are not possible.
+    if t2 != KelvinMetersPerWatt(0) then
+      throw new IllegalStateException(
+        s"Unexpected value for thermal-electric resistance T2, which should be zero."
+      )
 
     // T4 changes since it depends on losses from neighbouring cables
     val t4 = cableSetup.layoutFormation match {
@@ -525,9 +533,8 @@ object LineThermalModelCalculations {
           s"Unknown layout formation: ${cableSetup.layoutFormation}"
         )
     }
-    val conductorThermCapacitanceCc = currentLineModel.thermalCapacityCc
-    val dielectricThermCapacitanceCd = currentLineModel.thermalCapacityCd
 
+    /* Split Capacitance with van-Wormer Coefficient */
     val (
       dielectricThermCapacitanceC11,
       dielectricThermCapacitanceC12,
@@ -535,7 +542,7 @@ object LineThermalModelCalculations {
       dielectricThermCapacitanceC22,
     ) =
       splitCapacitanceByVanWormerShortDuration(
-        dielectricThermCapacitanceCd,
+        currentLineModel.thermalCapacityCd,
         cableSetup.conductorDiameter,
         cableSetup.dielectricDiameter,
       )
@@ -552,6 +559,7 @@ object LineThermalModelCalculations {
         cableSetup.jackDiameter,
       )
 
+    /* Build RC-Network */
     // in case of short durations we have an RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
     // However, it simplifies if we transform them to conductance
     val g1 = 2d / t1.toKelvinMetersPerWatt // FIXME, Squants should convert this
@@ -563,7 +571,7 @@ object LineThermalModelCalculations {
     // the RC-Network can be simplified since all parallel capacitance can be merged
     // Conductor capacitance and first part of the first half of the dielectric
     val c1 =
-      (conductorThermCapacitanceCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin // FIXME check conversion factor !
+      (currentLineModel.thermalCapacityCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin // FIXME check conversion factor !
         // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
     val c2 =
       (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin
