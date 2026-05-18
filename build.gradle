@@ -155,7 +155,7 @@ dependencies {
 
   implementation 'commons-io:commons-io:2.22.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
-  implementation 'tech.units:indriya:2.2.3' // quantities
+  implementation 'tech.units:indriya:2.2.4' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
   implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'org.jgrapht:jgrapht-core:1.5.3'
