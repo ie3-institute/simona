@@ -18,6 +18,7 @@ import edu.ie3.util.scala.quantities.{
   ThermalResistivity,
   SquantsUtils as RichElectricPotential,
 }
+import com.typesafe.scalalogging.LazyLogging
 import squants.electro.*
 import squants.energy.Watts
 import squants.space.{Area, Length}
@@ -30,7 +31,7 @@ import scala.math.*
 /** A collection of methods used for calculation of the
   * [[LineSegmentThermalModel]].
   */
-object LineThermalModelCalculations {
+object LineThermalModelCalculations extends LazyLogging {
 
   // Constants for thermal calculations
   private val TWO_PI: Double = 2 * Pi
@@ -605,15 +606,6 @@ object LineThermalModelCalculations {
     val (eigenvalues, eigenvectors) =
       LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrixA)
 
-    // sanity check
-    if eigenvalues.length != 5 ||
-      eigenvectors.rows != eigenvalues.length ||
-      eigenvectors.cols != eigenvalues.length
-    then
-      throw new IllegalStateException(
-        s"Unexpected number of Eigenvalues or Eigenvectors. Expected are 5 each, Got: Eigenvalues: $eigenvalues, Eigenvectors: $eigenvectors."
-      )
-
     val vStart = DenseVector(
       state.currentLineTemp1.toCelsiusScale,
       state.currentLineTemp2.toCelsiusScale,
@@ -639,6 +631,10 @@ object LineThermalModelCalculations {
     }
 
     val duration = state.tick - state.lastTick
+    if duration > 3600 then
+      logger.warn(
+        s"RC-Network for short durations has been used. However, the duration of $duration ticks might be of type long duration. Currently used method might be inaccurate but should estimate on the safe side."
+      )
 
     Celsius(getV1(duration, 0))
   }
