@@ -7,12 +7,8 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
-import edu.ie3.simona.model.thermal.ThermalHouseTestData
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.input.{
-  HpInputTestData,
-  LineSegmentThermalModelInputData,
-}
+import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
@@ -21,9 +17,7 @@ import squants.{Amperes, Energy, Kelvin, Power, Temperature}
 class LineSegmentThermalModelSpec
     extends UnitSpec
     with LineSegmentThermalModelInputData
-    with Matchers
-    with HpInputTestData
-    with ThermalHouseTestData {
+    with Matchers {
 
   // Testing tolerances
   given Power = Kilowatts(1e-10)
@@ -33,42 +27,47 @@ class LineSegmentThermalModelSpec
   "LineSegmentThermalModel" should {
 
     "Determine the current state" in {
-      val groundTemperatureValue = Celsius(20)
-
-      val startingState: LineState =
-        LineSegmentThermalModel.startingState(
-          groundTemperatureValue,
-          cableSetup,
-        )
-
-      val currentModel: LineSegmentThermalModel =
-        startingState.currentLineSegmentThermalModel
 
       val cases = Table(
         (
-          "state",
+          "tick",
+          "cableSetup",
+          "groundTemp",
           "lineCurrent",
           "expectedLineTemperature",
         ),
-        (startingState, 537, 87.51797273323201),
+         (72000L, cigreT880LandCable33kV, 20d, 537d, 87.51797273323201), // CIGRE TB880 S. 205
+        (3600L, cigreT880LandCable33kV, 20d, 537d, 69.50004461804613),
+        (72000L, cigreT880LandCable33kV, 5d, 537d, 72.51797273323201),
+        (3600L, andersSingleCore10kV, 15d, 629d, 90.0),
       )
 
       forAll(cases) {
         (
-            state,
+            tick,
+            cableSetup,
+            groundTemp,
             lineCurrent,
             exptLineTemperature,
         ) =>
+          val groundTemperature = Celsius(groundTemp)
 
-          val tick = 720000
-          val lineState = startingState
+          val startingState: LineState =
+            LineSegmentThermalModel.startingState(
+              groundTemperature,
+              cableSetup,
+            )
+
+          val currentModel: LineSegmentThermalModel =
+            startingState.currentLineSegmentThermalModel
+
           val current = Amperes(lineCurrent)
 
           val expectedLineTemp = Celsius(exptLineTemperature)
 
           val updatedState: LineState = currentModel.determineState(
             tick,
-            lineState,
+            startingState,
             current,
           )
 
