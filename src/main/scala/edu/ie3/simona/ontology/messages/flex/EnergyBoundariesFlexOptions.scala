@@ -153,11 +153,12 @@ object EnergyBoundariesFlexOptions
     * from tick to the next) constitute the boundaries between which flexibility
     * can be used.
     *
+    * @param currentEnergy
+    *   The current state of energy.
     * @param energyLimits
-    *   Energy limits that signify the potential upwards and downwards
-    *   flexibility potential for the respective tick. The energy limits for all
-    *   ticks relate to the energy potential at the current tick (which is
-    *   defined to be zero).
+    *   Energy limits that signify the minimum and maximum state of energy for
+    *   the respective tick. The energy limits for all ticks relate to the
+    *   energy potential at the current tick, [[currentEnergy]].
     * @param powerLimits
     *   The power limits, which limit the power of the complete asset for all
     *   time steps. If energy limits (upper and lower) are the same at some time
@@ -168,9 +169,11 @@ object EnergyBoundariesFlexOptions
     *   The discharging efficiency.
     * @param tickDisconnect
     *   Optionally, the tick at which the storage will be disconnected, thus the
-    *   upward or downward energy potential can not be used beyond this tick.
+    *   upward or downward energy potential of the tick before
+    *   [[tickDisconnect]] can not be used afterwards.
     */
   final case class AssetEnergyBoundaries(
+      currentEnergy: Energy,
       energyLimits: SortedMap[Long, ClosedInterval[Energy]],
       powerLimits: ClosedInterval[Power],
       etaCharge: Dimensionless = onePU,
@@ -193,6 +196,7 @@ object EnergyBoundariesFlexOptions
         currentTick: Long,
     ): AssetEnergyBoundaries = {
       AssetEnergyBoundaries(
+        currentEnergy = zeroKWh,
         energyLimits =
           SortedMap(currentTick -> new ClosedInterval(zeroKWh, zeroKWh)),
         powerLimits = new ClosedInterval(constantPower, constantPower),
@@ -257,6 +261,7 @@ object EnergyBoundariesFlexOptions
       val maxPower = powerSeries.values.maxOption.getOrElse(zeroKW)
 
       AssetEnergyBoundaries(
+        currentEnergy = zeroKWh,
         energyLimits = energySeries.map { case (tick, energy) =>
           tick -> ClosedInterval(energy, energy)
         },
@@ -291,13 +296,9 @@ object EnergyBoundariesFlexOptions
         currentTick: Long,
     ): AssetEnergyBoundaries =
       AssetEnergyBoundaries(
+        currentEnergy = currentEnergy,
         energyLimits = SortedMap(
-          currentTick -> new ClosedInterval(
-            // the downward energy potential is the currently stored energy
-            -currentEnergy,
-            // the upward energy potential is the energy to be stored until maximum capacity
-            eStorage - currentEnergy,
-          )
+          currentTick -> new ClosedInterval(zeroKWh, eStorage)
         ),
         powerLimits = new ClosedInterval(-pMax, pMax),
         etaCharge = etaCharge,
