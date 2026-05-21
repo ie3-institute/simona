@@ -155,13 +155,18 @@ class LineThermalModelCalculationsSpec
             expected,
         ) =>
 
+          val insulation = dielectricMaterial match {
+            case "XLPE" => CableMaterial.XLPE
+            case "PVC"  => CableMaterial.PVC
+
+          }
           val voltageU0 = Volts(phaseToGroundVoltage)
           val frequency = Hertz(50)
           val dielectricCapacity = Nanofarads(dielectricCapaNanoF)
           val expectedResult = Watts(expected)
 
           val actual = calcDielectricLosses(
-            dielectricMaterial,
+            insulation,
             voltageU0,
             frequency,
             tanDelta,
@@ -171,7 +176,7 @@ class LineThermalModelCalculationsSpec
           actual should approximate(expectedResult)
       }
     }
-    "throw an exception for unsupported material for calculation of the dielectric losses" in {
+    /*"throw an exception for unsupported material for calculation of the dielectric losses" in {
       val ex = intercept[IllegalArgumentException] {
         calcDielectricLosses(
           "PE",
@@ -183,6 +188,8 @@ class LineThermalModelCalculationsSpec
       }
       ex.getMessage should be("Unknown material used for dielectric: PE.")
     }
+
+     */
 
     "return all correct thermal resistance for cable shells" in {
 
@@ -604,36 +611,17 @@ class LineThermalModelCalculationsSpec
     val tick = 972000L
     val lastTick = 0L
 
-    val cableSetup = CableSetup.apply(
-      "Cooper",
-      Millimeters(19.4),
-      "XLPE",
-      Millimeters(36.8),
-      "None",
-      Millimeters(36.8),
-      "Cooper",
-      Millimeters(38.8),
-      "XLPE",
-      Millimeters(44.0),
-      "flat-distance",
-      Meters(1),
-      Meters(0.44),
-      Kilovolts(33),
-      Nanofarads(0.237683304),
-      0.004,
-    )
     val groundTemp = Celsius(20)
 
     val startingState =
       LineSegmentThermalModel.startingState(groundTemp, cableSetup)
-    val adaptedState = startingState.copy(tick = tick, lastTick = lastTick)
 
     val current = Amperes(537.46)
 
     val actual =
       createAndCalcRCNetworkMvCableShortDuration(
-        adaptedState,
-        cableSetup,
+        tick,
+        startingState,
         current,
       )
 

@@ -12,148 +12,83 @@ import edu.ie3.util.scala.quantities.{
   ThermalCapacitance,
   ThermalResistivity,
 }
-import squants.electro.{Capacitance, ElectricPotential}
-import squants.space.Length
+import squants.Temperature
+import squants.electro.{Capacitance, ElectricPotential, ElectricalResistance}
+import squants.space.{Area, Length}
 
 import java.util.UUID
+
+final case class Layer(
+    material: CableMaterial,
+    innerDiameter: Length,
+    outerDiameter: Length,
+    thermalResistivity: ThermalResistivity,
+    thermalCapacitance: ThermalCapacitance,
+    area: Option[Area],
+)
 
 final case class CableSetup(
     uuid: UUID,
     id: String,
-    conductorMaterial: String,
-    conductorCapacitance: ThermalCapacitance,
-    conductorDiameter: Length,
-    dielectricMaterial: String,
-    dielectricResistivity: ThermalResistivity,
-    dielectricCapacitance: ThermalCapacitance,
-    dielectricDiameter: Length,
-    fillerResistivity: ThermalResistivity,
-    fillerCapacitance: ThermalCapacitance,
-    fillerDiameter: Length,
-    sheathMaterial: String,
-    sheathCapacitance: ThermalCapacitance,
-    sheathDiameter: Length,
-    jackResistivity: ThermalResistivity,
-    jackCapacitance: ThermalCapacitance,
-    jackDiameter: Length,
+    conductor: Layer,
+    conductorScreen: Option[Layer],
+    dielectric: Layer,
+    insulationScreen: Option[Layer],
+    filler: Option[Layer],
+    screenTape: Option[Layer],
+    screen: Option[Layer],
+    jackTape: Option[Layer],
+    jack: Option[Layer],
+    outerCover: Option[Layer],
     layoutFormation: String,
     depthCables: Length,
     distanceCables: Length,
+    soilResistivity: ThermalResistivity,
+    soilCapacitance: ThermalCapacitance,
+    limitTemperature: Temperature,
     voltage: ElectricPotential,
+    electricResistance: ElectricalResistance,
     electricCapacitance: Capacitance,
     tanDelta: Double,
-) {}
-
+)
 object CableSetup {
-
-  def apply(
-      conductorMaterialInput: String,
-      conductorDiameter: Length,
-      dielectricMaterial: String,
-      dielectricDiameter: Length,
-      fillerMaterial: String,
-      fillerDiameter: Length,
-      sheatMaterialInput: String,
-      sheatDiameter: Length,
-      jackMaterial: String,
-      jackDiameter: Length,
-      layoutFormation: String,
-      depthCables: Length,
-      distanceCables: Length,
-      voltage: ElectricPotential,
-      electricCapacitance: Capacitance,
-      tanDelta: Double,
-  ): CableSetup = {
-
-    val uuid = UUID.randomUUID()
-
-    val (conductorMaterial, conductorCapacitance) =
-      conductorMaterialInput match {
-        case "Cooper" => ("Cooper", JoulesPerMeterKelvin(3539200))
-        // c = 385 J/(kg * K), rho= 8.96 g/cm³: https://de.wikipedia.org/wiki/Kupfer => 3539200 J / (m³ * K)
-        case "Aluminium" => ("Aluminium", JoulesPerMeterKelvin(2420913))
-        // c = 897 J/(kg * K), rho= 2.6989 g/cm³: https://de.wikipedia.org/wiki/Aluminium => 2420913 J / (m³ * K)
-        case _ =>
-          throw new IllegalArgumentException(
-            s"Unknown conductor material: $conductorMaterialInput"
-          )
-      }
-
-    val (dielectricResistivity, dielectricCapacitance) =
-      dielectricMaterial match {
-        case "XLPE" => (KelvinMetersPerWatt(3.5), JoulesPerMeterKelvin(2.4))
-        case "PE"   => (KelvinMetersPerWatt(3.5), JoulesPerMeterKelvin(2.4))
-        case "PVC"  => (KelvinMetersPerWatt(5.0), JoulesPerMeterKelvin(1.7))
-        case "None" =>
-          (KelvinMetersPerWatt(999), JoulesPerMeterKelvin(0.0)) // FIXME
-        case _ =>
-          throw new IllegalArgumentException(
-            s"Unknown dielectric material: $dielectricMaterial"
-          )
-      }
-
-    val (fillerResistivity, fillerCapacitance) = fillerMaterial match {
-      case "XLPE" => (KelvinMetersPerWatt(3.5), JoulesPerMeterKelvin(2.4))
-      case "PE"   => (KelvinMetersPerWatt(3.5), JoulesPerMeterKelvin(2.4))
-      case "PVC"  => (KelvinMetersPerWatt(5.0), JoulesPerMeterKelvin(1.7))
-      case "None" =>
-        (KelvinMetersPerWatt(999), JoulesPerMeterKelvin(0.0)) // FIXME
-      case _ =>
-        throw new IllegalArgumentException(
-          s"Unknown filler material: $fillerMaterial"
-        )
+  def materialProps(
+      mat: CableMaterial
+  ): (ThermalResistivity, ThermalCapacitance) =
+    mat match {
+      // c = 385 J/(kg * K), rho= 8.96 g/cm³: https://de.wikipedia.org/wiki/Kupfer => 3449600 J / (m³ * K)
+      // therm conductivity of Copper = 384 W/(m*K) https://en.wikipedia.org/wiki/Thermal_conductivity_and_resistivity
+      case CableMaterial.Copper =>
+        (KelvinMetersPerWatt(1 / 384), JoulesPerMeterKelvin(3449600))
+      // c = 897 J/(kg * K), rho= 2.6989 g/cm³: https://de.wikipedia.org/wiki/Aluminium => 2420913.3 J / (m³ * K)
+      // therm conductivity of Aluminum = 237 W/(m*K) https://en.wikipedia.org/wiki/Thermal_conductivity_and_resistivity
+      case CableMaterial.Aluminium =>
+        (KelvinMetersPerWatt(1 / 237), JoulesPerMeterKelvin(2420913.3))
+      case CableMaterial.XLPE =>
+        (
+          KelvinMetersPerWatt(3.5),
+          JoulesPerMeterKelvin(2.4),
+        ) // (Anders 1997 p. 400)
+      case CableMaterial.PE =>
+        (
+          KelvinMetersPerWatt(3.5),
+          JoulesPerMeterKelvin(2.4),
+        ) // (Anders 1997 p. 400)
+      case CableMaterial.PVC =>
+        (
+          KelvinMetersPerWatt(5.0),
+          JoulesPerMeterKelvin(1.7),
+        ) // (Anders 1997 p. 400)
+      case CableMaterial.SemiCondScreen =>
+        (
+          KelvinMetersPerWatt(2.5),
+          JoulesPerMeterKelvin(2.4),
+        ) // TherRes: TB880 p.28, TherCapa: Same as adjacent dielectric material (Anders 1997 p. 400)
+      case CableMaterial.ScTape =>
+        (
+          KelvinMetersPerWatt(6.0),
+          JoulesPerMeterKelvin(2.4),
+        ) // TherRes: TB880 p.28 TherCapa: Same as adjacent dielectric material (Anders 1997 p. 400)
+      case _ => (KelvinMetersPerWatt(999), JoulesPerMeterKelvin(0)) // FIXME
     }
-
-    val (sheatMaterial, sheatCapacitance) = sheatMaterialInput match {
-
-      case "Cooper" => ("Cooper", JoulesPerMeterKelvin(3539200))
-      // c = 385 J/(kg * K), rho= 8.96 g/cm³: https://de.wikipedia.org/wiki/Kupfer => 3539200 J / (m³ * K)
-      case "Aluminium" => ("Aluminium", JoulesPerMeterKelvin(2420913))
-      // c = 897 J/(kg * K), rho= 2.6989 g/cm³: https://de.wikipedia.org/wiki/Aluminium => 2420913 J / (m³ * K)
-      case "None" => ("None", JoulesPerMeterKelvin(0.0)) // FIXME
-      case _ =>
-        throw new IllegalArgumentException(
-          s"Unknown material for the sheat: $sheatMaterialInput"
-        )
-    }
-
-    val (jackResistivity, jackCapacitance) = jackMaterial match {
-      case "XLPE" => (KelvinMetersPerWatt(3.5), JoulesPerMeterKelvin(2.4))
-      case "PE"   => (KelvinMetersPerWatt(3.5), JoulesPerMeterKelvin(2.4))
-      case "PVC"  => (KelvinMetersPerWatt(5.0), JoulesPerMeterKelvin(1.7))
-      case "None" =>
-        (KelvinMetersPerWatt(999), JoulesPerMeterKelvin(0.0)) // FIXME
-      case _ =>
-        throw new IllegalArgumentException(
-          s"Unknown material for the jack: $jackMaterial"
-        )
-    }
-
-    new CableSetup(
-      uuid,
-      uuid.toString,
-      conductorMaterial,
-      conductorCapacitance,
-      conductorDiameter,
-      dielectricMaterial,
-      dielectricResistivity,
-      dielectricCapacitance,
-      dielectricDiameter,
-      fillerResistivity,
-      fillerCapacitance,
-      fillerDiameter,
-      sheatMaterial,
-      sheatCapacitance,
-      sheatDiameter,
-      jackResistivity,
-      jackCapacitance,
-      jackDiameter,
-      layoutFormation,
-      depthCables,
-      distanceCables,
-      voltage,
-      electricCapacitance,
-      tanDelta,
-    )
-  }
 }

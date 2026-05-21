@@ -151,22 +151,22 @@ object LineThermalModelCalculations extends LazyLogging {
     *   The voltage dependent dielectric losses.
     */
   def calcDielectricLosses(
-      dielectricMaterial: String,
+      dielectricMaterial: CableMaterial,
       phaseToGroundVoltage: ElectricPotential,
       frequency: Frequency,
       tanDelta: Double,
       dielectricCapacity: Capacitance,
   ): Power = {
     (dielectricMaterial, phaseToGroundVoltage) match {
-      case ("XLPE", voltage) if voltage < Kilovolts(127) => zeroKW
-      case ("PVC", voltage) if voltage < Kilovolts(6)    => zeroKW
-      case ("XLPE", voltage) if voltage >= Kilovolts(127) =>
+      case (CableMaterial.XLPE, voltage) if voltage < Kilovolts(127) => zeroKW
+      case (CableMaterial.PVC, voltage) if voltage < Kilovolts(6)    => zeroKW
+      case (CableMaterial.XLPE, voltage) if voltage >= Kilovolts(127) =>
         dielectricCapacity.calculateDielectricLosses(
           voltage,
           frequency,
           tanDelta,
         )
-      case ("PVC", voltage) if voltage >= Kilovolts(6) =>
+      case (CableMaterial.PVC, voltage) if voltage >= Kilovolts(6) =>
         dielectricCapacity.calculateDielectricLosses(
           voltage,
           frequency,
@@ -432,17 +432,14 @@ object LineThermalModelCalculations extends LazyLogging {
 
   def createAndCalcRCNetworkMvCableShortDuration(
       state: LineState,
-      cableSetup: CableSetup,
       lineCurrent: ElectricCurrent,
   ): Temperature = {
     val currentLineModel = state.currentLineSegmentThermalModel
-
-    val thermalResistivitySoil = KelvinMetersPerWatt(2.9)
-    val soilThermCapacitance = JoulesPerMeterKelvin(10) // FIXME
+    val cableSetup = state.cableSetup
 
     /* Calculate the losses */
-    val conductorArea =
-      cableSetup.conductorDiameter * cableSetup.conductorDiameter * PI_OVER_FOUR
+    val proximityEffect = 6.6227e-3 // Check CIGRE for detailed method //FIXME
+    val skinEffect = 8.835e-3 // FIXME
 
     val specificTempCoefficient =
       cableSetup.conductor.material match {
@@ -652,10 +649,10 @@ object LineThermalModelCalculations extends LazyLogging {
         )
       }
 
-      voltage
+      Celsius(temperature)
     }
 
-    val duration = state.tick - state.lastTick
+    val duration = tick - state.tick
     if duration > 3600 then
       logger.warn(
         s"RC-Network for short durations has been used. However, the duration of $duration ticks might be of type long duration. Currently used method might be inaccurate but should estimate on the safe side."
