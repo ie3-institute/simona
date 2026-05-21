@@ -50,6 +50,8 @@ final case class CableSetup(
     electricResistance: ElectricalResistance,
     electricCapacitance: Capacitance,
     tanDelta: Double,
+    circulatingLossFactorScreen: Double,
+    eddyCurrentsLossFactorScreen: Double,
 )
 object CableSetup {
   def materialProps(

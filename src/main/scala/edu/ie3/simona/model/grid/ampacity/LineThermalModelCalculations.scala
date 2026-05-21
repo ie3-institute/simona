@@ -462,12 +462,9 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
 
-    val circulatingSheathLossFactor = 0.0435122656 // FIXME
-    val eddyCurrentsSheathLossFactor = 0.0 // FIXME
-
     val sheathLosses = calcLossesSheath(
-      circulatingSheathLossFactor,
-      eddyCurrentsSheathLossFactor,
+      cableSetup.circulatingLossFactorScreen,
+      cableSetup.eddyCurrentsLossFactorScreen,
       conductorLosses,
     )
 
