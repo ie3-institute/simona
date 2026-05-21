@@ -19,6 +19,7 @@ import squants.space.{Area, Length}
 import java.util.UUID
 
 final case class Layer(
+    name: String,
     material: CableMaterial,
     innerDiameter: Length,
     outerDiameter: Length,
@@ -31,15 +32,11 @@ final case class CableSetup(
     uuid: UUID,
     id: String,
     conductor: Layer,
-    conductorScreen: Option[Layer],
-    dielectric: Layer,
-    insulationScreen: Option[Layer],
-    filler: Option[Layer],
-    screenTape: Option[Layer],
-    screen: Option[Layer],
-    jackTape: Option[Layer],
-    jack: Option[Layer],
-    outerCover: Option[Layer],
+    layersIsolationElements: List[Layer],
+    layersScreenElements: List[Layer],
+    layersFillerElements: List[Layer],
+    layersArmorElements: List[Layer],
+    layersJackElements: List[Layer],
     layoutFormation: String,
     depthCables: Length,
     distanceCables: Length,

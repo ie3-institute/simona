@@ -471,7 +471,14 @@ object LineThermalModelCalculations extends LazyLogging {
     val phaseToGroundVoltage = cableSetup.voltage / sqrt(3)
 
     val dielectricLosses = calcDielectricLosses(
-      cableSetup.dielectric.material,
+      cableSetup.layersIsolationElements
+        .find(_.name == "insulation")
+        .map(_.material)
+        .getOrElse(
+          throw new IllegalArgumentException(
+            "Can't find material of insulation layer when calculating dielectric losses."
+          )
+        ),
       phaseToGroundVoltage,
       Hertz(50),
       cableSetup.tanDelta,
@@ -503,8 +510,9 @@ object LineThermalModelCalculations extends LazyLogging {
         calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
           state.cableSetup.soilResistivity,
           cableSetup.depthCables,
-          cableSetup.outerCover
+          cableSetup.layersJackElements
             .map(_.outerDiameter)
+            .maxOption
             .getOrElse(
               throw new IllegalArgumentException(
                 "Jack layer expected but not found for thermal resistance to soil calculation"
@@ -527,8 +535,9 @@ object LineThermalModelCalculations extends LazyLogging {
         calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching(
           state.cableSetup.soilResistivity,
           cableSetup.depthCables,
-          cableSetup.outerCover
+          cableSetup.layersJackElements
             .map(_.outerDiameter)
+            .maxOption
             .getOrElse(
               throw new IllegalArgumentException(
                 "Jack layer expected but not found for thermal resistance to soil calculation"
@@ -550,8 +559,18 @@ object LineThermalModelCalculations extends LazyLogging {
     ) =
       splitCapacitanceByVanWormerShortDuration(
         currentLineModel.thermalCapacityCd,
-        cableSetup.conductor.outerDiameter,
-        cableSetup.dielectric.outerDiameter,
+        cableSetup.layersIsolationElements
+          .map(_.innerDiameter)
+          .minOption
+          .getOrElse(
+            throw new IllegalArgumentException("No isolation layers found")
+          ),
+        cableSetup.layersIsolationElements
+          .map(_.outerDiameter)
+          .maxOption
+          .getOrElse(
+            throw new IllegalArgumentException("No isolation layers found")
+          ),
       )
 
     val (
@@ -562,18 +581,20 @@ object LineThermalModelCalculations extends LazyLogging {
     ) =
       splitCapacitanceByVanWormerShortDuration(
         currentLineModel.thermalCapacityCj,
-        cableSetup.screen
-          .map(_.outerDiameter)
+        cableSetup.layersJackElements
+          .map(_.innerDiameter)
+          .minOption
           .getOrElse(
             throw new IllegalArgumentException(
-              "Screen layer expected but not found for van-Wormer capacitance splitting"
+              "No jack layers found for van-Wormer capacitance splitting"
             )
           ),
-        cableSetup.jack
+        cableSetup.layersJackElements
           .map(_.outerDiameter)
+          .maxOption
           .getOrElse(
             throw new IllegalArgumentException(
-              "Jack layer expected but not found for van-Wormer capacitance splitting"
+              "No jack layers found for van-Wormer capacitance splitting"
             )
           ),
       )

@@ -168,199 +168,101 @@ object LineSegmentThermalModel {
       groundTemperature: Temperature,
       cableSetup: CableSetup,
   ): LineState = {
-    val t1ConductorScreen = cableSetup.conductorScreen
-      .map(shellData =>
-        calcThermalResistanceCableShells(
-          shellData.thermalResistivity,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(KelvinMetersPerWatt(0))
-
-    val t1Insulation = calcThermalResistanceCableShells(
-      cableSetup.dielectric.thermalResistivity,
-      cableSetup.dielectric.innerDiameter,
-      cableSetup.dielectric.outerDiameter,
-    )
-
-    val t1InsulationScreen = cableSetup.insulationScreen
-      .map(shellData =>
-        calcThermalResistanceCableShells(
-          shellData.thermalResistivity,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(KelvinMetersPerWatt(0))
-
-    val t1ScreenTape =
-      cableSetup.screenTape
-        .map(shellData =>
-          calcThermalResistanceCableShells(
-            shellData.thermalResistivity,
-            shellData.innerDiameter,
-            shellData.outerDiameter,
-          )
-        )
-        .getOrElse(KelvinMetersPerWatt(0))
-
     val t1 =
-      t1ConductorScreen + t1Insulation + t1InsulationScreen + t1ScreenTape
-    val t2 = cableSetup.filler
-      .map(shellData =>
-        calcThermalResistanceCableShells(
-          shellData.thermalResistivity,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(KelvinMetersPerWatt(0))
+      cableSetup.layersIsolationElements.foldLeft(KelvinMetersPerWatt(0)) {
+        (acc, layer) =>
+          acc + calcThermalResistanceCableShells(
+            layer.thermalResistivity,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
 
-    val t3JackTape = cableSetup.jackTape
-      .map(shellData =>
-        calcThermalResistanceCableShells(
-          shellData.thermalResistivity,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
+    val t2 = cableSetup.layersScreenElements.foldLeft(KelvinMetersPerWatt(0)) {
+      (acc, layer) =>
+        acc + calcThermalResistanceCableShells(
+          layer.thermalResistivity,
+          layer.innerDiameter,
+          layer.outerDiameter,
         )
-      )
-      .getOrElse(KelvinMetersPerWatt(0))
+    }
 
-    val t3Jack = cableSetup.jack
-      .map(shellData =>
-        calcThermalResistanceCableShells(
-          shellData.thermalResistivity,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
+    val t3 = cableSetup.layersJackElements.foldLeft(KelvinMetersPerWatt(0)) {
+      (acc, layer) =>
+        acc + calcThermalResistanceCableShells(
+          layer.thermalResistivity,
+          layer.innerDiameter,
+          layer.outerDiameter,
         )
-      )
-      .getOrElse(KelvinMetersPerWatt(0))
-
-    val t3OuterCover = cableSetup.outerCover
-      .map(shellData =>
-        calcThermalResistanceCableShells(
-          shellData.thermalResistivity,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(KelvinMetersPerWatt(0))
-
-    val t3 = t3JackTape + t3Jack + t3OuterCover
+    }
 
     val t4 = calcThermalResistanceToSoilSingleCable(
       cableSetup.soilResistivity,
       cableSetup.depthCables,
-      cableSetup.jack
-        .map(_.outerDiameter)
-        .getOrElse(
-          throw new IllegalArgumentException(
-            "Jack layer expected but not found for thermal resistance to soil calculation"
-          )
-        ),
+      cableSetup.layersJackElements.last.outerDiameter,
     )
 
-    val therCapaConductor = calcThermalCapacityCylindrical(
+    val thermalCapacityCc = calcThermalCapacityCylindrical(
       cableSetup.conductor.thermalCapacitance,
       cableSetup.conductor.innerDiameter,
       cableSetup.conductor.outerDiameter,
     )
 
-    val therCapaConductorScreen = cableSetup.conductorScreen
-      .map(shellData =>
-        calcThermalCapacityCylindrical(
-          shellData.thermalCapacitance,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(JoulesPerMeterKelvin(0))
+    val thermalCapacityCd1 =
+      cableSetup.layersIsolationElements.foldLeft(JoulesPerMeterKelvin(0)) {
+        (acc, layer) =>
+          acc + calcThermalCapacityCylindrical(
+            layer.thermalCapacitance,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
+    val thermalCapacityCd2 =
+      cableSetup.layersFillerElements.foldLeft(JoulesPerMeterKelvin(0)) {
+        (acc, layer) =>
+          acc + calcThermalCapacityCylindrical(
+            layer.thermalCapacitance,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
 
-    val thermalCapacityCc = therCapaConductor + therCapaConductorScreen
+    val thermalCapacityCd = thermalCapacityCd1 + thermalCapacityCd2
 
-    val therCapaInsulation = calcThermalCapacityCylindrical(
-      cableSetup.dielectric.thermalCapacitance,
-      cableSetup.dielectric.innerDiameter,
-      cableSetup.dielectric.outerDiameter,
-    )
+    val thermalCapacityCs =
+      cableSetup.layersScreenElements.foldLeft(JoulesPerMeterKelvin(0)) {
+        (acc, layer) =>
+          acc + calcThermalCapacityCylindrical(
+            layer.thermalCapacitance,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
 
-    val therCapaInsulationScreen = calcThermalCapacityCylindrical(
-      cableSetup.dielectric.thermalCapacitance,
-      cableSetup.dielectric.innerDiameter,
-      cableSetup.dielectric.outerDiameter,
-    )
+    val thermalCapacityCj1 =
+      cableSetup.layersArmorElements.foldLeft(JoulesPerMeterKelvin(0)) {
+        (acc, layer) =>
+          acc + calcThermalCapacityCylindrical(
+            layer.thermalCapacitance,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
 
-    val thermalCapacityCd = therCapaInsulation + therCapaInsulationScreen
+    val thermalCapacityCj2 =
+      cableSetup.layersJackElements.foldLeft(JoulesPerMeterKelvin(0)) {
+        (acc, layer) =>
+          acc + calcThermalCapacityCylindrical(
+            layer.thermalCapacitance,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
 
-    val therCapaScreenTape = cableSetup.screenTape
-      .map(shellData =>
-        calcThermalCapacityCylindrical(
-          shellData.thermalCapacitance,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(JoulesPerMeterKelvin(0))
-
-    val therCapaScreen = cableSetup.screen
-      .map(shellData =>
-        calcThermalCapacityCylindrical(
-          shellData.thermalCapacitance,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(JoulesPerMeterKelvin(0))
-
-    val thermalCapacityCs = therCapaScreenTape + therCapaScreen
-
-    val therCapaJackTape = cableSetup.jackTape
-      .map(shellData =>
-        calcThermalCapacityCylindrical(
-          shellData.thermalCapacitance,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(JoulesPerMeterKelvin(0))
-
-    val therCapaJack = cableSetup.jack
-      .map(shellData =>
-        calcThermalCapacityCylindrical(
-          shellData.thermalCapacitance,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(JoulesPerMeterKelvin(0))
-
-    val therCapaOuterCover = cableSetup.outerCover
-      .map(shellData =>
-        calcThermalCapacityCylindrical(
-          shellData.thermalCapacitance,
-          shellData.innerDiameter,
-          shellData.outerDiameter,
-        )
-      )
-      .getOrElse(JoulesPerMeterKelvin(0))
-
-    val thermalCapacityCj = therCapaJackTape + therCapaJack + therCapaOuterCover
+    val thermalCapacityCj = thermalCapacityCj1 + thermalCapacityCj2
 
     val thermalCapacityCe =
-      cableSetup.jack
-        .map(shellData =>
-          calcThermalCapacityCylindrical(
-            shellData.thermalCapacitance,
-            shellData.outerDiameter,
-            Meters(5.0), // FIXME: Is this realistic?
-          )
-        )
-        .getOrElse(
-          throw new IllegalArgumentException(
-            "Jack layer expected but not found for thermal capacity calculation"
-          )
-        ) // FIXME Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
+      cableSetup.soilCapacitance // FIXME Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
 
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       UUID.randomUUID(),
