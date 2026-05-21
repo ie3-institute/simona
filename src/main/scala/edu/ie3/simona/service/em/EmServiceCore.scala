@@ -649,7 +649,7 @@ case class EmServiceCore(
         if updated.isComplete then {
           val extMsgOption = if tick != INIT_SIM_TICK then {
             // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-            val option = getMaybeNextTick(tick)
+            val option = getMaybeNextTick(tick, completion.requestAtTick)
 
             Some(new EmCompletion(option))
           } else None
@@ -699,11 +699,14 @@ case class EmServiceCore(
     * @return
     *   An option for the next activation tick.
     */
-  private final def getMaybeNextTick(tick: Long): Option[Long] = {
+  private final def getMaybeNextTick(
+      tick: Long,
+      option: Option[Long] = None,
+  ): Option[Long] = {
     val allActivations = completions.receivedData.flatMap {
       case (_, completion) =>
         completion.requestAtTick
-    } ++ nextActivation.values.filter(_ > tick)
+    } ++ nextActivation.values.filter(_ > tick) ++ option
 
     allActivations.minOption
   }
