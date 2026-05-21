@@ -36,7 +36,13 @@ class LineSegmentThermalModelSpec
           "lineCurrent",
           "expectedLineTemperature",
         ),
-         (72000L, cigreT880LandCable33kV, 20d, 537d, 87.51797273323201), // CIGRE TB880 S. 205
+        (
+          72000L,
+          cigreT880LandCable33kV,
+          20d,
+          537d,
+          87.51797273323201,
+        ), // CIGRE TB880 S. 205
         (3600L, cigreT880LandCable33kV, 20d, 537d, 69.50004461804613),
         (72000L, cigreT880LandCable33kV, 5d, 537d, 72.51797273323201),
         (3600L, andersSingleCore10kV, 15d, 629d, 90.0),
