@@ -98,12 +98,11 @@ final case class LineSegmentThermalModel(
 
   /** Determine the next threshold, that will be reached.
     *
-    * @param thermalHouseState
-    *   The applicable state of thermalHouse until this tick.
-    * @param qDot
-    *   The thermal feed in to the thermal house.
+    * @param lineState
+    *
+    * @param current
+    *
     * @return
-    *   The next threshold, that will be reached.
     */
   def determineNextThreshold(
       lineState: LineState,
@@ -141,19 +140,17 @@ object LineSegmentThermalModel {
   /** State of a thermal line segment model.
     *
     * @param tick
+    *   Current tick.
+    * @param lastTick
     *   Last tick of temperature change.
+    * @param cableSetup
+    *
+    * @param currentLineSegmentThermalModel
+    *
     * @param groundTemperature
     *   The current ground temperature.
-    * @param currentLineTemp1
-    *   The current temperature of the conductor.
-    * @param currentLineTemp2
-    *   The current temperature of the dielectric.
-    * @param currentLineTemp3
-    *   The current temperature of the filler.
-    * @param currentLineTemp4
-    *   The current temperature of the jack.
-    * @param currentLineTemp5
-    *   The current temperature of the soil.
+    * @param lineTemperatures
+    *   The current temperatures of the cable layers.
     */
   final case class LineState(
       override val tick: Long,
