@@ -431,9 +431,10 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   def createAndCalcRCNetworkMvCableShortDuration(
+      tick: Long,
       state: LineState,
       lineCurrent: ElectricCurrent,
-  ): Temperature = {
+  ): LineTemperatures = {
     val currentLineModel = state.currentLineSegmentThermalModel
     val cableSetup = state.cableSetup
 
@@ -658,6 +659,20 @@ object LineThermalModelCalculations extends LazyLogging {
         s"RC-Network for short durations has been used. However, the duration of $duration ticks might be of type long duration. Currently used method might be inaccurate but should estimate on the safe side."
       )
 
-    Celsius(getV1(duration, 0))
+    LineTemperatures(
+      getNodeTemperature(duration, 0),
+      getNodeTemperature(duration, 1),
+      getNodeTemperature(duration, 2),
+      getNodeTemperature(duration, 3),
+      getNodeTemperature(duration, 4),
+    )
   }
+
+  final case class LineTemperatures(
+      currentLineTemp1: Temperature,
+      currentLineTemp2: Temperature,
+      currentLineTemp3: Temperature,
+      currentLineTemp4: Temperature,
+      currentLineTemp5: Temperature,
+  )
 }

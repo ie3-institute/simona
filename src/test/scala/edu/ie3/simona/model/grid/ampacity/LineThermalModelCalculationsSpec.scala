@@ -625,6 +625,6 @@ class LineThermalModelCalculationsSpec
         current,
       )
 
-    actual should approximate(expected)
+    actual.currentLineTemp1 should approximate(expected)
   }
 }

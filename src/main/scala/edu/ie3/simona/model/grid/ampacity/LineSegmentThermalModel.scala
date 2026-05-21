@@ -80,19 +80,19 @@ final case class LineSegmentThermalModel(
   def determineState(
       tick: Long,
       lastLineState: LineState,
-      qDot: Power,
+      lineCurrent: ElectricCurrent,
   ): LineState = {
-    val duration = Seconds(tick - lastLineState.tick)
-    val updatedLineTemperature = ???
+
+    val updatedLineTemperatures = createAndCalcRCNetworkMvCableShortDuration(
+      tick,
+      lastLineState,
+      lineCurrent,
+    )
 
     lastLineState.copy(
       tick = tick,
       lastTick = lastLineState.tick,
-      currentLineTemp1 = updatedLineTemperature,
-      currentLineTemp2 = updatedLineTemperature,
-      currentLineTemp3 = updatedLineTemperature,
-      currentLineTemp4 = updatedLineTemperature,
-      currentLineTemp5 = updatedLineTemperature,
+      lineTemperatures = updatedLineTemperatures,
     )
   }
 
@@ -161,11 +161,7 @@ object LineSegmentThermalModel {
       cableSetup: CableSetup,
       currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
-      currentLineTemp1: Temperature,
-      currentLineTemp2: Temperature,
-      currentLineTemp3: Temperature,
-      currentLineTemp4: Temperature,
-      currentLineTemp5: Temperature,
+      lineTemperatures: LineTemperatures,
   ) extends ModelState
 
   def startingState(
@@ -381,17 +377,21 @@ object LineSegmentThermalModel {
       Celsius(90),
     )
 
+    val initLineTemperatures = LineTemperatures(
+      groundTemperature,
+      groundTemperature,
+      groundTemperature,
+      groundTemperature,
+      groundTemperature,
+    )
+
     LineState(
       0L,
       -1L,
       cableSetup,
       initialLineSegmentThermalModel,
       groundTemperature,
-      groundTemperature,
-      groundTemperature,
-      groundTemperature,
-      groundTemperature,
-      groundTemperature,
+      initLineTemperatures,
     )
   }
 
