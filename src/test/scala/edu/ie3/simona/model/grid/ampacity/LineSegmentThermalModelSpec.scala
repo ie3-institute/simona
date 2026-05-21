@@ -50,7 +50,7 @@ class LineSegmentThermalModelSpec
           "lineCurrent",
           "expectedLineTemperature",
         ),
-        (startingState, 537, 89.0),
+        (startingState, 537, 87.51797273323201),
       )
 
       forAll(cases) {

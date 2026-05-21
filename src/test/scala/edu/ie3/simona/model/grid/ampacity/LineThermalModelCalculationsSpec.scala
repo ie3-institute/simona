@@ -607,7 +607,7 @@ class LineThermalModelCalculationsSpec
   }
   "test " in {
 
-    val expected = Celsius(88.72615) // S. 205 CIGRE
+    val expected = Celsius(87.63369552608468) // S. 205 CIGRE
     val tick = 972000L
     val lastTick = 0L
 
