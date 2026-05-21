@@ -724,7 +724,7 @@ case class EmServiceCore(
         }
 
       case completion: FlexCompletion =>
-        val (updated, extMsgOption, _, finished) =
+        val (updated, extMsgOption, updatedNextActivation, finished) =
           handleCompletion(tick, completion)
 
         if finished then {
@@ -733,12 +733,6 @@ case class EmServiceCore(
               scheduler ! Completion(uuidToAgent(uuid))
             )
           }
-
-          // the next activations
-          val updatedNextActivation =
-            nextActivation ++ updated.receivedData.flatMap { case (uuid, msg) =>
-              msg.requestAtTick.map(uuid -> _)
-            }
 
           val updatedStateData = copy(
             completions = ReceiveDataMap.empty,
@@ -759,7 +753,10 @@ case class EmServiceCore(
         } else {
           log.debug(s"Missing completion for: ${updated.getExpectedKeys}")
 
-          (copy(completions = updated), extMsgOption)
+          (
+            copy(completions = updated, nextActivation = updatedNextActivation),
+            extMsgOption,
+          )
         }
 
       case _ =>
@@ -902,44 +899,54 @@ case class EmServiceCore(
     *   To handle.
     * @return
     *   The updated ReceiveDataMap an option for or a message that should be
-    *   sent to the external simulation and a boolean that tells, if all
-    *   completions have been received.
+    *   sent to the external simulation, the updated next activations and a
+    *   boolean that tells, if all completions have been received.
     */
   final def handleCompletion(tick: Long, completion: FlexCompletion): (
       ReceiveDataMap[UUID, FlexCompletion],
       Option[EmDataResponseMessageToExt],
-      Option[Long],
+      Map[UUID, Long],
       Boolean,
   ) = {
     val uuid = completion.modelUuid
+
+    val updatedNextActivations = completion.requestAtTick match {
+      case Some(nextTick) =>
+        nextActivation.updated(uuid, nextTick)
+      case None =>
+        nextActivation
+    }
 
     if completions.expects(uuid) then {
       val updated = completions.addData(uuid, completion)
 
       if updated.isComplete then {
-        val (extMsgOption, nextTickOption) = if tick != INIT_SIM_TICK then {
+        val extMsgOption = if tick != INIT_SIM_TICK then {
           // send completion message to external simulation, if we aren't in the INIT_SIM_TICK
-          val option = getMaybeNextTick(tick)
+          val option = getMaybeNextTick(tick, completion.requestAtTick)
 
-          (Some(new EmCompletion(option)), option)
-        } else (None, None)
+          Some(new EmCompletion(option))
+        } else None
 
         // every em agent has sent a completion message
-        (updated, extMsgOption, nextTickOption, true)
+        (updated, extMsgOption, updatedNextActivations, true)
 
-      } else (updated, None, None, false)
-    } else (completions, None, None, false)
+      } else (updated, None, updatedNextActivations, false)
+    } else (completions, None, updatedNextActivations, false)
   }
 
   /** Method to calculate the next tick option.
     * @return
     *   An option for the next activation tick.
     */
-  private final def getMaybeNextTick(tick: Long): Option[Long] = {
+  private final def getMaybeNextTick(
+      tick: Long,
+      option: Option[Long] = None,
+  ): Option[Long] = {
     val allActivations = completions.receivedData.flatMap {
       case (_, completion) =>
         completion.requestAtTick
-    } ++ nextActivation.values.filter(_ > tick)
+    } ++ nextActivation.values.filter(_ > tick) ++ option
 
     allActivations.minOption
   }
