@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import breeze.linalg.{DenseMatrix, DenseVector}
+import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -18,10 +19,9 @@ import edu.ie3.util.scala.quantities.{
   ThermalResistivity,
   SquantsUtils as RichElectricPotential,
 }
-import com.typesafe.scalalogging.LazyLogging
 import squants.electro.*
 import squants.energy.Watts
-import squants.space.{Area, Length}
+import squants.space.Length
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
 import squants.{ElectricCurrent, Power, Temperature}
@@ -47,34 +47,36 @@ object LineThermalModelCalculations extends LazyLogging {
   /** Calculates the AC resistance of a conductor accounting for temperature and
     * high-frequency effects (skin effect, proximity effect).
     *
-    * @param resistivity
-    *   The resistivity of the conductor material
-    * @param conductorArea
-    *   The cross-sectional area of the conductor
+    * @param electricalResistanceCable
+    *   The dc resistance of the cable at 20°C as mentioned in the data sheet of
+    *   the cable.
     * @param temperatureCorrectionFactor
-    *   Temperature coefficient for resistance variation
-    * @param operatingTemperature
-    *   The operating temperature of the conductor
+    *   Temperature coefficient for resistance variation.
+    * @param limitTemperature
+    *   The maximum permissible temperature of the conductor.
     * @param factorSkinEffect
-    *   Factor accounting for skin effect at operating frequency
+    *   Factor accounting for skin effect at operating frequency.
     * @param factorProximityEffect
-    *   Factor accounting for proximity effect
+    *   Factor accounting for proximity effect.
     * @return
-    *   The AC resistance in Ohms per meter
+    *   The AC resistance in Ohms per meter.
     */
   def calcAcResistance(
-      resistivity: Resistivity,
-      conductorArea: Area,
+      electricalResistanceCable: ElectricalResistance,
       temperatureCorrectionFactor: Double,
-      operatingTemperature: Temperature,
+      limitTemperature: Temperature,
       factorSkinEffect: Double,
       factorProximityEffect: Double,
   ): ElectricalResistance = {
     // normally in Ohms/Meter...
     Ohms(
-      (1 + factorSkinEffect + factorProximityEffect) * (resistivity.toOhmMeters / conductorArea.toSquareMeters) *
-        (1 + temperatureCorrectionFactor * (operatingTemperature.toCelsiusScale - REFERENCE_TEMPERATURE))
+      (1 + factorSkinEffect + factorProximityEffect) * electricalResistanceCable.toOhms *
+        (1 + temperatureCorrectionFactor * (limitTemperature.toCelsiusScale - REFERENCE_TEMPERATURE))
     )
+    // ALTERNATIVE: Calculate R0 by specific resistivity / conductorArea
+    // (1 + factorSkinEffect + factorProximityEffect) * (resistivity.toOhmMeters / conductorArea.toSquareMeters) *
+    // ALTERNATIVE: We are not using the limitTemperature because this overestimates the losses at lower operating temperatures. Therefore, we use the mean value between the limiting temperature and the current line temperature
+    //        (1 + temperatureCorrectionFactor * ((limitTemperature.toCelsiusScale - operatingTemperature.toCelsiusScale)/2 - REFERENCE_TEMPERATURE))
   }
 
   /** Calculates the thermal losses of the cable segment per unit cable length.
@@ -442,33 +444,28 @@ object LineThermalModelCalculations extends LazyLogging {
     val conductorArea =
       cableSetup.conductorDiameter * cableSetup.conductorDiameter * PI_OVER_FOUR
 
-    val proximityEffect = 0.01 // Check CIGRE for detailed method //FIXME
-    val skinEffect = 0.01 // FIXME
-
-    val (specificAcResistance, specificTempCoefficient) =
-      cableSetup.conductorMaterial match {
-        case "Cooper" => (AC_RESISTIVITY_COOPER, TEMPERATURE_COEFFICIENT_COOPER)
-        case "Aluminium" =>
-          (AC_RESISTIVITY_ALUMINIUM, TEMPERATURE_COEFFICIENT_ALUMINIUM)
+    val specificTempCoefficient =
+      cableSetup.conductor.material match {
+        case CableMaterial.Copper    => TEMPERATURE_COEFFICIENT_COOPER
+        case CableMaterial.Aluminium => TEMPERATURE_COEFFICIENT_ALUMINIUM
         case _ =>
           throw new IllegalArgumentException(
-            s"Unknown conductor material: ${cableSetup.conductorMaterial}"
+            s"Unknown conductor material: ${cableSetup.conductor.material}"
           )
       }
 
     val acResistance = calcAcResistance(
-      specificAcResistance,
-      conductorArea,
+      cableSetup.electricResistance,
       specificTempCoefficient,
-      state.currentLineTemp1,
+      cableSetup.limitTemperature,
       skinEffect,
       proximityEffect,
     )
 
     val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
 
-    val circulatingSheathLossFactor = 0.01 // FIXME
-    val eddyCurrentsSheathLossFactor = 0.01 // FIXME
+    val circulatingSheathLossFactor = 0.0435122656 // FIXME
+    val eddyCurrentsSheathLossFactor = 0.0 // FIXME
 
     val sheathLosses = calcLossesSheath(
       circulatingSheathLossFactor,
@@ -479,7 +476,7 @@ object LineThermalModelCalculations extends LazyLogging {
     val phaseToGroundVoltage = cableSetup.voltage / sqrt(3)
 
     val dielectricLosses = calcDielectricLosses(
-      cableSetup.dielectricMaterial,
+      cableSetup.dielectric.material,
       phaseToGroundVoltage,
       Hertz(50),
       cableSetup.tanDelta,
@@ -509,9 +506,15 @@ object LineThermalModelCalculations extends LazyLogging {
     val t4 = cableSetup.layoutFormation match {
       case "flat-distance" =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
-          thermalResistivitySoil,
+          state.cableSetup.soilResistivity,
           cableSetup.depthCables,
-          cableSetup.jackDiameter,
+          cableSetup.outerCover
+            .map(_.outerDiameter)
+            .getOrElse(
+              throw new IllegalArgumentException(
+                "Jack layer expected but not found for thermal resistance to soil calculation"
+              )
+            ),
           cableSetup.distanceCables,
           thermalTotalLossesCableA,
           thermalTotalLossesCableB,
@@ -525,9 +528,17 @@ object LineThermalModelCalculations extends LazyLogging {
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
         )
-      case "trefoil-touching" => // FIXME Check for Trefoil
-        throw new IllegalArgumentException(
-          s"Trefoil touching layout formation is currently not supported"
+      case "trefoil-touching" =>
+        calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching(
+          state.cableSetup.soilResistivity,
+          cableSetup.depthCables,
+          cableSetup.outerCover
+            .map(_.outerDiameter)
+            .getOrElse(
+              throw new IllegalArgumentException(
+                "Jack layer expected but not found for thermal resistance to soil calculation"
+              )
+            ),
         )
       case _ =>
         throw new IllegalArgumentException(
@@ -544,8 +555,8 @@ object LineThermalModelCalculations extends LazyLogging {
     ) =
       splitCapacitanceByVanWormerShortDuration(
         currentLineModel.thermalCapacityCd,
-        cableSetup.conductorDiameter,
-        cableSetup.dielectricDiameter,
+        cableSetup.conductor.outerDiameter,
+        cableSetup.dielectric.outerDiameter,
       )
 
     val (
@@ -556,8 +567,20 @@ object LineThermalModelCalculations extends LazyLogging {
     ) =
       splitCapacitanceByVanWormerShortDuration(
         currentLineModel.thermalCapacityCj,
-        cableSetup.sheathDiameter,
-        cableSetup.jackDiameter,
+        cableSetup.screen
+          .map(_.outerDiameter)
+          .getOrElse(
+            throw new IllegalArgumentException(
+              "Screen layer expected but not found for van-Wormer capacitance splitting"
+            )
+          ),
+        cableSetup.jack
+          .map(_.outerDiameter)
+          .getOrElse(
+            throw new IllegalArgumentException(
+              "Jack layer expected but not found for van-Wormer capacitance splitting"
+            )
+          ),
       )
 
     /* Build RC-Network */
@@ -584,7 +607,7 @@ object LineThermalModelCalculations extends LazyLogging {
       (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerMeterKelvin
     // Capacitance of the second part of second half of the jack + the capacitance of the soil
     val c5 =
-      (jackThermCapacitanceC22 + soilThermCapacitance).toJoulesPerMeterKelvin
+      (jackThermCapacitanceC22 + state.cableSetup.soilCapacitance).toJoulesPerMeterKelvin
 
     // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
     val matrixA = DenseMatrix(
@@ -607,24 +630,26 @@ object LineThermalModelCalculations extends LazyLogging {
       LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrixA)
 
     val vStart = DenseVector(
-      state.currentLineTemp1.toCelsiusScale,
-      state.currentLineTemp2.toCelsiusScale,
-      state.currentLineTemp3.toCelsiusScale,
-      state.currentLineTemp4.toCelsiusScale,
-      state.currentLineTemp5.toCelsiusScale, // FIXME: Check if this is always ambientTemp, then it can be removed.
+      state.lineTemperatures.currentLineTemp1.toCelsiusScale,
+      state.lineTemperatures.currentLineTemp2.toCelsiusScale,
+      state.lineTemperatures.currentLineTemp3.toCelsiusScale,
+      state.lineTemperatures.currentLineTemp4.toCelsiusScale,
+      state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME: Check if this is always ambientTemp, then it can be removed.
     )
 
     val vp = matrixA \ (-vectorB)
 
     val c = eigenvectors \ (vStart - vp)
 
-    def getV1(t: Long, node: Int): Double = {
-      var voltage = vp(node) // Start with the steady-state value of Node
+    def getNodeTemperature(t: Long, node: Int): Temperature = {
+      var temperature = vp(node) // Start with the steady-state value of Node
 
       for i <- 0 until 5 do {
         // Add the transient responses of the 5 e-functions
         // c(i) is the coefficient, v_eigen(0, i) is the Node 1 component of the i-th eigenvector
-        voltage += c(i) * eigenvectors(node, i) * math.exp(eigenvalues(i) * t)
+        temperature += c(i) * eigenvectors(node, i) * math.exp(
+          eigenvalues(i) * t
+        )
       }
 
       voltage
