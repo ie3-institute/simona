@@ -117,6 +117,68 @@ class LineThermalModelCalculationsSpec
       }
     }
 
+    "calculate correctly the AC resistance of the screen" in {
+      val cases = Table(
+        (
+          "resistivity",
+          "wiresNumber",
+          "wireDiameter",
+          "lengthOfLaySheath",
+          "diameterUnderTheScreen",
+          "temperatureCorrection",
+          "limitTemperature",
+          "thermalResistanceT1",
+          "conductorLosses",
+          "dielectricLosses",
+          "expected",
+        ),
+        (1.7241e-8, 56, 0.9e-3, 0.24, 0.0368, 3.93e-3, 90.0, 0.4110322351,
+          28.20166532, 0.10842143853,
+          6.635010635e-4), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 199ff
+      )
+
+      forAll(cases) {
+        (
+            resistivity,
+            wiresNumber,
+            wireDiameter,
+            lengthOfLaySheath,
+            diameterUnderTheScreen,
+            temperatureCorrection,
+            limitTemperature,
+            thermalResistanceT1,
+            conductorLosses,
+            dielectricLosses,
+            expected,
+        ) =>
+
+          val specificResistance = OhmMeters(resistivity)
+          val wireDia = Meters(wireDiameter)
+          val lengthOfLay = Meters(lengthOfLaySheath)
+          val diaUnderScreen = Meters(diameterUnderTheScreen)
+          val limitTemp = Celsius(limitTemperature)
+          val t1 = KelvinMetersPerWatt(thermalResistanceT1)
+          val wC = Watts(conductorLosses)
+          val wD = Watts(dielectricLosses)
+          val expectedResult = OhmsPerMeter(expected)
+
+          val actual = calcAcResistanceSheath(
+            specificResistance,
+            wiresNumber,
+            wireDia,
+            lengthOfLay,
+            diaUnderScreen,
+            temperatureCorrection,
+            limitTemp,
+            t1,
+            wC,
+            wD,
+          )
+
+          actual should approximate(expectedResult)
+      }
+    }
+
     "calculate correctly the dielectric losses" in {
       val cases = Table(
         (
@@ -673,7 +735,6 @@ class LineThermalModelCalculationsSpec
 
     val expected = Celsius(87.63369552608468) // S. 205 CIGRE
     val tick = 972000L
-    val lastTick = 0L
 
     val groundTemp = Celsius(20)
 
