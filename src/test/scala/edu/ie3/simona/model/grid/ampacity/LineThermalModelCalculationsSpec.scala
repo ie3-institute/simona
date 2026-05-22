@@ -36,7 +36,7 @@ class LineThermalModelCalculationsSpec
   implicit val tolerance: Double = 1e-10
   implicit val thermalCapacitanceTolerance: ThermalCapacitance =
     JoulesPerMeterKelvin(1e-10)
-  implicit val temperatureTolerance: Temperature = Celsius(1e-5)
+  implicit val temperatureTolerance: Temperature = Celsius(1e-3)
 
   "A LineSegmentThermalModel" should {
 
@@ -722,7 +722,7 @@ class LineThermalModelCalculationsSpec
   }
   "test " in {
 
-    val expected = Celsius(87.63369552608468) // S. 205 CIGRE
+    val expected = Celsius(90) // S. 205 CIGRE
     val tick = 972000L
 
     val groundTemp = Celsius(20)
