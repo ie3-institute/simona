@@ -284,32 +284,58 @@ class LineThermalModelCalculationsSpec
       }
     }
 
-    "calculate correctly the losses in cable sheath" in {
+    "calculate correctly the losses in cable screen" in {
       val cases = Table(
         (
-          "circulatingSheathLossFactor",
+          "layoutFormation",
+          "conductorResistance",
+          "screenResistance",
+          "axialDistanceCables",
+          "averageSheathDiameter",
+          "phase",
           "eddyCurrentsSheathLossFactor",
           "conductorLosses",
           "expectedSheathLosses",
         ),
-        (0.01, 0.015, 100.0, 2.5),
-        (0.05, 0.05, 50.0, 5.0),
-        (0.0, 0.0, 100.0, 0.0),
-        (0.1, 0.2, 200.0, 60.0),
+        (
+          "trefoil-touching",
+          9.762868345e-5,
+          6.635010635e-4,
+          0.044,
+          (0.0386 + 0.0368) / 2,
+          "middle",
+          0.0,
+          28.20166532,
+          1.227118334845,
+        ), // Cigre TB880 p. 200
       )
 
       forAll(cases) {
         (
-            circulatingSheathLossFactor,
+            layoutFormation,
+            conductorResist,
+            screenResist,
+            axialDistance,
+            averageSheathDia,
+            phase,
             eddyCurrentsSheathLossFactor,
             conductorLosses,
             expectedSheathLosses,
         ) =>
+          val conductorResistance = OhmsPerMeter(conductorResist)
+          val screenResistance = OhmsPerMeter(screenResist)
+          val axialDistanceCables = Meters(axialDistance)
+          val averageSheathDiameter = Meters(averageSheathDia)
           val conductorLossesW = Watts(conductorLosses)
           val expectedLosses = Watts(expectedSheathLosses)
 
           val actual = calcLossesSheath(
-            circulatingSheathLossFactor,
+            layoutFormation,
+            conductorResistance,
+            screenResistance,
+            axialDistanceCables,
+            averageSheathDiameter,
+            phase,
             eddyCurrentsSheathLossFactor,
             conductorLossesW,
           )

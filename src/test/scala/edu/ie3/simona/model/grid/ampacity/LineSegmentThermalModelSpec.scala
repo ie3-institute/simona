@@ -27,7 +27,6 @@ class LineSegmentThermalModelSpec
   "LineSegmentThermalModel" should {
 
     "Determine the current state" in {
-
       val cases = Table(
         (
           "tick",

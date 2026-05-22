@@ -23,10 +23,10 @@ import edu.ie3.util.scala.quantities.{
 }
 import squants.electro.*
 import squants.energy.Watts
-import squants.space.Length
+import squants.space.{Length, Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
-import squants.{ElectricCurrent, Power, Temperature}
+import squants.{ElectricCurrent, Kelvin, Power, Temperature}
 
 import scala.math.*
 
@@ -81,6 +81,65 @@ object LineThermalModelCalculations extends LazyLogging {
     //        (1 + temperatureCorrectionFactor * ((limitTemperature.toCelsiusScale - operatingTemperature.toCelsiusScale)/2 - REFERENCE_TEMPERATURE))
   }
 
+  /** Calculates the AC resistance per unit of length of the sheath accounting
+    * for temperature and high-frequency effects (skin effect, proximity
+    * effect).
+    * @param resistivity
+    *   The resistivity of the conductor material.
+    * @param conductorArea
+    *   The cross-sectional area of the conductor.
+    * @param temperatureCorrectionFactor
+    *   Temperature coefficient for resistance variation.
+    * @param operatingTemperature
+    *   The operating temperature of the conductor.
+    * @param factorSkinEffect
+    *   Factor accounting for skin effect at operating frequency.
+    * @param factorProximityEffect
+    *   Factor accounting for proximity effect.
+    * @return
+    *   The AC resistance per unit of length.
+    */
+  def calcAcResistanceSheath(
+      resistivity: Resistivity,
+      wiresNumber: Int,
+      wireDiameter: Length,
+      lengthOfLaySheath: Length,
+      diameterUnderTheScreen: Length,
+      temperatureCorrectionFactor: Double,
+      limitTemperature: Temperature,
+      thermalResistanceT1: ThermalResistivity,
+      conductorLosses: Power,
+      dielectricLosses: Power,
+  ): ElectricalResistancePerLength = {
+    // Calculation of cross-sectional area of the sheath
+    val area = SquareMeters(
+      wiresNumber * PI_OVER_FOUR * wireDiameter.toMeters * wireDiameter.toMeters
+    )
+
+    // Consider lay factor
+    val layFactor = sqrt(
+      1 + (pow(
+        Pi * (diameterUnderTheScreen.toMeters + wireDiameter.toMeters),
+        2,
+      ) / pow(lengthOfLaySheath.toMeters, 2))
+    )
+
+    // ac resistance per unit length of screen at 20°C
+    val r0Screen = OhmsPerMeter(
+      layFactor * resistivity.toOhmMeters / area.toSquareMeters
+    )
+
+    // calculate operating temperatur of the screen
+    val screenTemp =
+      limitTemperature // FIXME this is only limitTemperate if the conductor is at limitTemp
+        - Kelvin(
+          (conductorLosses.toWatts + 0.5 * dielectricLosses.toWatts) * thermalResistanceT1.toKelvinMetersPerWatt
+        )
+
+    // ac resistance of screen wires at operating temp
+    r0Screen * (1 + temperatureCorrectionFactor * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE))
+  }
+
   /** Calculates the thermal losses of the cable segment per unit cable length.
     *
     * @param acResistance
@@ -99,23 +158,152 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Calculates the losses within the cable sheath. Zero / Not applicable if
     * cable has no sheath.
-    *
-    * @param circulatingSheathLossFactor
-    *   Determines the losses in the sheath caused by circulating currents.
-    *   Often given as lambda_1_dash.
+    * @layoutFormation
+    *   Formation in which the cables are laid.
+    * @param r
+    *   AC-Resistance per Length of conductor at operating temperature.
+    * @param rs
+    *   AC-Resistance per Length of sheath at operating temperature.
+    * @param axialCableDistance
+    *   Axial distance of the cables (Center to Center).
+    * @param averageDiameterSheath
+    *   Average diameter of the sheath.
+    * @phase
+    *   String that indicates whether the phase is the leading, the middle, or
+    *   the lagging phase within the three-phase-system.
     * @param eddyCurrentsSheathLossFactor
     *   Determines the losses in the sheath caused by eddy currents. Often given
-    *   as lambda_1_dash_dash.
+    *   as lambda_1''.
+    * @param conductorLosses
+    *   The thermal losses of the conductor.
     * @return
     */
   def calcLossesSheath(
-      circulatingSheathLossFactor: Double,
+      layoutFormation: String,
+      r: ElectricalResistancePerLength,
+      rs: ElectricalResistancePerLength,
+      axialCableDistance: Length,
+      averageDiameterSheath: Length,
+      phase: String,
       eddyCurrentsSheathLossFactor: Double,
       conductorLosses: Power,
   ): Power = {
+    val (x, xm) =
+      calculateReactance(Hertz(50), axialCableDistance, averageDiameterSheath)
+    val lambda1Dash = layoutFormation match {
+      case "flat-distance" => calcLambda1DashFlatDistance(r, rs, x, xm, phase)
+      case "flat-touching" =>
+        throw new IllegalArgumentException(
+          s"Flat-touching layout formation is currently not supported"
+        )
+      case "trefoil-not-touching" =>
+        throw new IllegalArgumentException(
+          s"Trefoil not touching layout formation is currently not supported"
+        )
+      case "trefoil-touching" => calcLambda1DashTrefoilTouching(r, rs, x)
+      case _ =>
+        throw new IllegalArgumentException(
+          s"Unknown layout formation: $layoutFormation"
+        )
+    }
     // lambda_1 = lambda_1_dash + lambda_1_dash_dash
-    val lambdaOne = circulatingSheathLossFactor + eddyCurrentsSheathLossFactor
+    val lambdaOne = lambda1Dash + eddyCurrentsSheathLossFactor
+
     conductorLosses * lambdaOne
+  }
+
+  /** Calculates the sheath loss factor for circulating currents in case of
+    * systems in flat formation and bonded on both ends.
+    * @param r
+    *   AC-Resistance per Length of conductor at operating temperature.
+    * @param rs
+    *   AC-Resistance per Length of sheath at operating temperature.
+    * @param x
+    *   Reactance per Length of the sheath.
+    * @param xm
+    *   Mutual Reactance per Length.
+    * @return
+    *   Loss factor lambda1'.
+    */
+  def calcLambda1DashFlatDistance(
+      r: ElectricalResistancePerLength,
+      rs: ElectricalResistancePerLength,
+      x: ElectricalResistancePerLength,
+      xm: ElectricalResistancePerLength,
+      phase: String,
+  ): Double = {
+    // 	Auxiliary quantity by IEC 60287
+    val p = x.toOhmsPerMeter + xm.toOhmsPerMeter
+    val q = x.toOhmsPerMeter - (xm.toOhmsPerMeter / 3.0)
+
+    val rsSq = rs.toOhmsPerMeter * rs.toOhmsPerMeter
+    val pSq = p * p
+    val qSq = q * q
+
+    // Split into three parts
+    val term1 = (0.25 * qSq) / (rsSq + qSq)
+    val term2 = (0.75 * pSq) / (rsSq + pSq)
+
+    // Asymmetric part (adds up for leading phase, subtracts for lagging phase)
+    // val term3 = (sqrt(3.0) * rs * p * q * xm) / ((rsSq + pSq) * (rsSq + qSq))
+    val term3 =
+      (2 * rs.toOhmsPerMeter * p * q * xm.toOhmsPerMeter) / (sqrt(
+        3.0
+      ) * (rsSq + pSq) * (rsSq + qSq))
+
+    phase match {
+      case "leading" =>
+        (rs / r) * (term1 + term2 - term3) // subtracts for leading phase
+      case "middle" => (rs / r) * (qSq / (rsSq + qSq))
+      case "lagging" =>
+        (rs / r) * (term1 + term2 + term3) // adds up for lagging phase
+    }
+  }
+
+  /** Calculates the sheath loss factor for circulating currents in case of
+    * systems in trefoil-touching formation and bonded on both ends.
+    * @param r
+    *   AC-Resistance per Length of conductor at operating temperature
+    * @param rs
+    *   AC-Resistance per Length of sheath at operating temperature
+    * @param x
+    *   Reactance per Length of the sheath
+    * @return
+    *   loss factor lambda1'
+    */
+  def calcLambda1DashTrefoilTouching(
+      r: ElectricalResistancePerLength,
+      rs: ElectricalResistancePerLength,
+      x: ElectricalResistancePerLength,
+  ): Double = {
+    (rs / r) * (1 / (1 + pow(rs / x, 2)))
+  }
+
+  /** Helper method to calculate the geometric reactance.
+    *
+    * @param f
+    *   System frequency.
+    * @param axialCableDistance
+    *   Axial distance of the cables (Center to Center).
+    * @param averageDiameterSheath
+    *   Average diameter of the sheath.
+    * @return
+    *   Tuple of sheath reactance X, and mutual reactance Xm.
+    */
+  def calculateReactance(
+      f: Frequency,
+      axialCableDistance: Length,
+      averageDiameterSheath: Length,
+  ): (ElectricalResistancePerLength, ElectricalResistancePerLength) = {
+    val omega = f.toHertz * TWO_PI
+
+    // 2*10^-7 results from μ0/(2*PI) in Henry pro Meter (H/m)
+    val x = OhmsPerMeter(
+      omega * 2e-7 * log((axialCableDistance * 2.0) / averageDiameterSheath)
+    )
+    val xm = OhmsPerMeter(omega * 2e-7 * log(2.0))
+
+    (x, xm)
   }
 
   /** Calculates the losses within the cable armor. Zero / Not applicable if
@@ -397,7 +585,6 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Splits a given capacitance in case of short-term durations by the method
     * of van-Wormer through its coefficient.
-    *
     * @param capacitance
     *   The capacitance that should be split.
     * @param innerDiameter
@@ -464,14 +651,7 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
 
-    val sheathLosses = calcLossesSheath(
-      cableSetup.circulatingLossFactorScreen,
-      cableSetup.eddyCurrentsLossFactorScreen,
-      conductorLosses,
-    )
-
     val phaseToGroundVoltage = cableSetup.voltage / sqrt(3)
-
     val dielectricLosses = calcDielectricLosses(
       cableSetup.layersIsolationElements
         .find(_.name == "insulation")
@@ -487,12 +667,80 @@ object LineThermalModelCalculations extends LazyLogging {
       cableSetup.electricCapacitance,
     )
 
-    val thermalTotalLossesCableA =
-      conductorLosses + sheathLosses + dielectricLosses // FIXME: Same as CableB?
-    val thermalTotalLossesCableB =
-      conductorLosses + sheathLosses + dielectricLosses
-    val thermalTotalLossesCableC =
-      conductorLosses + sheathLosses + dielectricLosses // FIXME: Same as CableB?
+    val wiresNumber = 56
+    val wireDiameter = Millimeters(2.7)
+    val lengthOfLay = Millimeters(240)
+
+    val acResistanceSheath = calcAcResistanceSheath(
+      OhmMeters(
+        1.7241e-8
+      ), // FIXME this should be of the screen not of the conductor
+      wiresNumber,
+      wireDiameter,
+      lengthOfLay,
+      cableSetup.layersScreenElements
+        .find(_.name == "screen")
+        .getOrElse(
+          throw new IllegalArgumentException(
+            s"Could not find screen layer to calculate ac resistance of screen"
+          )
+        )
+        .innerDiameter,
+      specificTempCoefficient,
+      cableSetup.limitTemperature,
+      state.currentLineSegmentThermalModel.thermalResistanceT1,
+      conductorLosses,
+      dielectricLosses,
+    )
+
+    val sheatAverageDiameter = {
+      val screen = cableSetup.layersScreenElements
+        .find(_.name == "screen")
+        .getOrElse(
+          throw new IllegalArgumentException(
+            s"Could not find screen layer to calculate ac resistance of screen"
+          )
+        )
+      (screen.innerDiameter + screen.outerDiameter) / 2
+    }
+
+    val sheathLossesLeadingPhase = calcLossesSheath(
+      cableSetup.layoutFormation,
+      acResistance,
+      acResistanceSheath,
+      cableSetup.distanceCables,
+      sheatAverageDiameter,
+      "leading",
+      cableSetup.eddyCurrentsLossFactorScreen,
+      conductorLosses,
+    )
+    val sheathLossesMiddlePhase = calcLossesSheath(
+      cableSetup.layoutFormation,
+      acResistance,
+      acResistanceSheath,
+      cableSetup.distanceCables,
+      cableSetup.depthCables,
+      "middle",
+      cableSetup.eddyCurrentsLossFactorScreen,
+      conductorLosses,
+    )
+    val sheathLossesLaggingPhase = calcLossesSheath(
+      cableSetup.layoutFormation,
+      acResistance,
+      acResistanceSheath,
+      cableSetup.distanceCables,
+      cableSetup.depthCables,
+      "lagging",
+      cableSetup.eddyCurrentsLossFactorScreen,
+      conductorLosses,
+    )
+
+    val thermalTotalLossesLeadingCable =
+      conductorLosses + dielectricLosses + sheathLossesLeadingPhase
+    val thermalTotalLossesMiddleCable =
+      conductorLosses + dielectricLosses + sheathLossesMiddlePhase
+    val thermalTotalLossesLaggingCable =
+      conductorLosses + dielectricLosses + sheathLossesLaggingPhase
 
     /* Update thermoelectric equivalent circuit */
     // No changes for T1-T3
@@ -521,9 +769,9 @@ object LineThermalModelCalculations extends LazyLogging {
               )
             ),
           cableSetup.distanceCables,
-          thermalTotalLossesCableA,
-          thermalTotalLossesCableB,
-          thermalTotalLossesCableC,
+          thermalTotalLossesLeadingCable,
+          thermalTotalLossesMiddleCable,
+          thermalTotalLossesLaggingCable,
         )
       case "flat-touching" =>
         throw new IllegalArgumentException(
@@ -639,7 +887,7 @@ object LineThermalModelCalculations extends LazyLogging {
     val vectorB = DenseVector(
       (conductorLosses.toWatts + dielectricLosses.toWatts / 2) / c1,
       0d,
-      (sheathLosses.toWatts + dielectricLosses.toWatts / 2) / c3,
+      (sheathLossesMiddlePhase.toWatts + dielectricLosses.toWatts / 2) / c3,
       0d,
       (g5 * state.groundTemperature.toCelsiusScale) / c5,
     )
