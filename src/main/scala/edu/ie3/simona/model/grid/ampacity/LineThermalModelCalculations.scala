@@ -341,33 +341,16 @@ object LineThermalModelCalculations extends LazyLogging {
     *   The voltage dependent dielectric losses.
     */
   def calcDielectricLosses(
-      dielectricMaterial: CableMaterial,
       phaseToGroundVoltage: ElectricPotential,
       frequency: Frequency,
       tanDelta: Double,
       dielectricCapacity: Capacitance,
   ): Power = {
-    (dielectricMaterial, phaseToGroundVoltage) match {
-      case (CableMaterial.XLPE, voltage) if voltage < Kilovolts(127) => zeroKW
-      case (CableMaterial.PVC, voltage) if voltage < Kilovolts(6)    => zeroKW
-      case (CableMaterial.XLPE, voltage) if voltage >= Kilovolts(127) =>
-        dielectricCapacity.calculateDielectricLosses(
-          voltage,
-          frequency,
-          tanDelta,
-        )
-      case (CableMaterial.PVC, voltage) if voltage >= Kilovolts(6) =>
-        dielectricCapacity.calculateDielectricLosses(
-          voltage,
-          frequency,
-          tanDelta,
-        )
-      case _ =>
-        throw new IllegalArgumentException(
-          s"Unknown material used for dielectric: $dielectricMaterial."
-        )
-    }
-
+    dielectricCapacity.calculateDielectricLosses(
+      phaseToGroundVoltage,
+      frequency,
+      tanDelta,
+    )
   }
 
   /** Calculates the thermal resistivity of the individual layers of the cable
@@ -655,14 +638,6 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val phaseToGroundVoltage = cableSetup.voltage / sqrt(3)
     val dielectricLosses = calcDielectricLosses(
-      cableSetup.layersIsolationElements
-        .find(_.name == "insulation")
-        .map(_.material)
-        .getOrElse(
-          throw new IllegalArgumentException(
-            "Can't find material of insulation layer when calculating dielectric losses."
-          )
-        ),
       phaseToGroundVoltage,
       Hertz(50),
       cableSetup.tanDelta,

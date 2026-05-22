@@ -182,28 +182,24 @@ class LineThermalModelCalculationsSpec
     "calculate correctly the dielectric losses" in {
       val cases = Table(
         (
-          "dielectricMaterial",
           "phaseToGroundVoltage",
           "tanDelta",
           "dielectricCapaNanoF",
           "expected",
         ),
         (
-          "PVC", // Changed to PVC to allow test
           19052.5588,
           0.004,
           0.237683304,
           0.10842143853,
         ), // CIGRÉ Working Group B1.56, Power cable rating examples for calculation tool verification, TB 880, p 198f
         (
-          "PVC", // Changed to PVC to allow test
           76210.2355,
           0.001,
           0.25506991358,
           0.4654100053,
         ), // CIGRÉ Working Group B1.56, Power cable rating examples for calculation tool verification, TB 880, p 132f
         (
-          "XLPE", // Changed to PVC to allow test
           230940.108,
           0.001,
           0.14978009691,
@@ -213,25 +209,18 @@ class LineThermalModelCalculationsSpec
 
       forAll(cases) {
         (
-            dielectricMaterial,
             phaseToGroundVoltage,
             tanDelta,
             dielectricCapaNanoF,
             expected,
         ) =>
 
-          val insulation = dielectricMaterial match {
-            case "XLPE" => CableMaterial.XLPE
-            case "PVC"  => CableMaterial.PVC
-
-          }
           val voltageU0 = Volts(phaseToGroundVoltage)
           val frequency = Hertz(50)
           val dielectricCapacity = Nanofarads(dielectricCapaNanoF)
           val expectedResult = Watts(expected)
 
           val actual = calcDielectricLosses(
-            insulation,
             voltageU0,
             frequency,
             tanDelta,
