@@ -3,7 +3,7 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.4.0' // code format
+  id 'com.diffplug.spotless' version '8.5.1' // code format
   id "com.github.ben-manes.versions" version '0.54.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -26,7 +26,7 @@ ext {
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
 
-  junitVersion = '6.0.3'
+  junitVersion = '6.1.0'
   testContainerVersion = '0.44.1'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -155,7 +155,7 @@ dependencies {
 
   implementation 'commons-io:commons-io:2.22.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
-  implementation 'tech.units:indriya:2.2.3' // quantities
+  implementation 'tech.units:indriya:2.2.4' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
   implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'org.jgrapht:jgrapht-core:1.5.3'
