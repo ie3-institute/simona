@@ -13,8 +13,10 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
 import edu.ie3.util.scala.quantities.{
+  ElectricalResistancePerLength,
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
+  OhmsPerMeter,
   ThermalCapacitance,
   ThermalResistivity,
   SquantsUtils as RichElectricPotential,
@@ -44,8 +46,9 @@ object LineThermalModelCalculations extends LazyLogging {
   private val AC_RESISTIVITY_ALUMINIUM: Resistivity = OhmMeters(2.8264e-8)
   private val TEMPERATURE_COEFFICIENT_ALUMINIUM: Double = 4.03e-3
 
-  /** Calculates the AC resistance of a conductor accounting for temperature and
-    * high-frequency effects (skin effect, proximity effect).
+  /** Calculates the AC resistance per unit of length of a conductor accounting
+    * for temperature and high-frequency effects (skin effect, proximity
+    * effect).
     *
     * @param electricalResistanceCable
     *   The dc resistance of the cable at 20°C as mentioned in the data sheet of
@@ -59,7 +62,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @param factorProximityEffect
     *   Factor accounting for proximity effect.
     * @return
-    *   The AC resistance in Ohms per meter.
+    *   The AC resistance per unit of length.
     */
   def calcAcResistance(
       electricalResistanceCable: ElectricalResistance,
@@ -67,9 +70,8 @@ object LineThermalModelCalculations extends LazyLogging {
       limitTemperature: Temperature,
       factorSkinEffect: Double,
       factorProximityEffect: Double,
-  ): ElectricalResistance = {
-    // normally in Ohms/Meter...
-    Ohms(
+  ): ElectricalResistancePerLength = {
+    OhmsPerMeter(
       (1 + factorSkinEffect + factorProximityEffect) * electricalResistanceCable.toOhms *
         (1 + temperatureCorrectionFactor * (limitTemperature.toCelsiusScale - REFERENCE_TEMPERATURE))
     )
@@ -89,10 +91,10 @@ object LineThermalModelCalculations extends LazyLogging {
     *   The thermal losses of this line segment in power per unit cable length.
     */
   def calcLossesConductor(
-      acResistance: ElectricalResistance,
+      acResistance: ElectricalResistancePerLength,
       current: ElectricCurrent,
   ): Power = {
-    Watts(current.toAmperes * current.toAmperes * acResistance.toOhms)
+    Watts(current.toAmperes * current.toAmperes * acResistance.toOhmsPerMeter)
   }
 
   /** Calculates the losses within the cable sheath. Zero / Not applicable if

@@ -10,8 +10,10 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import edu.ie3.util.scala.quantities.{
+  ElectricalResistancePerLength,
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
+  OhmsPerMeter,
   ThermalCapacitance,
   ThermalResistivity,
 }
@@ -28,7 +30,8 @@ class LineThermalModelCalculationsSpec
   implicit val resistanceTolerance: ThermalResistivity = KelvinMetersPerWatt(
     1e-10
   )
-  implicit val electricResistanceTolerance: ElectricalResistance = Ohms(1e-10)
+  implicit val electricResistancePerLengthTolerance
+      : ElectricalResistancePerLength = OhmsPerMeter(1e-10)
   implicit val powerTolerance: Power = Watts(1e-7)
   implicit val tolerance: Double = 1e-10
   implicit val thermalCapacitanceTolerance: ThermalCapacitance =
@@ -71,7 +74,7 @@ class LineThermalModelCalculationsSpec
 
           val cableResistance = Ohms(resistancePerMeter)
           val limitTemperature = Celsius(limitTemp)
-          val expectedResult = Ohms(expected)
+          val expectedResult = OhmsPerMeter(expected)
 
           val actual = calcAcResistance(
             cableResistance,
@@ -105,7 +108,7 @@ class LineThermalModelCalculationsSpec
         ) =>
 
           val current = Amperes(currentInAmps)
-          val acRes = Ohms(acResistance)
+          val acRes = OhmsPerMeter(acResistance)
           val expectedResult = Watts(expected)
 
           val actual = calcLossesConductor(acRes, current)
