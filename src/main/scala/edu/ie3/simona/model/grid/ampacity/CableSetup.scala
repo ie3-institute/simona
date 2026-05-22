@@ -55,14 +55,20 @@ object CableSetup {
       mat: CableMaterial
   ): (ThermalResistivity, ThermalCapacitance) =
     mat match {
-      // c = 385 J/(kg * K), rho= 8.96 g/cm³: https://de.wikipedia.org/wiki/Kupfer => 3449600 J / (m³ * K)
-      // therm conductivity of Copper = 384 W/(m*K) https://en.wikipedia.org/wiki/Thermal_conductivity_and_resistivity
       case CableMaterial.Copper =>
-        (KelvinMetersPerWatt(1 / 384), JoulesPerMeterKelvin(3449600))
-      // c = 897 J/(kg * K), rho= 2.6989 g/cm³: https://de.wikipedia.org/wiki/Aluminium => 2420913.3 J / (m³ * K)
-      // therm conductivity of Aluminum = 237 W/(m*K) https://en.wikipedia.org/wiki/Thermal_conductivity_and_resistivity
+        (
+          KelvinMetersPerWatt(
+            1 / 384
+          ), // 384 W/(m*K) https://en.wikipedia.org/wiki/Thermal_conductivity_and_resistivity
+          JoulesPerMeterKelvin(3449600),
+        ) // c = 385 J/(kg * K), rho= 8.96 g/cm³: https://de.wikipedia.org/wiki/Kupfer => 3449600 J / (m³ * K)
       case CableMaterial.Aluminium =>
-        (KelvinMetersPerWatt(1 / 237), JoulesPerMeterKelvin(2420913.3))
+        (
+          KelvinMetersPerWatt(
+            1 / 237
+          ), // therm conductivity of Aluminum = 237 W/(m*K) https://en.wikipedia.org/wiki/Thermal_conductivity_and_resistivity
+          JoulesPerMeterKelvin(2420913.3),
+        ) // c = 897 J/(kg * K), rho= 2.6989 g/cm³: https://de.wikipedia.org/wiki/Aluminium => 2420913.3 J / (m³ * K)
       case CableMaterial.XLPE =>
         (
           KelvinMetersPerWatt(3.5),
@@ -80,14 +86,45 @@ object CableSetup {
         ) // (Anders 1997 p. 400)
       case CableMaterial.SemiCondScreen =>
         (
-          KelvinMetersPerWatt(2.5),
-          JoulesPerMeterKelvin(2.4),
-        ) // TherRes: TB880 p.28, TherCapa: Same as adjacent dielectric material (Anders 1997 p. 400)
+          KelvinMetersPerWatt(2.5), // TB880 p.28
+          JoulesPerMeterKelvin(
+            2.4
+          ), // Same as adjacent dielectric material (Anders 1997 p. 400)
+        )
       case CableMaterial.ScTape =>
         (
-          KelvinMetersPerWatt(6.0),
-          JoulesPerMeterKelvin(2.4),
-        ) // TherRes: TB880 p.28 TherCapa: Same as adjacent dielectric material (Anders 1997 p. 400)
+          KelvinMetersPerWatt(6.0), // TB880 p.28
+          JoulesPerMeterKelvin(
+            2.4
+          ), // Same as adjacent dielectric material (Anders 1997 p. 400)
+        )
+
+      case CableMaterial.Lead =>
+        (
+          KelvinMetersPerWatt(
+            1 / 35.0
+          ), // 34,7 - 35,3 (pure) https://en.wikipedia.org/wiki/List_of_thermal_conductivities
+          JoulesPerMeterKelvin(
+            2.4
+          ), // Heat Capacity of Steel 3.756 J/(cm³K)  https://en.wikipedia.org/wiki/Table_of_specific_heat_capacities
+        )
+      case CableMaterial.Steel =>
+        (
+          KelvinMetersPerWatt(
+            1 / 45
+          ), // 45 W/(m*K) https://en.wikipedia.org/wiki/Thermal_conductivity_and_resistivity
+          JoulesPerMeterKelvin(
+            3756000
+          ), // 3.756 J/(cm³K)  https://en.wikipedia.org/wiki/Table_of_specific_heat_capacities
+        ) // Source
+      case CableMaterial.PolyPropylen =>
+        (
+          KelvinMetersPerWatt(
+            6.0
+          ), // TB880 p.28
+          JoulesPerMeterKelvin(2.0), // FIXME but close to PPL in Anders p. 400
+        )
+
       case _ => (KelvinMetersPerWatt(999), JoulesPerMeterKelvin(0)) // FIXME
     }
 }

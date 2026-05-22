@@ -13,18 +13,24 @@ object CableMaterial {
   case object PE extends CableMaterial
   case object PVC extends CableMaterial
   case object ScTape extends CableMaterial
+  case object Lead extends CableMaterial
+  case object Steel extends CableMaterial
+  case object PolyPropylen extends CableMaterial
   case object SemiCondScreen extends CableMaterial
   case object NoneCableMaterial extends CableMaterial
 
   def fromString(s: String): CableMaterial = s.toLowerCase match {
-    case "copper" | "cooper" => Copper
-    case "aluminium"         => Aluminium
-    case "xlpe"              => XLPE
-    case "pe"                => PE
-    case "pvc"               => PVC
-    case "cooperwoventape"   => ScTape
-    case "semicondscreen"    => SemiCondScreen
-    case "none"              => NoneCableMaterial
+    case "copper"          => Copper
+    case "aluminium"       => Aluminium
+    case "xlpe"            => XLPE
+    case "pe"              => PE
+    case "pvc"             => PVC
+    case "copperwoventape" => ScTape
+    case "semicondscreen"  => SemiCondScreen
+    case "lead"            => Lead
+    case "steel"           => Steel
+    case "pp"              => PolyPropylen
+    case "none"            => NoneCableMaterial
     case other =>
       throw new IllegalArgumentException(s"Unknown material: $other")
   }

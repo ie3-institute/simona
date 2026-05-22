@@ -70,7 +70,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val screenTape: Layer = {
-    val mat = CableMaterial.fromString("cooperwoventape")
+    val mat = CableMaterial.fromString("copperwoventape")
     Layer(
       "screenTape",
       mat,
@@ -96,7 +96,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val jackTape: Layer = {
-    val mat = CableMaterial.fromString("cooperwoventape")
+    val mat = CableMaterial.fromString("copperwoventape")
     Layer(
       "jackTape",
       mat,
