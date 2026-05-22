@@ -443,7 +443,10 @@ object LineThermalModelCalculations extends LazyLogging {
     * (hottest cable) for a flat formation of three single core cables. Cable
     * formation: (A) --- (B) --- (C). Reference Anders Rating of electric power
     * cables: ampacity computations for transmission, distribution, and
-    * industrial applications p. 215
+    * industrial applications p. 215. This assumes, that all three cables are
+    * within the same depth and the outer cables have the same distance to the
+    * middle one. See CIGRE TB880 p. 94 for further information if this is not
+    * the case.
     *
     * @param specificThermalResistivityGround
     *   The material dependent specific thermal resistance of the surrounding
@@ -474,18 +477,17 @@ object LineThermalModelCalculations extends LazyLogging {
       lossesCableB: Power,
       lossesCableC: Power,
   ): ThermalResistivity = {
-    val distancePtoKDash = sqrt(
-      pow(distanceOfCables.toMeters, 2) + pow(2 * depthCables.toMeters, 2)
+    val distancePtoKDashDividedByDistancePtoK = sqrt(
+      (pow(distanceOfCables.toMeters, 2) + pow(
+        2 * depthCables.toMeters,
+        2,
+      )) / (pow(distanceOfCables.toMeters, 2) + pow(0, 2))
     )
-    val thermalInfluenceCableAonB =
-      (lossesCableA / lossesCableB) * log(
-        distancePtoKDash / distanceOfCables.toMeters
-      )
-    val thermalInfluenceCableConB =
-      (lossesCableC / lossesCableB) * log(
-        distancePtoKDash / distanceOfCables.toMeters
-      )
 
+    val thermalInfluenceCableAonB =
+      (lossesCableA / lossesCableB) * log(distancePtoKDashDividedByDistancePtoK)
+    val thermalInfluenceCableConB =
+      (lossesCableC / lossesCableB) * log(distancePtoKDashDividedByDistancePtoK)
     val thermalResistanceShareOfCableB =
       calcGeometricFactor(depthCables, diameterCableB)
 
