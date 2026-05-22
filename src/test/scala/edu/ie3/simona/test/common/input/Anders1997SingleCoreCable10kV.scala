@@ -106,7 +106,7 @@ object Anders1997SingleCoreCable10kV {
     List(jack),
     "flat-distance",
     Meters(1),
-    Meters(1.5 * 0.0358), // FIXME check this, 1 or 2 * De
+    Meters(2 * 0.0358),
     KelvinMetersPerWatt(1.0),
     JoulesPerMeterKelvin(1.0), // FIXME check this
     Celsius(90),

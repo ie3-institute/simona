@@ -670,7 +670,7 @@ object LineThermalModelCalculations extends LazyLogging {
     )
 
     val wiresNumber = 56
-    val wireDiameter = Millimeters(2.7)
+    val wireDiameter = Millimeters(0.9)
     val lengthOfLay = Millimeters(240)
 
     val acResistanceSheath = calcAcResistanceSheath(
