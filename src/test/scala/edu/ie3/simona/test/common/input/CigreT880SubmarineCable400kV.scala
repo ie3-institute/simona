@@ -192,16 +192,16 @@ object CigreT880SubmarineCable400kV {
     List(armour),
     List(outerServing),
     "flat-distance",
-    Meters(1)+Millimeters(134.3)/2,
-    Meters(0.044),
-    KelvinMetersPerWatt(0.7),
+    Meters(1),
+    Meters(5),
+    KelvinMetersPerWatt(1.0),
     JoulesPerMeterKelvin(1.0), // FIXME check this
     Celsius(90),
     Kilovolts(400),
     Ohms(0.0221e-3),
-    Nanofarads(0.237683304),// FIXME
-    0.004,// FIXME
-    0.0435122656,// FIXME
-    0.0,// FIXME
+    Nanofarads(0.237683304), // FIXME
+    0.004, // FIXME
+    0.0435122656, // FIXME
+    0.0, // FIXME
   )
 }
