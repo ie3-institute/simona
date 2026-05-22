@@ -302,12 +302,45 @@ class LineThermalModelCalculationsSpec
           9.762868345e-5,
           6.635010635e-4,
           0.044,
-          (0.0386 + 0.0368) / 2,
+          (0.0368 + 0.0386) / 2,
           "middle",
           0.0,
           28.20166532,
           1.227118334845,
         ), // Cigre TB880 p. 200
+        (
+          "flat-distance",
+          0.0781e-3,
+          0.94692081e-3, // see Anders 1997 Example 7.5
+          2 * 0.0358,
+          0.0312, // see Anders 1997 Example 8.2 p. 159
+          "middle",
+          0.0,
+          30.85,
+          2.7321981418997779, // (lambda1m'=0.088) * 30.85W see Anders 1997 p. 160
+        ), // Anders 2005 Cable No.1 p. 311
+        (
+          "flat-distance",
+          0.0781e-3,
+          0.94692081e-3, // see Anders 1997 Example 7.5
+          2 * 0.0358,
+          0.0312, // see Anders 1997 Example 8.2 p. 159
+          "leading",
+          0.0,
+          30.85,
+          6.381502194, // (lambda1m'=0.206) * 30.85W see Anders 1997 p. 160
+        ), // Anders 2005 Cable No.1 p. 311
+        (
+          "flat-distance",
+          0.0781e-3,
+          0.94692081e-3, // see Anders 1997 Example 7.5
+          2 * 0.0358,
+          0.0312, // see Anders 1997 Example 8.2 p. 159
+          "lagging",
+          0.0,
+          30.85,
+          6.868629568, // (lambda1m'=0.222) * 30.85W see Anders 1997 p. 160
+        ), // Anders 2005 Cable No.1 p. 311
       )
 
       forAll(cases) {
@@ -559,7 +592,9 @@ class LineThermalModelCalculationsSpec
         "expectedRes",
       ),
       (1.0, 1.0, 0.098, 0.5, 47.0866497321, 47.5422569285, 46.8820830331,
-        1.0358516741), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 161 T4
+        1.0358516741), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification", TB 880, p 161 T4
+      (1.0, 1.0, 0.0358, 0.0358, 31.0, 33.59, 31.0,
+        1.9324332635), // Anders 2005 p. 310-311
     )
 
     forAll(cases) {
