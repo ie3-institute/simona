@@ -396,6 +396,14 @@ object WeatherSource {
         case Some(windVel) => windVel.toSquants
         case None          => MetersPerSecond(Double.NaN)
       },
+      weatherValue.getGroundTemperatureLevel1.toScala
+        .flatMap(_.getTemperature.toScala)
+        .map(_.toSquants)
+        .getOrElse(Kelvin(Double.NaN)),
+      weatherValue.getGroundTemperatureLevel2.toScala
+        .flatMap(_.getTemperature.toScala)
+        .map(_.toSquants)
+        .getOrElse(Kelvin(Double.NaN)),
     )
 
   }

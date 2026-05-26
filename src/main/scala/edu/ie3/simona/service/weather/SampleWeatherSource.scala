@@ -96,6 +96,20 @@ final class SampleWeatherSource(
           .windVelocity(index)
           .doubleValue
       ),
+      Celsius(
+        Kelvin(
+          SampleWeatherSource
+            .temperature(index)
+            .doubleValue
+        ).toCelsiusScale
+      ),
+      Celsius(
+        Kelvin(
+          SampleWeatherSource
+            .temperature(index)
+            .doubleValue
+        ).toCelsiusScale
+      ),
     )
   }
 
