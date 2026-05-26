@@ -173,7 +173,7 @@ object LineSegmentThermalModel {
             layer.innerDiameter,
             layer.outerDiameter,
           )
-      }
+      } // FIXME: Include correction factor, see CIGRE TB880 p202 degree of cover
 
     val t2 = cableSetup.layersScreenElements.foldLeft(KelvinMetersPerWatt(0)) {
       (acc, layer) =>
@@ -192,6 +192,7 @@ object LineSegmentThermalModel {
           layer.outerDiameter,
         )
     }
+    // FIXME: Include correction factor, see CIGRE TB880 p202 degree of cover
 
     val t4 = calcThermalResistanceToSoilSingleCable(
       cableSetup.soilResistivity,
