@@ -109,6 +109,7 @@ object EnergyBoundariesFlexOptions
         )
       )
 
+    val currentState = flexOptions.energyBoundaries.map { _.currentEnergy }.sum
     val lowerEnergyLimit = firstEnergyLimits.map { case (_, energyLimits) =>
       energyLimits.getLower
     }.sum
@@ -119,6 +120,7 @@ object EnergyBoundariesFlexOptions
     new EnergyBoundariesFlexOptionsResult(
       dateTime,
       modelUuid,
+      currentState.toMegawattHours.asMegaWattHour,
       lowerEnergyLimit.toMegawattHours.asMegaWattHour,
       upperEnergyLimit.toMegawattHours.asMegaWattHour,
       flexOptions.powerLimits.getLower.toMegawatts.asMegaWatt,
