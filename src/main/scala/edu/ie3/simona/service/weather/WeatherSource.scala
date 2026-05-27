@@ -398,12 +398,10 @@ object WeatherSource {
       },
       weatherValue.getGroundTemperatureLevel1.toScala
         .flatMap(_.getTemperature.toScala)
-        .map(_.toSquants)
-        .getOrElse(Kelvin(Double.NaN)),
+        .map(_.toSquants),
       weatherValue.getGroundTemperatureLevel2.toScala
         .flatMap(_.getTemperature.toScala)
-        .map(_.toSquants)
-        .getOrElse(Kelvin(Double.NaN)),
+        .map(_.toSquants),
     )
 
   }

@@ -367,17 +367,17 @@ object Data {
       * @param windVel
       *   Wind velocity
       * @param groundTempLvl1
-      *   Ground temperature at Level 1
+      *   Optional of ground temperature at Level 1
       * @param groundTempLvl2
-      *   Ground temperature at Level 2
+      *   Optional of ground temperature at Level 2
       */
     final case class WeatherData(
         diffIrr: Irradiance,
         dirIrr: Irradiance,
         temp: Temperature,
         windVel: Velocity,
-        groundTempLvl1: Temperature,
-        groundTempLvl2: Temperature,
+        groundTempLvl1: Option[Temperature],
+        groundTempLvl2: Option[Temperature],
     ) extends SecondaryData
 
     /** Data class containing only the wholesale price.

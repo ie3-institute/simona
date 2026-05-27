@@ -178,37 +178,49 @@ private[weather] final case class WeatherSourceWrapper private (
           }
 
         val (groundTempLvl1, groundTempLvl1Weight) =
-          if weather.groundTempLvl1.value.isNaN then {
-            logger.warn(
-              s"Ground temperature at level 1 not available at $point."
-            )
-            (averagedWeather.groundTempLvl1, 0d)
-          } else {
-            // Important: squants temperature addition is bugged.
-            // Conversion to Kelvin necessary.
-            (
-              averagedWeather.groundTempLvl1 + weather.groundTempLvl1.in(
-                Kelvin
-              ) * weight,
-              weight,
-            )
+          weather.groundTempLvl1 match {
+            case None =>
+              (averagedWeather.groundTempLvl1, 0d)
+            case Some(temp) =>
+              if temp.value.isNaN then {
+                (averagedWeather.groundTempLvl1, 0d)
+              } else {
+                // Important: squants temperature addition is bugged.
+                // Conversion to Kelvin necessary.
+                (
+                  Some(
+                    averagedWeather.groundTempLvl1
+                      .getOrElse(Kelvin(0d)) + temp.in(Kelvin) * weight
+                  ),
+                  weight,
+                )
+              }
           }
 
         val (groundTempLvl2, groundTempLvl2Weight) =
-          if weather.groundTempLvl2.value.isNaN then {
-            logger.warn(
-              s"Ground temperature at level 2 not available at $point."
-            )
-            (averagedWeather.groundTempLvl2, 0d)
-          } else {
-            // Important: squants temperature addition is bugged.
-            // Conversion to Kelvin necessary.
-            (
-              averagedWeather.groundTempLvl2 + weather.groundTempLvl2.in(
-                Kelvin
-              ) * weight,
-              weight,
-            )
+          weather.groundTempLvl2 match {
+            case None =>
+              logger.warn(
+                s"Ground temperature at level 2 not available at $point."
+              )
+              (averagedWeather.groundTempLvl2, 0d)
+            case Some(temp) =>
+              if temp.value.isNaN then {
+                logger.warn(
+                  s"Ground temperature at level 2 is NaN at $point."
+                )
+                (averagedWeather.groundTempLvl2, 0d)
+              } else {
+                // Important: squants temperature addition is bugged.
+                // Conversion to Kelvin necessary.
+                (
+                  Some(
+                    averagedWeather.groundTempLvl2
+                      .getOrElse(Kelvin(0d)) + temp.in(Kelvin) * weight
+                  ),
+                  weight,
+                )
+              }
           }
 
         (
@@ -441,10 +453,10 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
           if this.windVel !~= 0d then windVel.divide(this.windVel)
           else ZERO_WEATHER_DATA.windVel,
           if this.groundTempLvl1 !~= 0d then
-            groundTempLvl1.divide(this.groundTempLvl1)
+            groundTempLvl1.map(_.divide(this.groundTempLvl1))
           else ZERO_WEATHER_DATA.groundTempLvl1,
           if this.groundTempLvl2 !~= 0d then
-            groundTempLvl2.divide(this.groundTempLvl2)
+            groundTempLvl2.map(_.divide(this.groundTempLvl2))
           else ZERO_WEATHER_DATA.groundTempLvl2,
         )
     }
@@ -466,8 +478,8 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     WattsPerSquareMeter(0d),
     Kelvin(0d),
     MetersPerSecond(0d),
-    Kelvin(0d),
-    Kelvin(0d),
+    Some(Kelvin(0d)),
+    Some(Kelvin(0d)),
   )
 
 }
