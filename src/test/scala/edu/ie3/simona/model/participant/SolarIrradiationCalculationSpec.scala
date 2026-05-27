@@ -100,98 +100,115 @@ class SolarIrradiationCalculationSpec
 
     "calculate the hour angle omega correctly" in {
       val testCases = Table(
-        ("time", "j", "longitude", "omegaSol"),
+        ("time", "longitudeInRad", "omegaSol"),
+        // Sun needs to be above meridian at local noon == omega should be almost zero
+        (
+          "2011-06-21T12:00:00+00:00",
+          Degrees(0d).toRadians, // long of 0E
+          -0.006128618099254653,
+        ),
+        (
+          "2011-06-21T12:00:00+06:00",
+          Degrees(90).toRadians, // long of 90E
+          -0.006128618099254653,
+        ),
+        (
+          "2011-06-21T12:00:00-06:00",
+          Degrees(-90).toRadians, // long of 90W
+          -0.006128618099254653,
+        ),
+        (
+          "2011-06-21T12:00:00+12:00",
+          Degrees(180).toRadians, // long of 180E
+          -0.006128618099254653,
+        ),
         (
           "2019-01-01T05:00:00+01:00",
-          0d,
-          0.16d,
-          -1.9465030168609223d,
-        ), // long: ~9.17°E
-        (
-          "2019-01-01T10:05:00+01:00",
-          0d,
-          0.16d,
-          -0.6156894622152458d,
-        ), // different time: 10:05
-        (
-          "2019-01-01T12:00:00+01:00",
-          0d,
-          0.16d,
-          -0.11390730226687622d,
-        ), // 12:00
-        (
-          "2019-01-01T14:00:00+01:00",
-          0d,
-          0.16d,
-          0.40969147333142264d,
-        ), // 14:00
-        (
-          "2019-01-01T17:30:00+01:00",
-          0d,
-          0.16d,
-          1.3259893306284447d,
-        ), // 17:30
+          Degrees(9.17).toRadians,
+          -1.9464563244530422,
+        ),
         (
           "2019-03-21T05:00:00+01:00",
-          1.359922299362157d,
-          0.16d,
-          -1.9677750757840207d,
+          Degrees(9.17).toRadians,
+          -1.967728383376141,
         ), // different j (different date)
         (
           "2019-01-01T05:00:00+01:00",
-          0d,
-          0.175d,
-          -1.9315030168609224d,
-        ), // different long, ~10°E
+          Degrees(10d).toRadians,
+          -1.9319700916614897,
+        ), // different long
+        (
+          "2019-01-01T10:00:00+01:00",
+          Degrees(9.17).toRadians,
+          -0.6374593854572954,
+        ),
+        (
+          "2019-01-01T10:05:00+01:00", // some minutes later
+          Degrees(9.17).toRadians,
+          -0.6156427698073661,
+        ),
+        (
+          "2019-01-01T12:00:00+01:00",
+          Degrees(9.17).toRadians,
+          -0.11386060985899661,
+        ),
+        (
+          "2019-01-01T14:00:00+01:00",
+          Degrees(9.17).toRadians,
+          0.4097381657393022,
+        ),
+        // CEST Central Europe Summer Time for Longitude of Berlin
+        (
+          "2011-06-21T10:00:00+02:00",
+          Degrees(13.9).toRadians,
+          -0.8107254032686403,
+        ),
         (
           "2011-06-21T11:00:00+02:00",
-          2.9436292808978d,
-          0.2337d,
-          -0.2960273936975511d,
-        ), // long of Berlin (13.39E)
+          Degrees(13.9).toRadians,
+          -0.5489260154694904,
+        ),
         (
           "2011-06-21T12:00:00+02:00",
-          2.9436292808978d,
-          0.2337d,
-          -0.034228005898401644d,
-        ), // long of Berlin (13.39E)
+          Degrees(13.9).toRadians,
+          -0.287126627670341,
+        ),
         (
           "2011-06-21T13:00:00+02:00",
-          2.9436292808978d,
-          0.2337d,
-          0.2275713819007478d,
-        ), // long of Berlin (13.39E)
+          Degrees(13.9).toRadians,
+          -0.02532723987119156,
+        ),
         (
           "2011-06-21T14:00:00+02:00",
-          2.9436292808978d,
-          0.2337d,
-          0.4893707696998972d,
-        ), // long of Berlin (13.39E)
+          Degrees(13.9).toRadians,
+          0.2364721479279579,
+        ),
         (
           "2011-06-21T15:00:00+02:00",
-          2.9436292808978d,
-          0.2337d,
-          0.7511701574990467d,
-        ), // long of Berlin (13.39E)
+          Degrees(13.9).toRadians,
+          0.4982715357271073,
+        ),
+        // EEST (Eastern European Summer Time) for Longitude of Cairo
         (
-          "2011-04-05T16:00:00+02:00",
-          1.6181353941777565d,
-          0.2337d,
-          1.0062695999127786d,
-        ), // long of Berlin (13.39E)
+          "2011-06-21T13:00:00+03:00",
+          Degrees(31.22).toRadians,
+          0.015164398775076146,
+        ),
         (
-          "2011-06-21T12:00:00+02:00",
-          2.9436292808978d,
-          0.5449d,
-          0.2769719941015987d,
-        ), // long of Cairo (31.22E)
+          "2011-06-21T14:00:00+03:00",
+          Degrees(31.22).toRadians,
+          0.2769637865742256,
+        ),
       )
 
-      forAll(testCases) { (time, j, longitude, omegaSol) =>
+      forAll(testCases) { (time, longitude, omegaSol) =>
+        val dayAngleJ =
+          SolarIrradiationCalculation.calcAngleJ(ZonedDateTime.parse(time))
+
         When("the hour angle is calculated")
         val omegaCalc = SolarIrradiationCalculation.calcHourAngleOmega(
           ZonedDateTime.parse(time),
-          Radians(j),
+          dayAngleJ,
           Radians(longitude),
         )
 

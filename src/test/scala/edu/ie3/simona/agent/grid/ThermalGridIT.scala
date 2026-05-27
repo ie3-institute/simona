@@ -1372,7 +1372,7 @@ class ThermalGridIT
 
       /* TICK 1800
         New Weather: The sun comes out, PV will produce.
-        PV: -6.3 kW
+        PV: -6.7 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 1.25 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
@@ -1419,8 +1419,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 1800.toDateTime
-          p should equalWithTolerance(-0.002517561515.asMegaWatt)
-          q should equalWithTolerance(-0.00082748245392177.asMegaVar)
+          p should equalWithTolerance(-0.00292865377.asMegaWatt)
+          q should equalWithTolerance(-0.00096260194.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -1460,8 +1460,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 3600.toDateTime
-          p should equalWithTolerance(-0.002517561515.asMegaWatt)
-          q should equalWithTolerance(-0.00082748245392177.asMegaVar)
+          p should equalWithTolerance(-0.00292865377.asMegaWatt)
+          q should equalWithTolerance(-0.00096260194.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -1502,8 +1502,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 3750.toDateTime
-          p should equalWithTolerance(-0.00251756152.asMegaWatt)
-          q should equalWithTolerance(-0.00082748245.asMegaVar)
+          p should equalWithTolerance(-0.00292865377.asMegaWatt)
+          q should equalWithTolerance(-0.0009626019.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -1517,7 +1517,6 @@ class ThermalGridIT
 
       /* TICK 5216
       Storage is fully heated up, meanwhile house cooled a bit.
-      PV: -6.3 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 3.59 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -1544,8 +1543,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 5216.toDateTime
-          p should equalWithTolerance(-0.00251756152.asMegaWatt)
-          q should equalWithTolerance(-0.00082748245.asMegaVar)
+          p should equalWithTolerance(-0.00292865377.asMegaWatt)
+          q should equalWithTolerance(-0.000962601944.asMegaVar)
         case ThermalResultEvent(
               ThermalHouseResult(time, inputModel, qDot, indoorTemp)
             ) =>
@@ -1627,7 +1626,6 @@ class ThermalGridIT
 
       /* TICK 6731
      The house reaches target temperature
-     PV: 0.0 kW
      House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
      House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
      HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.07 kWh
@@ -1811,8 +1809,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 9200.toDateTime
-          p should equalWithTolerance(-0.00135279808.asMegaWatt)
-          q should equalWithTolerance(-0.00044464323.asMegaVar)
+          p should equalWithTolerance(-0.0014023707.asMegaWatt)
+          q should equalWithTolerance(-0.00046093696.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -1826,7 +1824,6 @@ class ThermalGridIT
 
       /* TICK 10531
       Storage is full, now heating the house till target temperature.
-      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 2.62 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -1853,8 +1850,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 10531.toDateTime
-          p should equalWithTolerance(-0.00135279808.asMegaWatt)
-          q should equalWithTolerance(-0.00044464323.asMegaVar)
+          p should equalWithTolerance(-0.0014023707.asMegaWatt)
+          q should equalWithTolerance(-0.00046093696.asMegaVar)
         case ThermalResultEvent(
               ThermalHouseResult(time, inputModel, qDot, indoorTemp)
             ) =>
@@ -1901,8 +1898,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 10800.toDateTime
-          p should equalWithTolerance(-0.0013527980811.asMegaWatt)
-          q should equalWithTolerance(-0.0004446432268.asMegaVar)
+          p should equalWithTolerance(-0.0014023707.asMegaWatt)
+          q should equalWithTolerance(-0.000460937.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -1942,8 +1939,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 10958.toDateTime
-          p should equalWithTolerance(-0.00135279808.asMegaWatt)
-          q should equalWithTolerance(-0.00044464323.asMegaVar)
+          p should equalWithTolerance(-0.0014023706967.asMegaWatt)
+          q should equalWithTolerance(-0.000460936958.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -1957,7 +1954,6 @@ class ThermalGridIT
 
       /* TICK 11638
       House reaches target temperature boundary.
-      PV: -5.2 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -1984,8 +1980,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 11638.toDateTime
-          p should equalWithTolerance(-0.00515279808.asMegaWatt)
-          q should equalWithTolerance(-0.00169364283.asMegaVar)
+          p should equalWithTolerance(-0.0052023707.asMegaWatt)
+          q should equalWithTolerance(-0.0017099366.asMegaVar)
         case ThermalResultEvent(
               ThermalHouseResult(time, inputModel, qDot, indoorTemp)
             ) =>
@@ -2000,7 +1996,7 @@ class ThermalGridIT
       /* TICK 12000
       House would reach lowerTempBoundary at tick 23809,
       but now it's getting colder which should decrease inner temp of house faster, but the sun is still there.
-      PV: -5.2 kW
+      PV: -5.16 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.25 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2046,8 +2042,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 12000.toDateTime
-          p should equalWithTolerance(-0.001402125.asMegaWatt)
-          q should equalWithTolerance(-0.0004608562.asMegaVar)
+          p should equalWithTolerance(-0.00135705894.asMegaWatt)
+          q should equalWithTolerance(-0.0004460437.asMegaVar)
         case ThermalResultEvent(
               ThermalHouseResult(time, inputModel, qDot, indoorTemp)
             ) =>
@@ -2060,7 +2056,6 @@ class ThermalGridIT
       scheduler.expectMessage(Completion(emAgentActivation, Some(12139)))
 
       /* TICK 12139
-      PV: 0.0 kW
       House reaches the target temperature.
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2088,8 +2083,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 12139.toDateTime
-          p should equalWithTolerance(-0.005202125.asMegaWatt)
-          q should equalWithTolerance(-0.0017098558.asMegaVar)
+          p should equalWithTolerance(-0.00515705894.asMegaWatt)
+          q should equalWithTolerance(-0.00169504330.asMegaVar)
         case ThermalResultEvent(
               ThermalHouseResult(time, inputModel, qDot, indoorTemp)
             ) =>
@@ -2173,7 +2168,6 @@ class ThermalGridIT
 
       /* TICK 24412
         House reaches lower boundary, since we don't have surplus energy from pv, we would use the energy from storage to heat the house.
-        PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
@@ -2222,7 +2216,7 @@ class ThermalGridIT
 
       /* TICK 25200
         The sun comes out and it's getting warmer.
-        PV: -4.4 kW
+        PV: -3.4 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 13.53 kWh
         House demand water   : requiredDemand = 0.18 kWh, possibleDemand = 0.18 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.4 kWh
@@ -2267,8 +2261,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 25200.toDateTime
-          p should equalWithTolerance(-0.00055721828.asMegaWatt)
-          q should equalWithTolerance(-0.00018314879.asMegaVar)
+          p should equalWithTolerance(0.000368226548.asMegaWatt)
+          q should equalWithTolerance(0.000121030214.asMegaVar)
       }
 
       msg25200
@@ -2321,8 +2315,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 25230.toDateTime
-          p should equalWithTolerance(-0.00055721828.asMegaWatt)
-          q should equalWithTolerance(-0.000183148792.asMegaVar)
+          p should equalWithTolerance(0.00036822655.asMegaWatt)
+          q should equalWithTolerance(0.00012103021.asMegaVar)
         case ThermalResultEvent(
               ThermalHouseResult(time, inputModel, qDot, indoorTemp)
             ) =>
@@ -2369,8 +2363,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 26210.toDateTime
-          p should equalWithTolerance(-0.00055721828.asMegaWatt)
-          q should equalWithTolerance(-0.00018314879.asMegaVar)
+          p should equalWithTolerance(0.00036822655.asMegaWatt)
+          q should equalWithTolerance(0.00012103021.asMegaVar)
         case ThermalResultEvent(
               ThermalHouseResult(time, inputModel, qDot, indoorTemp)
             ) =>
@@ -2391,7 +2385,7 @@ class ThermalGridIT
 
       /* TICK 27500
         Additional trigger caused by (unchanged) weather data should not change this.
-        PV: -3.9 kW
+        PV: -2.12 kW
         House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 9.5 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 2.41 kWh
@@ -2437,8 +2431,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 27500.toDateTime
-          p should equalWithTolerance(-0.000063896497.asMegaWatt)
-          q should equalWithTolerance(-0.00002100176.asMegaVar)
+          p should equalWithTolerance(0.001674489028.asMegaWatt)
+          q should equalWithTolerance(0.00055037793.asMegaVar)
       }
       resultServiceProxy.expectNoMessage()
       scheduler.expectMessage(Completion(emAgentActivation, Some(28800)))
@@ -2471,8 +2465,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 28800.toDateTime
-          p should equalWithTolerance(-0.0000638965.asMegaWatt)
-          q should equalWithTolerance(-0.000021001763.asMegaVar)
+          p should equalWithTolerance(0.001674489028.asMegaWatt)
+          q should equalWithTolerance(0.0005503779277.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -2512,8 +2506,8 @@ class ThermalGridIT
         case ParticipantResultEvent(EmResult(time, uuid, p, q)) =>
           uuid shouldBe emInput.getUuid
           time shouldBe 28941.toDateTime
-          p should equalWithTolerance(-0.0000638965.asMegaWatt)
-          q should equalWithTolerance(-0.000021001763.asMegaVar)
+          p should equalWithTolerance(0.001674489028.asMegaWatt)
+          q should equalWithTolerance(0.000550377928.asMegaVar)
         case ThermalResultEvent(
               AbstractThermalStorageResult(time, inputModel, qDot, energy)
             ) =>
@@ -2588,7 +2582,6 @@ class ThermalGridIT
 
       /* TICK 31762
       House reaches target temperature.
-      PV: 0.0 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.7 kW
@@ -2654,7 +2647,6 @@ class ThermalGridIT
 
       /* TICK 41762
       House reaches lower temperature.
-      PV: 0.0 kW
       House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 0.0 kWh, possibleDemand = 4.7 kWh
@@ -2762,7 +2754,6 @@ class ThermalGridIT
       Storage is empty now.
       Note: One could argue, that the Hp now should be started to continue heating of the house,
       but actually we don't support this. So the house is cooling down now.
-      PV: 0.0 kW
       House demand heating : requiredDemand = 0.0 kWh, possibleDemand = 12.05 kWh
       House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
       HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
@@ -2811,7 +2802,6 @@ class ThermalGridIT
 
       /* TICK 45620
         House reaches lower temperature.
-        PV: 0.0 kW
         House demand heating : requiredDemand = 15.0 kWh, possibleDemand = 15.0 kWh
         House demand water   : requiredDemand = 0.0 kWh, possibleDemand = 0.0 kWh
         HeatStorage          : requiredDemand = 10.44 kWh, possibleDemand = 10.44 kWh
