@@ -440,7 +440,7 @@ case class EmServiceCore(
 
       (newState, msgToExt)
 
-    case other =>
+    case _ =>
       throw new CriticalFailureException(
         s"The EmServiceBaseCore is not able to handle the message: $extMsg"
       )
@@ -663,10 +663,8 @@ case class EmServiceCore(
             (updatedCore, None)
 
           } else if sendDataToExt then {
-            val dataToSend = data
-
             // we have received an option request, that will now be answered
-            (updatedCore, Some(new EmResultResponse(dataToSend.asJava)))
+            (updatedCore, Some(new EmResultResponse(data.asJava)))
 
           } else {
 
