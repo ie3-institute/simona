@@ -10,7 +10,7 @@ import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import squants.{Angle, Radians}
 import squants.time.Minutes
 
-import java.time.ZonedDateTime
+import java.time.{ZoneId, ZonedDateTime}
 import scala.math.*
 
 /** A collection of methods used for solar irradiation calculation, as required
@@ -62,7 +62,7 @@ object SolarIrradiationCalculation {
     * on its axis at 15◦ per hour; morning negative, afternoon positive.
     *
     * @param time
-    *   The requested time (which is transformed to solar time).
+    *   The requested time (which is used to derive solar time).
     * @param angleJ
     *   The day angle J.
     * @param longitude
@@ -77,18 +77,20 @@ object SolarIrradiationCalculation {
   ): Angle = {
     val jInRad = angleJ.toRadians
     val lambda = longitude.toDegrees
-    val et = Minutes(
+    val tET = Minutes(
       0.0066 + 7.3525 * cos(jInRad + 1.4992378274631293) + 9.9359 * cos(
         2d * jInRad + 1.9006635554218247
       ) + 0.3387 * cos(3d * jInRad + 1.8360863730980346)
     )
 
-    val lmt = Minutes(
-      time.getHour * 60d + time.getMinute - 4d * (15d - lambda)
+    val utcTime = time.withZoneSameInstant(ZoneId.of("UTC"))
+    val tMean = Minutes(
+      utcTime.getHour * 60d + utcTime.getMinute + 4d * (0d + lambda)
     )
-    val st = lmt + et
 
-    Radians((st.toHours - 12).toRadians * 15d)
+    val tSol = tMean + tET
+
+    Radians((tSol.toHours - 12).toRadians * 15d)
   }
 
   /** Calculates the sunset hour angle omegaSS which represents the omega value
@@ -358,7 +360,7 @@ object SolarIrradiationCalculation {
         val omega1InRad = omega1.toRadians
         val omega2InRad = omega2.toRadians
 
-        val a = ((sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
+        val a = (sin(deltaInRad) * sin(latInRad) * cos(gammaEInRad)
           - sin(deltaInRad) * cos(latInRad) * sin(gammaEInRad) * cos(
             alphaEInRad
           ))
@@ -369,12 +371,12 @@ object SolarIrradiationCalculation {
             ))
           * (sin(omega2InRad) - sin(omega1InRad))
           - (cos(deltaInRad) * sin(gammaEInRad) * sin(alphaEInRad))
-          * (cos(omega2InRad) - cos(omega1InRad)))
+          * (cos(omega2InRad) - cos(omega1InRad))
 
-        val b = ((cos(latInRad) * cos(deltaInRad)) * (sin(omega2InRad) - sin(
+        val b = (cos(latInRad) * cos(deltaInRad)) * (sin(omega2InRad) - sin(
           omega1InRad
         ))
-          + (sin(latInRad) * sin(deltaInRad)) * (omega2InRad - omega1InRad))
+          + (sin(latInRad) * sin(deltaInRad)) * (omega2InRad - omega1InRad)
 
         // in rare cases (close to sunrise) r can become negative (although very small)
         val r = max(a / b, 0d)
