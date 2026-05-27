@@ -26,7 +26,7 @@ import squants.energy.Watts
 import squants.space.{Length, Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
-import squants.{ElectricCurrent, Kelvin, Power, Temperature}
+import squants.{ElectricCurrent, Kelvin, Meters, Power, Temperature}
 
 import scala.math.*
 
@@ -45,6 +45,122 @@ object LineThermalModelCalculations extends LazyLogging {
   private val TEMPERATURE_COEFFICIENT_COOPER: Double = 3.93e-3
   private val AC_RESISTIVITY_ALUMINIUM: Resistivity = OhmMeters(2.8264e-8)
   private val TEMPERATURE_COEFFICIENT_ALUMINIUM: Double = 4.03e-3
+
+  /** Calculates the thermal resistance T1 of the inner cable elements between
+    * conductor and screen.
+    *
+    * @param cableSetup
+    *   FIXME
+    * @return
+    *   The thermal resistance per unit of length.
+    */
+  def calcThermalResistanceT1(
+      cableSetup: CableSetup,
+      voltage: ElectricPotential,
+  ): ThermalResistivity = {
+    val baseResistance =
+      cableSetup.layersIsolationElements.foldLeft(KelvinMetersPerWatt(0)) {
+        (acc, layer) =>
+          acc + calcThermalResistanceCableShells(
+            layer.thermalResistivity,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
+
+    val degreeOfCover = calcDegreeOfScreenCover(cableSetup.screenLayer)
+
+    val screenCorrection = {
+      // IEC 60287 requires to add 7 % to T1 in case the degree of cover of screen is below 50 % and the Voltage below 35 kV
+      if degreeOfCover < 0.5 && voltage < Kilovolts(35d) then {
+        baseResistance * 0.07
+      } else {
+        KelvinMetersPerWatt(0)
+      }
+    }
+
+    baseResistance + screenCorrection
+  }
+
+  /** Calculates the thermal resistance T3 of the outer cable covering.
+    *
+    * @param cableSetup
+    *   FIXME
+    * @return
+    *   The thermal resistance per unit of length.
+    */
+  def calcThermalResistanceT3(
+      cableSetup: CableSetup
+  ): ThermalResistivity = {
+    val baseResistance =
+      cableSetup.layersJackElements.foldLeft(KelvinMetersPerWatt(0)) {
+        (acc, layer) =>
+          acc + calcThermalResistanceCableShells(
+            layer.thermalResistivity,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
+
+    val degreeOfCover = calcDegreeOfScreenCover(cableSetup.screenLayer)
+
+    val screenCorrection = {
+      // IEC 60287 requires to add 60 % to T3 in case of trefoil-touching formation and the degree of cover of screen is below 50 %
+      if cableSetup.layoutFormation == "trefoil-touching" && degreeOfCover < 0.5
+      then {
+        baseResistance * 0.6
+      } else {
+        KelvinMetersPerWatt(0)
+      }
+    }
+
+    baseResistance + screenCorrection
+  }
+
+  /** Calculates the thermal resistance T1 of the inner cable elements between
+    * conductor and screen.
+    *
+    * @param screenLayer
+    *   FIXME
+    * @return
+    *   FIXME
+    */
+  def calcDegreeOfScreenCover(
+      screenLayer: Option[ScreenLayer]
+  ): Double = {
+    val layFactor = calcLayFactor(screenLayer)
+    screenLayer match {
+      case Some(layer) =>
+        (layer.wireDiameter * layer.wiresNumber * layFactor) / ((layer.innerDiameter + layer.wireDiameter) * Pi)
+      case None => 1.0
+    }
+  }
+
+  /** Calculates the thermal resistance T1 of the inner cable elements between
+    * conductor and screen.
+    *
+    * @param screenLayer
+    *   FIXME
+    * @return
+    *   FIXME
+    */
+  def calcLayFactor(
+      screenLayer: Option[ScreenLayer]
+  ): Double = {
+    screenLayer match {
+      case Some(layer) =>
+        sqrt(
+          1 + (pow(
+            (layer.innerDiameter.toMeters + layer.wireDiameter.toMeters) * Pi,
+            2,
+          ) / pow(
+            layer.lengthOfLay.getOrElse(Meters(999d)).toMeters,
+            2,
+          ))
+        )
+      case None => 1.0
+    }
+  }
 
   /** Calculates the AC resistance per unit of length of a conductor accounting
     * for temperature and high-frequency effects (skin effect, proximity
@@ -585,7 +701,6 @@ object LineThermalModelCalculations extends LazyLogging {
       innerDiameter: Length,
       outerDiameter: Length,
   ) = {
-
     val diameterMid = innerDiameter + (outerDiameter - innerDiameter) / 2
     val vanWormerJackFirstHalf =
       vanWormerCoefficientShortTermDurationTransients(
@@ -651,38 +766,30 @@ object LineThermalModelCalculations extends LazyLogging {
     val wireDiameter = Millimeters(0.9)
     val lengthOfLay = Millimeters(240)
 
-    val acResistanceSheath = calcAcResistanceSheath(
-      OhmMeters(
-        1.7241e-8
-      ), // FIXME this should be of the screen not of the conductor
-      wiresNumber,
-      wireDiameter,
-      lengthOfLay,
-      cableSetup.layersScreenElements
-        .find(_.name == "screen")
-        .getOrElse(
-          throw new IllegalArgumentException(
-            s"Could not find screen layer to calculate ac resistance of screen"
-          )
-        )
-        .innerDiameter,
-      specificTempCoefficient,
-      cableSetup.limitTemperature,
-      state.currentLineSegmentThermalModel.thermalResistanceT1,
-      conductorLosses,
-      dielectricLosses,
-    )
+    val (acResistanceSheath, sheatAverageDiameter) =
+      cableSetup.screenLayer match {
+        case Some(layer) => {
 
-    val sheatAverageDiameter = {
-      val screen = cableSetup.layersScreenElements
-        .find(_.name == "screen")
-        .getOrElse(
-          throw new IllegalArgumentException(
-            s"Could not find screen layer to calculate ac resistance of screen"
+          val resistance = calcAcResistanceSheath(
+            OhmMeters(
+              1.7241e-8
+            ), // FIXME this should be of the screen not of the conductor
+            wiresNumber,
+            wireDiameter,
+            lengthOfLay,
+            layer.innerDiameter,
+            specificTempCoefficient,
+            cableSetup.limitTemperature,
+            state.currentLineSegmentThermalModel.thermalResistanceT1,
+            conductorLosses,
+            dielectricLosses,
           )
-        )
-      (screen.innerDiameter + screen.outerDiameter) / 2
-    }
+          val diameter = (layer.innerDiameter + layer.outerDiameter) / 2
+          (resistance, diameter)
+        }
+
+        case None => (OhmsPerMeter(0d), Millimeters(0d))
+      }
 
     val sheathLossesLeadingPhase = calcLossesSheath(
       cableSetup.layoutFormation,

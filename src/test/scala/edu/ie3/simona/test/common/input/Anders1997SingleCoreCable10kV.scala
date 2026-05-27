@@ -6,12 +6,18 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.simona.model.grid.ampacity.{CableMaterial, CableSetup, Layer}
+import edu.ie3.simona.model.grid.ampacity.{
+  CableMaterial,
+  CableSetup,
+  Layer,
+  ScreenLayer,
+}
 import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
 import squants.Meters
 import squants.electro.{Kilovolts, Nanofarads, Ohms}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
+
 import java.util.UUID
 
 object Anders1997SingleCoreCable10kV {
@@ -69,16 +75,18 @@ object Anders1997SingleCoreCable10kV {
     )
   }
 
-  protected val screen: Layer = {
-    val mat = CableMaterial.fromString("Copper")
-    Layer(
-      "screen",
-      mat,
+  protected val screen: ScreenLayer = {
+    ScreenLayer(
+      CableMaterial.Copper,
       Millimeters(30.1),
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      CableSetup.materialProps(CableMaterial.Copper)._1,
+      CableSetup.materialProps(CableMaterial.Copper)._2,
       None,
+      76,
+      Millimeters(0.65),
+      None,
+      CableSetup.screenMaterialElectricalResistivity(CableMaterial.Copper),
     )
   }
 
@@ -100,7 +108,7 @@ object Anders1997SingleCoreCable10kV {
     "CigreT880_33kVLancCable",
     conductor,
     List(conductorScreen, insulation, insulationScreen),
-    List(screen),
+    Some(screen),
     List.empty[Layer],
     List.empty[Layer],
     List(jack),

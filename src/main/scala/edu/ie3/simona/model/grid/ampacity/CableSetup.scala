@@ -13,7 +13,12 @@ import edu.ie3.util.scala.quantities.{
   ThermalResistivity,
 }
 import squants.Temperature
-import squants.electro.{Capacitance, ElectricPotential, ElectricalResistance}
+import squants.electro.{
+  Capacitance,
+  ElectricPotential,
+  ElectricalResistance,
+  Resistivity,
+}
 import squants.space.{Area, Length}
 
 import java.util.UUID
@@ -28,12 +33,48 @@ final case class Layer(
     area: Option[Area],
 )
 
+/** Screen layer with specific parameters for conductor shielding
+  *
+  * @param material
+  *   Material of the screen
+  * @param innerDiameter
+  *   Inner diameter of the screen layer
+  * @param outerDiameter
+  *   Outer diameter of the screen layer
+  * @param thermalResistivity
+  *   Thermal resistivity of the material
+  * @param thermalCapacitance
+  *   Thermal capacitance per meter
+  * @param area
+  *   Optional cross-sectional area
+  * @param wiresNumber
+  *   Number of wires in the screen
+  * @param wireDiameter
+  *   Diameter of individual wire in the screen
+  * @param lengthOfLay
+  *   Length of lay (pitch) of the screen winding
+  * @param materialResistivity
+  *   Electrical resistivity specific to the screen material
+  */
+final case class ScreenLayer(
+    material: CableMaterial,
+    innerDiameter: Length,
+    outerDiameter: Length,
+    thermalResistivity: ThermalResistivity,
+    thermalCapacitance: ThermalCapacitance,
+    area: Option[Area],
+    wiresNumber: Int,
+    wireDiameter: Length,
+    lengthOfLay: Option[Length],
+    materialResistivity: Resistivity,
+)
+
 final case class CableSetup(
     uuid: UUID,
     id: String,
     conductor: Layer,
     layersIsolationElements: List[Layer],
-    layersScreenElements: List[Layer],
+    screenLayer: Option[ScreenLayer],
     layersFillerElements: List[Layer],
     layersArmorElements: List[Layer],
     layersJackElements: List[Layer],
@@ -126,5 +167,31 @@ object CableSetup {
         )
 
       case _ => (KelvinMetersPerWatt(999), JoulesPerMeterKelvin(0)) // FIXME
+    }
+
+  /** Get electrical resistivity for screen material at reference conditions
+    */
+  def screenMaterialElectricalResistivity(
+      mat: CableMaterial
+  ): Resistivity =
+    mat match {
+      case CableMaterial.Copper =>
+        squants.electro.OhmMeters(
+          1.68e-8
+        ) // https://en.wikipedia.org/wiki/Electrical_resistivity
+      case CableMaterial.Aluminium =>
+        squants.electro.OhmMeters(
+          2.82e-8
+        ) // https://en.wikipedia.org/wiki/Electrical_resistivity
+      case CableMaterial.Steel =>
+        squants.electro.OhmMeters(
+          46.0e-8
+        ) // Grain oriented electrical steel
+      case CableMaterial.Lead =>
+        squants.electro.OhmMeters(
+          2.2e-7
+        ) // https://en.wikipedia.org/wiki/Electrical_resistivity
+      case other =>
+        throw new IllegalArgumentException(s"Unknown material: $other")
     }
 }

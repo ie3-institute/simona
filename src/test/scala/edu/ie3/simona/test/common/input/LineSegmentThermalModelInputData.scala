@@ -13,6 +13,4 @@ trait LineSegmentThermalModelInputData {
     CigreT880LandCable33kV.cable
   protected val andersSingleCore10kV: CableSetup =
     Anders1997SingleCoreCable10kV.cable
-  protected val cigreT880SubmarineCable400kV: CableSetup =
-    CigreT880SubmarineCable400kV.cable
 }

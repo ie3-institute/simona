@@ -14,6 +14,8 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
+import edu.ie3.simona.service.Data
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
@@ -21,7 +23,7 @@ import edu.ie3.util.scala.quantities.{
   ThermalResistivity,
 }
 import squants.thermal.Celsius
-import squants.{ElectricCurrent, Kelvin, Meters, Temperature}
+import squants.{ElectricCurrent, Kelvin, Temperature}
 
 import java.util.UUID
 
@@ -96,6 +98,32 @@ final case class LineSegmentThermalModel(
     )
   }
 
+  def handleInput(
+      state: LineState,
+      receivedData: Seq[Data],
+  ): LineState = {
+    receivedData
+      .collectFirst { case weatherData: WeatherData =>
+        weatherData
+      }
+      .map(newData =>
+        val groundTempCableDepth = newData.groundTempLvl1.getOrElse(
+          throw new IllegalArgumentException(
+            s"Ground Temperature Level 1 expected but not found."
+          )
+        ) * 0.5 +
+          newData.groundTempLvl2.getOrElse(
+            throw new IllegalArgumentException(
+              s"Ground Temperature Level 2 expected but not found."
+            )
+          ) * 0.5
+        // FIXME adapt calculation depending on cable depth
+
+        state.copy(groundTemperature = groundTempCableDepth)
+      )
+      .getOrElse(state)
+  }
+
   /** Determine the next threshold, that will be reached.
     *
     * @param lineState
@@ -165,34 +193,17 @@ object LineSegmentThermalModel {
       groundTemperature: Temperature,
       cableSetup: CableSetup,
   ): LineState = {
-    val t1 =
-      cableSetup.layersIsolationElements.foldLeft(KelvinMetersPerWatt(0)) {
-        (acc, layer) =>
-          acc + calcThermalResistanceCableShells(
-            layer.thermalResistivity,
-            layer.innerDiameter,
-            layer.outerDiameter,
-          )
-      } // FIXME: Include correction factor, see CIGRE TB880 p202 degree of cover
+    val t1 = calcThermalResistanceT1(cableSetup, cableSetup.voltage)
 
-    val t2 = cableSetup.layersScreenElements.foldLeft(KelvinMetersPerWatt(0)) {
-      (acc, layer) =>
-        acc + calcThermalResistanceCableShells(
-          layer.thermalResistivity,
-          layer.innerDiameter,
-          layer.outerDiameter,
-        )
-    }
+    val t2 = cableSetup.screenLayer.fold(KelvinMetersPerWatt(0))(layer =>
+      calcThermalResistanceCableShells(
+        layer.thermalResistivity,
+        layer.innerDiameter,
+        layer.outerDiameter,
+      )
+    ) //FIXME Check if this is correct
 
-    val t3 = cableSetup.layersJackElements.foldLeft(KelvinMetersPerWatt(0)) {
-      (acc, layer) =>
-        acc + calcThermalResistanceCableShells(
-          layer.thermalResistivity,
-          layer.innerDiameter,
-          layer.outerDiameter,
-        )
-    }
-    // FIXME: Include correction factor, see CIGRE TB880 p202 degree of cover
+    val t3 = calcThermalResistanceT3(cableSetup)
 
     val t4 = calcThermalResistanceToSoilSingleCable(
       cableSetup.soilResistivity,
@@ -228,14 +239,13 @@ object LineSegmentThermalModel {
     val thermalCapacityCd = thermalCapacityCd1 + thermalCapacityCd2
 
     val thermalCapacityCs =
-      cableSetup.layersScreenElements.foldLeft(JoulesPerMeterKelvin(0)) {
-        (acc, layer) =>
-          acc + calcThermalCapacityCylindrical(
-            layer.thermalCapacitance,
-            layer.innerDiameter,
-            layer.outerDiameter,
-          )
-      }
+      cableSetup.screenLayer.fold(JoulesPerMeterKelvin(0d))(layer =>
+        calcThermalCapacityCylindrical(
+          layer.thermalCapacitance,
+          layer.innerDiameter,
+          layer.outerDiameter,
+        )
+      )
 
     val thermalCapacityCj1 =
       cableSetup.layersArmorElements.foldLeft(JoulesPerMeterKelvin(0)) {

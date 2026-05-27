@@ -6,12 +6,18 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.simona.model.grid.ampacity.{CableMaterial, CableSetup, Layer}
+import edu.ie3.simona.model.grid.ampacity.{
+  CableMaterial,
+  CableSetup,
+  Layer,
+  ScreenLayer,
+}
 import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
 import squants.Meters
 import squants.electro.{Kilovolts, Nanofarads, Ohms}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
+
 import java.util.UUID
 
 object CigreT880LandCable33kV {
@@ -82,16 +88,18 @@ object CigreT880LandCable33kV {
     )
   }
 
-  protected val screen: Layer = {
-    val mat = CableMaterial.fromString("Copper")
-    Layer(
-      "screen",
-      mat,
+  protected val screen: ScreenLayer = {
+    ScreenLayer(
+      CableMaterial.Copper,
       Millimeters(36.8),
       Millimeters(38.6),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
-      None, // FIXME add Degree of Cover (S.202 TB880)
+      CableSetup.materialProps(CableMaterial.Copper)._1,
+      CableSetup.materialProps(CableMaterial.Copper)._2,
+      Some(SquareMeters(35.63e-6)),
+      56,
+      Millimeters(0.9),
+      Some(Millimeters(240)),
+      CableSetup.screenMaterialElectricalResistivity(CableMaterial.Copper),
     )
   }
 
@@ -139,7 +147,7 @@ object CigreT880LandCable33kV {
     "CigreT880_33kVLancCable",
     conductor,
     List(conductorScreen, insulation, insulationScreen, screenTape),
-    List(screen),
+    Some(screen),
     List.empty[Layer],
     List.empty[Layer],
     List(jackTape, jack, outerCover),
