@@ -69,34 +69,32 @@ $$
 
 ### Hour Angle
 
-The hour angle is a conceptual description of the rotation of the earth around its polar axis.
-It starts with a negative value in the morning, arrives at 0° at noon (solar time) and ends with a positive value in the evening.
-The hour angle (in radian!) according to {cite:cts}`Watter.2013` is calculated as follows, with positive values in the morning:
+The hour angle is a conceptual description of the rotation of the earth around its polar axis. According to {cite:cts}`Watter.2013`, it is calculated (in radian!) as follows, with positive values in the morning:
 
 $$
 \omega = ((12 - T_\mathrm{sol}) \cdot 15) \cdot (\frac{\pi}{180})
 $$
 
-Since outside German literature the hour angle is defined as negative in the morning, we use the following adaption:
+Since outside German literature the hour angle is defined as negative in the morning, arrives at 0° at noon (solar time) and ends with a positive value in the evening, we use the following adaption:
 
 $$
 \omega = ((T_\mathrm{sol} - 12) \cdot 15) \cdot (\frac{\pi}{180})
 $$
 
 *with*\
-**$T\mathrm{sol}$** = local solar time (in hours)
+**$T_\mathrm{sol}$** = local solar time\
 **Note:** The sun crosses the meridian of the observer at local noon (12:00 in local solar time), taking into account the eccentricity of earth's orbit.
 
 $$
-T_\mathrm{sol} = T_\mathrm{mean} + T_\mathrm{ET}
+T_\mathrm{sol} = T_\mathrm{mean} + \frac{T_\mathrm{ET}}{60}
 $$
 
 *with*\
-**$T_\mathrm{mean}$** = local mean time (in minutes), follows the average movement of the sun over a year.\
-**$T_\mathrm{ET}$** = equation of time (in minutes), difference between $T_\mathrm{mean}$ and $T\mathrm{sol}$ due to the eccentricity of the earth's orbit.
+**$T_\mathrm{mean}$** = local mean time, follows the average movement of the sun over a year.\
+**$T_\mathrm{ET}$** = equation of time (in Minutes, thus divided by 60), difference between $T_\mathrm{mean}$ and $T_\mathrm{sol}$ due to the eccentricity of the earth's orbit.
 
 $$
-T_\mathrm{mean} = H_{\mathrm{UTC}} \cdot 60 + M_{\mathrm{UTC}} + 4 \cdot (\lambda_{\mathrm{std}} + \lambda)
+T_\mathrm{mean} = H_{\mathrm{UTC}} + \frac{M_{\mathrm{UTC}} + 4 \cdot (\lambda_{\mathrm{std}} + \lambda)}{60}
 $$
 
 *with*\
@@ -109,7 +107,7 @@ $$
 
 $$
 \begin{aligned}
-ET = 0.0066 + 7.3525 \cdot \cos(J + 1.4992378274631293) \\ +
+T_\mathrm{ET} = 0.0066 + 7.3525 \cdot \cos(J + 1.4992378274631293) \\ +
 9.9359 \cdot \cos(2 \cdot J + 1.9006635554218247) \\+ 0.3387 \cdot \cos(3 \cdot J + 1.8360863730980346)
 \end{aligned}
 $$
