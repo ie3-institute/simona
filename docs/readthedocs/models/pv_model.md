@@ -71,7 +71,7 @@ $$
 
 The hour angle is a conceptual description of the rotation of the earth around its polar axis.
 It starts with a negative value in the morning, arrives at 0° at noon (solar time) and ends with a positive value in the evening.
-The hour angle (in radian!) is calculated as follows
+The hour angle (in radian!) according to {cite:cts}`Watter.2013` is calculated as follows, with positive values in the morning:
 
 $$
 \omega = ((12 - T_\mathrm{sol}) \cdot 15) \cdot (\frac{\pi}{180})
