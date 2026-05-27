@@ -85,7 +85,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
       result.temp should approximate(Celsius(sumOfAll / 4))
       result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
-
+      result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 4)))
+      result.groundTempLvl2 should be(Some(Kelvin(0d)))
     }
 
     "calculate the correct weighted value for 4 coordinates and three ticks with 0.25 weight each" in {
@@ -107,6 +108,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
         result.temp should approximate(Celsius(sumOfAll / 4))
         result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
+        result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 4)))
+        result.groundTempLvl2 should be(Some(Kelvin(0d)))
       }
     }
 
@@ -116,7 +119,7 @@ class WeatherSourceWrapperSpec extends UnitSpec {
           coordinate1a -> 0.25,
           coordinate1b -> 0.25,
           coordinate1c -> 0.25,
-          coordinate13NoTemp -> 0.25,
+          coordinate13NoAirTemp -> 0.25,
         )
       )
       val result = source.getWeather(0L, weightedCoordinates)
@@ -125,6 +128,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
       result.temp should approximate(Celsius((1 + 1 + 1) / 3))
       result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
+      result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 4)))
+      result.groundTempLvl2 should be(Some(Kelvin(0d)))
     }
 
     "Calculate the correct weighted value for 4 coordinates with 0.25 weight each, where one is empty" in {
@@ -142,7 +147,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
       result.temp should approximate(Celsius(sumOfAll / 3))
       result.windVel should approximate(MetersPerSecond(sumOfAll / 3))
-
+      result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 3)))
+      result.groundTempLvl2 should be(Some(Kelvin(0d)))
     }
 
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
@@ -152,6 +158,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(13d))
       result.temp should approximate(Celsius(13d))
       result.windVel should approximate(MetersPerSecond(13d))
+      result.groundTempLvl1 should be(Some(Celsius(13d)))
+      result.groundTempLvl2 should be(Some(Kelvin(0d)))
     }
 
     "return temperature quantity on absolute scale" in {
@@ -179,86 +187,97 @@ class WeatherSourceWrapperSpec extends UnitSpec {
   "Handling the weighted weather" when {
     "adding to the weight sum" should {
       "produce correct results" in {
-        val weightSum = WeightSum(0.1d, 0.2d, 0.3d, 0.4d)
-        val weightSumAdded = weightSum.add(0.2d, 0.3d, 0.4d, 0.5d)
+        val weightSum = WeightSum(0.1d, 0.2d, 0.3d, 0.4d, 0.15d, 0.25d)
+        val weightSumAdded = weightSum.add(0.2d, 0.3d, 0.4d, 0.5d, 0.25d, 0.35d)
 
-        weightSumAdded.diffIrr should ===(0.3d +- 1e-10)
-        weightSumAdded.dirIrr should ===(0.5d +- 1e-10)
-        weightSumAdded.temp should ===(0.7d +- 1e-10)
-        weightSumAdded.windVel should ===(0.9d +- 1e-10)
+        weightSumAdded.diffIrr should ===(0.3 +- 1e-10)
+        weightSumAdded.dirIrr should ===(0.5 +- 1e-10)
+        weightSumAdded.temp should ===(0.7 +- 1e-10)
+        weightSumAdded.windVel should ===(0.9 +- 1e-10)
+        weightSumAdded.groundTempLvl1 should ===(0.4 +- 1e-10)
+        weightSumAdded.groundTempLvl2 should ===(0.6 +- 1e-10)
       }
     }
 
     "scaling the weighted attributes with the sum of weights" should {
       "calculate proper information on proper input" in {
         val weatherSeq = Seq(
-          (0.5, 0.75, 291d, 10d),
-          (12.3, 1.2, 293d, 12d),
-          (25.0, 5.7, 290d, 9d),
-          (26.3, 1.7, 289d, 11d),
+          (0.5, 0.75, 291d, 10d, 10d, 0d),
+          (12.3, 1.2, 293d, 12d, 20d, 0d),
+          (25.0, 5.7, 290d, 9d, 30d, 0d),
+          (26.3, 1.7, 289d, 11d, 40d, 0d),
         )
         val weights = Seq(
-          (0.1, 0.2, 0.3, 0.4),
-          (0.25, 0.2, 0.25, 0.1),
-          (0.3, 0.4, 0.15, 0.05),
-          (0.35, 0.2, 0.3, 0.45),
+          (0.1, 0.2, 0.3, 0.4, 0.1, 0d),
+          (0.25, 0.2, 0.25, 0.1, 0.25, 0d),
+          (0.3, 0.4, 0.15, 0.05, 0.3, 0d),
+          (0.35, 0.2, 0.3, 0.45, 0.35, 0d),
         )
 
         val (weightedWeather, weightSum) =
           prepareWeightTestData(weatherSeq, weights)
 
         weightSum.scale(weightedWeather) match {
-          case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+          case WeatherData(
+                diffIrr,
+                dirIrr,
+                temp,
+                windVel,
+                groundTempLvl1,
+                groundTempLvl2,
+              ) =>
             diffIrr should approximate(WattsPerSquareMeter(19.83))
             dirIrr should approximate(WattsPerSquareMeter(3.01))
             temp should approximate(Kelvin(290.75))
             windVel should approximate(MetersPerSecond(10.6))
+            groundTempLvl1 should approximate(Some(Kelvin(29d)))
+            groundTempLvl2 should approximate(Some(Kelvin(0d)))
         }
       }
     }
 
     "calculate proper input, if data is missing in one coordinate" in {
       val weatherSeq = Seq(
-        (0.5, 0.75, 291d, 10d),
-        (12.3, 1.2, 293d, 12d),
-        (25.0, 5.7, 290d, 9d),
-        (26.3, 1.7, 289d, 11d),
+        (0.5, 0.75, 291d, 10d, 0d, 0d),
+        (12.3, 1.2, 293d, 12d, 0d, 0d),
+        (25.0, 5.7, 290d, 9d, 0d, 0d),
+        (26.3, 1.7, 289d, 11d, 0d, 0d),
       )
       val weights = Seq(
-        (0.1, 0.2, 0d, 0.4),
-        (0.25, 0.2, 0d, 0.1),
-        (0.3, 0.4, 0d, 0.05),
-        (0.35, 0.2, 0d, 0.45),
+        (0.1, 0.2, 0d, 0.4, 0d, 0d),
+        (0.25, 0.2, 0d, 0.1, 0d, 0d),
+        (0.3, 0.4, 0d, 0.05, 0d, 0d),
+        (0.35, 0.2, 0d, 0.45, 0d, 0d),
       )
 
       val (weightedWeather, weightSum) =
         prepareWeightTestData(weatherSeq, weights)
 
       weightSum.scale(weightedWeather) match {
-        case WeatherData(_, _, temp, _) =>
+        case WeatherData(_, _, temp, _, _, _) =>
           temp shouldBe ZERO_WEATHER_DATA.temp
       }
     }
 
     "return empty value for an attribute, if weight sum is zero" in {
       val weatherSeq = Seq(
-        (0.5, 0.75, 291d, 10d),
-        (12.3, 1.2, 0d, 12d),
-        (25.0, 5.7, 290d, 9d),
-        (26.3, 1.7, 289d, 11d),
+        (0.5, 0.75, 291d, 10d, 0d, 0d),
+        (12.3, 1.2, 0d, 12d, 0d, 0d),
+        (25.0, 5.7, 290d, 9d, 0d, 0d),
+        (26.3, 1.7, 289d, 11d, 0d, 0d),
       )
       val weights = Seq(
-        (0.1, 0.2, 0.3, 0.4),
-        (0.25, 0.2, 0d, 0.1),
-        (0.3, 0.4, 0.15, 0.05),
-        (0.35, 0.2, 0.3, 0.45),
+        (0.1, 0.2, 0.3, 0.4, 0d, 0d),
+        (0.25, 0.2, 0d, 0.1, 0d, 0d),
+        (0.3, 0.4, 0.15, 0.05, 0d, 0d),
+        (0.35, 0.2, 0.3, 0.45, 0d, 0d),
       )
 
       val (weightedWeather, weightSum) =
         prepareWeightTestData(weatherSeq, weights)
 
       weightSum.scale(weightedWeather) match {
-        case WeatherData(_, _, temp, _) =>
+        case WeatherData(_, _, temp, _, _, _) =>
           temp should approximate(Kelvin(290d))
       }
     }
@@ -269,15 +288,67 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         WattsPerSquareMeter(1.0),
         Kelvin(1.0d),
         MetersPerSecond(1.0d),
+        Some(Kelvin(10d)),
+        Some(Kelvin(20d)),
       )
-      val weightSum = WeightSum(0.25, 0.5, 0.8, 1.0)
+      val weightSum = WeightSum(0.25, 0.5, 0.8, 1.0, 0.4, 0.8)
 
       weightSum.scale(weatherData) match {
-        case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+        case WeatherData(
+              diffIrr,
+              dirIrr,
+              temp,
+              windVel,
+              groundTempLvl1,
+              groundTempLvl2,
+            ) =>
           diffIrr should approximate(WattsPerSquareMeter(4.0))
           dirIrr should approximate(WattsPerSquareMeter(2.0))
           temp should approximate(Kelvin(1.25d))
           windVel should approximate(MetersPerSecond(1.0d))
+          groundTempLvl1 should approximate(Some(Kelvin(25d)))
+          groundTempLvl2 should approximate(Some(Kelvin(25d)))
+      }
+    }
+
+    "test ground temperature level 1 handling with missing data" in {
+      val weatherSeq = Seq(
+        (0.5, 0.75, 291d, 10d, 275d, 285d),
+        (12.3, 1.2, 293d, 12d, Double.NaN, 287d),
+        (25.0, 5.7, 290d, 9d, 276d, 286d),
+      )
+
+      val weights = Seq(
+        (0.25, 0.25, 0.25, 0.25, 0.5, 0.25),
+        (0.25, 0.25, 0.25, 0.25, 0d, 0.25),
+        (0.5, 0.5, 0.5, 0.5, 0.5, 0.5),
+      )
+
+      val (weightedWeather, weightSum) =
+        prepareWeightTestData(weatherSeq, weights)
+
+      weightSum.scale(weightedWeather) match {
+        case WeatherData(_, _, _, _, groundTempLvl1, _) =>
+          groundTempLvl1 should approximate(Some(Kelvin(275.5)))
+      }
+    }
+
+    "test ground temperature level 2 handling with all valid data" in {
+      val weatherSeq = Seq(
+        (1d, 1d, 280d, 5d, 270d, 281d),
+        (1d, 1d, 280d, 5d, 270d, 281d),
+      )
+      val weights = Seq(
+        (0.5, 0.5, 0.5, 0.5, 0.5, 0.5),
+        (0.5, 0.5, 0.5, 0.5, 0.5, 0.5),
+      )
+
+      val (weightedWeather, weightSum) =
+        prepareWeightTestData(weatherSeq, weights)
+
+      weightSum.scale(weightedWeather) match {
+        case WeatherData(_, _, _, _, _, groundTempLvl2) =>
+          groundTempLvl2 should approximate(Some(Kelvin(281)))
       }
     }
   }
@@ -290,7 +361,7 @@ object WeatherSourceWrapperSpec {
   private val coordinate1c = GeoUtils.buildPoint(51, 8)
   private val coordinate1d = GeoUtils.buildPoint(51, 9)
   private val coordinate13 = GeoUtils.buildPoint(51, 10)
-  private val coordinate13NoTemp = GeoUtils.buildPoint(52, 10)
+  private val coordinate13NoAirTemp = GeoUtils.buildPoint(52, 10)
   private val coordinateEmpty = GeoUtils.buildPoint(53, 10)
 
   case object DummyPsdmWeatherSource
@@ -322,7 +393,7 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
-        Optional.empty,
+        Optional.of(Quantities.getQuantity(1d, StandardUnits.TEMPERATURE)),
         Optional.empty,
       ),
       coordinate1b -> new WeatherValue(
@@ -332,7 +403,7 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
-        Optional.empty,
+        Optional.of(Quantities.getQuantity(1d, StandardUnits.TEMPERATURE)),
         Optional.empty,
       ),
       coordinate1c -> new WeatherValue(
@@ -342,7 +413,7 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
-        Optional.empty,
+        Optional.of(Quantities.getQuantity(1d, StandardUnits.TEMPERATURE)),
         Optional.empty,
       ),
       coordinate1d -> new WeatherValue(
@@ -352,7 +423,7 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(1d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(1d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(1d, StandardUnits.WIND_VELOCITY),
-        Optional.empty,
+        Optional.of(Quantities.getQuantity(1d, StandardUnits.TEMPERATURE)),
         Optional.empty,
       ),
       coordinate13 -> new WeatherValue(
@@ -362,17 +433,17 @@ object WeatherSourceWrapperSpec {
         Quantities.getQuantity(13d, StandardUnits.TEMPERATURE),
         Quantities.getQuantity(13d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(13d, StandardUnits.WIND_VELOCITY),
-        Optional.empty,
+        Optional.of(Quantities.getQuantity(13d, StandardUnits.TEMPERATURE)),
         Optional.empty,
       ),
-      coordinate13NoTemp -> new WeatherValue(
-        coordinate13NoTemp,
+      coordinate13NoAirTemp -> new WeatherValue(
+        coordinate13NoAirTemp,
         Quantities.getQuantity(13d, StandardUnits.SOLAR_IRRADIANCE),
         Quantities.getQuantity(13d, StandardUnits.SOLAR_IRRADIANCE),
         null,
         Quantities.getQuantity(13d, StandardUnits.WIND_DIRECTION),
         Quantities.getQuantity(13d, StandardUnits.WIND_VELOCITY),
-        Optional.empty,
+        Optional.of(Quantities.getQuantity(13d, StandardUnits.TEMPERATURE)),
         Optional.empty,
       ),
       coordinateEmpty -> new WeatherValue(
@@ -382,8 +453,8 @@ object WeatherSourceWrapperSpec {
         null,
         null,
         null,
-        null,
-        null,
+        Optional.empty(),
+        Optional.empty(),
       ),
     )
 
@@ -446,45 +517,93 @@ object WeatherSourceWrapperSpec {
     *   A tuple of 1. the weighted average weather data and 2. the weight sum
     */
   private def prepareWeightTestData(
-      weatherSeq: Seq[(Double, Double, Double, Double)],
-      weights: Seq[(Double, Double, Double, Double)],
+      weatherSeq: Seq[(Double, Double, Double, Double, Double, Double)],
+      weights: Seq[(Double, Double, Double, Double, Double, Double)],
   ): (WeatherData, WeightSum) = {
-    val weatherData = weatherSeq.map { case (diff, dir, temp, wVel) =>
-      WeatherData(
-        WattsPerSquareMeter(diff),
-        WattsPerSquareMeter(dir),
-        Kelvin(temp),
-        MetersPerSecond(wVel),
-      )
-    }
-
-    val weightedWeather =
-      weatherData.zip(weights).foldLeft(ZERO_WEATHER_DATA) {
-        case (
-              currentSum,
-              (
-                WeatherData(diffIrr, dirIrr, temp, windVel),
-                (diffWeight, dirWeight, tempWeight, wVelWeight),
-              ),
-            ) =>
-          currentSum.copy(
-            diffIrr = currentSum.diffIrr + (diffIrr * diffWeight),
-            dirIrr = currentSum.dirIrr + (dirIrr * dirWeight),
-            temp = currentSum.temp + temp * tempWeight,
-            windVel = currentSum.windVel + windVel * wVelWeight,
-          )
-      }
-    val weightSum = weights.foldLeft(WeightSum.ZERO_WEIGHT_SUM) {
-      case (currentSum, currentWeight) =>
-        currentSum.add(
-          currentWeight._1,
-          currentWeight._2,
-          currentWeight._3,
-          currentWeight._4,
+    val weatherData = weatherSeq.map {
+      case (diff, dir, temp, wVel, groundLvl1, groundLvl2) =>
+        WeatherData(
+          WattsPerSquareMeter(diff),
+          WattsPerSquareMeter(dir),
+          Kelvin(temp),
+          MetersPerSecond(wVel),
+          if groundLvl1.isNaN then None else Some(Kelvin(groundLvl1)),
+          if groundLvl2.isNaN then None else Some(Kelvin(groundLvl2)),
         )
     }
 
-    (weightedWeather, weightSum)
+    weatherData
+      .zip(weights)
+      .foldLeft((ZERO_WEATHER_DATA, WeightSum.ZERO_WEIGHT_SUM)) {
+        case (
+              (currentWeatherSum, currentWeightSum),
+              (
+                WeatherData(
+                  diffIrr,
+                  dirIrr,
+                  temp,
+                  windVel,
+                  groundTempLvl1,
+                  groundTempLvl2,
+                ),
+                (
+                  diffWeight,
+                  dirWeight,
+                  tempWeight,
+                  wVelWeight,
+                  groundLvl1Weight,
+                  groundLvl2Weight,
+                ),
+              ),
+            ) =>
+          // Adjust weights for missing values
+          val actualGroundLvl1Weight =
+            if groundTempLvl1.isEmpty then 0d else groundLvl1Weight
+          val actualGroundLvl2Weight =
+            if groundTempLvl2.isEmpty then 0d else groundLvl2Weight
+
+          // Update weighted weather
+          val updatedWeatherSum = currentWeatherSum.copy(
+            diffIrr = currentWeatherSum.diffIrr + (diffIrr * diffWeight),
+            dirIrr = currentWeatherSum.dirIrr + (dirIrr * dirWeight),
+            temp = currentWeatherSum.temp + temp * tempWeight,
+            windVel = currentWeatherSum.windVel + windVel * wVelWeight,
+            groundTempLvl1 = (
+              currentWeatherSum.groundTempLvl1,
+              groundTempLvl1,
+            ) match {
+              case (Some(acc), Some(val1)) =>
+                Some(acc + val1 * actualGroundLvl1Weight)
+              case (Some(acc), None) => Some(acc)
+              case (None, Some(val1)) =>
+                Some(val1 * actualGroundLvl1Weight)
+              case (None, None) => None
+            },
+            groundTempLvl2 = (
+              currentWeatherSum.groundTempLvl2,
+              groundTempLvl2,
+            ) match {
+              case (Some(acc), Some(val2)) =>
+                Some(acc + val2 * actualGroundLvl2Weight)
+              case (Some(acc), None) => Some(acc)
+              case (None, Some(val2)) =>
+                Some(val2 * actualGroundLvl2Weight)
+              case (None, None) => None
+            },
+          )
+
+          // Update weight sum with adjusted weights
+          val updatedWeightSum = currentWeightSum.add(
+            diffWeight,
+            dirWeight,
+            tempWeight,
+            wVelWeight,
+            actualGroundLvl1Weight,
+            actualGroundLvl2Weight,
+          )
+
+          (updatedWeatherSum, updatedWeightSum)
+      }
   }
 
 }

@@ -102,7 +102,14 @@ class SampleWeatherSourceSpec
         WeightedCoordinates(Map(NodeInput.DEFAULT_GEO_POSITION -> 1d))
 
       source.getWeather(tick, weightedCoordinates) match {
-        case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+        case WeatherData(
+              diffIrr,
+              dirIrr,
+              temp,
+              windVel,
+              groundTempLvl1,
+              groundTempLvl2,
+            ) =>
           diffIrr.unit shouldBe WattsPerSquareMeter
           diffIrr should approximate(WattsPerSquareMeter(72.7656))
 
@@ -110,10 +117,14 @@ class SampleWeatherSourceSpec
           dirIrr should approximate(WattsPerSquareMeter(80.1172))
 
           temp.unit shouldBe Celsius
-          temp should approximate(Celsius(6.459d))
+          temp should approximate(Celsius(6.459))
 
           windVel.unit shouldBe MetersPerSecond
-          windVel should approximate(MetersPerSecond(11.11602d))
+          windVel should approximate(MetersPerSecond(11.11602))
+
+          groundTempLvl1 should approximate(Some(Celsius(6.459)))
+
+          groundTempLvl2 should approximate(Some(Celsius(6.459)))
       }
     }
   }
