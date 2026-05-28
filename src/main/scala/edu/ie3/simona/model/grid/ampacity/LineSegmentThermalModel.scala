@@ -102,17 +102,20 @@ final case class LineSegmentThermalModel(
       state: LineState,
       receivedData: Seq[Data],
   ): LineState = {
+
+    val depthCables = state.cableSetup.depthCables
+
     receivedData
       .collectFirst { case weatherData: WeatherData =>
         weatherData
       }
       .map(newData =>
-        val groundTempCableDepth = newData.groundTempLvl1.getOrElse(
+        val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
           throw new IllegalArgumentException(
             s"Ground Temperature Level 1 expected but not found."
           )
         ) * 0.5 +
-          newData.groundTempLvl2.getOrElse(
+          newData.groundTempLvl4.getOrElse(
             throw new IllegalArgumentException(
               s"Ground Temperature Level 2 expected but not found."
             )
@@ -201,7 +204,7 @@ object LineSegmentThermalModel {
         layer.innerDiameter,
         layer.outerDiameter,
       )
-    ) //FIXME Check if this is correct
+    ) // FIXME Check if this is correct
 
     val t3 = calcThermalResistanceT3(cableSetup)
 
