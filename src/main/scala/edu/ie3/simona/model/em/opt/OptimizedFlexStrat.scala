@@ -265,16 +265,19 @@ object OptimizedFlexStrat {
         .map { assetBoundaries =>
           assetBoundaries.tickDisconnect
             .map { tickDisconnect =>
+              val firstTick = ticks.headOption.getOrElse(
+                throw new CriticalFailureException("Ticks are empty!")
+              )
+              val sampleTicks = sampleTime.toSeconds
+
+              // make sure that possible energy boundaries at
+              // disconnect tick are still included
+              val disconnectStep =
+                (tickDisconnect - firstTick).toDouble / sampleTicks
               val adaptedTickDisconnect =
-                ticks.toList match {
-                  case _ :: second :: _ =>
-                    math.max(second, tickDisconnect)
-                  case _ =>
-                    throw new CriticalFailureException(
-                      s"Cannot create asset constraints for less than two time steps (ticks: ${ticks.size})"
-                    )
-                }
-              // we only determine energy until tickDisconnect
+                firstTick + math.ceil(disconnectStep) * sampleTicks
+
+              // we only determine energy until disconnect tick
               // (after that, the asset is unavailable)
               ticks.takeWhile(_ <= adaptedTickDisconnect)
             }
@@ -352,7 +355,9 @@ object OptimizedFlexStrat {
       // there is no flexibility at all, thus we don't need any state to keep track of
 
       val previousEnergy = energyLimitsStart
+        // we try to use the last energy value, if available
         .map(_.getUpper)
+        // ... or this is the initial step, thus we start with initial energy
         .getOrElse(energyBoundaries.currentEnergy)
       val currentEnergy = energyLimitsEnd.getUpper
 
