@@ -8,15 +8,11 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
-import edu.ie3.util.scala.quantities.{
-  ElectricalResistancePerLength,
-  JoulesPerMeterKelvin,
-  KelvinMetersPerWatt,
-  OhmsPerMeter,
-  ThermalCapacitance,
-  ThermalResistivity,
+import edu.ie3.simona.test.common.input.{
+  CigreT880LandCable33kV,
+  LineSegmentThermalModelInputData,
 }
+import edu.ie3.util.scala.quantities.*
 import squants.electro.*
 import squants.energy.{Power, Watts}
 import squants.thermal.{Celsius, Temperature}
@@ -46,20 +42,16 @@ class LineThermalModelCalculationsSpec
           "resistancePerMeter",
           "temperatureCorrection",
           "limitTemp",
-          "skinEffect",
-          "proximityEffect",
+          "skinEffectCoefficient",
+          "proximityEffectCoefficient",
           "expected",
         ),
-        (0.0754e-3, 3.93e-3, 90.0, 8.835005445e-3, 6.622704052e-3,
+        (0.0754e-3, 3.93e-3, 90.0, 1.0, 1.0,
           9.762868345e-5), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 197
-        (0.32e-3, 4.03e-3, 50.0, 6.3894394042e-4, 6.0458825885e-4,
-          3.5913404007749183e-4), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 315, skin effect and proximity effect correction factor has not been applied!
-        (0.122, 4.03e-3, 20.0, 0d, 0d,
-          0.122), // NA2XS2Y 1x240 RM/25 12/20 kV see Simbench line types, stays as 20°C
-        (0.122, 4.03e-3, 90.0, 0d, 0d,
-          0.1564162), // NA2XS2Y 1x240 RM/25 12/20 kV see Simbench line types, at 90°C
-        (0.122, 4.03e-3, 90.0, 0.1, 0.1,
-          0.18769944), // NA2XS2Y 1x240 RM/25 12/20 kV see Simbench line types, with skin and proximity effect
+        (0.122, 4.03e-3, 20.0, 1.0, 1.0,
+          0.122000001195), // NA2XS2Y 1x240 RM/25 12/20 kV see Simbench line types, stays as 20°C
+        (0.122, 4.03e-3, 90.0, 1.0, 1.0,
+          0.15641620093), // NA2XS2Y 1x240 RM/25 12/20 kV see Simbench line types, at 90°C
       )
 
       forAll(cases) {
@@ -67,21 +59,25 @@ class LineThermalModelCalculationsSpec
             resistancePerMeter,
             temperatureCorrection,
             limitTemp,
-            skinEffect,
-            proximityEffect,
+            skinEffectCoefficient,
+            proximityEffectCoefficient,
             expected,
         ) =>
 
-          val cableResistance = Ohms(resistancePerMeter)
+          val cableResistance = OhmsPerMeter(resistancePerMeter)
           val limitTemperature = Celsius(limitTemp)
+          val cableSetup = CigreT880LandCable33kV.cable.copy(
+            limitTemperature = limitTemperature,
+            skinEffectCoefficient = skinEffectCoefficient,
+            proximityEffectCoefficient = proximityEffectCoefficient,
+          )
+
           val expectedResult = OhmsPerMeter(expected)
 
           val actual = calcAcResistance(
             cableResistance,
             temperatureCorrection,
-            limitTemperature,
-            skinEffect,
-            proximityEffect,
+            cableSetup,
           )
 
           actual should approximate(expectedResult)
@@ -154,7 +150,7 @@ class LineThermalModelCalculationsSpec
 
           val specificResistance = OhmMeters(resistivity)
           val wireDia = Meters(wireDiameter)
-          val lengthOfLay = Meters(lengthOfLaySheath)
+          val lengthOfLay = Some(Meters(lengthOfLaySheath))
           val diaUnderScreen = Meters(diameterUnderTheScreen)
           val limitTemp = Celsius(limitTemperature)
           val t1 = KelvinMetersPerWatt(thermalResistanceT1)

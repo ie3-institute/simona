@@ -12,11 +12,16 @@ import edu.ie3.simona.model.grid.ampacity.{
   Layer,
   ScreenLayer,
 }
-import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
+import edu.ie3.util.scala.quantities.{
+  JoulesPerMeterKelvin,
+  KelvinMetersPerWatt,
+  OhmsPerMeter,
+}
 import squants.Meters
-import squants.electro.{Kilovolts, Nanofarads, Ohms}
+import squants.electro.{Kilovolts, Nanofarads}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
+import squants.time.Hertz
 
 import java.util.UUID
 
@@ -119,7 +124,10 @@ object Anders1997SingleCoreCable10kV {
     JoulesPerMeterKelvin(1.0), // FIXME check this
     Celsius(90),
     Kilovolts(10),
-    Ohms(0.0601e-3),
+    Hertz(50),
+    OhmsPerMeter(0.0601e-3),
+    1.0,
+    1.0,
     Nanofarads(0.0), // No capacity provided
     0.004,
     0.09,

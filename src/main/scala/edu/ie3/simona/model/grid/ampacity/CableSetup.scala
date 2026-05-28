@@ -6,20 +6,11 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.util.scala.quantities.{
-  JoulesPerMeterKelvin,
-  KelvinMetersPerWatt,
-  ThermalCapacitance,
-  ThermalResistivity,
-}
+import edu.ie3.util.scala.quantities.*
 import squants.Temperature
-import squants.electro.{
-  Capacitance,
-  ElectricPotential,
-  ElectricalResistance,
-  Resistivity,
-}
+import squants.electro.{Capacitance, ElectricPotential, Resistivity}
 import squants.space.{Area, Length}
+import squants.time.Frequency
 
 import java.util.UUID
 
@@ -85,7 +76,10 @@ final case class CableSetup(
     soilCapacitance: ThermalCapacitance,
     limitTemperature: Temperature,
     voltage: ElectricPotential,
-    electricResistance: ElectricalResistance,
+    frequency: Frequency,
+    electricResistance: ElectricalResistancePerLength,
+    skinEffectCoefficient: Double,
+    proximityEffectCoefficient: Double,
     electricCapacitance: Capacitance,
     tanDelta: Double,
     circulatingLossFactorScreen: Double,

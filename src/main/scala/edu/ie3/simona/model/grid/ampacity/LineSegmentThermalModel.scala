@@ -131,13 +131,13 @@ final case class LineSegmentThermalModel(
     *
     * @param lineState
     *
-    * @param current
-    *
+    * @param electricCurrent
+    *   The electric current of that line in this simulation step.
     * @return
     */
   def determineNextThreshold(
       lineState: LineState,
-      current: ElectricCurrent,
+      electricCurrent: ElectricCurrent,
   ): Option[ThermalThreshold] = {
     ???
   }
@@ -175,9 +175,9 @@ object LineSegmentThermalModel {
     * @param lastTick
     *   Last tick of temperature change.
     * @param cableSetup
-    *
+    *   The setup of the cable in this line segment.
     * @param currentLineSegmentThermalModel
-    *
+    *   The current LineSegmentThermalModel.
     * @param groundTemperature
     *   The current ground temperature.
     * @param lineTemperatures

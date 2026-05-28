@@ -40,7 +40,7 @@ object LineThermalModelCalculations extends LazyLogging {
   private val PI_OVER_FOUR: Double = Pi / 4
   private val TREFOIL_COEFFICIENT: Double = 1.5
   private val TREFOIL_ADJUSTMENT: Double = 0.63
-  private val REFERENCE_TEMPERATURE: Double = 20
+  private val REFERENCE_TEMPERATURE: Temperature = Celsius(20d)
   private val AC_RESISTIVITY_COOPER: Resistivity = OhmMeters(1.7241e-8)
   private val TEMPERATURE_COEFFICIENT_COOPER: Double = 3.93e-3
   private val AC_RESISTIVITY_ALUMINIUM: Resistivity = OhmMeters(2.8264e-8)
@@ -50,7 +50,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * conductor and screen.
     *
     * @param cableSetup
-    *   FIXME
+    *   The setup of the cable in this line segment.
     * @return
     *   The thermal resistance per unit of length.
     */
@@ -85,7 +85,7 @@ object LineThermalModelCalculations extends LazyLogging {
   /** Calculates the thermal resistance T3 of the outer cable covering.
     *
     * @param cableSetup
-    *   FIXME
+    *   The setup of the cable in this line segment.
     * @return
     *   The thermal resistance per unit of length.
     */
@@ -167,34 +167,40 @@ object LineThermalModelCalculations extends LazyLogging {
     * effect).
     *
     * @param electricalResistanceCable
-    *   The dc resistance of the cable at 20°C as mentioned in the data sheet of
-    *   the cable.
+    *   The dc resistance of the cable at 20°C per unit of length as mentioned
+    *   in the data sheet of the cable.
     * @param temperatureCorrectionFactor
     *   Temperature coefficient for resistance variation.
-    * @param limitTemperature
-    *   The maximum permissible temperature of the conductor.
-    * @param factorSkinEffect
-    *   Factor accounting for skin effect at operating frequency.
-    * @param factorProximityEffect
-    *   Factor accounting for proximity effect.
+    * @param cableSetup
+    *   The setup of the cable in this line segment.
     * @return
     *   The AC resistance per unit of length.
     */
   def calcAcResistance(
-      electricalResistanceCable: ElectricalResistance,
+      electricalResistanceCable: ElectricalResistancePerLength,
       temperatureCorrectionFactor: Double,
-      limitTemperature: Temperature,
-      factorSkinEffect: Double,
-      factorProximityEffect: Double,
+      cableSetup: CableSetup,
   ): ElectricalResistancePerLength = {
-    OhmsPerMeter(
-      (1 + factorSkinEffect + factorProximityEffect) * electricalResistanceCable.toOhms *
-        (1 + temperatureCorrectionFactor * (limitTemperature.toCelsiusScale - REFERENCE_TEMPERATURE))
+    // ALTERNATIVE 1: Calculate R0 by specific resistivity / conductorArea
+    // ALTERNATIVE 2: We are not using the limitTemperature because this overestimates the losses at lower operating temperatures. Therefore, we use the mean value between the limiting temperature and the current line temperature
+    // (1 + temperatureCorrectionFactor * ((limitTemperature.toCelsiusScale - operatingTemperature.toCelsiusScale)/2 - REFERENCE_TEMPERATURE.toCelsiusScale))
+    val rDc =
+      electricalResistanceCable * (1 + temperatureCorrectionFactor * (cableSetup.limitTemperature.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
+
+    val factorSkinEffect = calculateSkinEffectFactor(
+      rDc,
+      cableSetup.frequency,
+      cableSetup.skinEffectCoefficient,
     )
-    // ALTERNATIVE: Calculate R0 by specific resistivity / conductorArea
-    // (1 + factorSkinEffect + factorProximityEffect) * (resistivity.toOhmMeters / conductorArea.toSquareMeters) *
-    // ALTERNATIVE: We are not using the limitTemperature because this overestimates the losses at lower operating temperatures. Therefore, we use the mean value between the limiting temperature and the current line temperature
-    //        (1 + temperatureCorrectionFactor * ((limitTemperature.toCelsiusScale - operatingTemperature.toCelsiusScale)/2 - REFERENCE_TEMPERATURE))
+    val factorProximityEffect = calculateProximityEffectFactor(
+      rDc,
+      cableSetup.frequency,
+      cableSetup.proximityEffectCoefficient,
+      cableSetup.conductor.outerDiameter,
+      cableSetup.distanceCables,
+    )
+
+    rDc * (1 + factorSkinEffect + factorProximityEffect)
   }
 
   /** Calculates the AC resistance per unit of length of the sheath accounting
@@ -219,7 +225,7 @@ object LineThermalModelCalculations extends LazyLogging {
       resistivity: Resistivity,
       wiresNumber: Int,
       wireDiameter: Length,
-      lengthOfLaySheath: Length,
+      lengthOfLaySheath: Option[Length],
       diameterUnderTheScreen: Length,
       temperatureCorrectionFactor: Double,
       limitTemperature: Temperature,
@@ -237,7 +243,7 @@ object LineThermalModelCalculations extends LazyLogging {
       1 + (pow(
         Pi * (diameterUnderTheScreen.toMeters + wireDiameter.toMeters),
         2,
-      ) / pow(lengthOfLaySheath.toMeters, 2))
+      ) / pow(lengthOfLaySheath.getOrElse(Meters(999d)).toMeters, 2))
     )
 
     // ac resistance per unit length of screen at 20°C
@@ -253,7 +259,73 @@ object LineThermalModelCalculations extends LazyLogging {
         )
 
     // ac resistance of screen wires at operating temp
-    r0Screen * (1 + temperatureCorrectionFactor * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE))
+    r0Screen * (1 + temperatureCorrectionFactor * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
+  }
+
+  /** Calculates the skin effect factor (y_s) according to IEC 60287.
+    *
+    * @param rDc
+    *   DC resistance of the conductor at operating temperature
+    * @param frequency
+    *   System frequency
+    * @param ks
+    *   Skin effect coefficient (e.g., 1.0 for solid/stranded copper or
+    *   aluminum)
+    * @return
+    *   Skin effect factor (y_s)
+    */
+  def calculateSkinEffectFactor(
+      rDc: ElectricalResistancePerLength,
+      frequency: Frequency,
+      ks: Double,
+  ): Double = {
+    val xsSquared =
+      (8 * Pi * frequency.toHertz / rDc.toOhmsPerMeter) * 1e-7 * ks
+    val xsFourth = pow(xsSquared, 2)
+    val xs = sqrt(xsSquared)
+
+    // Apply the piecewise formulas based on the value of x_s
+    xs match {
+      case x if x <= 2.8 => xsFourth / (192.0 + 0.8 * xsFourth)
+      case x if x <= 3.8 => -0.136 - (0.0177 * xs) + (0.0563 * xsSquared)
+      case _             => (0.354 * xs) - 0.733
+    }
+  }
+
+  /** Calculates the proximity effect factor (y_p) for a three-core cable or
+    * three single-core cables in a trefoil arrangement (IEC 60287).
+    *
+    * @param rDc
+    *   DC resistance of the conductor at operating temperature
+    * @param frequency
+    *   System frequency
+    * @param kp
+    *   Proximity effect coefficient
+    * @param conductorDiameter
+    *   External diameter of the conductor
+    * @param s
+    *   Distance between conductor axes (spacing)
+    * @return
+    *   Proximity effect factor (y_p)
+    */
+  def calculateProximityEffectFactor(
+      rDc: ElectricalResistancePerLength,
+      frequency: Frequency,
+      kp: Double,
+      conductorDiameter: Length,
+      s: Length,
+  ): Double = {
+    val xpSquared =
+      (8 * Pi * frequency.toHertz / rDc.toOhmsPerMeter) * 1e-7 * kp
+    val xpFourth = pow(xpSquared, 2)
+
+    val ratioDcToS = conductorDiameter / s
+    val ratioSquared = pow(ratioDcToS, 2)
+
+    val baseFactor = xpFourth / (192.0 + 0.8 * xpFourth)
+
+    val bracketTerm = (0.312 * ratioSquared) + (1.18 / (baseFactor + 0.27))
+    baseFactor * ratioSquared * bracketTerm
   }
 
   /** Calculates the thermal losses of the cable segment per unit cable length.
@@ -744,9 +816,7 @@ object LineThermalModelCalculations extends LazyLogging {
     val acResistance = calcAcResistance(
       cableSetup.electricResistance,
       specificTempCoefficient,
-      cableSetup.limitTemperature,
-      skinEffect,
-      proximityEffect,
+      cableSetup,
     )
 
     val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
@@ -762,10 +832,6 @@ object LineThermalModelCalculations extends LazyLogging {
       cableSetup.electricCapacitance,
     )
 
-    val wiresNumber = 56 // FIXME move to cableSetup
-    val wireDiameter = Millimeters(0.9)
-    val lengthOfLay = Millimeters(240)
-
     val (acResistanceSheath, sheatAverageDiameter) =
       cableSetup.screenLayer match {
         case Some(layer) => {
@@ -774,9 +840,9 @@ object LineThermalModelCalculations extends LazyLogging {
             OhmMeters(
               1.7241e-8
             ), // FIXME this should be of the screen not of the conductor
-            wiresNumber,
-            wireDiameter,
-            lengthOfLay,
+            layer.wiresNumber,
+            layer.wireDiameter,
+            layer.lengthOfLay,
             layer.innerDiameter,
             specificTempCoefficient,
             cableSetup.limitTemperature,
