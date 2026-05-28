@@ -67,8 +67,7 @@ class EmAgentWithServiceSpec
   )
 
   private val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    uuids = List("default"),
-    aggregateFlex = "SELF_OPT",
+    aggregateFlex = "SELF_OPT"
   )
 
   private given activePowerTolerance: Power = Kilowatts(1e-10)

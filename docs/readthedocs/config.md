@@ -261,18 +261,16 @@ Specification of the runtime of subgrids and voltage levels:
 
   `simona.runtime.selected_volt_lvls = []`
 
-The participant runtime can be either based on default configuration or individual configurations can be assigned. 
+The participant runtime can be either based on default configuration or individual configurations can be assigned. For the
+individual configuration one need to add a column with the parameter name to the corresponding input files and fill in the
+values for those input that differ from the default configuration. As for the other models, no input needs to be provided.
 
 ```
 simona.runtime.participant.load = {
-  defaultConfig = {
     calculateMissingReactivePowerWithModel = false
-    uuids = []
     scaling = 1.0
     modelBehaviour = "fix"
     reference = "power"
-  }
-  individualConfigs = []
 }
 ```
 
@@ -540,87 +538,51 @@ simona.runtime = {
     }
     
     em = {
-        defaultConfig = {
-            calculateMissingReactivePowerWithModel = false
-            scaling = 1.0
-            uuids = []
-            aggregateFlex = "SELF_OPT_EXCL_REG"
-            curtailRegenerative = false
-        }
-        individualConfigs = []
+        calculateMissingReactivePowerWithModel = false
+        scaling = 1.0
+        aggregateFlex = "SELF_OPT_EXCL_REG"
+        curtailRegenerative = false
     }
     
     participant = {
         requestVoltageDeviationThreshold = 1e-14
         bm = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
         }
         evcs = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-                chargingStrategy = "maxPower"
-                lowestEvSoc = 0.2
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            chargingStrategy = "maxPower"
+            lowestEvSoc = 0.2
         }
         fixedFeedIn = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+             calculateMissingReactivePowerWithModel = false
+             scaling = 1.0
         }
         hp = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+             calculateMissingReactivePowerWithModel = false
+             scaling = 1.0
         }
         load = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-                modelBehaviour = "fix"
-                reference = "power"
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            modelBehaviour = "fix"
+            reference = "power"
         }
         pv = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
         }
         storage = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-                initialSoc = 0.0
-                targetSoc = None                
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            initialSoc = 0.0
+            targetSoc = None
         }
         wec = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
         }
     }
 }
