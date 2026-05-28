@@ -3,11 +3,11 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.5.1' // code format
+  id 'com.diffplug.spotless' version '8.6.0' // code format
   id "com.github.ben-manes.versions" version '0.54.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '9.4.1' // fat jar
+  id 'com.gradleup.shadow' version '9.4.2' // fat jar
   id "org.sonarqube" version "7.3.0.8198" // sonarqube
   id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
@@ -100,7 +100,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.32"
+  implementation "ch.qos.logback:logback-classic:1.5.33"
 
   /* testing */
   // scalatest & junit
