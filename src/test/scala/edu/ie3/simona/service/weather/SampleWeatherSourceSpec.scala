@@ -107,8 +107,8 @@ class SampleWeatherSourceSpec
               dirIrr,
               temp,
               windVel,
-              groundTempLvl1,
-              groundTempLvl2,
+              groundTempLvl3,
+              groundTempLvl4,
             ) =>
           diffIrr.unit shouldBe WattsPerSquareMeter
           diffIrr should approximate(WattsPerSquareMeter(72.7656))
@@ -122,9 +122,9 @@ class SampleWeatherSourceSpec
           windVel.unit shouldBe MetersPerSecond
           windVel should approximate(MetersPerSecond(11.11602))
 
-          groundTempLvl1 should approximate(Some(Celsius(6.459)))
+          groundTempLvl3 should approximate(Some(Celsius(6.459)))
 
-          groundTempLvl2 should approximate(Some(Celsius(6.459)))
+          groundTempLvl4 should approximate(Some(Celsius(6.459)))
       }
     }
   }

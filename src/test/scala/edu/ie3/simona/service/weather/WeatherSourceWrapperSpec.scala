@@ -85,8 +85,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
       result.temp should approximate(Celsius(sumOfAll / 4))
       result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
-      result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 4)))
-      result.groundTempLvl2 should be(Some(Kelvin(0d)))
+      result.groundTempLvl3 should be(Some(Celsius(sumOfAll / 4)))
+      result.groundTempLvl4 should be(Some(Kelvin(0d)))
     }
 
     "calculate the correct weighted value for 4 coordinates and three ticks with 0.25 weight each" in {
@@ -108,8 +108,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
         result.temp should approximate(Celsius(sumOfAll / 4))
         result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
-        result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 4)))
-        result.groundTempLvl2 should be(Some(Kelvin(0d)))
+        result.groundTempLvl3 should be(Some(Celsius(sumOfAll / 4)))
+        result.groundTempLvl4 should be(Some(Kelvin(0d)))
       }
     }
 
@@ -128,8 +128,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 4))
       result.temp should approximate(Celsius((1 + 1 + 1) / 3))
       result.windVel should approximate(MetersPerSecond(sumOfAll / 4))
-      result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 4)))
-      result.groundTempLvl2 should be(Some(Kelvin(0d)))
+      result.groundTempLvl3 should be(Some(Celsius(sumOfAll / 4)))
+      result.groundTempLvl4 should be(Some(Kelvin(0d)))
     }
 
     "Calculate the correct weighted value for 4 coordinates with 0.25 weight each, where one is empty" in {
@@ -147,8 +147,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(sumOfAll / 3))
       result.temp should approximate(Celsius(sumOfAll / 3))
       result.windVel should approximate(MetersPerSecond(sumOfAll / 3))
-      result.groundTempLvl1 should be(Some(Celsius(sumOfAll / 3)))
-      result.groundTempLvl2 should be(Some(Kelvin(0d)))
+      result.groundTempLvl3 should be(Some(Celsius(sumOfAll / 3)))
+      result.groundTempLvl4 should be(Some(Kelvin(0d)))
     }
 
     "calculate the correct weighted value for 1 coordinate with a weight of 1" in {
@@ -158,8 +158,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
       result.diffIrr should approximate(WattsPerSquareMeter(13d))
       result.temp should approximate(Celsius(13d))
       result.windVel should approximate(MetersPerSecond(13d))
-      result.groundTempLvl1 should be(Some(Celsius(13d)))
-      result.groundTempLvl2 should be(Some(Kelvin(0d)))
+      result.groundTempLvl3 should be(Some(Celsius(13d)))
+      result.groundTempLvl4 should be(Some(Kelvin(0d)))
     }
 
     "return temperature quantity on absolute scale" in {
@@ -194,8 +194,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         weightSumAdded.dirIrr should ===(0.5 +- 1e-10)
         weightSumAdded.temp should ===(0.7 +- 1e-10)
         weightSumAdded.windVel should ===(0.9 +- 1e-10)
-        weightSumAdded.groundTempLvl1 should ===(0.4 +- 1e-10)
-        weightSumAdded.groundTempLvl2 should ===(0.6 +- 1e-10)
+        weightSumAdded.groundTempLvl3 should ===(0.4 +- 1e-10)
+        weightSumAdded.groundTempLvl4 should ===(0.6 +- 1e-10)
       }
     }
 
@@ -223,15 +223,15 @@ class WeatherSourceWrapperSpec extends UnitSpec {
                 dirIrr,
                 temp,
                 windVel,
-                groundTempLvl1,
-                groundTempLvl2,
+                groundTempLvl3,
+                groundTempLvl4,
               ) =>
             diffIrr should approximate(WattsPerSquareMeter(19.83))
             dirIrr should approximate(WattsPerSquareMeter(3.01))
             temp should approximate(Kelvin(290.75))
             windVel should approximate(MetersPerSecond(10.6))
-            groundTempLvl1 should approximate(Some(Kelvin(29d)))
-            groundTempLvl2 should approximate(Some(Kelvin(0d)))
+            groundTempLvl3 should approximate(Some(Kelvin(29d)))
+            groundTempLvl4 should approximate(Some(Kelvin(0d)))
         }
       }
     }
@@ -299,19 +299,19 @@ class WeatherSourceWrapperSpec extends UnitSpec {
               dirIrr,
               temp,
               windVel,
-              groundTempLvl1,
-              groundTempLvl2,
+              groundTempLvl3,
+              groundTempLvl4,
             ) =>
           diffIrr should approximate(WattsPerSquareMeter(4.0))
           dirIrr should approximate(WattsPerSquareMeter(2.0))
           temp should approximate(Kelvin(1.25d))
           windVel should approximate(MetersPerSecond(1.0d))
-          groundTempLvl1 should approximate(Some(Kelvin(25d)))
-          groundTempLvl2 should approximate(Some(Kelvin(25d)))
+          groundTempLvl3 should approximate(Some(Kelvin(25d)))
+          groundTempLvl4 should approximate(Some(Kelvin(25d)))
       }
     }
 
-    "test ground temperature level 1 handling with missing data" in {
+    "test ground temperature level 3 handling with missing data" in {
       val weatherSeq = Seq(
         (0.5, 0.75, 291d, 10d, 275d, 285d),
         (12.3, 1.2, 293d, 12d, Double.NaN, 287d),
@@ -328,12 +328,12 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         prepareWeightTestData(weatherSeq, weights)
 
       weightSum.scale(weightedWeather) match {
-        case WeatherData(_, _, _, _, groundTempLvl1, _) =>
-          groundTempLvl1 should approximate(Some(Kelvin(275.5)))
+        case WeatherData(_, _, _, _, groundTempLvl3, _) =>
+          groundTempLvl3 should approximate(Some(Kelvin(275.5)))
       }
     }
 
-    "test ground temperature level 2 handling with all valid data" in {
+    "test ground temperature level 4 handling with all valid data" in {
       val weatherSeq = Seq(
         (1d, 1d, 280d, 5d, 270d, 281d),
         (1d, 1d, 280d, 5d, 270d, 281d),
@@ -347,8 +347,8 @@ class WeatherSourceWrapperSpec extends UnitSpec {
         prepareWeightTestData(weatherSeq, weights)
 
       weightSum.scale(weightedWeather) match {
-        case WeatherData(_, _, _, _, _, groundTempLvl2) =>
-          groundTempLvl2 should approximate(Some(Kelvin(281)))
+        case WeatherData(_, _, _, _, _, groundTempLvl4) =>
+          groundTempLvl4 should approximate(Some(Kelvin(281)))
       }
     }
   }
@@ -521,14 +521,14 @@ object WeatherSourceWrapperSpec {
       weights: Seq[(Double, Double, Double, Double, Double, Double)],
   ): (WeatherData, WeightSum) = {
     val weatherData = weatherSeq.map {
-      case (diff, dir, temp, wVel, groundLvl1, groundLvl2) =>
+      case (diff, dir, temp, wVel, groundLvl3, groundLvl4) =>
         WeatherData(
           WattsPerSquareMeter(diff),
           WattsPerSquareMeter(dir),
           Kelvin(temp),
           MetersPerSecond(wVel),
-          if groundLvl1.isNaN then None else Some(Kelvin(groundLvl1)),
-          if groundLvl2.isNaN then None else Some(Kelvin(groundLvl2)),
+          if groundLvl3.isNaN then None else Some(Kelvin(groundLvl3)),
+          if groundLvl4.isNaN then None else Some(Kelvin(groundLvl4)),
         )
     }
 
@@ -543,24 +543,24 @@ object WeatherSourceWrapperSpec {
                   dirIrr,
                   temp,
                   windVel,
-                  groundTempLvl1,
-                  groundTempLvl2,
+                  groundTempLvl3,
+                  groundTempLvl4,
                 ),
                 (
                   diffWeight,
                   dirWeight,
                   tempWeight,
                   wVelWeight,
-                  groundLvl1Weight,
-                  groundLvl2Weight,
+                  groundLvl3Weight,
+                  groundLvl4Weight,
                 ),
               ),
             ) =>
           // Adjust weights for missing values
-          val actualGroundLvl1Weight =
-            if groundTempLvl1.isEmpty then 0d else groundLvl1Weight
-          val actualGroundLvl2Weight =
-            if groundTempLvl2.isEmpty then 0d else groundLvl2Weight
+          val actualGroundLvl3Weight =
+            if groundTempLvl3.isEmpty then 0d else groundLvl3Weight
+          val actualGroundLvl4Weight =
+            if groundTempLvl4.isEmpty then 0d else groundLvl4Weight
 
           // Update weighted weather
           val updatedWeatherSum = currentWeatherSum.copy(
@@ -568,26 +568,26 @@ object WeatherSourceWrapperSpec {
             dirIrr = currentWeatherSum.dirIrr + (dirIrr * dirWeight),
             temp = currentWeatherSum.temp + temp * tempWeight,
             windVel = currentWeatherSum.windVel + windVel * wVelWeight,
-            groundTempLvl1 = (
-              currentWeatherSum.groundTempLvl1,
-              groundTempLvl1,
+            groundTempLvl3 = (
+              currentWeatherSum.groundTempLvl3,
+              groundTempLvl3,
             ) match {
               case (Some(acc), Some(val1)) =>
-                Some(acc + val1 * actualGroundLvl1Weight)
+                Some(acc + val1 * actualGroundLvl3Weight)
               case (Some(acc), None) => Some(acc)
               case (None, Some(val1)) =>
-                Some(val1 * actualGroundLvl1Weight)
+                Some(val1 * actualGroundLvl3Weight)
               case (None, None) => None
             },
-            groundTempLvl2 = (
-              currentWeatherSum.groundTempLvl2,
-              groundTempLvl2,
+            groundTempLvl4 = (
+              currentWeatherSum.groundTempLvl4,
+              groundTempLvl4,
             ) match {
               case (Some(acc), Some(val2)) =>
-                Some(acc + val2 * actualGroundLvl2Weight)
+                Some(acc + val2 * actualGroundLvl4Weight)
               case (Some(acc), None) => Some(acc)
               case (None, Some(val2)) =>
-                Some(val2 * actualGroundLvl2Weight)
+                Some(val2 * actualGroundLvl4Weight)
               case (None, None) => None
             },
           )
@@ -598,8 +598,8 @@ object WeatherSourceWrapperSpec {
             dirWeight,
             tempWeight,
             wVelWeight,
-            actualGroundLvl1Weight,
-            actualGroundLvl2Weight,
+            actualGroundLvl3Weight,
+            actualGroundLvl4Weight,
           )
 
           (updatedWeatherSum, updatedWeightSum)
