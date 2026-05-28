@@ -60,10 +60,11 @@ class EvcsEnergyBoundariesFlexModelSpec
         (900, Some(1800)),
         (1800, Some(1800)),
 
-        /* departure after first step */
-        (2700, Some(2700)),
-        (4567, Some(4567)),
-        (5400, Some(5400)),
+        /* departure close to a step */
+        (2699, Some(1800)),
+        (2700, Some(3600)),
+        (4499, Some(3600)),
+        (4500, Some(5400)),
 
         /* departure close to or beyond forecast end */
         (7200, Some(7200)),

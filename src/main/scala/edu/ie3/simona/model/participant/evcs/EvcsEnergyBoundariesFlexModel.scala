@@ -74,7 +74,16 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
         // thus we can depart at this tick earliest
         val earliestEnd = currentTick + forecastResolution
 
-        Some(math.max(ev.departureTick, earliestEnd))
+        if ev.departureTick < earliestEnd then Some(earliestEnd)
+        else {
+          val ticksToDeparture = ev.departureTick - currentTick
+          val stepsToDeparture = ticksToDeparture.toDouble / forecastResolution
+
+          // we pick the closest step before or after departure
+          val adaptedStepsToDeparture = math.round(stepsToDeparture)
+
+          Some(currentTick + adaptedStepsToDeparture * forecastResolution)
+        }
       }
 
     // we want to have at least the lowest SOC amount in storage
