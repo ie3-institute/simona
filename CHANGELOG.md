@@ -133,6 +133,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed hour angle calculation in `PvModel` [#574](https://github.com/ie3-institute/simona/issues/574)
 - Documentation of `PvModel` [#1776](https://github.com/ie3-institute/simona/issues/1776)
 - Fixed `ParticipantAgent.isCalculationRequired` to include `changesAtNextActivation` [#1820](https://github.com/ie3-institute/simona/issues/1820)
+- Fixed handling of disconnecting tick of energy boundaries flex options [#1821](https://github.com/ie3-institute/simona/issues/1821)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

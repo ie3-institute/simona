@@ -265,9 +265,18 @@ object OptimizedFlexStrat {
         .map { assetBoundaries =>
           assetBoundaries.tickDisconnect
             .map { tickDisconnect =>
+              val adaptedTickDisconnect =
+                ticks.toList match {
+                  case _ :: second :: _ =>
+                    math.max(second, tickDisconnect)
+                  case _ =>
+                    throw new CriticalFailureException(
+                      s"Cannot create asset constraints for less than two time steps (ticks: ${ticks.size})"
+                    )
+                }
               // we only determine energy until tickDisconnect
               // (after that, the asset is unavailable)
-              ticks.takeWhile(_ <= tickDisconnect)
+              ticks.takeWhile(_ <= adaptedTickDisconnect)
             }
             .getOrElse(ticks)
             .sliding(2)
@@ -296,7 +305,7 @@ object OptimizedFlexStrat {
                 // assets constraints need to be created at least for two time steps
                 // (including eventual tickDisconnect restrictions)
                 throw new CriticalFailureException(
-                  s"Cannot create asset constraints for less than two time steps (given: ${ticks.size})"
+                  s"Cannot create asset constraints for less than two time steps (ticks: ${ticks.size})"
                 )
             }
         }
