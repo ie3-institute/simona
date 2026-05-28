@@ -39,8 +39,7 @@ import org.scalatest.prop.Tables.Table
 import org.scalatest.wordspec.AnyWordSpecLike
 
 import java.util.{OptionalLong, UUID}
-import scala.jdk.OptionConverters.RichOption
-import scala.language.{existentials, implicitConversions}
+import scala.language.implicitConversions
 
 class ExtSimAdapterSpec
     extends ScalaTestWithActorTestKit

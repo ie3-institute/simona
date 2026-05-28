@@ -25,6 +25,7 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
@@ -231,17 +232,22 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     *   Actor context to use.
     * @tparam T
     *   Type of data.
+    * @return
+    *   True if this grids has connected inferior grids or false if this no
+    *   inferior grids.
     */
   private[grid] def askInferior[T](
-      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]],
-      askMsgBuilder: ActorRef[GridAgent.Message] => Message,
-      ctx: ActorContext[GridAgent.Message],
-  ): Unit = {
+      inferiorGridRefs: MultiMap[ActorRef[GridAgent.Message], UUID],
+      askMsgBuilder: (ActorRef[GridAgent.Message], Set[UUID]) => Message,
+  )(using ctx: ActorContext[GridAgent.Message]): Boolean = {
     if inferiorGridRefs.nonEmpty then {
-      inferiorGridRefs.foreach { case (inferiorGridAgentRef, _) =>
-        inferiorGridAgentRef ! askMsgBuilder(ctx.self)
+      inferiorGridRefs.foreach {
+        case (inferiorGridAgentRef, inferiorGridNodes) =>
+          inferiorGridAgentRef ! askMsgBuilder(ctx.self, inferiorGridNodes)
       }
-    }
+
+      true
+    } else false
   }
 
   private def failFast(

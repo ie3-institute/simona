@@ -54,7 +54,6 @@ import java.time.temporal.ChronoUnit
 import java.util.UUID
 import java.util.OptionalLong
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.*
 
 /** Tests the combined functionality of
   * [[edu.ie3.simona.agent.participant.ParticipantAgent]] with an [[EvcsModel]]

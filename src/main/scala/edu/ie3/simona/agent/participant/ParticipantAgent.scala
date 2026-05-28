@@ -441,11 +441,14 @@ object ParticipantAgent {
       modelShell: ParticipantModelShell[?, ?],
       inputHandler: DataInputHandler,
       activation: ActivationRequest,
-  ): Boolean =
+  ): Boolean = {
+    val modelIndicator = modelShell
+      .getChangeIndicator(activation.tick - 1, None)
+
     inputHandler.hasNewData(activation.tick) ||
-      modelShell
-        .getChangeIndicator(activation.tick - 1, None)
-        .changesAtTick
-        .contains(activation.tick)
+    modelIndicator.changesAtNextActivation ||
+    modelIndicator.changesAtTick
+      .contains(activation.tick)
+  }
 
 }

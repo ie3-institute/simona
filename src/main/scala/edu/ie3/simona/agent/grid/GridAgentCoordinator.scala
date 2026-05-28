@@ -12,9 +12,10 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   DoCongestionManagement,
-  FinishStep,
   GotoIdle,
+  NextStep,
 }
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.NoMeasure
 import edu.ie3.simona.agent.grid.congestion.{
   CongestionManagementParams,
   Congestions,
@@ -105,6 +106,8 @@ object GridAgentCoordinator {
       congestions: Congestions,
   ) extends Request
 
+  final case class StepFinished(sender: GridAgentRef) extends Request
+
   /** @param scheduler
     *   Reference of the scheduler.
     * @param congestionManagementParams
@@ -156,11 +159,20 @@ object GridAgentCoordinator {
     def createAwaitingData[T]: AwaitingData[T] = ReceiveDataMap(gridAgentsRef)
 
     /** Method to inform all grid agents.
+      *
       * @param msg
       *   Message to send to the agents.
       */
     def informGridAgents(msg: GridAgent.Message): Unit =
       gridAgentsRef.foreach(_ ! msg)
+
+    /** Method to inform only superior grid agents.
+      *
+      * @param msg
+      *   Message to send to the agents.
+      */
+    def informSuperiorGridAgents(msg: GridAgent.Message): Unit =
+      superiorGrids.foreach(_ ! msg)
 
     /** Method to inform all grid agents.
       * @param msgBuilder
@@ -179,7 +191,7 @@ object GridAgentCoordinator {
       val scheduler = environmentRefs.scheduler
 
       val congestionManagementParams =
-        CongestionManagementParams(config.congestionManagement.enableDetection)
+        CongestionManagementParams(config.congestionManagement)
 
       val stateData = StateData(
         scheduler,
@@ -298,9 +310,10 @@ object GridAgentCoordinator {
   private def initPowerFlow(
       stateData: StateData,
       tick: Long,
+      sameTick: Boolean = false,
   ): Behavior[Message] = {
     // informing all grid agents
-    stateData.informGridAgents(DoPowerFlowTrigger(tick))
+    stateData.informGridAgents(DoPowerFlowTrigger(tick, sameTick))
 
     awaitGridSimulation(
       stateData.copy(currentTick = tick),
@@ -357,7 +370,7 @@ object GridAgentCoordinator {
     * @return
     *   A new behavior.
     */
-  private def awaitCongestionResults(
+  private[grid] def awaitCongestionResults(
       stateData: StateData,
       awaitingData: AwaitingData[Congestions],
   ): Behavior[Message] = Behaviors.receivePartial {
@@ -378,21 +391,56 @@ object GridAgentCoordinator {
             s"No congestions found. Finishing the congestion management."
           )
 
+          stateData.superiorGrids.foreach(_ ! GotoIdle)
+          awaitGridSimulation(stateData, stateData.createAwaitingData)
+
         } else {
-          ctx.log.debug(
-            s"Congestion overall: $allCongestions"
-          )
 
-          val timestamp =
-            stateData.simStartTime.plusSeconds(stateData.currentTick)
+          val (nextStep, updatedParams) =
+            stateData.congestionManagementParams.getNextStepsAndUpdate
 
-          ctx.log.info(
-            s"There were some congestions that could not be resolved for timestamp: $timestamp."
-          )
+          nextStep match {
+            case NoMeasure =>
+              ctx.log.debug(
+                s"Congestion overall: $allCongestions"
+              )
+
+              val timestamp =
+                stateData.simStartTime.plusSeconds(stateData.currentTick)
+
+              ctx.log.info(
+                s"There were some congestions that could not be resolved for timestamp: $timestamp."
+              )
+
+              stateData.superiorGrids.foreach(_ ! GotoIdle)
+              awaitGridSimulation(stateData, stateData.createAwaitingData)
+
+            case _ =>
+              // informs the grid agent about the next mitigation step
+              stateData.informSuperiorGridAgents(NextStep(nextStep))
+
+              awaitMitigationStepCompletion(
+                stateData.copy(congestionManagementParams = updatedParams),
+                stateData.createAwaitingData,
+              )
+          }
         }
+      }
+  }
 
-        stateData.superiorGrids.foreach(_ ! GotoIdle)
-        awaitGridSimulation(stateData, stateData.createAwaitingData)
+  private def awaitMitigationStepCompletion(
+      stateData: StateData,
+      awaitingData: AwaitingData[StepFinished],
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (_, stepFinished: StepFinished) =>
+      val updated = awaitingData.addData(stepFinished.sender, stepFinished)
+
+      if updated.nonComplete then {
+        awaitMitigationStepCompletion(stateData, updated)
+
+      } else {
+        initPowerFlow(stateData, stateData.currentTick, true)
+
       }
   }
 
