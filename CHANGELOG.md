@@ -128,10 +128,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed EVCS `OperationChangeIndiactor` in edge cases [#1762](https://github.com/ie3-institute/simona/issues/1762)
 - Fixed `AbstractEnergyBoundariesFlexModel` next tick determination [#1769](https://github.com/ie3-institute/simona/issues/1769)
 - Fixed energy limit handling in `OptimizedFlexStrat` [#1772](https://github.com/ie3-institute/simona/issues/1772)
-- Fix unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
+- Fixed unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
 - Cleaned imports [#1791](https://github.com/ie3-institute/simona/issues/1791)
 - Fixed hour angle calculation in `PvModel` [#574](https://github.com/ie3-institute/simona/issues/574)
 - Documentation of `PvModel` [#1776](https://github.com/ie3-institute/simona/issues/1776)
+- Fixed `ParticipantAgent.isCalculationRequired` to include `changesAtNextActivation` [#1820](https://github.com/ie3-institute/simona/issues/1820)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
