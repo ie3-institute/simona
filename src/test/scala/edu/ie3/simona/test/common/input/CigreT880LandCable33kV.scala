@@ -18,7 +18,7 @@ import edu.ie3.util.scala.quantities.{
   OhmsPerMeter,
 }
 import squants.Meters
-import squants.electro.{Kilovolts, Nanofarads}
+import squants.electro.{Kilovolts, Nanofarads, OhmMeters}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.time.Hertz
@@ -100,11 +100,11 @@ object CigreT880LandCable33kV {
       Millimeters(38.6),
       CableSetup.materialProps(CableMaterial.Copper)._1,
       CableSetup.materialProps(CableMaterial.Copper)._2,
-      Some(SquareMeters(35.63e-6)),
+      Some(SquareMeters(35.62566069e-6)),
       56,
       Millimeters(0.9),
       Some(Millimeters(240)),
-      CableSetup.screenMaterialElectricalResistivity(CableMaterial.Copper),
+      OhmMeters(1.7241e-8),
     )
   }
 

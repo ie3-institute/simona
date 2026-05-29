@@ -116,31 +116,18 @@ class LineThermalModelCalculationsSpec
     "calculate correctly the AC resistance of the screen" in {
       val cases = Table(
         (
-          "resistivity",
-          "wiresNumber",
-          "wireDiameter",
-          "lengthOfLaySheath",
-          "diameterUnderTheScreen",
-          "temperatureCorrection",
           "limitTemperature",
           "thermalResistanceT1",
           "conductorLosses",
           "dielectricLosses",
           "expected",
         ),
-        (1.7241e-8, 56, 0.9e-3, 0.24, 0.0368, 3.93e-3, 90.0, 0.4110322351,
-          28.20166532, 0.10842143853,
-          6.635010635e-4), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 199ff
+        (90.0, 0.4110322351, 28.20166532, 0.10842143853,
+          6.635010635e-4), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification", TB 880, p 199ff
       )
 
       forAll(cases) {
         (
-            resistivity,
-            wiresNumber,
-            wireDiameter,
-            lengthOfLaySheath,
-            diameterUnderTheScreen,
-            temperatureCorrection,
             limitTemperature,
             thermalResistanceT1,
             conductorLosses,
@@ -148,10 +135,7 @@ class LineThermalModelCalculationsSpec
             expected,
         ) =>
 
-          val specificResistance = OhmMeters(resistivity)
-          val wireDia = Meters(wireDiameter)
-          val lengthOfLay = Some(Meters(lengthOfLaySheath))
-          val diaUnderScreen = Meters(diameterUnderTheScreen)
+          val screenLayer = CigreT880LandCable33kV.cable.screenLayer
           val limitTemp = Celsius(limitTemperature)
           val t1 = KelvinMetersPerWatt(thermalResistanceT1)
           val wC = Watts(conductorLosses)
@@ -159,12 +143,7 @@ class LineThermalModelCalculationsSpec
           val expectedResult = OhmsPerMeter(expected)
 
           val actual = calcAcResistanceSheath(
-            specificResistance,
-            wiresNumber,
-            wireDia,
-            lengthOfLay,
-            diaUnderScreen,
-            temperatureCorrection,
+            screenLayer,
             limitTemp,
             t1,
             wC,

@@ -163,9 +163,9 @@ object CableSetup {
       case _ => (KelvinMetersPerWatt(999), JoulesPerMeterKelvin(0)) // FIXME
     }
 
-  /** Get electrical resistivity for screen material at reference conditions
+  /** Get electrical resistivity for different material at reference conditions
     */
-  def screenMaterialElectricalResistivity(
+  def materialElectricalResistivity(
       mat: CableMaterial
   ): Resistivity =
     mat match {
@@ -185,6 +185,19 @@ object CableSetup {
         squants.electro.OhmMeters(
           2.2e-7
         ) // https://en.wikipedia.org/wiki/Electrical_resistivity
+      case other =>
+        throw new IllegalArgumentException(s"Unknown material: $other")
+    }
+
+  /** Get the temperature coefficient for the change of the electrical
+    * resistivity of different materials.
+    */
+  def materialElectricalResistivityTemperatureCoefficient(
+      mat: CableMaterial
+  ): Double =
+    mat match {
+      case CableMaterial.Copper    => 3.93e-3
+      case CableMaterial.Aluminium => 4.03e-3
       case other =>
         throw new IllegalArgumentException(s"Unknown material: $other")
     }

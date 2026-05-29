@@ -10,7 +10,7 @@ import breeze.linalg.{DenseMatrix, DenseVector}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.SquantsUtils.RichResistivity
 import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
 import edu.ie3.util.scala.quantities.{
   ElectricalResistancePerLength,
@@ -41,10 +41,6 @@ object LineThermalModelCalculations extends LazyLogging {
   private val TREFOIL_COEFFICIENT: Double = 1.5
   private val TREFOIL_ADJUSTMENT: Double = 0.63
   private val REFERENCE_TEMPERATURE: Temperature = Celsius(20d)
-  private val AC_RESISTIVITY_COOPER: Resistivity = OhmMeters(1.7241e-8)
-  private val TEMPERATURE_COEFFICIENT_COOPER: Double = 3.93e-3
-  private val AC_RESISTIVITY_ALUMINIUM: Resistivity = OhmMeters(2.8264e-8)
-  private val TEMPERATURE_COEFFICIENT_ALUMINIUM: Double = 4.03e-3
 
   /** Calculates the thermal resistance T1 of the inner cable elements between
     * conductor and screen.
@@ -222,44 +218,46 @@ object LineThermalModelCalculations extends LazyLogging {
     *   The AC resistance per unit of length.
     */
   def calcAcResistanceSheath(
-      resistivity: Resistivity,
-      wiresNumber: Int,
-      wireDiameter: Length,
-      lengthOfLaySheath: Option[Length],
-      diameterUnderTheScreen: Length,
-      temperatureCorrectionFactor: Double,
+      screenLayer: Option[ScreenLayer],
       limitTemperature: Temperature,
       thermalResistanceT1: ThermalResistivity,
       conductorLosses: Power,
       dielectricLosses: Power,
   ): ElectricalResistancePerLength = {
     // Calculation of cross-sectional area of the sheath
-    val area = SquareMeters(
-      wiresNumber * PI_OVER_FOUR * wireDiameter.toMeters * wireDiameter.toMeters
-    )
-
-    // Consider lay factor
-    val layFactor = sqrt(
-      1 + (pow(
-        Pi * (diameterUnderTheScreen.toMeters + wireDiameter.toMeters),
-        2,
-      ) / pow(lengthOfLaySheath.getOrElse(Meters(999d)).toMeters, 2))
-    )
-
-    // ac resistance per unit length of screen at 20°C
-    val r0Screen = OhmsPerMeter(
-      layFactor * resistivity.toOhmMeters / area.toSquareMeters
-    )
-
-    // calculate operating temperatur of the screen
-    val screenTemp =
-      limitTemperature // FIXME this is only limitTemperate if the conductor is at limitTemp
-        - Kelvin(
-          (conductorLosses.toWatts + 0.5 * dielectricLosses.toWatts) * thermalResistanceT1.toKelvinMetersPerWatt
+    screenLayer match {
+      case Some(layer) =>
+        val area = layer.area.getOrElse(
+          SquareMeters(
+            layer.wiresNumber * PI_OVER_FOUR * pow(
+              layer.wireDiameter.toMeters,
+              2,
+            )
+          )
         )
 
-    // ac resistance of screen wires at operating temp
-    r0Screen * (1 + temperatureCorrectionFactor * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
+        val layFactor = calcLayFactor(screenLayer)
+
+        // ac resistance per unit length of screen at 20°C
+        val r0Screen = (layer.materialResistivity / area) * layFactor
+
+        // calculate operating temperatur of the screen
+        val screenTemp =
+          limitTemperature // FIXME this is only limitTemperate if the conductor is at limitTemp
+            - Kelvin(
+              (conductorLosses.toWatts + 0.5 * dielectricLosses.toWatts) * thermalResistanceT1.toKelvinMetersPerWatt
+            )
+
+        // ac resistance of screen wires at operating temp
+        r0Screen * (1 + CableSetup
+          .materialElectricalResistivityTemperatureCoefficient(
+            layer.material
+          ) * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
+      case None =>
+        throw new IllegalArgumentException(
+          "Screen layer expected but not found."
+        )
+    }
   }
 
   /** Calculates the skin effect factor (y_s) according to IEC 60287.
@@ -799,23 +797,11 @@ object LineThermalModelCalculations extends LazyLogging {
     val currentLineModel = state.currentLineSegmentThermalModel
     val cableSetup = state.cableSetup
 
-    /* Calculate the losses */
-    val proximityEffect = 6.6227e-3 // Check CIGRE for detailed method //FIXME
-    val skinEffect = 8.835e-3 // FIXME
-
-    val specificTempCoefficient =
-      cableSetup.conductor.material match {
-        case CableMaterial.Copper    => TEMPERATURE_COEFFICIENT_COOPER
-        case CableMaterial.Aluminium => TEMPERATURE_COEFFICIENT_ALUMINIUM
-        case _ =>
-          throw new IllegalArgumentException(
-            s"Unknown conductor material: ${cableSetup.conductor.material}"
-          )
-      }
-
     val acResistance = calcAcResistance(
       cableSetup.electricResistance,
-      specificTempCoefficient,
+      CableSetup.materialElectricalResistivityTemperatureCoefficient(
+        cableSetup.conductor.material
+      ),
       cableSetup,
     )
 
@@ -837,14 +823,7 @@ object LineThermalModelCalculations extends LazyLogging {
         case Some(layer) => {
 
           val resistance = calcAcResistanceSheath(
-            OhmMeters(
-              1.7241e-8
-            ), // FIXME this should be of the screen not of the conductor
-            layer.wiresNumber,
-            layer.wireDiameter,
-            layer.lengthOfLay,
-            layer.innerDiameter,
-            specificTempCoefficient,
+            cableSetup.screenLayer,
             cableSetup.limitTemperature,
             state.currentLineSegmentThermalModel.thermalResistanceT1,
             conductorLosses,

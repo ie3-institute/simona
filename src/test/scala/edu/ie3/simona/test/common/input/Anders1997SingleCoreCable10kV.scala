@@ -91,7 +91,7 @@ object Anders1997SingleCoreCable10kV {
       76,
       Millimeters(0.65),
       None,
-      CableSetup.screenMaterialElectricalResistivity(CableMaterial.Copper),
+      CableSetup.materialElectricalResistivity(CableMaterial.Copper),
     )
   }
 

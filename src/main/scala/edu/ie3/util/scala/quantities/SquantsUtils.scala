@@ -6,9 +6,9 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.electro.{Capacitance, ElectricPotential, Volts}
+import squants.electro.{Capacitance, ElectricPotential, Resistivity, Volts}
 import squants.energy.{Energy, Power, Watts}
-import squants.space.{CubicMeters, Volume}
+import squants.space.{Area, CubicMeters, Volume}
 import squants.thermal.ThermalCapacity
 import squants.time.Frequency
 import squants.{Dimensionless, Each}
@@ -56,6 +56,14 @@ object SquantsUtils {
         tanDelta: Double,
     ): Power = Watts(
       electricCapacity.toFarads * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
+    )
+  }
+
+  implicit class RichResistivity(
+      electricResistivity: Resistivity
+  ) {
+    def /(area: Area): ElectricalResistancePerLength = OhmsPerMeter(
+      electricResistivity.toOhmMeters / area.toSquareMeters
     )
   }
 }
