@@ -15,12 +15,15 @@ import edu.ie3.simona.api.simulation.ExtSimulation
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
+import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -169,6 +172,23 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            val serviceRef = context.spawn(
+              ExtPrimaryServiceWorker(
+                scheduler,
+                InitExtPrimaryData(extPrimaryDataConnection),
+                ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+              ),
+              "ExtPrimaryDataService_$index",
+            )
+
+            extPrimaryDataConnection.setActorRefs(
+              serviceRef,
+              extSimAdapter,
+            )
+
+            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
+
           case extEmDataConnection: ExtEmDataConnection =>
             if setupData.emDataService.nonEmpty then {
               throw ServiceException(
