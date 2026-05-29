@@ -12,7 +12,7 @@ import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
-import squants.{Amperes, Energy, Kelvin, Power, Temperature}
+import squants.{Amperes, Energy, Kelvin, Meters, Power, Temperature}
 
 class LineSegmentThermalModelSpec
     extends UnitSpec
@@ -23,6 +23,7 @@ class LineSegmentThermalModelSpec
   given Power = Kilowatts(1e-10)
   given Energy = KilowattHours(1e-5)
   given Temperature = Kelvin(1e-3)
+  given Double = 1e-10
 
   "LineSegmentThermalModel" should {
 
@@ -94,6 +95,28 @@ class LineSegmentThermalModelSpec
                 s"Expected a thermal line model state but got none $unexpected."
               )
           }
+      }
+    }
+
+    "determine temperature level weights based on cable depth" in {
+      val cases = Table(
+        ("depth", "expectedW3", "expectedW4"),
+        (0.3, 1.0, 0.0), // below lower bound
+        (0.64, 1.0, 0.0), // exactly lower bound
+        (1.0, 0.7251908397, 0.274809160305), // typical cable depth
+        (1.95, 0.0, 1.0), // exactly upper bound
+        (2.5, 0.0, 1.0), // above upper bound
+        ((0.64 + 1.95) / 2.0, 0.5, 0.5), // midpoint interpolation
+      )
+
+      forAll(cases) { (depth, expectedW3, expectedW4) =>
+        val d = Meters(depth)
+        val (w3, w4) =
+          LineSegmentThermalModel.determineWeigthsGroundTemperatures(d)
+
+        w3 should approximate(expectedW3)
+        w4 should approximate(expectedW4)
+        (w3 + w4) should approximate(1.0)
       }
     }
 

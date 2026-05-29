@@ -22,6 +22,7 @@ import edu.ie3.util.scala.quantities.{
   ThermalCapacitance,
   ThermalResistivity,
 }
+import squants.space.{Length, Meters}
 import squants.thermal.Celsius
 import squants.{ElectricCurrent, Kelvin, Temperature}
 
@@ -102,8 +103,10 @@ final case class LineSegmentThermalModel(
       state: LineState,
       receivedData: Seq[Data],
   ): LineState = {
-
-    val depthCables = state.cableSetup.depthCables
+    val (weightTempLvl3, weightTempLvl4) =
+      LineSegmentThermalModel.determineWeigthsGroundTemperatures(
+        state.cableSetup.depthCables
+      )
 
     receivedData
       .collectFirst { case weatherData: WeatherData =>
@@ -114,13 +117,12 @@ final case class LineSegmentThermalModel(
           throw new IllegalArgumentException(
             s"Ground Temperature Level 1 expected but not found."
           )
-        ) * 0.5 +
+        ) * weightTempLvl3 +
           newData.groundTempLvl4.getOrElse(
             throw new IllegalArgumentException(
               s"Ground Temperature Level 2 expected but not found."
             )
-          ) * 0.5
-        // FIXME adapt calculation depending on cable depth
+          ) * weightTempLvl4
 
         state.copy(groundTemperature = groundTempCableDepth)
       )
@@ -306,6 +308,31 @@ object LineSegmentThermalModel {
       groundTemperature,
       initLineTemperatures,
     )
+  }
+
+  /** Determine the next threshold, that will be reached.
+    *
+    * @param depthCables
+    *
+    * @return
+    */
+  def determineWeigthsGroundTemperatures(
+      depthCables: Length
+  ): (Double, Double) = {
+    depthCables match {
+      case x if x >= Meters(1.94) => (0.0, 1.0)
+      case x if x < Meters(1.94) && x > Meters(0.64) =>
+        val min = Meters(0.64)
+        val max = Meters(1.95)
+        val t = (x - min) / (max - min)
+        (1.0 - t, t)
+      case x if x <= Meters(0.64) => (1.0, 0.0)
+      case _ =>
+        throw new IllegalArgumentException(
+          s"This case should not happen when handling input for LineSegmentThermalModel"
+        )
+    }
+
   }
 
   object LineModelThreshold {
