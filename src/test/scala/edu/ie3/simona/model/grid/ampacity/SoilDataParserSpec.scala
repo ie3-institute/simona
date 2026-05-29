@@ -8,7 +8,7 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.test.common.UnitSpec
 import squants.thermal.Celsius
-import squants.{Kelvin, Temperature}
+import squants.{Kelvin, Meters, Temperature}
 import edu.ie3.util.scala.quantities.{
   KelvinMetersPerWatt,
   KilowattHoursPerKelvinCubicMeters,
@@ -54,14 +54,14 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
       assert(res.isSuccess)
       val layers = res.get
       assert(layers.size == 1)
-      layers.head.thickness shouldBe 0.4
+      layers.head.thickness shouldBe Meters(0.4)
     }
 
     "check for overloaps of soil layers" in {
 
       val layers = Seq(
-        SoilLayer(0.0, 0.0, 0.0, -1.0, uuid),
-        SoilLayer(0.0, 0.0, -0.5, -2.0, uuid), // overlap
+        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(0.0, 0.0, Meters(-0.5), Meters(-2.0), uuid), // overlap
       )
       intercept[RuntimeException] {
         SoilDataParser.validateNonOverlappingPerCoordinate(layers)
@@ -70,8 +70,8 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
     }
     "check for gaps between soil layers" in {
       val layers = Seq(
-        SoilLayer(1.0, 1.0, 0.0, -0.5, uuid),
-        SoilLayer(1.0, 1.0, -1.0, -2.0, uuid), // gap
+        SoilLayer(1.0, 1.0, Meters(0.0), Meters(-0.5), uuid),
+        SoilLayer(1.0, 1.0, Meters(-1.0), Meters(-2.0), uuid), // gap
       )
       intercept[RuntimeException] {
         SoilDataParser.validateNoGapsPerCoordinate(layers)
@@ -79,10 +79,16 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
     }
     "check for coverage of soil layers" in {
       val layers = Seq(
-        SoilLayer(0.0, 0.0, 0.0, -1.0, uuid),
-        SoilLayer(0.0, 0.0, -1.0, -2.0, uuid),
-        SoilLayer(1.0, 1.0, 0.0, -0.5, uuid),
-        SoilLayer(1.0, 1.0, -0.5, -1.5, uuid), // missing coverage to -2.0 m
+        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(0.0, 0.0, Meters(-1.0), Meters(-2.0), uuid),
+        SoilLayer(1.0, 1.0, Meters(0.0), Meters(-0.5), uuid),
+        SoilLayer(
+          1.0,
+          1.0,
+          Meters(-0.5),
+          Meters(-1.5),
+          uuid,
+        ), // missing coverage to -2.0 m
       )
       val expected = Map((0.0, 0.0) -> (-2.0, 0.0), (1.0, 1.0) -> (-2.0, 0.0))
       intercept[RuntimeException] {
@@ -93,8 +99,8 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
     "throw exception in case of errors" in {
       val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
       val layers = Seq(
-        SoilLayer(0.0, 0.0, 0.0, -1.0, uuid),
-        SoilLayer(0.0, 0.0, -0.5, -2.0, uuid), // overlap
+        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(0.0, 0.0, Meters(-0.5), Meters(-2.0), uuid), // overlap
       )
       val expected = Map((0.0, 0.0) -> (-2.0, 0.0))
 
@@ -106,8 +112,8 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
     "not throw exception when everything is fine" in {
       val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
       val layers = Seq(
-        SoilLayer(0.0, 0.0, 0.0, -1.0, uuid),
-        SoilLayer(0.0, 0.0, -1.0, -2.0, uuid),
+        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(0.0, 0.0, Meters(-1.0), Meters(-2.0), uuid),
       )
       val expected = Map((0.0, 0.0) -> (-2.0, 0.0))
 

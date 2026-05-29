@@ -11,7 +11,7 @@ import squants.Temperature
 
 import java.util.UUID
 
-/** Repräsentiert die physikalischen Eigenschaften eines Bodentyps.
+/** Represents the physical properties of a soil type.
   */
 case class SoilType(
     uuid: UUID,
@@ -22,9 +22,8 @@ case class SoilType(
     criticalTemperature: Temperature,
 ) {
 
-  /** Gibt die aktuelle Wärmeleitfähigkeit basierend auf der Bodentemperatur
-    * zurück. Das ist essenziell für die iterative Berechnung der
-    * Austrocknungszonen.
+  /** Returns the current thermal conductivity based on the ground temperature.
+    * This is essential for the iterative calculation of the drying zones.
     */
   def currentThermalResistitivy(
       temperature: Temperature

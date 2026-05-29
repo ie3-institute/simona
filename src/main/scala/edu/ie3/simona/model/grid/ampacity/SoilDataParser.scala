@@ -8,6 +8,8 @@ package edu.ie3.simona.model.grid.ampacity
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.util.scala.quantities.*
+import squants.Meters
+import squants.space.Length
 import squants.thermal.Celsius
 
 import java.nio.file.{Files, Path}
@@ -138,8 +140,8 @@ object SoilDataParser extends LazyLogging {
           Try {
             val x = cols(0).toDouble
             val y = cols(1).toDouble
-            val zFrom = cols(2).toDouble
-            val zTo = cols(3).toDouble
+            val zFrom = Meters(cols(2).toDouble)
+            val zTo = Meters(cols(3).toDouble)
             val uuid = UUID.fromString(cols(4))
             SoilLayer(x, y, zFrom, zTo, uuid)
           }
@@ -168,8 +170,12 @@ object SoilDataParser extends LazyLogging {
   }
 
   /** Compute total thickness per soil type UUID. */
-  def totalThicknessBySoilType(layers: Seq[SoilLayer]): Map[UUID, Double] = {
-    layers.groupBy(_.soilType).view.mapValues(_.map(_.thickness).sum).toMap
+  def totalThicknessBySoilType(layers: Seq[SoilLayer]): Map[UUID, Length] = {
+    layers
+      .groupBy(_.soilType)
+      .view
+      .mapValues(_.map(_.thickness).reduce(_ + _))
+      .toMap
   }
 
   /** Combined wrapper that runs the available validation routines and returns a
@@ -221,10 +227,10 @@ object SoilDataParser extends LazyLogging {
           val a = sorted(i)
           for j <- i + 1 until sorted.length do {
             val b = sorted(j)
-            val aMin = math.min(a.zFrom, a.zTo)
-            val aMax = math.max(a.zFrom, a.zTo)
-            val bMin = math.min(b.zFrom, b.zTo)
-            val bMax = math.max(b.zFrom, b.zTo)
+            val aMin = math.min(a.zFrom.toMeters, a.zTo.toMeters)
+            val aMax = math.max(a.zFrom.toMeters, a.zTo.toMeters)
+            val bMin = math.min(b.zFrom.toMeters, b.zTo.toMeters)
+            val bMax = math.max(b.zFrom.toMeters, b.zTo.toMeters)
             if !(aMax <= bMin || bMax <= aMin) then
               errors += s"Overlap between layers at index ${i} and ${j} for coordinate (${a.x},${a.y})"
           }
@@ -257,7 +263,12 @@ object SoilDataParser extends LazyLogging {
       .view
       .mapValues { grp =>
         val intervals = grp
-          .map(l => (math.min(l.zFrom, l.zTo), math.max(l.zFrom, l.zTo)))
+          .map(l =>
+            (
+              math.min(l.zFrom.toMeters, l.zTo.toMeters),
+              math.max(l.zFrom.toMeters, l.zTo.toMeters),
+            )
+          )
           .sortBy(_._1)
         val errors = scala.collection.mutable.ListBuffer.empty[String]
         if intervals.nonEmpty then {
@@ -295,7 +306,12 @@ object SoilDataParser extends LazyLogging {
       .map { case (coord, (expMin, expMax)) =>
         val grp = layers.filter(l => (l.x, l.y) == coord)
         val intervals = grp
-          .map(l => (math.min(l.zFrom, l.zTo), math.max(l.zFrom, l.zTo)))
+          .map(l =>
+            (
+              math.min(l.zFrom.toMeters, l.zTo.toMeters),
+              math.max(l.zFrom.toMeters, l.zTo.toMeters),
+            )
+          )
           .sortBy(_._1)
         val errors = scala.collection.mutable.ListBuffer.empty[String]
 

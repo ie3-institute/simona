@@ -6,18 +6,25 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import squants.Meters
+import squants.space.Length
+
 import java.util.UUID
 
-/** */
+/** Class defining a layer of soil
+  * @param x
+  *
+  * @param y
+  */
 case class SoilLayer(
     x: Double,
     y: Double,
-    zFrom: Double,
-    zTo: Double,
+    zFrom: Length,
+    zTo: Length,
     soilType: UUID,
 ) {
 
   /** Helper method to calculation the thickness of some layer
     */
-  def thickness: Double = math.abs(zFrom - zTo)
+  def thickness: Length = Meters(math.abs(zFrom.toMeters - zTo.toMeters))
 }
