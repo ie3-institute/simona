@@ -644,7 +644,7 @@ class LineThermalModelCalculationsSpec
         val expectedThermalResistance = KelvinMetersPerWatt(expectedRes)
 
         val actual =
-          calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
+          calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance(
             specTherRes,
             depth,
             diameterB,

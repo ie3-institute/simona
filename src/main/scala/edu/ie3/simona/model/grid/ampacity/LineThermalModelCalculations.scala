@@ -117,9 +117,10 @@ object LineThermalModelCalculations extends LazyLogging {
     * conductor and screen.
     *
     * @param screenLayer
-    *   FIXME
+    *   Cable layer of the screen with type [[ScreenLayer]].
     * @return
-    *   FIXME
+    *   Returns the degree of cover how much of the screen surface is covered by
+    *   screen elements (e.g. screen wires).
     */
   def calcDegreeOfScreenCover(
       screenLayer: Option[ScreenLayer]
@@ -638,7 +639,7 @@ object LineThermalModelCalculations extends LazyLogging {
     *   The thermal resistance between cable and its surrounding soil in Kelvin
     *   * Meter / Watt per unit cable length.
     */
-  def calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
+  def calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance(
       specificThermalResistivityGround: ThermalResistivity,
       depthCables: Length,
       diameterCableB: Length,
@@ -662,6 +663,41 @@ object LineThermalModelCalculations extends LazyLogging {
       calcGeometricFactor(depthCables, diameterCableB)
 
     specificThermalResistivityGround / TWO_PI * (thermalResistanceShareOfCableB + thermalInfluenceCableAonB + thermalInfluenceCableConB)
+  }
+
+  /** Calculates the thermal resistivity of the middle single core cable
+    * (hottest cable) for a flat formation of three single core cables that
+    * touches each other. Cable formation: (A)(B)(C). Reference Anders Rating of
+    * electric power cables: ampacity computations for transmission,
+    * distribution, and industrial applications p. 218.
+    *
+    * @param specificThermalResistivityGround
+    *   The material dependent specific thermal resistance of the surrounding
+    *   soil.
+    * @param depthCables
+    *   The laying depth of the cables.
+    * @param diameterCableB
+    *   The losses of the cable B.
+    * @return
+    *   The thermal resistance between cable and its surrounding soil in Kelvin
+    *   * Meter / Watt per unit cable length.
+    */
+  def calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
+      specificThermalResistivityGround: ThermalResistivity,
+      depthCables: Length,
+      diameterCableB: Length,
+  ): ThermalResistivity = {
+    val u = (depthCables * 2) / diameterCableB
+
+    if u < 5 then
+      logger.warn(
+        s"The formula for calculating the thermal resistance to soil for three single core cables in flat formation that touch each other is only valid for u > 5. The calculated value may be inaccurate, because value of u is $u in this case."
+      )
+
+    specificThermalResistivityGround * (0.475 * log(2 * u) - 0.346)
+    /*FIXME Check
+      An Improved Formula for External Thermal  Resistance of Three Buried Single-Core Metal-Sheathed Touching Cables in Flat Formation by Niksa Kovac, George Anders, and Dragan Poljak
+     */
   }
 
   /** Calculates the thermal resistivity of the top single core cable (hottest
@@ -890,7 +926,7 @@ object LineThermalModelCalculations extends LazyLogging {
     // T4 changes since it depends on losses from neighbouring cables
     val t4 = cableSetup.layoutFormation match {
       case "flat-distance" =>
-        calcThermalResistanceToSoilThreeSingleCoreFlatFormation(
+        calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance(
           state.cableSetup.soilResistivity,
           cableSetup.depthCables,
           cableSetup.layersJackElements
@@ -907,9 +943,18 @@ object LineThermalModelCalculations extends LazyLogging {
           thermalTotalLossesLaggingCable,
         )
       case "flat-touching" =>
-        throw new IllegalArgumentException(
-          s"Flat-touching layout formation is currently not supported"
-        )
+        calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
+          state.cableSetup.soilResistivity,
+          cableSetup.depthCables,
+          cableSetup.layersJackElements
+            .map(_.outerDiameter)
+            .maxOption
+            .getOrElse(
+              throw new IllegalArgumentException(
+                "Jack layer expected but not found for thermal resistance to soil calculation"
+              )
+            ),
+        ) //FIXME add tests!
       case "trefoil-not-touching" => // FIXME Check for Trefoil
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
