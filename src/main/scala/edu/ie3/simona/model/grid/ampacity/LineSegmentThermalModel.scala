@@ -104,7 +104,7 @@ final case class LineSegmentThermalModel(
       receivedData: Seq[Data],
   ): LineState = {
     val (weightTempLvl3, weightTempLvl4) =
-      LineSegmentThermalModel.determineWeigthsGroundTemperatures(
+      LineSegmentThermalModel.determineWeightsGroundTemperatures(
         state.cableSetup.depthCables
       )
 
@@ -132,7 +132,7 @@ final case class LineSegmentThermalModel(
   /** Determine the next threshold, that will be reached.
     *
     * @param lineState
-    *
+    *   State of a thermal line segment model.
     * @param electricCurrent
     *   The electric current of that line in this simulation step.
     * @return
@@ -310,13 +310,16 @@ object LineSegmentThermalModel {
     )
   }
 
-  /** Determine the next threshold, that will be reached.
+  /** Determine the weight of both temperature data at level 3 and level 4 for a
+    * specific depth of the cable under analysis.
     *
     * @param depthCables
-    *
+    *   The laying depth of the cables.
     * @return
+    *   A tuple of the weights for the ground temperature at level 3 and level
+    *   4, respectively.
     */
-  def determineWeigthsGroundTemperatures(
+  def determineWeightsGroundTemperatures(
       depthCables: Length
   ): (Double, Double) = {
     depthCables match {

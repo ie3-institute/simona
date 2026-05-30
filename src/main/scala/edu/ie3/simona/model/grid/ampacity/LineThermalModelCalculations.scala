@@ -47,6 +47,8 @@ object LineThermalModelCalculations extends LazyLogging {
     *
     * @param cableSetup
     *   The setup of the cable in this line segment.
+    * @param voltage
+    *   The rated voltage of the cable.
     * @return
     *   The thermal resistance per unit of length.
     */
@@ -122,7 +124,7 @@ object LineThermalModelCalculations extends LazyLogging {
     *   Returns the degree of cover how much of the screen surface is covered by
     *   screen elements (e.g. screen wires).
     */
-  def calcDegreeOfScreenCover(
+  private def calcDegreeOfScreenCover(
       screenLayer: Option[ScreenLayer]
   ): Double = {
     val layFactor = calcLayFactor(screenLayer)
@@ -142,7 +144,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     *   The lay factor.
     */
-  def calcLayFactor(
+  private def calcLayFactor(
       screenLayer: Option[ScreenLayer]
   ): Double = {
     screenLayer match {
@@ -204,18 +206,18 @@ object LineThermalModelCalculations extends LazyLogging {
   /** Calculates the AC resistance per unit of length of the sheath accounting
     * for temperature and high-frequency effects (skin effect, proximity
     * effect).
-    * @param resistivity
-    *   The resistivity of the conductor material.
-    * @param conductorArea
-    *   The cross-sectional area of the conductor.
-    * @param temperatureCorrectionFactor
-    *   Temperature coefficient for resistance variation.
-    * @param operatingTemperature
-    *   The operating temperature of the conductor.
-    * @param factorSkinEffect
-    *   Factor accounting for skin effect at operating frequency.
-    * @param factorProximityEffect
-    *   Factor accounting for proximity effect.
+    * @param screenLayer
+    *   Cable layer of the screen with type [[ScreenLayer]].
+    * @param limitTemperature
+    *   FIXME
+    * @param thermalResistanceT1
+    *   FIXME
+    * @param conductorLosses
+    *   The thermal losses of the conductor of this line segment in power per
+    *   unit cable length.
+    * @param dielectricLosses
+    *   The thermal losses caused by dielectric losses of this line segment in
+    *   power per unit cable length.
     * @return
     *   The AC resistance per unit of length.
     */
@@ -263,7 +265,6 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   /** Calculates the skin effect factor (y_s) according to IEC 60287.
-    *
     * @param rDc
     *   DC resistance of the conductor at operating temperature
     * @param frequency
@@ -274,7 +275,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     *   Skin effect factor (y_s)
     */
-  def calculateSkinEffectFactor(
+  private def calculateSkinEffectFactor(
       rDc: ElectricalResistancePerLength,
       frequency: Frequency,
       ks: Double,
@@ -294,7 +295,6 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Calculates the proximity effect factor (y_p) for a three-core cable or
     * three single-core cables in a trefoil arrangement (IEC 60287).
-    *
     * @param rDc
     *   DC resistance of the conductor at operating temperature
     * @param frequency
@@ -308,7 +308,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     *   Proximity effect factor (y_p)
     */
-  def calculateProximityEffectFactor(
+  private def calculateProximityEffectFactor(
       rDc: ElectricalResistancePerLength,
       frequency: Frequency,
       kp: Double,
@@ -329,7 +329,6 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   /** Calculates the thermal losses of the cable segment per unit cable length.
-    *
     * @param acResistance
     *   The ac resistance of the line segment per unit of cable length.
     * @param current
@@ -346,7 +345,7 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Calculates the losses within the cable sheath. Zero / Not applicable if
     * cable has no sheath.
-    * @layoutFormation
+    * @param layoutFormation
     *   Formation in which the cables are laid.
     * @param r
     *   AC-Resistance per Length of conductor at operating temperature.
@@ -356,7 +355,7 @@ object LineThermalModelCalculations extends LazyLogging {
     *   Axial distance of the cables (Center to Center).
     * @param averageDiameterSheath
     *   Average diameter of the sheath.
-    * @phase
+    * @param phase
     *   String that indicates whether the phase is the leading, the middle, or
     *   the lagging phase within the three-phase-system.
     * @param eddyCurrentsSheathLossFactor
@@ -380,10 +379,7 @@ object LineThermalModelCalculations extends LazyLogging {
       calculateReactance(Hertz(50), axialCableDistance, averageDiameterSheath)
     val lambda1Dash = layoutFormation match {
       case "flat-distance" => calcLambda1DashFlatDistance(r, rs, x, xm, phase)
-      case "flat-touching" =>
-        throw new IllegalArgumentException(
-          s"Flat-touching layout formation is currently not supported"
-        )
+      case "flat-touching" => calcLambda1DashFlatDistance(r, rs, x, xm, phase)
       case "trefoil-not-touching" =>
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
@@ -413,7 +409,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     *   Loss factor lambda1'.
     */
-  def calcLambda1DashFlatDistance(
+  private def calcLambda1DashFlatDistance(
       r: ElectricalResistancePerLength,
       rs: ElectricalResistancePerLength,
       x: ElectricalResistancePerLength,
@@ -459,7 +455,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     *   loss factor lambda1'
     */
-  def calcLambda1DashTrefoilTouching(
+  private def calcLambda1DashTrefoilTouching(
       r: ElectricalResistancePerLength,
       rs: ElectricalResistancePerLength,
       x: ElectricalResistancePerLength,
@@ -468,7 +464,6 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   /** Helper method to calculate the geometric reactance.
-    *
     * @param f
     *   System frequency.
     * @param axialCableDistance
@@ -478,7 +473,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     *   Tuple of sheath reactance X, and mutual reactance Xm.
     */
-  def calculateReactance(
+  private def calculateReactance(
       f: Frequency,
       axialCableDistance: Length,
       averageDiameterSheath: Length,
@@ -496,7 +491,6 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Calculates the losses within the cable armor. Zero / Not applicable if
     * cable has no armor.
-    *
     * @param circulatingArmorLossFactor
     *   Determines the losses in the armor caused by circulating currents. Often
     *   given as lambda_2_dash.
@@ -516,7 +510,6 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   /** Calculates the losses within the cable that are not current-dependent.
-    *
     * @param phaseToGroundVoltage
     *   The phase-to-ground voltage U0 of the cable system
     * @param frequency
@@ -544,7 +537,6 @@ object LineThermalModelCalculations extends LazyLogging {
   /** Calculates the thermal resistivity of the individual layers of the cable
     * (e.g. for isolation shell as the first shell between conductor and further
     * outer layers of the cable).
-    *
     * @param specificThermalResistivity
     *   The material dependent specific thermal resistance of the layer in
     *   question.
@@ -567,8 +559,7 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   /** Calculates the thermal resistivity between the cable layers and the
-    * surrounding soil for a single cable (e.g. Three-Core-Cable).
-    *
+    * surrounding soil for a single cable (e.g. Three-Core-Cable)
     * @param specificThermalResistivityGround
     *   The material dependent specific thermal resistance of the surrounding
     *   soil.
@@ -593,7 +584,6 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Calculates the geometrical factor of the single core cable to its mirrored
     * (Kennelly method).
-    *
     * @param depthCable
     *   The laying depth of the cable.
     * @param cableDiameter
@@ -618,7 +608,6 @@ object LineThermalModelCalculations extends LazyLogging {
     * within the same depth and the outer cables have the same distance to the
     * middle one. See CIGRE TB880 p. 94 for further information if this is not
     * the case.
-    *
     * @param specificThermalResistivityGround
     *   The material dependent specific thermal resistance of the surrounding
     *   soil.
@@ -670,7 +659,6 @@ object LineThermalModelCalculations extends LazyLogging {
     * touches each other. Cable formation: (A)(B)(C). Reference Anders Rating of
     * electric power cables: ampacity computations for transmission,
     * distribution, and industrial applications p. 218.
-    *
     * @param specificThermalResistivityGround
     *   The material dependent specific thermal resistance of the surrounding
     *   soil.
@@ -682,7 +670,7 @@ object LineThermalModelCalculations extends LazyLogging {
     *   The thermal resistance between cable and its surrounding soil in Kelvin
     *   * Meter / Watt per unit cable length.
     */
-  def calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
+  private def calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
       specificThermalResistivityGround: ThermalResistivity,
       depthCables: Length,
       diameterCableB: Length,
@@ -704,13 +692,12 @@ object LineThermalModelCalculations extends LazyLogging {
     * cable) for a trefoil touching formation. Reference: Anders Rating of
     * electric power cables: ampacity computations for transmission,
     * distribution, and industrial applications p. 220
-    *
     * @param specificThermalResistivityGround
     *   The material dependent specific thermal resistance of the surrounding
     *   soil.
     * @param depthToCenter
     *   The laying depth of the cables measured to the center of the trefoil
-    *   group
+    *   group.
     * @param diameterCable
     *   The outer diameter of one of the single cables.
     * @return
@@ -731,7 +718,6 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Calculates the thermal resistivity between the cable layers and the
     * surrounding soil.
-    *
     * @param specificThermalCapacity
     *   The material dependent specific thermal capacity of the layer in
     *   question (Joule per cubic meter).
@@ -758,7 +744,6 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   /** Determines the Van-Wormer-Coefficient for long-duration transients.
-    *
     * @param diameterDielectric
     *   The inner diameter of this layer.
     * @param diameterConductor
@@ -775,7 +760,6 @@ object LineThermalModelCalculations extends LazyLogging {
   }
 
   /** Determines the Van-Wormer-Coefficient for short-duration transients.
-    *
     * @param innerDiameter
     *   The inner diameter of this layer.
     * @param outerDiameter
@@ -954,7 +938,7 @@ object LineThermalModelCalculations extends LazyLogging {
                 "Jack layer expected but not found for thermal resistance to soil calculation"
               )
             ),
-        ) //FIXME add tests!
+        ) // FIXME add tests!
       case "trefoil-not-touching" => // FIXME Check for Trefoil
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"

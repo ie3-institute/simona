@@ -24,7 +24,7 @@ final case class Layer(
     area: Option[Area],
 )
 
-/** Screen layer with specific parameters for conductor shielding
+/** Screen layer with specific parameters for conductor shielding.
   *
   * @param material
   *   Material of the screen
@@ -60,6 +60,31 @@ final case class ScreenLayer(
     materialResistivity: Resistivity,
 )
 
+/** @param uuid
+  * @param id
+  * @param conductor
+  * @param layersIsolationElements
+  * @param screenLayer
+  * @param layersFillerElements
+  * @param layersArmorElements
+  * @param layersJackElements
+  * @param layoutFormation
+  * @param depthCables
+  *   The laying depth of the cables.
+  * @param distanceCables
+  * @param soilResistivity
+  * @param soilCapacitance
+  * @param limitTemperature
+  * @param voltage
+  * @param frequency
+  * @param electricResistance
+  * @param skinEffectCoefficient
+  * @param proximityEffectCoefficient
+  * @param electricCapacitance
+  * @param tanDelta
+  * @param circulatingLossFactorScreen
+  * @param eddyCurrentsLossFactorScreen
+  */
 final case class CableSetup(
     uuid: UUID,
     id: String,

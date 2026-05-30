@@ -118,7 +118,7 @@ class LineSegmentThermalModelSpec
       forAll(cases) { (depth, expectedW3, expectedW4) =>
         val d = Meters(depth)
         val (w3, w4) =
-          LineSegmentThermalModel.determineWeigthsGroundTemperatures(d)
+          LineSegmentThermalModel.determineWeightsGroundTemperatures(d)
 
         w3 should approximate(expectedW3)
         w4 should approximate(expectedW4)
