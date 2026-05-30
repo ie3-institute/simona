@@ -36,7 +36,7 @@ class LineSegmentThermalModelSpec
           "lineCurrent",
           "expectedLineTemperature",
         ),
-       (
+        (
           72000L,
           cigreT880LandCable33kV,
           20d,
@@ -45,7 +45,13 @@ class LineSegmentThermalModelSpec
         ), // CIGRE TB880 S. 205
         (3600L, cigreT880LandCable33kV, 20d, 537d, 70.54034259413268),
         (72000L, cigreT880LandCable33kV, 5d, 537d, 74.87967406997072),
-        (72000L, andersSingleCore10kV, 15d, 629d, 91.27098), // a bit too much because of overestimated screen ac resistance
+        (
+          72000L,
+          andersSingleCore10kV,
+          15d,
+          629d,
+          91.27098,
+        ), // a bit too much because of overestimated screen ac resistance
       )
 
       forAll(cases) {

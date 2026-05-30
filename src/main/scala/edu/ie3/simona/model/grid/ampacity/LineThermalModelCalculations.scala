@@ -132,13 +132,14 @@ object LineThermalModelCalculations extends LazyLogging {
     }
   }
 
-  /** Calculates the thermal resistance T1 of the inner cable elements between
-    * conductor and screen.
-    *
+  /** Calculates the lay factor of the screen layer which is the ratio of the
+    * lay length to the external diameter of the corresponding layer of wires or
+    * members in the stranded conductor (measures how much longer a spiraled (or
+    * stranded) wire is compared to a perfectly straight, parallel wire).
     * @param screenLayer
-    *   FIXME
+    *   Cable layer of the screen with type [[ScreenLayer]]
     * @return
-    *   FIXME
+    *   The lay factor.
     */
   def calcLayFactor(
       screenLayer: Option[ScreenLayer]
@@ -243,7 +244,7 @@ object LineThermalModelCalculations extends LazyLogging {
 
         // calculate operating temperatur of the screen
         val screenTemp =
-          limitTemperature // FIXME this is only limitTemperate if the conductor is at limitTemp
+          limitTemperature // this is only limitTemperate if the conductor is at limitTemp
             - Kelvin(
               (conductorLosses.toWatts + 0.5 * dielectricLosses.toWatts) * thermalResistanceT1.toKelvinMetersPerWatt
             )

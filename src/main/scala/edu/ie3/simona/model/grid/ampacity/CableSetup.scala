@@ -172,15 +172,15 @@ object CableSetup {
       case CableMaterial.Copper =>
         squants.electro.OhmMeters(
           1.7241e-8
-        )  // Lücking Energiekabeltechnik p. 94
+        ) // Lücking Energiekabeltechnik p. 94
       case CableMaterial.Aluminium =>
         squants.electro.OhmMeters(
           2.8264e-8
-        )  // Lücking Energiekabeltechnik p. 94
+        ) // Lücking Energiekabeltechnik p. 94
       case CableMaterial.Steel =>
         squants.electro.OhmMeters(
           13.8e-8
-        )  // Lücking Energiekabeltechnik p. 94
+        ) // Lücking Energiekabeltechnik p. 94
       case CableMaterial.Lead =>
         squants.electro.OhmMeters(
           21.4e-8
@@ -196,10 +196,11 @@ object CableSetup {
       mat: CableMaterial
   ): Double =
     mat match {
-      case CableMaterial.Copper    => 3.93e-3 // Lücking Energiekabeltechnik p. 94
-      case CableMaterial.Aluminium => 4.03e-3  // Lücking Energiekabeltechnik p. 94
-      case CableMaterial.Lead => 4.0e-3  // Lücking Energiekabeltechnik p. 94
-      case CableMaterial.Steel => 4.5e-3  // Lücking Energiekabeltechnik p. 94
+      case CableMaterial.Copper => 3.93e-3 // Lücking Energiekabeltechnik p. 94
+      case CableMaterial.Aluminium =>
+        4.03e-3 // Lücking Energiekabeltechnik p. 94
+      case CableMaterial.Lead  => 4.0e-3 // Lücking Energiekabeltechnik p. 94
+      case CableMaterial.Steel => 4.5e-3 // Lücking Energiekabeltechnik p. 94
       case other =>
         throw new IllegalArgumentException(s"Unknown material: $other")
     }
