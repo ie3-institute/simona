@@ -18,6 +18,7 @@ import edu.ie3.simona.config.InputConfig.{
 import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.{
+  AmpacityCalculation,
   CongestionManagement,
   GridConfig,
   Powerflow,
@@ -63,6 +64,11 @@ class SimonaConfigSpec extends UnitSpec {
         endDateTime = "2011-05-01T01:00:00Z",
         schedulerReadyCheckWindow = None,
         startDateTime = "2011-05-01T00:00:00Z",
+      )
+
+      // ampacity config
+      simonaConfig.ampacityCalculations shouldBe AmpacityCalculation(
+        activateAmpacityCalculation = false
       )
 
       // congestion management config

@@ -589,8 +589,8 @@ class LineThermalModelCalculationsSpec
         1.0,
         0.055,
         0.6822220147,
-      ), //CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 323
-      )
+      ), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 323
+    )
 
     forAll(cases) {
       (
