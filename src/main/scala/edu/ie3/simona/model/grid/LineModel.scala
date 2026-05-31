@@ -14,7 +14,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import squants.Each
+import squants.{Dimensionless, Each, ElectricCurrent}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
@@ -59,11 +59,11 @@ final case class LineModel(
     nodeAUuid: UUID,
     nodeBUuid: UUID,
     amount: Int,
-    iNom: squants.electro.ElectricCurrent,
-    protected val r: squants.Dimensionless,
-    protected val x: squants.Dimensionless,
-    protected val g: squants.Dimensionless,
-    protected val b: squants.Dimensionless,
+    iNom: ElectricCurrent,
+    protected val r: Dimensionless,
+    protected val x: Dimensionless,
+    protected val g: Dimensionless,
+    protected val b: Dimensionless,
 ) extends SystemComponent(
       uuid,
       id,
@@ -76,7 +76,7 @@ final case class LineModel(
     * @return
     *   branch conductance g_ij between node A and B of the element in p.u.
     */
-  override def gij(): squants.Dimensionless =
+  override def gij(): Dimensionless =
     super.gij() * amount
 
   /** see [[PiEquivalentCircuit.g0()]]
@@ -84,7 +84,7 @@ final case class LineModel(
     * @return
     *   phase-to-ground conductance g_0 in p.u.
     */
-  override def g0(): squants.Dimensionless =
+  override def g0(): Dimensionless =
     super.g0() * amount / 2
 
   /** see [[PiEquivalentCircuit.bij()]]
@@ -92,7 +92,7 @@ final case class LineModel(
     * @return
     *   phase-to-ground conductance g_0 in p.u.
     */
-  override def bij(): squants.Dimensionless =
+  override def bij(): Dimensionless =
     super.bij() * amount
 
   /** see [[PiEquivalentCircuit.b0()]]
@@ -100,7 +100,7 @@ final case class LineModel(
     * @return
     *   phase-to-ground susceptance b_0 in p.u.
     */
-  override def b0(): squants.Dimensionless =
+  override def b0(): Dimensionless =
     super.b0() * amount / 2
 
 }
@@ -317,8 +317,8 @@ case object LineModel extends LazyLogging {
     */
   def utilisation(
       lineModel: LineModel,
-      iNodeA: squants.electro.ElectricCurrent,
-      iNodeB: squants.electro.ElectricCurrent,
+      iNodeA: ElectricCurrent,
+      iNodeB: ElectricCurrent,
   ): squants.Dimensionless = {
     Each(
       Math.max(
