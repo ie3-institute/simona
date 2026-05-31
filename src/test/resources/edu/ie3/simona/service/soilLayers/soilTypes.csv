@@ -1,0 +1,3 @@
+uuid, id, thermal_resistivity_wet, thermal_resistivity_dry, specific_heat_capacity, critical_temperature
+78b72d1d-9d05-446b-a072-426eb4d3807e,loam,0.30,0.40,0.0015,35.0
+32b43a78-7721-431d-b1c2-56975a123670,vde sand, 1.0,0.40,0.0015,35.0

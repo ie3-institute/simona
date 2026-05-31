@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.matchers.QuantityMatchers
 import squants.thermal.Celsius
 import squants.{Kelvin, Meters, Temperature}
 import edu.ie3.util.scala.quantities.{
@@ -16,11 +17,13 @@ import edu.ie3.util.scala.quantities.{
   ThermalResistivity,
 }
 import org.scalatest.matchers.should.Matchers
+import org.locationtech.jts.geom.Geometry
 
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import java.util.UUID
+import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 
-class SoilDataParserSpec extends UnitSpec with Matchers {
+class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
 
   given Temperature = Kelvin(1e-3)
   given SpecificHeatCapacity = KilowattHoursPerKelvinCubicMeters(1e-8)
@@ -29,6 +32,20 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
 
   "SoilDataParser" should {
     val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
+    val gf = new GeometryFactory()
+    def square(x: Double, y: Double, s: Double = 0.0001) = {
+      val coords = Array(
+        new Coordinate(x - s, y - s),
+        new Coordinate(x + s, y - s),
+        new Coordinate(x + s, y + s),
+        new Coordinate(x - s, y + s),
+        new Coordinate(x - s, y - s),
+      )
+      gf.createPolygon(coords)
+    }
+
+    val g = square(0.0, 0.0)
+
     "read soil types from CSV" in {
       val content =
         s"uuid,id,thermalResistivityWet,thermalResistivityDry,specificHeatCapacity,criticalTemperature\n${uuid},loam,0.30,0.40,0.0015,35.0\n"
@@ -45,23 +62,57 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
       assert(t.criticalTemperature == Celsius(35d))
     }
 
-    "read soil layers from CSV and compute thickness" in {
-      val content = s"x,y,zFrom,zTo,soilTypeUuid\n1.0,2.0,-0.1,-0.5,${uuid}\n"
-      val tmp = Files.createTempFile("soil_layers", ".csv")
+    "read soil layers from resources and compute thicknesses" in {
+      val typesUrl =
+        getClass.getResource("/edu/ie3/simona/service/soilLayers/soilTypes.csv")
+      typesUrl should not be (null)
+      val typesPath = Paths.get(typesUrl.toURI)
+
+      val layersUrl = getClass.getResource(
+        "/edu/ie3/simona/service/soilLayers/soilLayers.csv"
+      )
+      layersUrl should not be (null)
+      val layersPath = Paths.get(layersUrl.toURI)
+
+      val typesRes = SoilDataParser.readSoilTypes(typesPath)
+      typesRes.isSuccess shouldBe true
+      val types = typesRes.get
+      types should not be empty
+      types.head.id should be("loam")
+
+      val layersRes = SoilDataParser.readSoilLayers(layersPath)
+      layersRes.isSuccess shouldBe true
+      val layers = layersRes.get
+      layers should not be empty
+      layers.head.thickness.toMeters should be(2.0)
+
+      val typeIds = types.map(_.uuid).toSet
+      val referenced = layers.map(_.soilType).toSet
+      referenced.subsetOf(typeIds) shouldBe true
+
+      val totals = SoilDataParser.totalThicknessBySoilType(layers)
+      totals.keySet should contain allElementsOf referenced
+    }
+
+    "read soil layers from inline CSV and compute thickness" in {
+      val content =
+        """f07aa67c-43f5-4706-967a-5d0613a94701,"{""type"":""Polygon"",""coordinates"":[[[7.40383,51.49129],[7.40562,51.49130],[7.40560,51.49106],[7.40377,51.49105],[7.40383,51.49129]]]}",0.0,-0.4,32b43a78-7721-431d-b1c2-56975a123670"""
+
+      val tmp = Files.createTempFile("soilLayers", ".csv")
       Files.writeString(tmp, content)
 
       val res = SoilDataParser.readSoilLayers(tmp)
       assert(res.isSuccess)
       val layers = res.get
       assert(layers.size == 1)
+
       layers.head.thickness shouldBe Meters(0.4)
     }
 
-    "check for overloaps of soil layers" in {
-
+    "check for overlaps of soil layers" in {
       val layers = Seq(
-        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(0.0, 0.0, Meters(-0.5), Meters(-2.0), uuid), // overlap
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(uuid, g, Meters(-0.5), Meters(-2.0), uuid), // overlap
       )
       intercept[RuntimeException] {
         SoilDataParser.validateNonOverlappingPerCoordinate(layers)
@@ -70,39 +121,41 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
     }
     "check for gaps between soil layers" in {
       val layers = Seq(
-        SoilLayer(1.0, 1.0, Meters(0.0), Meters(-0.5), uuid),
-        SoilLayer(1.0, 1.0, Meters(-1.0), Meters(-2.0), uuid), // gap
+        SoilLayer(uuid, g, Meters(0.0), Meters(-0.5), uuid),
+        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), uuid), // gap
       )
       intercept[RuntimeException] {
         SoilDataParser.validateNoGapsPerCoordinate(layers)
       }
     }
     "check for coverage of soil layers" in {
+      val g2 = square(1.0, 1.0)
       val layers = Seq(
-        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(0.0, 0.0, Meters(-1.0), Meters(-2.0), uuid),
-        SoilLayer(1.0, 1.0, Meters(0.0), Meters(-0.5), uuid),
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), uuid),
+        SoilLayer(uuid, g2, Meters(0.0), Meters(-0.5), uuid),
         SoilLayer(
-          1.0,
-          1.0,
+          uuid,
+          g2,
           Meters(-0.5),
           Meters(-1.5),
           uuid,
         ), // missing coverage to -2.0 m
       )
-      val expected = Map((0.0, 0.0) -> (-2.0, 0.0), (1.0, 1.0) -> (-2.0, 0.0))
+      val expected: Map[org.locationtech.jts.geom.Geometry, (Double, Double)] =
+        Map(g -> (-2.0, 0.0), g2 -> (-2.0, 0.0))
       intercept[RuntimeException] {
         SoilDataParser.validateCoverageAgainstRanges(layers, expected)
       }
     }
 
     "throw exception in case of errors" in {
-      val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
       val layers = Seq(
-        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(0.0, 0.0, Meters(-0.5), Meters(-2.0), uuid), // overlap
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(uuid, g, Meters(-0.5), Meters(-2.0), uuid), // overlap
       )
-      val expected = Map((0.0, 0.0) -> (-2.0, 0.0))
+      val expected: Map[Geometry, (Double, Double)] =
+        Map(g -> (-2.0, 0.0))
 
       intercept[RuntimeException] {
         SoilDataParser.validateAll(layers, expectedRanges = expected)
@@ -110,12 +163,12 @@ class SoilDataParserSpec extends UnitSpec with Matchers {
     }
 
     "not throw exception when everything is fine" in {
-      val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
       val layers = Seq(
-        SoilLayer(0.0, 0.0, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(0.0, 0.0, Meters(-1.0), Meters(-2.0), uuid),
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
+        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), uuid),
       )
-      val expected = Map((0.0, 0.0) -> (-2.0, 0.0))
+      val expected: Map[Geometry, (Double, Double)] =
+        Map(g -> (-2.0, 0.0))
 
       noException shouldBe thrownBy {
         SoilDataParser.validateAll(layers, expectedRanges = expected)
