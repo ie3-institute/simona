@@ -26,6 +26,7 @@ import squants.space.{Length, Meters}
 import squants.thermal.Celsius
 import squants.{ElectricCurrent, Kelvin, Temperature}
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 /** A thermal model for a line segment
@@ -48,6 +49,7 @@ import java.util.UUID
 final case class LineSegmentThermalModel(
     uuid: UUID,
     id: String,
+    lineUuid: UUID,
     thermalResistanceT1: ThermalResistivity,
     thermalResistanceT2: ThermalResistivity,
     thermalResistanceT3: ThermalResistivity,
@@ -149,15 +151,38 @@ final case class LineSegmentThermalModel(
   ): Option[Long] = {
     ???
   }
+
+  def createResults(
+      state: LineState,
+      dateTime: ZonedDateTime,
+  ): Iterable[LineStateResult] = {
+    Iterable(
+      LineStateResult(
+        dateTime,
+        lineUuid,
+        uuid,
+        state.lineTemperatures.currentLineTemp1,
+      )
+    )
+  }
+
 }
+
+final case class LineStateResult(
+    time: ZonedDateTime,
+    lineUuid: UUID,
+    lineSegmentUuid: UUID,
+    lineSegmentTemperature: Temperature,
+)
 
 object LineSegmentThermalModel {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
 
   def apply(input: LineModel): LineSegmentThermalModel =
     new LineSegmentThermalModel(
-      input.uuid,
+      UUID.randomUUID(),
       input.id,
+      input.uuid,
       KelvinMetersPerWatt(1),
       KelvinMetersPerWatt(1),
       KelvinMetersPerWatt(1),
@@ -197,6 +222,7 @@ object LineSegmentThermalModel {
   def startingState(
       groundTemperature: Temperature,
       cableSetup: CableSetup,
+      lineSegmentModel: LineSegmentThermalModel,
   ): LineState = {
     val t1 = calcThermalResistanceT1(cableSetup, cableSetup.voltage)
 
@@ -278,8 +304,9 @@ object LineSegmentThermalModel {
       cableSetup.soilCapacitance // FIXME Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
 
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
-      UUID.randomUUID(),
-      "initialLineSegmentThermalModel",
+      lineSegmentModel.uuid,
+      lineSegmentModel.id,
+      lineSegmentModel.lineUuid,
       t1,
       t2,
       t3,

@@ -68,6 +68,7 @@ class LineSegmentThermalModelSpec
             LineSegmentThermalModel.startingState(
               groundTemperature,
               cableSetup,
+              lineSegmentThermalModel,
             )
 
           val currentModel: LineSegmentThermalModel =

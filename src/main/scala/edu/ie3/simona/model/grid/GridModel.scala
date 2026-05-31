@@ -543,6 +543,7 @@ object GridModel {
                   LineSegmentThermalModel(
                     UUID.randomUUID(),
                     lineInput.getId + "_" + start.toString + "_" + end.toString,
+                    lineInput.getUuid,
                     KelvinMetersPerWatt(1),
                     KelvinMetersPerWatt(1),
                     KelvinMetersPerWatt(1),
