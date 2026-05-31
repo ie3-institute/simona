@@ -11,7 +11,6 @@ import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
-import play.api.libs.json.*
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -29,6 +28,7 @@ import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
+import play.api.libs.json.*
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
@@ -554,7 +554,7 @@ object GridModel {
                     JoulesPerMeterKelvin(1),
                     JoulesPerMeterKelvin(1),
                     Celsius(90),
-                  )
+                  )(using startDate)
                 }
                 .toSet
             )

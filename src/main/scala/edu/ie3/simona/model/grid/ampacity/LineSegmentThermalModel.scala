@@ -11,6 +11,7 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
   LineState,
   temperatureTolerance,
 }
+import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
@@ -60,7 +61,7 @@ final case class LineSegmentThermalModel(
     thermalCapacityCj: ThermalCapacitance,
     thermalCapacityCe: ThermalCapacitance,
     upperBoundaryTemperature: Temperature,
-) {
+)(using simulationStart: ZonedDateTime) {
 
   /** Check if the temperature of a line element is higher than the allowed
     * maximum temperature.
@@ -94,11 +95,14 @@ final case class LineSegmentThermalModel(
       lineCurrent,
     )
 
-    lastLineState.copy(
+    val updatedLineState = lastLineState.copy(
       tick = tick,
       lastTick = lastLineState.tick,
       lineTemperatures = updatedLineTemperatures,
     )
+    createResults(updatedLineState, tick.toDateTime(using simulationStart))
+
+    updatedLineState
   }
 
   def handleInput(
@@ -178,7 +182,10 @@ final case class LineStateResult(
 object LineSegmentThermalModel {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
 
-  def apply(input: LineModel): LineSegmentThermalModel =
+  def apply(
+      input: LineModel,
+      simulationStart: ZonedDateTime,
+  ): LineSegmentThermalModel =
     new LineSegmentThermalModel(
       UUID.randomUUID(),
       input.id,
@@ -193,7 +200,7 @@ object LineSegmentThermalModel {
       JoulesPerMeterKelvin(1),
       JoulesPerMeterKelvin(1),
       Celsius(90),
-    )
+    )(using simulationStart)
 
   /** State of a thermal line segment model.
     *
@@ -223,6 +230,7 @@ object LineSegmentThermalModel {
       groundTemperature: Temperature,
       cableSetup: CableSetup,
       lineSegmentModel: LineSegmentThermalModel,
+      simulationStart: ZonedDateTime,
   ): LineState = {
     val t1 = calcThermalResistanceT1(cableSetup, cableSetup.voltage)
 
@@ -317,7 +325,7 @@ object LineSegmentThermalModel {
       thermalCapacityCj,
       thermalCapacityCe,
       Celsius(90),
-    )
+    )(using simulationStart)
 
     val initLineTemperatures = LineTemperatures(
       groundTemperature,

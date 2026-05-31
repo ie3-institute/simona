@@ -7,12 +7,17 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, LineSegmentThermalModel}
-import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt, ThermalResistivity}
+import edu.ie3.simona.test.common.DefaultTestData
+import edu.ie3.util.scala.quantities.{
+  JoulesPerMeterKelvin,
+  KelvinMetersPerWatt,
+  ThermalResistivity,
+}
 import squants.thermal.Celsius
 
 import java.util.UUID
 
-trait LineSegmentThermalModelInputData {
+trait LineSegmentThermalModelInputData extends DefaultTestData {
   protected val cigreT880LandCable33kV: CableSetup =
     CigreT880LandCable33kV.cable
   protected val andersSingleCore10kV: CableSetup =
@@ -32,6 +37,6 @@ trait LineSegmentThermalModelInputData {
       JoulesPerMeterKelvin(1.0),
       JoulesPerMeterKelvin(1.0),
       Celsius(90d),
-    )
+    )(using defaultSimulationStart)
 
 }

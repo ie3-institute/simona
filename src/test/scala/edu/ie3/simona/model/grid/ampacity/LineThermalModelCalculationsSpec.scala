@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
-import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.test.common.input.{
   CigreT880LandCable33kV,
   LineSegmentThermalModelInputData,
@@ -21,7 +21,8 @@ import squants.{Amperes, Meters}
 
 class LineThermalModelCalculationsSpec
     extends UnitSpec
-    with LineSegmentThermalModelInputData {
+    with LineSegmentThermalModelInputData
+    with DefaultTestData {
 
   implicit val resistanceTolerance: ThermalResistivity = KelvinMetersPerWatt(
     1e-10
@@ -714,6 +715,7 @@ class LineThermalModelCalculationsSpec
         groundTemp,
         cigreT880LandCable33kV,
         lineSegmentThermalModel,
+        defaultSimulationStart,
       )
 
     val current = Amperes(537.46)
