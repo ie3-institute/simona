@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid.congestion
 
-import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.GridAgent.{Message, simulateGrid}
 import edu.ie3.simona.agent.grid.GridAgentMessages.DoPowerFlowTrigger
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
@@ -17,16 +16,23 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
 import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.TransformerTapChange
 import edu.ie3.simona.agent.grid.congestion.mitigations.TransformerTapPositionChange
-import edu.ie3.simona.agent.grid.data.CongestionManagementData
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
+import edu.ie3.simona.agent.grid.data.{
+  AmpacityCalculationData,
+  CongestionManagementData,
+}
+import edu.ie3.simona.agent.grid.{AmpacityCalculation, GridAgent}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.typed.Behavior
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * congestion management (DCM) algorithm execution. It is considered to be the
@@ -34,7 +40,52 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
   */
 trait DCMAlgorithm
     extends CongestionDetection
+    with AmpacityCalculation
     with TransformerTapPositionChange {
+
+  /** Method for starting the ampacity calculation.
+    *
+    * @param gridAgentBaseData
+    *   State data of the actor.
+    * @param currentTick
+    *   The current tick in the simulation.
+    * @param subGridNo
+    *   The number of the subgrid.
+    * @param results
+    *   Option for the last power flow results.
+    * @param ctx
+    *   Actor context.
+    * @param constantData
+    *   Immutable [[GridAgent]] values.
+    * @param buffer
+    *   For [[GridAgent.Message]]s.
+    * @return
+    *   A [[Behavior]].
+    */
+  private[grid] def startAmpacityCalculation(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      subGridNo: Int,
+      results: Option[PowerFlowResultEvent],
+      ctx: ActorContext[Message],
+  )(using
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[Message],
+  ): Behavior[Message] = {
+    // build the state data
+    val ampacityCalcData =
+      AmpacityCalculationData(
+        gridAgentBaseData,
+        currentTick,
+        subGridNo,
+        results,
+      )
+
+    ctx.self ! StartStep
+    GridAgent.calcAmpacity(
+      ampacityCalcData
+    )
+  }
 
   /** Method for starting the congestion management.
     *

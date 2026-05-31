@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.actor.SimonaActorNaming
+import edu.ie3.simona.agent.grid.AmpacityCalculationMessages.DoAmpacityCalculation
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
   FinishedInitialization,
   PowerFlowResults,
@@ -122,6 +123,17 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       ctx.self ! doPowerFlowTrigger
       buffer.unstashAll(
         simulateGrid(gridAgentBaseData, doPowerFlowTrigger.tick)
+      )
+
+    case (ctx, DoAmpacityCalculation(currentTick, results)) =>
+      val subGridNo =
+        gridAgentBaseData.gridEnv.gridModel.subnetNo // FIXME are all subgrids check or only this one, why this one?
+      startAmpacityCalculation(
+        gridAgentBaseData,
+        currentTick,
+        subGridNo,
+        results,
+        ctx,
       )
 
     case (ctx, DoCongestionManagement(currentTick, results)) =>
