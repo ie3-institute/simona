@@ -34,6 +34,8 @@ trait CongestionDetection {
     * congestion in the grid.
     * @param stateData
     *   Of the actor.
+    * @param awaitingData
+    *   Awaiting data of type [[Congestions]].
     * @param constantData
     *   Constant data of the [[GridAgent]].
     * @param buffer
