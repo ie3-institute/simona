@@ -7,7 +7,7 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, LineSegmentThermalModel}
-import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, ThermalResistivity}
+import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt, ThermalResistivity}
 import squants.thermal.Celsius
 
 import java.util.UUID

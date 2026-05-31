@@ -570,8 +570,7 @@ class LineThermalModelCalculationsSpec
     }
   }
 
-  "return all correct thermal resistance for T4 / soil for a single burried cable" in {
-
+  "return all correct thermal resistance for T4 / soil for a single buried cable (e.g. three core cable, or cable in ducts)" in {
     val cases = Table(
       (
         "specificThermalResistivity",
@@ -579,11 +578,19 @@ class LineThermalModelCalculationsSpec
         "cableDiameter",
         "thermalResistance",
       ),
-      (1.0, 1.0, 0.0729, 0.6373564504421266), // Anders 1997 Cable No 2 T4 p. 215
-      // (1.0, 1.8, 0.1252, 1.276), //Anders Cable No 5 T4
-      // (1.0, 1.0, 0.0358, 1.933), //Cable No 1 T4 Anders 2005 p. 311
-      // (1.0, 1.0, 0.044, 1.8524966955), //CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 204 T4, Tree-foil touching
-    )
+      (
+        1.0,
+        1.0,
+        0.0729,
+        0.6373564504421266,
+      ), // Anders 1997 Cable No 2 T4 p. 215
+      (
+        1.0,
+        1.0,
+        0.055,
+        0.6822220147,
+      ), //CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 323
+      )
 
     forAll(cases) {
       (
