@@ -135,6 +135,7 @@ final case class LineSegmentThermalModel(
       .getOrElse(state)
   }
 
+  /*
   /** Determine the next threshold, that will be reached.
     *
     * @param lineState
@@ -155,7 +156,7 @@ final case class LineSegmentThermalModel(
   ): Option[Long] = {
     ???
   }
-
+   */
   def createResults(
       state: LineState,
       dateTime: ZonedDateTime,

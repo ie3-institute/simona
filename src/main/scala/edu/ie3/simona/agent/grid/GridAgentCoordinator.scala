@@ -9,6 +9,7 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.EnvironmentRefs
+import edu.ie3.simona.agent.grid.AmpacityCalculationMessages.DoAmpacityCalculation
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   DoCongestionManagement,
@@ -36,6 +37,7 @@ import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.InitializationException
+import edu.ie3.simona.model.grid.ampacity.AmpacityCalculationParams
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -129,6 +131,7 @@ object GridAgentCoordinator {
     */
   final case class StateData(
       scheduler: ActorRef[SchedulerMessage],
+      ampacityCalculationParams: AmpacityCalculationParams,
       congestionManagementParams: CongestionManagementParams,
       resultProxy: ActorRef[ResultEvent],
       simStartTime: ZonedDateTime,
@@ -187,11 +190,15 @@ object GridAgentCoordinator {
     Behaviors.setup { ctx =>
       val scheduler = environmentRefs.scheduler
 
+      val ampacityCalculationParams =
+        AmpacityCalculationParams(config.ampacityCalculation)
+
       val congestionManagementParams =
         CongestionManagementParams(config.congestionManagement)
 
       val stateData = StateData(
         scheduler,
+        ampacityCalculationParams,
         congestionManagementParams,
         environmentRefs.resultProxy,
         config.time.simStartTime,
@@ -337,24 +344,41 @@ object GridAgentCoordinator {
         // still waiting for results
         awaitGridSimulation(stateData, updated)
 
-      } else if stateData.runCongestionManagement then {
-        // handle congestion management
-        val currentTick = stateData.currentTick
-        val results = updated.receivedData
-
-        // inform the grid agents to start the congestion management
-        stateData.informGridAgents(ref =>
-          DoCongestionManagement(currentTick, results(ref))
-        )
-
-        // waiting for results
-        awaitCongestionResults(
-          stateData.copy(hasRunCongestionManagement = true),
-          ReceiveDataMap(stateData.superiorGrids),
-        )
-
       } else {
-        finishTick(stateData, updated.values.flatten, ctx)
+        // all results are available
+        if stateData.runCongestionManagement then {
+          // handle congestion management
+          val currentTick = stateData.currentTick
+          val results = updated.receivedData
+
+          // inform the grid agents to start the congestion management
+          stateData.informGridAgents(ref =>
+            DoCongestionManagement(currentTick, results(ref))
+          )
+
+          // waiting for results
+          awaitCongestionResults(
+            stateData.copy(hasRunCongestionManagement = true),
+            ReceiveDataMap(stateData.superiorGrids),
+          )
+          // FIXME here the ampacity calculation needs to be done after the last congestion round
+          /*if stateData.ampacityCalculationParams.activateAmpacityCalculation then {
+            stateData.informGridAgents(ref =>
+              DoAmpacityCalculation(currentTick, results(ref))
+            )
+          }
+
+           */
+
+        } else {
+          // FIXME here the ampacity calculation needs to be done in case of
+          if stateData.ampacityCalculationParams.activateAmpacityCalculation then {
+            stateData.informGridAgents(ref =>
+              DoAmpacityCalculation(stateData.currentTick, updated.receivedData(ref))
+            )
+          }
+          finishTick(stateData, updated.values.flatten, ctx)
+        }
       }
   }
 

@@ -10,14 +10,14 @@ import edu.ie3.simona.config.SimonaConfig.AmpacityCalculation
 
 /** Holds all ampacity calculation configuration parameters used in
   * [[edu.ie3.simona.agent.grid]]. If the parameter
-  * [[activateAmpacityCalculations]] is set to false, no ampacity calculations
+  * [[activateAmpacityCalculations]] is set to false, no ampacity calculation
   * will run and all the other parameters are ignored.
   *
-  * @param activateAmpacityCalculations
-  *   Defines whether the ampacity calculations is active.
+  * @param activateAmpacityCalculation
+  *   Defines whether the ampacity calculation is active.
   */
 final case class AmpacityCalculationParams(
-    activateAmpacityCalculations: Boolean
+    activateAmpacityCalculation: Boolean
 )
 
 object AmpacityCalculationParams {

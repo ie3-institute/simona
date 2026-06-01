@@ -42,7 +42,7 @@ final case class AmpacityCalculationData(
     * @return
     *   An iterable of [[LineStateResult]].
     */
-  private def getResultsOfOverloadedAssets(
+  private def getLineTemperatures(
       startTime: ZonedDateTime
   ): Iterable[LineStateResult] = {
     ???
@@ -62,12 +62,7 @@ final case class AmpacityCalculationData(
         subgridNo: Int,
         powerFlowResults: Option[PowerFlowResultEvent] = None,
     ): AmpacityCalculationData = {
-      AmpacityCalculationData(
-        gridAgentBaseData,
-        currentTick,
-        subgridNo,
-        powerFlowResults,
-      )
+   ???
     }
   }
 }

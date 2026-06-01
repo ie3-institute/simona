@@ -28,7 +28,7 @@ import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.deriving.Mirror
 
 final case class SimonaConfig(
-    ampacityCalculations: AmpacityCalculation = AmpacityCalculation(),
+    ampacityCalculation: AmpacityCalculation = AmpacityCalculation(),
     congestionManagement: CongestionManagement = CongestionManagement(),
     control: Option[Control] = None,
     gridConfig: GridConfig = GridConfig(),
