@@ -218,7 +218,7 @@ object EmDataCore {
       private val modelToActor: Map[UUID, ActorRef[FlexRequest]],
       private val activationQueue: PriorityMultiBiSet[Long, UUID],
       private val correspondences: FlexCorrespondenceStore,
-      private val awaitedConnectedAgents: Set[UUID] = Set.empty,
+      val awaitedConnectedAgents: Set[UUID] = Set.empty,
       activeTick: Long,
   ) {
 

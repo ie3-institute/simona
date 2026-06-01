@@ -203,7 +203,7 @@ case class EmServiceCore(
       val uuids = uncontrolled
         .filter { uuid => nextActivation(uuid) == internalTick }
         .map { uuid =>
-          uuidToAgent(uuid) ! FlexActivation(tick)
+          uuidToAgent(uuid) ! FlexActivation(tick, mode == EmMode.EM_COMMUNICATION)
           uuid
         }
 
@@ -560,7 +560,6 @@ case class EmServiceCore(
 
     val receiverUuid = receiver match {
       case Right(ref) =>
-        ref ! flexResponse
         agentToUuid(ref)
       case Left(uuid) =>
         uuid
@@ -688,6 +687,8 @@ case class EmServiceCore(
 
       case completion @ FlexCompletion(modelUuid, _, _)
           if mode == EmMode.EM_COMMUNICATION =>
+        receiver.foreach(_ ! completion)
+
         val agent = uuidToAgent(receiverUuid)
 
         if tick < FIRST_TICK_IN_SIMULATION && uncontrolled.contains(modelUuid)
@@ -708,20 +709,25 @@ case class EmServiceCore(
               msg.requestAtTick.map(uuid -> _)
           }
 
+          val updatedStateData = copy(
+            completions = ReceiveDataMap.empty,
+            emDataStore = ReceiveMultiDataMap.empty,
+            nextActivation = nextActivation ++ additionalActivation,
+            internal = Set.empty,
+          )
+
           (
-            copy(
-              completions = ReceiveDataMap.empty,
-              emDataStore = ReceiveMultiDataMap.empty,
-              nextActivation = nextActivation ++ additionalActivation,
-              internal = Set.empty,
-            ),
-            Some(new EmCompletion(getMaybeNextTick(tick))),
+            updatedStateData,
+            Some(new EmCompletion(updatedStateData.getMaybeNextTick(tick))),
           )
         } else {
           (copy(completions = updatedData), getMsgToExtOption)
         }
 
       case completion: FlexCompletion =>
+        receiver.foreach(_ ! completion)
+
+
         val (updated, extMsgOption, updatedNextActivation, finished) =
           handleCompletion(tick, completion)
 

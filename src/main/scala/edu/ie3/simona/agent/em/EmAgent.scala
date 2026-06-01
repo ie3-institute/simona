@@ -198,6 +198,10 @@ object EmAgent {
         provideFlex.flexOptions,
       )
 
+      if modelShell.uuid == UUID.fromString("48b633fd-ea0f-4d66-b439-22a95e2242ca") then {
+        ctx.log.warn(s"Still missing: ${updatedCore.awaitedConnectedAgents}")
+      }
+
       maybeDetermineFlex(emData, modelShell, inputHandler, updatedCore)
 
     case (ctx, msg: DataMessage) =>
