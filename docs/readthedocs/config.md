@@ -6,17 +6,15 @@ To configure a SIMONA simulation, several parameters must be specified. Each sim
 system for a given runtime and is based on a power flow calculation using the Newton-Raphson algorithm. Individual steps
 for configuring the simulation are performed below.
 
-An overview of all default values can be found below. These values are used when no other value is set in the configuration
+An overview of all default values can be found at the bottom of the page. These values are used when no other value is set in the configuration
 file.
 
-## Configuration Parameters 
-
-### General simulation parameters
+## General simulation parameters
 To create the output directory name, the name of the simulation is used as a string variable 
 
   `simona.simulationName = "vn_simona"`
 
-### Time parameters
+## Time parameters
 Starting date and time of the simulation in ISO-8601 date and time format with offset
 
   `simona.time.startDateTime = "2011-01-01T00:00:00Z"`
@@ -37,7 +35,7 @@ If the simulation is to skip a failed power flow and continue to run, set:
 
   `simona.time.stopOnFailedPowerFlow = false`
 
-### Input parameters
+## Input parameters
 Setting of the data source
 
   `simona.input.grid.datasource.id = "csv"`
@@ -53,6 +51,8 @@ simona.input.primary.csvParams = {
   isHierarchic: false  
 }
 ```
+
+### Weather data
 
 Insert weather data source via:
 ```
@@ -74,13 +74,42 @@ simona.input.weather.datasource = {
     `coordinateSource.sampleParams.use = true`
   
     - The sample values should only be used to test the functionality. The performance of a reasonable simulation with sensitive results should be based on real weather data.
-    - Supported weather data sources are: influxdb1x, csv, sql, couchbase, sample
+  - Other supported weather data sources are: influxdb1x, csv, sql, couchbase
   - The parameter `maxCoordinateDistance` is used to specify the radius in which weather data should be searched in. The given distance should be in meter.
 
 Further model classes which can be used to parse a data set as input to power system simulations are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#time-series). 
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM. 
 
-### Output parameters
+### Price data
+
+For the buying price, fees (in EUR/MWh) are added to the wholesale price and the tax is added on the total cost.
+Conversely, for the selling price, fees (in EUR/MWh) are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
+
+Find below an exemplary configuration for households in Dortmund, 2025.
+An explanation of the exemplary price configuration below can be found [here](models/price_service.md#example-scenario).
+The UUID of the price time series to use as data source. 
+An individual time series with given UUID and column scheme ENERGY_PRICE needs to be provided.
+
+```
+simona.input.prices.datasource = {
+  buyingPrice = {
+    fees: 187.11
+    tax: 0.19
+  }
+  sellingPrice = {
+    fees: 5.0
+    tax: 0.0
+  }
+  timeseriesUuid = <UUID>
+  csvParams = {
+    directoryPath: "input/samples/vn_simona/fullGrid"
+    csvSep: ","
+    isHierarchic: false
+  }
+}
+```
+
+## Output parameters
 
 Specify the output directory
 
@@ -106,7 +135,7 @@ simona.output.sink.csv {
 While using a csv sink, the raw data output files can be zipped directly when `compressOutputs = true` is used.
 
 
-#### Output configuration of the grid
+### Output configuration of the grid
 
 The grid output configuration defines for which grid components simulation values are to be output.
 
@@ -121,7 +150,7 @@ simona.output.grid = {
 }
 ```
 
-#### Output configuration of system participants
+### Output configuration of system participants
 
 To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the participant is enabled to return its results. 
 
@@ -160,7 +189,7 @@ simona.output.participant.individualConfigs = [
 ]
 ```
 
-#### Output configuration of thermal elements
+### Output configuration of thermal elements
 
 To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the thermal elements is enabled to return its results.
 
@@ -193,7 +222,7 @@ simona.output.thermal.individualConfigs = [
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
-#### Output configuration for flexibility options
+### Output configuration for flexibility options
 
 The output of flexibility options either globally or for system participant groups or individual participants can also be applied. By setting "flexResult" to true, the participant is enabled to return the flexibility options results.
 
@@ -206,7 +235,7 @@ simona.output.participant.defaultConfig = {
 }
 ```
 
-## Logging level configuration
+### Logging level configuration
 
 To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
 the console, SIMONA offers the user two configuration options.
@@ -405,6 +434,7 @@ simona.time.schedulerReadyCheckWindow = None
 
 ```
 simona.input = {
+    baseInputDir = ./input
     extSimDir = None
     
     loadProfile = {
@@ -427,7 +457,7 @@ simona.input = {
           sqlParams = None
         }
         couchbaseParams = None
-        csvParams: = None
+        csvParams = None
         influxDb1xParams = None
         maxCoordinateDistance = 50000
         resolution = 3600
@@ -435,6 +465,18 @@ simona.input = {
         scheme = "icon"
         sqlParams = None
         timestampPattern = None
+    }
+
+    prices.datasource = {
+        buyingPrice = {
+            fees: 0
+            tax: 0
+        }
+        sellingPrice = {
+            fees: 0
+            tax: 0
+        }
+        csvParams = None
     }
 }
 ```
@@ -592,7 +634,6 @@ simona.powerflow = {
     newtonraphson.iterations = 50
     resolution = 3600s
     stopOnFailure = false
-    sweepTimeout = 30s
 }
 ```
 
@@ -601,7 +642,7 @@ simona.powerflow = {
 ```
 simona.congestionManagement = {
     enableDetection = false
-    timeout = 30s
+    enableTransformerTapChange = false
 }
 ```
 

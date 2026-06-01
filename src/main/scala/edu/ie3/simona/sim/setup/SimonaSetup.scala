@@ -6,24 +6,19 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.datamodel.graph.SubGridGate
-import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
   ThermalGrid,
 }
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentCoordinator
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.io.grid.GridProvider
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
-import edu.ie3.simona.ontology.messages.ResultMessage.{
-  RequestResult,
-  ResultResponse,
-}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
@@ -57,16 +52,16 @@ trait SimonaSetup {
   /** The electrical grid.
     */
   lazy val grid: JointGridContainer = GridProvider.gridFromConfig(
-    simonaConfig.simona.simulationName,
-    simonaConfig.simona.input.grid.datasource,
+    simonaConfig.simulationName,
+    simonaConfig.input.grid.datasource,
   )
 
   /** Map: thermal bus to thermal grid.
     */
   lazy val thermalGridsByThermalBus: Map[ThermalBusInput, ThermalGrid] =
-    GridProvider.getThermalGridsFromConfig(
-      simonaConfig.simona.input.grid.datasource
-    )
+    GridProvider.getThermalGridsFromConfig(simonaConfig.input.grid.datasource)
+
+  lazy val baseInputPath: Path = Path.of(simonaConfig.input.baseInputDir)
 
   /** Directory of the log output.
     */
@@ -142,13 +137,26 @@ trait SimonaSetup {
     * @param scheduler
     *   Actor reference to it's according scheduler to use.
     * @return
-    *   An actor reference to the service as well as matching data to initialize
-    *   the service.
+    *   An actor reference to the service.
     */
   def weatherService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
   ): ActorRef[ServiceMessage]
+
+  /** Creates an energy price service, if such service is configured.
+    *
+    * @param context
+    *   Actor context to use.
+    * @param scheduler
+    *   Actor reference to it's according scheduler to use.
+    * @return
+    *   An actor reference to the service.
+    */
+  def priceService(
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+  ): Option[ActorRef[ServiceMessage]]
 
   /** Creates a load profile service.
     *
@@ -221,35 +229,18 @@ trait SimonaSetup {
       coreFactory: CoreFactory = RegularSchedulerCore,
   ): ActorRef[SchedulerMessage]
 
-  /** Creates all the needed grid agents.
+  /** Creates the grid agent coordinator which will create and coordinate all
+    * grid agents.
     *
     * @param context
     *   Actor context to use.
     * @param environmentRefs
     *   EnvironmentRefs to use.
     * @return
-    *   A mapping from actor reference to it's according initialization data to
-    *   be used when setting up the agents.
+    *   The reference to the [[GridAgentCoordinator]].
     */
-  def gridAgents(
+  def gridAgentCoordinator(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
-  ): Iterable[ActorRef[GridAgent.Message]]
-
-  /** SIMONA links sub grids connected by a three winding transformer a bit
-    * different. Therefore, the internal node has to be set as superior node.
-    * All other gates are left unchanged.
-    */
-  protected val modifySubGridGateForThreeWindingSupport
-      : SubGridGate => SubGridGate =
-    (gate: SubGridGate) =>
-      gate.link match {
-        case transformer: Transformer3WInput =>
-          new SubGridGate(
-            transformer,
-            transformer.getNodeInternal,
-            gate.inferiorNode,
-          )
-        case _ => gate
-      }
+  ): ActorRef[GridAgentCoordinator.Message]
 }

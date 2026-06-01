@@ -10,13 +10,11 @@ import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
 import edu.ie3.simona.config.ConfigParams.BaseCsvParams
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.helper.TestResourceHelper
 
-import java.nio.file.Paths
+class LoadProfileSourcesSpec extends UnitSpec with TestResourceHelper {
 
-class LoadProfileSourcesSpec extends UnitSpec {
-
-  val baseDirectory: String =
-    Paths.get(this.getClass.getResource("_it").toURI).toString
+  private val baseDirectory: String = getResourcePath("_it").toString
 
   "The LoadProfileSources" should {
     val sourceDefinition = Datasource(csvParams =
@@ -27,7 +25,7 @@ class LoadProfileSourcesSpec extends UnitSpec {
       val profileSources = LoadProfileSources.buildSources(sourceDefinition)
 
       profileSources.size shouldBe 1
-      profileSources.contains(BdewStandardLoadProfile.G0) shouldBe true
+      profileSources.contains(BdewStandardLoadProfile.G0.getKey) shouldBe true
     }
 
   }

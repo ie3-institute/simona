@@ -9,37 +9,28 @@ package edu.ie3.simona.service.em
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
-import edu.ie3.simona.api.data.model.em.{
-  EmSetPoint,
-  ExtendedFlexOptionsResult,
-  FlexOptionRequest,
-}
+import edu.ie3.simona.api.data.model.em
+import edu.ie3.simona.api.data.model.em.{SetPoint, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.*
-import edu.ie3.simona.api.data.model.em
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
   EmFlexMessage,
   EmServiceRegistration,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  FlexActivation,
-  FlexCompletion,
-  IssuePowerControl,
-  ProvideFlexOptions,
-}
-import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
+import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
+import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.quantities.QuantityUtils.{asKiloWatt, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -55,8 +46,6 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.RichOption
-import edu.ie3.simona.util.CollectionUtils.asJava
 
 class ExtEmDataServiceSpec
     extends ScalaTestWithActorTestKit
@@ -68,8 +57,6 @@ class ExtEmDataServiceSpec
 
   private val emptyControlled = List.empty[UUID].asJava
 
-  private val emAgentSupUUID =
-    UUID.fromString("d797fe9c-e4af-49a3-947d-44f81933887e")
   private val emAgent1UUID =
     UUID.fromString("06a14909-366e-4e94-a593-1016e1455b30")
   private val emAgent2UUID =
@@ -81,31 +68,27 @@ class ExtEmDataServiceSpec
       val extSimAdapter =
         TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
-      val emService = spawn(ExtEmDataService(scheduler.ref))
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+      val emService = spawn(
+        ExtEmDataService(
+          scheduler.ref,
+          InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
+        )
+      )
 
       extEmDataConnection.setActorRefs(
         emService,
         extSimAdapter.ref,
       )
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      emService ! Create(
-        InitExtEmData(extEmDataConnection, simulationStart),
-        key,
-      )
-
-      scheduler.expectMessage(
-        ScheduleActivation(emService, INIT_SIM_TICK, Some(key))
-      )
-
-      emService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(emService))
+      // no message for scheduling first service activation expected
+      scheduler.expectNoMessage()
     }
 
     "stash registration request and handle it correctly once initialized" in {
@@ -113,9 +96,19 @@ class ExtEmDataServiceSpec
       val extSimAdapter =
         TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
-      val emService = spawn(ExtEmDataService(scheduler.ref))
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+      val emService = spawn(
+        ExtEmDataService(
+          scheduler.ref,
+          InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
+        )
+      )
 
       extEmDataConnection.setActorRefs(
         emService,
@@ -132,24 +125,8 @@ class ExtEmDataServiceSpec
         None,
       )
 
+      // no message for scheduling first service activation expected
       scheduler.expectNoMessage()
-
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      emService ! Create(
-        InitExtEmData(extEmDataConnection, simulationStart),
-        key,
-      )
-
-      scheduler.expectMessage(
-        ScheduleActivation(emService, INIT_SIM_TICK, Some(key))
-      )
-
-      emService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(emService))
     }
   }
 
@@ -162,30 +139,27 @@ class ExtEmDataServiceSpec
       val extSimAdapter =
         TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
-      val emService = spawn(ExtEmDataService(scheduler.ref))
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+      val emService = spawn(
+        ExtEmDataService(
+          scheduler.ref,
+          InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
+        )
+      )
 
       extEmDataConnection.setActorRefs(
         emService,
         extSimAdapter.ref,
       )
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      emService ! Create(
-        InitExtEmData(extEmDataConnection, simulationStart),
-        key,
-      )
-
-      scheduler.expectMessage(
-        ScheduleActivation(emService, INIT_SIM_TICK, Some(key))
-      )
-
-      emService ! Activation(INIT_SIM_TICK)
+      // no message for scheduling first service activation expected
+      scheduler.expectNoMessage()
 
       emService ! EmServiceRegistration(
         emAgent.ref,
@@ -193,13 +167,11 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
       )
-
-      scheduler.expectMessage(Completion(emService))
 
       // we trigger em service and expect an exception
       emService ! Activation(0)
@@ -214,31 +186,27 @@ class ExtEmDataServiceSpec
       val extSimAdapter =
         TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
-      val emService = spawn(ExtEmDataService(scheduler.ref))
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+      val emService = spawn(
+        ExtEmDataService(
+          scheduler.ref,
+          InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
+        )
+      )
 
       extEmDataConnection.setActorRefs(
         emService,
         extSimAdapter.ref,
       )
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      emService ! Create(
-        InitExtEmData(extEmDataConnection, simulationStart),
-        key,
-      )
-
-      scheduler.expectMessage(
-        ScheduleActivation(emService, INIT_SIM_TICK, Some(key))
-      )
-
-      emService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(emService))
+      // no message for scheduling first service activation expected
+      scheduler.expectNoMessage()
 
       val emAgent1 = TestProbe[EmAgent.Message]("emAgent1")
       val emAgent2 = TestProbe[EmAgent.Message]("emAgent2")
@@ -249,7 +217,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent1.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent1.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
@@ -261,7 +231,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent2.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent2.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
@@ -283,7 +255,7 @@ class ExtEmDataServiceSpec
       extSimAdapter.expectMessage(new ScheduleDataServiceMessage(emService))
       emService ! Activation(0)
 
-      emAgent1.expectMessage(FlexActivation(0, PowerLimit))
+      emAgent1.expectMessage(FlexActivation(0))
       emAgent2.expectNoMessage()
 
       scheduler.expectMessage(Completion(emService))
@@ -330,31 +302,27 @@ class ExtEmDataServiceSpec
       val extSimAdapter =
         TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
 
-      val emService = spawn(ExtEmDataService(scheduler.ref))
       val extEmDataConnection =
         new ExtEmDataConnection(emptyControlled, EmMode.BASE)
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+      val emService = spawn(
+        ExtEmDataService(
+          scheduler.ref,
+          InitExtEmData(extEmDataConnection, simulationStart),
+          serviceKey,
+        )
+      )
 
       extEmDataConnection.setActorRefs(
         emService,
         extSimAdapter.ref,
       )
 
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
-
-      emService ! Create(
-        InitExtEmData(extEmDataConnection, simulationStart),
-        key,
-      )
-
-      scheduler.expectMessage(
-        ScheduleActivation(emService, INIT_SIM_TICK, Some(key))
-      )
-
-      emService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(emService))
+      // no message for scheduling first service activation expected
+      scheduler.expectNoMessage()
 
       val emAgent1 = TestProbe[EmAgent.Message]("emAgent1")
       val emAgent2 = TestProbe[EmAgent.Message]("emAgent2")
@@ -365,7 +333,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent1.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent1.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
@@ -377,7 +347,9 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent2.expectMessage(FlexActivation(-1, PowerLimit))
+      emAgent2.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
@@ -389,11 +361,11 @@ class ExtEmDataServiceSpec
           Map.empty.asJava,
           Map.empty.asJava,
           Map(
-            emAgent1UUID -> new EmSetPoint(
+            emAgent1UUID -> new SetPoint.AggregatedSetPoint(
               emAgent1UUID,
               -3d.asKiloWatt,
             ),
-            emAgent2UUID -> new EmSetPoint(
+            emAgent2UUID -> new SetPoint.AggregatedSetPoint(
               emAgent2UUID,
               0d.asKiloWatt,
             ),

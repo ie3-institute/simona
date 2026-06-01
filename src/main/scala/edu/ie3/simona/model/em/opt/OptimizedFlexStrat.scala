@@ -17,12 +17,18 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
 }
+import edu.ie3.simona.service.{
+  DataTimeType,
+  ServiceRegistrationData,
+  ServiceType,
+}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
-import org.slf4j.Logger
+import org.slf4j.{Logger, LoggerFactory}
+import squants.energy.PowerConversions.PowerNumeric
 import squants.{Dimensionless, Energy, Power, Time}
 
 import java.util.UUID
@@ -42,15 +48,26 @@ import scala.collection.immutable.SortedMap
   * @param objectiveFactory
   *   The factory creating asset variables and the optimization objective to
   *   use.
-  * @param logger
-  *   The logger to use.
   */
 final case class OptimizedFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
     objectiveFactory: ObjectiveFactory[? <: AssetStepVars],
-    logger: Logger,
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
+
+  private val logger: Logger = LoggerFactory.getLogger(
+    s"${classOf[OptimizedFlexStrat].getSimpleName}(${objectiveFactory.getClass.getSimpleName})"
+  )
+
+  override def getServiceRegistrationData: ServiceRegistrationData = {
+    ServiceRegistrationData(
+      objectiveFactory.getRequiredSecondaryServices,
+      DataTimeType.CurrentAndForecast(
+        forecastLength = predictionHorizon,
+        forecastResolution = sampleTime,
+      ),
+    )
+  }
 
   /** The power target might not be considered by all types of objectives.
     */
@@ -98,30 +115,37 @@ final case class OptimizedFlexStrat(
       }
 
     // we're only interested in the solutions for the current time step
+    val flexOptionsMap = flexOptionsById.toMap
     val assetCtrl = assetVars.map {
       case AssetVarContainer(assetUuid, assetVars) =>
-        val setPoint = assetVars
-          .map {
-            // Taking only the first result for set points
-            _.headOption
-              .getOrElse(
-                throw new CriticalFailureException(
-                  s"Empty results for asset $assetUuid"
-                )
-              ) match {
-              case (_, res) =>
-                // Operating point of first result
-                res.getOperationResult
-            }
+        val setPoint = assetVars.map {
+          // Taking only the first result for set points
+          _.headOption
+            .getOrElse(
+              throw new CriticalFailureException(
+                s"Empty results for asset $assetUuid"
+              )
+            ) match {
+            case (_, res) =>
+              // Operating point of first result
+              res.getOperationResult
           }
+        }
           // Add up solutions for all asset assigned to the same UUID
-          .reduceOption(_ + _)
-          .getOrElse(
-            throw new CriticalFailureException(
-              s"No results present for asset $assetUuid"
-            )
-          )
-        assetUuid -> setPoint
+          .sum
+
+        // make sure that set point is within allowed power.
+        // floating point rounding errors might move it slightly outside the interval.
+        val flex = flexOptionsMap.getOrElse(
+          assetUuid,
+          throw new CriticalFailureException(
+            s"Flex options not found for $assetUuid"
+          ),
+        )
+        val adaptedSetPoint =
+          setPoint.max(flex.powerLimits.getLower).min(flex.powerLimits.getUpper)
+
+        assetUuid -> adaptedSetPoint
     }
 
     model.release()
@@ -238,8 +262,14 @@ object OptimizedFlexStrat {
   )(using model: MPModel): Iterable[AssetVarContainer[AV]] = {
     flexOptions.map { case (assetUUID, fo) =>
       val assetVars = fo.energyBoundaries
-        .map { boundaries =>
-          ticks
+        .map { assetBoundaries =>
+          assetBoundaries.tickDisconnect
+            .map { tickDisconnect =>
+              // we only determine energy until tickDisconnect
+              // (after that, the asset is unavailable)
+              ticks.takeWhile(_ <= tickDisconnect)
+            }
+            .getOrElse(ticks)
             .sliding(2)
             .foldLeft[SortedMap[Long, AV]](SortedMap.empty) {
               case (previousResults, Seq(stepStartTick, stepEndTick)) =>
@@ -248,7 +278,7 @@ object OptimizedFlexStrat {
                 }
 
                 val assetStep = createAssetParameters(
-                  boundaries,
+                  assetBoundaries,
                   stepEndTick,
                   previousState,
                 )
@@ -261,6 +291,13 @@ object OptimizedFlexStrat {
                 )
 
                 previousResults.updated(stepStartTick, res)
+
+              case _ =>
+                // assets constraints need to be created at least for two time steps
+                // (including eventual tickDisconnect restrictions)
+                throw new CriticalFailureException(
+                  s"Cannot create asset constraints for less than two time steps (given: ${ticks.size})"
+                )
             }
         }
 
@@ -277,8 +314,6 @@ object OptimizedFlexStrat {
     *   The step ending tick.
     * @param maybePreviousState
     *   The previous state variable, if applicable.
-    * @param model
-    *   The optimization model to add variables and constraints to.
     * @return
     *   The results for this asset and time step.
     */
@@ -286,32 +321,29 @@ object OptimizedFlexStrat {
       energyBoundaries: AssetEnergyBoundaries,
       stepEndTick: Long,
       maybePreviousState: Option[Expression],
-  )(using model: MPModel): AssetStepParameters = {
+  ): AssetStepParameters = {
 
     // we are interested in the energy limits at the end of the step interval,
     // since they tell us in which energy the power of this step interval may
     // result in
-    val energyLimits = energyBoundaries.energyLimits
+    val (limitsTickEnd, energyLimitsEnd) = energyBoundaries.energyLimits
       .maxBefore(stepEndTick + 1)
-      .map { case (_, limits) =>
-        limits
-      }
       .getOrElse(throw new CriticalFailureException("No energy limits found!"))
 
     // the energy limits at the beginning of the interval can in some
     // circumstances provide information on constraints
-    val formerEnergyLimits =
-      energyBoundaries.energyLimits.maxBefore(stepEndTick).map {
+    val energyLimitsStart =
+      energyBoundaries.energyLimits.maxBefore(limitsTickEnd).map {
         case (_, limits) => limits
       }
 
-    if energyLimits.getLower == energyLimits.getUpper &&
-      formerEnergyLimits.forall(limits => limits.getLower == limits.getUpper)
+    if energyLimitsEnd.getLower == energyLimitsEnd.getUpper &&
+      energyLimitsStart.forall(limits => limits.getLower == limits.getUpper)
     then {
       // there is no flexibility at all, thus we don't need any state to keep track of
 
-      val formerEnergy = formerEnergyLimits.map(_.getUpper).getOrElse(zeroKWh)
-      val currentEnergy = energyLimits.getUpper
+      val formerEnergy = energyLimitsStart.map(_.getUpper).getOrElse(zeroKWh)
+      val currentEnergy = energyLimitsEnd.getUpper
 
       val energyChange = currentEnergy - formerEnergy
 
@@ -323,7 +355,7 @@ object OptimizedFlexStrat {
       val previousEnergy = maybePreviousState.getOrElse {
 
         // we have been given no former state as a parameter. Either...
-        formerEnergyLimits
+        energyLimitsStart
           // ... there was no flexibility in the last step, thus we use the last energy value
           .filter(limits => limits.getLower == limits.getUpper)
           .map(limits => Const(limits.getUpper.toKilowattHours))
@@ -335,8 +367,8 @@ object OptimizedFlexStrat {
         previousStateEnergy = previousEnergy,
         pMin = energyBoundaries.powerLimits.getLower,
         pMax = energyBoundaries.powerLimits.getUpper,
-        eMin = energyLimits.getLower,
-        eMax = energyLimits.getUpper,
+        eMin = energyLimitsEnd.getLower,
+        eMax = energyLimitsEnd.getUpper,
         etaCharge = energyBoundaries.etaCharge,
         etaDischarge = energyBoundaries.etaDischarge,
       )
@@ -474,6 +506,11 @@ object OptimizedFlexStrat {
     *   uses.
     */
   trait ObjectiveFactory[AV <: AssetStepVars] {
+
+    /** @return
+      *   All secondary services required by the optimization model.
+      */
+    def getRequiredSecondaryServices: Iterable[ServiceType]
 
     /** Creates asset variables of type [[AV]] from given
       * [[AssetStepParameters]] according to the requirements of the objective

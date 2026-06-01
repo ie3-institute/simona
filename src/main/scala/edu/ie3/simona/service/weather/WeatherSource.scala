@@ -277,7 +277,7 @@ object WeatherSource {
     implicit val coordinateSourceFunction: IdCoordinateSource =
       buildCoordinateSource(weatherDataSourceCfg.coordinateSource)
 
-    val definedWeatherSources = Vector(
+    val definedWeatherSources = Seq(
       weatherDataSourceCfg.sampleParams,
       weatherDataSourceCfg.csvParams,
       weatherDataSourceCfg.influxDb1xParams,
@@ -288,7 +288,7 @@ object WeatherSource {
     if definedWeatherSources.isEmpty then {
       // should not happen, due to the config fail fast check
       throw new SourceException(
-        s"Expected a WeatherSource, but no source where defined in $weatherDataSourceCfg."
+        s"Expected a weather source, but no source was defined in $weatherDataSourceCfg."
       )
     }
 
@@ -367,39 +367,34 @@ object WeatherSource {
     }
   }
 
-  /** Represents an empty weather data object.
+  /** Converts given [[WeatherValue]] to [[WeatherData]]. If a specific value
+    * within [[WeatherValue]] is not present (null), it is replaced by
+    * Double.Nan in [[WeatherData]].
     *
-    * For temperature to represent an "empty" quantity, we need to explicitly
-    * set temperature to absolute zero, so 0 K. When temperature measures the
-    * movement of atoms, absolute zero means no movement, which represents the
-    * "empty" concept best.
+    * @param weatherValue
+    *   The [[WeatherValue]] to convert.
+    * @return
+    *   A corresponding [[WeatherData]] object.
     */
-  val EMPTY_WEATHER_DATA: WeatherData = WeatherData(
-    WattsPerSquareMeter(0.0),
-    WattsPerSquareMeter(0.0),
-    Kelvin(0d),
-    MetersPerSecond(0d),
-  )
-
   def toWeatherData(
       weatherValue: WeatherValue
   ): WeatherData = {
     WeatherData(
       weatherValue.getSolarIrradiance.getDiffuseIrradiance.toScala match {
         case Some(irradiance) => irradiance.toSquants
-        case None             => EMPTY_WEATHER_DATA.diffIrr
+        case None             => WattsPerSquareMeter(Double.NaN)
       },
       weatherValue.getSolarIrradiance.getDirectIrradiance.toScala match {
         case Some(irradiance) => irradiance.toSquants
-        case None             => EMPTY_WEATHER_DATA.dirIrr
+        case None             => WattsPerSquareMeter(Double.NaN)
       },
       weatherValue.getTemperature.getTemperature.toScala match {
         case Some(temperature) => temperature.toSquants
-        case None              => EMPTY_WEATHER_DATA.temp
+        case None              => Kelvin(Double.NaN)
       },
       weatherValue.getWind.getVelocity.toScala match {
         case Some(windVel) => windVel.toSquants
-        case None          => EMPTY_WEATHER_DATA.windVel
+        case None          => MetersPerSecond(Double.NaN)
       },
     )
 

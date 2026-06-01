@@ -20,7 +20,10 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -34,7 +37,7 @@ import java.util.UUID
   *   The result configuration.
   */
 final case class ParticipantResultHandler(
-    private val resultProxy: ActorRef[ResultEvent | ExpectResult],
+    private val resultProxy: ActorRef[ResultEvent | ExpectResult | NoResult],
     private val config: NotifierConfig,
 ) {
 
@@ -66,6 +69,9 @@ final case class ParticipantResultHandler(
     if config.flexResult then {
       resultProxy ! FlexOptionsResultEvent(result)
     }
+
+  def sendNoResult(uuid: UUID, tick: Long): Unit =
+    resultProxy ! NoResult(uuid, tick)
 
   def informProxy(
       uuid: UUID,

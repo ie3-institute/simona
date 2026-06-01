@@ -24,7 +24,6 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestGrid,
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Kilovoltamperes,
@@ -33,7 +32,6 @@ import edu.ie3.util.scala.quantities.{
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
 import squants.{Dimensionless, Each}
 import squants.electro.{Amperes, ElectricCurrent}
-import tech.units.indriya.quantity.Quantities
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 
 import java.time.ZonedDateTime

@@ -53,9 +53,7 @@ class ConfigUtilSpec
         emRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.EmConfigUtil(
-        simonaConfig.simona.runtime.em
-      )
+      val actual = ConfigUtil.EmConfigUtil(simonaConfig.runtime.em)
 
       inside(actual) { case EmConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, EmRuntimeConfig]
@@ -89,9 +87,7 @@ class ConfigUtilSpec
         emRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.EmConfigUtil(
-        simonaConfig.simona.runtime.em
-      )
+      val actual = ConfigUtil.EmConfigUtil(simonaConfig.runtime.em)
 
       inside(actual) { case EmConfigUtil(configs, _) =>
         configs.size shouldBe 1
@@ -125,9 +121,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, LoadRuntimeConfig]
@@ -181,9 +176,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs.size shouldBe 1
@@ -240,9 +234,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -293,9 +286,8 @@ class ConfigUtilSpec
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -345,9 +337,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs shouldBe Map.empty[UUID, FixedFeedInRuntimeConfig]
@@ -392,9 +383,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
         configs.size shouldBe 1
@@ -443,9 +433,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -490,9 +479,8 @@ class ConfigUtilSpec
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 2
@@ -594,9 +582,8 @@ class ConfigUtilSpec
         combinedParticipantConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       inside(actual) { case ParticipantConfigUtil(configs, _) =>
         configs.size shouldBe 4

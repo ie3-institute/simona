@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.api
 
+import edu.ie3.simona.api.data.connection.ExtSimDataConnection
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
-import edu.ie3.simona.api.data.ExtSimAdapterData
 import edu.ie3.simona.api.ontology.simulation.{
   ActivationMessage,
   ControlResponseMessageFromExt,
@@ -35,19 +35,22 @@ object ExtSimAdapter {
 
   type Request = ExtSimRequest | Activation | ControlResponseMessageFromExt
 
-  /** The [[ExtSimAdapterData]] can only be constructed once the ExtSimAdapter
-    * actor is created. Thus, we need an extra initialization message.
+  /** The [[ExtSimDataConnection]] can only be constructed once the
+    * ExtSimAdapter actor is created. Thus, we need an extra initialization
+    * message.
     *
     * @param extSimData
-    *   The [[ExtSimAdapterData]] of the corresponding external simulation
+    *   The [[ExtSimDataConnection]] of the corresponding external simulation
     */
-  final case class Create(extSimData: ExtSimAdapterData, unlockKey: ScheduleKey)
-      extends ExtSimRequest
+  final case class Create(
+      extSimData: ExtSimDataConnection,
+      unlockKey: ScheduleKey,
+  ) extends ExtSimRequest
 
   final case class Stop(simulationSuccessful: Boolean) extends ExtSimRequest
 
   final case class ExtSimAdapterStateData(
-      extSimData: ExtSimAdapterData,
+      extSimDataConnection: ExtSimDataConnection,
       currentTick: Option[Long] = None,
   )
 
@@ -74,7 +77,7 @@ object ExtSimAdapter {
   ): Behavior[Request] =
     Behaviors.receivePartial {
       case (ctx, Activation(tick)) =>
-        stateData.extSimData.queueExtMsg(
+        stateData.extSimDataConnection.queueExtMsg(
           new ActivationMessage(tick)
         )
         ctx.log.debug(
@@ -88,7 +91,7 @@ object ExtSimAdapter {
         // when multiple triggers have been sent, a completion message
         // always refers to the oldest tick
 
-        val newTick = extCompl.nextActivation().toScala.map(Long2long)
+        val newTick = extCompl.nextActivation().toScala
 
         scheduler ! Completion(ctx.self, newTick)
         ctx.log.debug(
@@ -116,7 +119,7 @@ object ExtSimAdapter {
 
       case (_, Stop(simulationSuccessful)) =>
         // let external sim know that we have terminated
-        stateData.extSimData.queueExtMsg(
+        stateData.extSimDataConnection.queueExtMsg(
           new TerminationMessage(simulationSuccessful)
         )
 

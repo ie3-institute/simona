@@ -77,7 +77,7 @@ object SimonaSim {
         val resultProxy = simonaSetup.resultServiceProxy(
           ctx,
           resultEventListeners,
-          simonaSetup.simonaConfig.simona.time.simStartTime,
+          simonaSetup.simonaConfig.time.simStartTime,
         )
 
         val timeAdvancer =
@@ -90,7 +90,7 @@ object SimonaSim {
         // External simulations have to be scheduled for initialization first,
         // so that the phase switch permanently activates them first
         val extSimDir =
-          simonaSetup.simonaConfig.simona.input.extSimDir.map(Path.of(_))
+          simonaSetup.simonaConfig.input.extSimDir.map(Path.of(_))
 
         val extSimulationData =
           simonaSetup.extSimulations(ctx, scheduler, resultProxy, extSimDir)
@@ -108,6 +108,9 @@ object SimonaSim {
         val weatherService =
           simonaSetup.weatherService(ctx, scheduler)
 
+        // optionally, a price service
+        val priceService = simonaSetup.priceService(ctx, scheduler)
+
         // load profile service
         val loadProfileService = simonaSetup.loadProfileService(ctx, scheduler)
 
@@ -117,21 +120,23 @@ object SimonaSim {
           primaryServiceProxy,
           resultProxy,
           weatherService,
+          priceService,
           loadProfileService,
           extSimulationData.emDataService,
           extSimulationData.evDataService,
         )
 
         /* start grid agents  */
-        val gridAgents = simonaSetup.gridAgents(ctx, environmentRefs)
+        val gridAgentCoordinator =
+          simonaSetup.gridAgentCoordinator(using ctx, environmentRefs)
 
         val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,
           scheduler,
           primaryServiceProxy,
           weatherService,
-        ) ++
-          gridAgents ++ extSimulationData.allServiceRefs
+          gridAgentCoordinator,
+        ) ++ extSimulationData.allServiceRefs ++ priceService.toSeq
 
         /* watch all actors */
         allResultEventListeners.foreach(ctx.watch)

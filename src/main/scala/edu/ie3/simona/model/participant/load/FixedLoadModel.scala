@@ -15,6 +15,12 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantConstantEnergyLimitFlexModel,
+  ParticipantFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
+}
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
@@ -36,6 +42,15 @@ class FixedLoadModel(
     private val activePower: Power,
 ) extends LoadModel[FixedState]
     with ParticipantFixedState[ActivePowerOperatingPoint] {
+
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    FixedState,
+  ]] =
+    Map(
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> ParticipantConstantEnergyLimitFlexModel(this),
+    )
 
   override def determineOperatingPoint(
       state: FixedState

@@ -3,12 +3,12 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.1.0' // code format
-  id "com.github.ben-manes.versions" version '0.53.0'
-  id "de.undercouch.download" version "5.6.0" // downloads plugin
+  id 'com.diffplug.spotless' version '8.6.0' // code format
+  id "com.github.ben-manes.versions" version '0.54.0'
+  id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '9.3.1' // fat jar
-  id "org.sonarqube" version "7.2.2.6593" // sonarqube
+  id 'com.gradleup.shadow' version '9.4.2' // fat jar
+  id "org.sonarqube" version "7.3.0.8198" // sonarqube
   //id "org.scoverage" version "8.1" // scala code coverage scoverage
   id 'jacoco' // scala code coverage
   id 'org.hidetake.ssh' version '2.12.0'
@@ -22,13 +22,13 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.8.0'
-  pekkoVersion = '1.4.0'
+  pekkoVersion = '1.6.0'
   jtsVersion = '1.20.0'
-  confluentKafkaVersion = '7.9.0'
+  confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.3.0'
   jacocoVersion = '0.8.14'
 
-  junitVersion = '6.0.2'
+  junitVersion = '6.1.0'
   testContainerVersion = '0.44.1'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -70,7 +70,6 @@ configurations {
 
 repositories {
   mavenCentral() // searches in Sonatype's central repository
-  maven { url = 'https://s01.oss.sonatype.org/content/repositories/snapshots' } // sonatype snapshot repo
   maven { url = 'https://packages.confluent.io/maven' } // confluent repo (kafka)
 }
 
@@ -83,7 +82,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:8.1.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.0.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -96,7 +95,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.12.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.14.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -105,17 +104,17 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.25"
+  implementation "ch.qos.logback:logback-classic:1.5.33"
 
   /* testing */
   // scalatest & junit
-  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.19"
+  testImplementation "org.scalatest:scalatest_${scalaVersion}:3.2.20"
   testImplementation "org.junit.platform:junit-platform-launcher:${junitVersion}"
   testRuntimeOnly "org.junit.platform:junit-platform-engine:${junitVersion}"
-  testRuntimeOnly "org.scalatestplus:junit-5-11_${scalaVersion}:3.2.19.0"
+  testRuntimeOnly "org.scalatestplus:junit-5-14_${scalaVersion}:3.2.20.0"
 
   // mocking framework
-  testImplementation 'org.mockito:mockito-core:5.21.0'
+  testImplementation 'org.mockito:mockito-core:5.23.0'
   testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
 
   // pekko
@@ -139,10 +138,10 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.5'
+  implementation 'com.typesafe:config:1.4.8'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
-  implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.9"
-  implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.9"
+  implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
+  implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
 
   // JTS
   implementation ("org.locationtech.jts:jts-core:${jtsVersion}") {
@@ -156,14 +155,14 @@ dependencies {
   /* Kafka */
   implementation "org.apache.kafka:kafka-clients:${confluentKafkaVersion}-ccs"
   implementation "io.confluent:kafka-streams-avro-serde:${confluentKafkaVersion}"
-  implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.14"
+  implementation "com.sksamuel.avro4s:avro4s-core_${scalaVersion}:5.0.15"
 
-  implementation 'commons-io:commons-io:2.21.0' // used for FilenameUtils
+  implementation 'commons-io:commons-io:2.22.0' // used for FilenameUtils
   implementation 'javax.measure:unit-api:2.2'
-  implementation 'tech.units:indriya:2.2.3' // quantities
+  implementation 'tech.units:indriya:2.2.4' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
   implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
-  implementation 'org.jgrapht:jgrapht-core:1.5.2'
+  implementation 'org.jgrapht:jgrapht-core:1.5.3'
 
   // needed, because scala won't compile otherwise
   implementation 'org.influxdb:influxdb-java:2.25'

@@ -153,5 +153,7 @@ trait ConfigTestData {
   )
   protected val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
 
-  protected val startTime: ZonedDateTime = simonaConfig.simona.time.simStartTime
+  protected val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+
+  protected val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 }

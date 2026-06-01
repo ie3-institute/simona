@@ -6,14 +6,15 @@
 
 package edu.ie3.simona.service.primary
 
-import edu.ie3.datamodel.io.csv.CsvIndividualTimeSeriesMetaInformation
+import edu.ie3.datamodel.io.file.FileType
 import edu.ie3.datamodel.io.naming.FileNamingStrategy
-import edu.ie3.datamodel.io.naming.timeseries.ColumnScheme
+import edu.ie3.datamodel.io.naming.timeseries.FileIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
-import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.datamodel.models.value.{PValue, SValue, Value}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.RegistrationFailedMessage
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.config.ConfigParams.{
   CouchbaseParams,
   TimeStampedCsvParams,
@@ -26,12 +27,17 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
   PrimaryServiceRegistrationMessage,
+  RegistrationFailedMessage,
   WorkerRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
 import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
@@ -40,23 +46,19 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.CsvInitPrimaryServiceStateData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import org.apache.pekko.actor.testkit.typed.Effect.{
-  NoEffects,
-  Spawned,
-  SpawnedAnonymous,
-}
+import org.apache.pekko.actor.testkit.typed.Effect.{NoEffects, Spawned}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   BehaviorTestKit,
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.when
-import org.scalatest.Inside.inside
 import org.scalatest.prop.TableDrivenPropertyChecks
 import org.scalatest.wordspec.AnyWordSpecLike
 import org.scalatest.{PartialFunctionValues, PrivateMethodTester}
@@ -66,6 +68,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
@@ -76,16 +79,10 @@ class PrimaryServiceProxySpec
     with TableDrivenPropertyChecks
     with PartialFunctionValues
     with TimeSeriesTestData
+    with TestResourceHelper
     with TestSpawnerTyped {
   // this works both on Windows and Unix systems
-  val baseDirectoryPath: Path = Paths
-    .get(
-      this.getClass
-        .getResource(
-          "_it"
-        )
-        .toURI
-    )
+  val baseDirectoryPath: Path = getResourcePath("_it")
   val csvSep = ";"
   val fileNamingStrategy = new FileNamingStrategy()
   val validPrimaryConfig: PrimaryConfig =
@@ -96,7 +93,6 @@ class PrimaryServiceProxySpec
           csvSep,
           baseDirectoryPath.toString,
           isHierarchic = false,
-          TimeUtil.withDefaults.getDateTimeFormatter.toString,
         )
       ),
       None,
@@ -139,10 +135,22 @@ class PrimaryServiceProxySpec
     m
   }
 
+  private val extEntityId =
+    UUID.fromString("07bbe1aa-1f39-4dfb-b41b-339dec816ec4")
+
+  private val valueMap: Map[UUID, Class[? <: Value]] = Map(
+    extEntityId -> classOf[PValue]
+  )
+
+  private val extPrimaryDataConnection = new ExtPrimaryDataConnection(
+    valueMap.asJava
+  )
+
   val initStateData: InitPrimaryServiceProxyStateData =
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
       simulationStart,
+      Seq.empty,
     )
   val proxy: ActorRef[PrimaryServiceProxy.Message] =
     testKit.spawn(PrimaryServiceProxy(scheduler.ref, initStateData))
@@ -159,6 +167,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         maliciousConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(emptyStateData) =>
           emptyStateData.modelToTimeSeries shouldBe Map.empty
@@ -182,6 +191,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         maliciousConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -195,6 +205,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         validPrimaryConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -202,6 +213,7 @@ class PrimaryServiceProxySpec
                 timeSeriesToSourceRef,
                 simulationStart,
                 primaryConfig,
+                _,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -239,6 +251,47 @@ class PrimaryServiceProxySpec
           )
       }
     }
+
+    "build proxy correctly when there is an external simulation" in {
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val validExtPrimaryDataService = spawn(
+        ExtPrimaryServiceWorker(
+          scheduler.ref,
+          InitExtPrimaryData(extPrimaryDataConnection),
+          serviceKey,
+        )
+      )
+      extPrimaryDataConnection.setActorRefs(
+        validExtPrimaryDataService,
+        extSimAdapter.ref,
+      )
+
+      PrimaryServiceProxy.prepareStateData(
+        validPrimaryConfig,
+        simulationStart,
+        Seq((extPrimaryDataConnection, validExtPrimaryDataService)),
+      ) match {
+        case Success(
+              PrimaryServiceStateData(
+                _,
+                _,
+                _,
+                _,
+                extSubscribersToService,
+              )
+            ) =>
+          extSubscribersToService shouldBe Map(
+            extEntityId -> validExtPrimaryDataService
+          )
+      }
+    }
+
   }
 
   "Sending initialization information to an uninitialized actor" should {
@@ -253,26 +306,12 @@ class PrimaryServiceProxySpec
   }
 
   "Spinning off a worker" should {
-    "successfully instantiate an actor within the actor system" in {
-      val testKit = BehaviorTestKit(
-        Behaviors.setup[PrimaryServiceProxy.Message] { ctx =>
-          PrimaryServiceProxy.classToWorkerRef(workerId)(using
-            scheduler.ref,
-            ctx,
-          )
-          Behaviors.stopped
-        }
-      )
-
-      testKit.expectEffectPF { case Spawned(_, actorName, _) =>
-        actorName shouldBe workerId
-      }
-    }
 
     "successfully build initialization data for the worker" in {
-      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+      val metaInformation = new FileIndividualTimeSeriesMetaInformation(
         metaPq,
         Paths.get("its_pq_" + uuidPq),
+        FileType.CSV,
       )
 
       PrimaryServiceProxy.toInitData(
@@ -290,7 +329,6 @@ class PrimaryServiceProxySpec
                 directoryPath,
                 filePath,
                 fileNamingStrategy,
-                timePattern,
               )
             ) =>
           actualTimeSeriesUuid shouldBe uuidPq
@@ -302,7 +340,6 @@ class PrimaryServiceProxySpec
           classOf[FileNamingStrategy].isAssignableFrom(
             fileNamingStrategy.getClass
           ) shouldBe true
-          timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
         case Success(wrongData) =>
           fail(s"Creation of init data lead to wrong init data '$wrongData'.")
         case Failure(exception) =>
@@ -341,11 +378,11 @@ class PrimaryServiceProxySpec
       /* We "fake" the creation of the worker to infiltrate a test probe. This empowers us to check, if a matching init
        * message is sent to the worker */
       val worker = TestProbe[PrimaryServiceProxy.Message]("workerTestProbe")
-      val lockProbe = TestProbe[ScheduleLock.Message]("lockProbe")
 
-      val metaInformation = new CsvIndividualTimeSeriesMetaInformation(
+      val metaInformation = new FileIndividualTimeSeriesMetaInformation(
         metaPq,
         Paths.get("its_pq_" + uuidPq),
+        FileType.CSV,
       )
 
       val context: ActorContext[PrimaryServiceProxy.Message] = {
@@ -360,8 +397,6 @@ class PrimaryServiceProxySpec
           )
         )
           .thenReturn(worker.ref)
-        when(m.spawnAnonymous(any[Behavior[ScheduleLock.Message]], any()))
-          .thenReturn(lockProbe.ref)
 
         m
       }
@@ -372,38 +407,41 @@ class PrimaryServiceProxySpec
         initStateData.primaryConfig,
       )(using scheduler.ref, context)
 
-      inside(worker.expectMessageType[Create]) {
-        case Create(
-              CsvInitPrimaryServiceStateData(
-                actualTimeSeriesUuid,
-                actualSimulationStart,
-                actualValueClass,
-                actualCsvSep,
-                directoryPath,
-                filePath,
-                fileNamingStrategy,
-                timePattern,
-              ),
-              _,
-            ) =>
-          actualTimeSeriesUuid shouldBe uuidPq
-          actualSimulationStart shouldBe simulationStart
-          actualValueClass shouldBe classOf[SValue]
-          actualCsvSep shouldBe csvSep
-          directoryPath shouldBe baseDirectoryPath
-          filePath shouldBe metaInformation.getFullFilePath
-          classOf[FileNamingStrategy].isAssignableFrom(
-            fileNamingStrategy.getClass
-          ) shouldBe true
-          timePattern shouldBe TimeUtil.withDefaults.getDateTimeFormatter.toString
-      }
+    }
 
-      // receiving schedule activation of schedule lock
-      scheduler.expectMessageType[ScheduleActivation] match {
-        case ScheduleActivation(_, tick, key) =>
-          tick shouldBe INIT_SIM_TICK
-          key shouldBe None
-      }
+    "forwarding the registration to correct ext worker" in {
+      val extWorker1 = TestProbe[ServiceMessage]("extWorker1")
+      val extWorker2 = TestProbe[ServiceMessage]("extWorker2")
+
+      val participant1 = TestProbe[ParticipantAgent.Message]("Participant1").ref
+      val participant2 = TestProbe[ParticipantAgent.Message]("Participant2").ref
+
+      val extEntityUuid1 = UUID.randomUUID()
+      val extEntityUuid2 = UUID.randomUUID()
+
+      val stateData = PrimaryServiceStateData(
+        Map.empty,
+        Map.empty,
+        simulationStart,
+        validPrimaryConfig,
+        Map(extEntityUuid1 -> extWorker1.ref, extEntityUuid2 -> extWorker2.ref),
+      )
+
+      val behavior = BehaviorTestKit(PrimaryServiceProxy.onMessage(stateData))
+
+      behavior.run(
+        PrimaryServiceRegistrationMessage(participant1, extEntityUuid1)
+      )
+      extWorker1.expectMessage(
+        PrimaryServiceRegistrationMessage(participant1, extEntityUuid1)
+      )
+
+      behavior.run(
+        PrimaryServiceRegistrationMessage(participant2, extEntityUuid2)
+      )
+      extWorker2.expectMessage(
+        PrimaryServiceRegistrationMessage(participant2, extEntityUuid2)
+      )
     }
   }
 
@@ -436,6 +474,7 @@ class PrimaryServiceProxySpec
               timeSeriesToSourceRef,
               simulationStart,
               primaryConfig,
+              _,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(
@@ -523,31 +562,15 @@ class PrimaryServiceProxySpec
 
     "spin off only one worker per time series" in {
       val uuid1 = UUID.randomUUID()
-      val uuid3 = UUID.randomUUID()
-      val timeSeriesUUID1_3 = UUID.randomUUID()
-      val meta1_3 = new CsvIndividualTimeSeriesMetaInformation(
-        timeSeriesUUID1_3,
-        ColumnScheme.ACTIVE_POWER,
-        Path.of(""),
-      )
-
       val uuid2 = UUID.randomUUID()
-      val timeSeriesUUID2 = UUID.randomUUID()
-      val meta2 = new CsvIndividualTimeSeriesMetaInformation(
-        timeSeriesUUID2,
-        ColumnScheme.ACTIVE_POWER,
-        Path.of(""),
-      )
 
       val stateData = PrimaryServiceStateData(
         Map(
-          uuid1 -> timeSeriesUUID1_3,
-          uuid2 -> timeSeriesUUID2,
-          uuid3 -> timeSeriesUUID1_3,
+          uuid1 -> uuidP,
+          uuid2 -> uuidP,
         ),
         Map(
-          timeSeriesUUID1_3 -> SourceRef(meta1_3, None),
-          timeSeriesUUID2 -> SourceRef(meta2, None),
+          uuidP -> SourceRef(metaP, None)
         ),
         simulationStart,
         validPrimaryConfig,
@@ -555,33 +578,23 @@ class PrimaryServiceProxySpec
 
       val testKit = BehaviorTestKit(PrimaryServiceProxy.onMessage(stateData))
 
-      val participant1 = TestProbe[ParticipantAgent.Request]("participant1")
-      val participant2 = TestProbe[ParticipantAgent.Request]("participant2")
-      val participant3 = TestProbe[ParticipantAgent.Request]("participant3")
+      val participant1 = TestProbe[ParticipantAgent.Message]("participant1")
+      val participant2 = TestProbe[ParticipantAgent.Message]("participant2")
 
       testKit.run(PrimaryServiceRegistrationMessage(participant1.ref, uuid1))
 
+      // schedule lock
       testKit.expectEffectPF { case Spawned(_, actorName, _) =>
-        actorName shouldBe timeSeriesUUID1_3.toString
+        actorName should startWith("schedule_lock")
       }
 
-      // schedule lock spawned by the scheduler
-      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
-
-      // second participant uses a different input time series
-      // therefore, a second worker should be spawned
-      testKit.run(PrimaryServiceRegistrationMessage(participant2.ref, uuid2))
-
       testKit.expectEffectPF { case Spawned(_, actorName, _) =>
-        actorName shouldBe timeSeriesUUID2.toString
+        actorName shouldBe uuidP.toString
       }
 
-      // schedule lock spawned by the scheduler
-      testKit.expectEffectPF { case SpawnedAnonymous(_, _) => }
-
-      // the third participant uses the same time series as the first participant
+      // the second participant uses the same time series as the first participant
       // therefore, no additional worker should be spawned
-      testKit.run(PrimaryServiceRegistrationMessage(participant3.ref, uuid3))
+      testKit.run(PrimaryServiceRegistrationMessage(participant2.ref, uuid2))
 
       testKit.expectEffect(NoEffects)
     }

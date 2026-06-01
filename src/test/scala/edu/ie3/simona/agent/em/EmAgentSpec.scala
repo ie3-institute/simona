@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.agent.em
 
-import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.datamodel.models.result.system.{
+  EmResult,
+  PowerLimitFlexOptionsResult,
+}
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
@@ -22,6 +25,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -59,8 +63,6 @@ class EmAgentSpec
   given simulationStart: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")
 
-  given FlexType = FlexType.PowerLimit
-
   // Testing tolerances
   given Power = Kilowatts(1e-10)
   given ReactivePower = Kilovars(1e-10)
@@ -71,11 +73,10 @@ class EmAgentSpec
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
           listener = resultProxy.ref,
@@ -99,8 +100,10 @@ class EmAgentSpec
       emAgent ! Activation(INIT_SIM_TICK)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -179,7 +182,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -233,7 +236,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(-.005.asMegaWatt)
@@ -259,11 +262,10 @@ class EmAgentSpec
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
           listener = resultProxy.ref,
@@ -345,7 +347,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -415,7 +417,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -442,11 +444,10 @@ class EmAgentSpec
       val scheduler = TestProbe[SchedulerMessage]("Scheduler")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Left(scheduler.ref),
           listener = resultProxy.ref,
@@ -529,7 +530,7 @@ class EmAgentSpec
       )
 
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -608,7 +609,7 @@ class EmAgentSpec
 
       // expect correct results
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 300.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -636,11 +637,10 @@ class EmAgentSpec
       val parentEmAgent = TestProbe[FlexResponse]("ParentEmAgent")
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           EmRuntimeConfig(),
           outputConfig,
-          "PRIORITIZED",
           simulationStart,
           parent = Right(parentEmAgent.ref),
           listener = resultProxy.ref,
@@ -664,11 +664,13 @@ class EmAgentSpec
       parentEmAgent.expectNoMessage()
 
       /* TICK -1 */
-      emAgent ! FlexActivation(INIT_SIM_TICK)
+      emAgent ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -723,7 +725,7 @@ class EmAgentSpec
       )
 
       resultProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)

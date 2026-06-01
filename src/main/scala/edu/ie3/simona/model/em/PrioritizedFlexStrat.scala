@@ -67,6 +67,14 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       receivedData: Seq[SecondaryData],
   ): Seq[(UUID, Power)] = {
 
+    flexOptions.foreach {
+      case (_: SystemParticipantInput, _) =>
+      case _ =>
+        throw new CriticalFailureException(
+          s"Only system participant are allowed as controlled assets of this strategy."
+        )
+    }
+
     val totalRefPower =
       flexOptions
         .map { case (_, PowerLimitFlexOptions(refPower, _, _)) =>
@@ -217,6 +225,13 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       assetInput: AssetInput,
       flexOptions: PowerLimitFlexOptions,
   ): PowerLimitFlexOptions = {
+    assetInput match {
+      case _: SystemParticipantInput =>
+      case _ =>
+        throw new CriticalFailureException(
+          s"Only system participant are allowed as controlled assets of this strategy."
+        )
+    }
     if controllableAssets.contains(assetInput.getClass) then flexOptions
     else {
       // device is not controllable by this EmAgent

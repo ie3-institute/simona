@@ -22,11 +22,15 @@ object ResultMessage {
     *   For which results are requested.
     * @param replyTo
     *   The actor that should receive the results.
+    * @param thresholdTick
+    *   An option defining the oldest tick for which results should be
+    *   considered. In case of [[None]] the last update values will be returned.
     */
   final case class RequestResult(
       requestedResults: Seq[UUID],
       tick: Long,
       replyTo: ActorRef[ResultResponse],
+      thresholdTick: Option[Long],
   )
 
   /** Response message that is sent to a listener or

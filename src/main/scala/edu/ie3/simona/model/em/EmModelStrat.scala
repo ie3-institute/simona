@@ -8,13 +8,24 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
+import edu.ie3.simona.model.em.opt.{
+  CommonLossObjectiveFactory,
+  OptimizedFlexStrat,
+}
+import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
+  AssetStepVars,
+  ObjectiveFactory,
+}
 import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
   FlexOptions,
   PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.ServiceRegistrationData
 import squants.Power
 import squants.energy.Kilowatts
+import squants.time.Hours
 
 import java.util.UUID
 
@@ -23,6 +34,16 @@ import java.util.UUID
   * connected agents
   */
 trait EmModelStrat[FO <: FlexOptions] {
+
+  /** Returns the service registration data specifying the data provision
+    * required for running for this model strategy. To be overridden by
+    * implementing class. Per default returns data that specifies no services.
+    *
+    * @return
+    *   The data specifying a service registration.
+    */
+  def getServiceRegistrationData: ServiceRegistrationData =
+    ServiceRegistrationData.noServices
 
   /** Determine the target power (set points) of connected agents that provided
     * flex options before. Connected agents that have no result assigned in
@@ -76,4 +97,28 @@ object EmModelStrat {
     case "PRIORITIZED" =>
       PrioritizedFlexStrat(modelConfig.curtailRegenerative)
   }
+
+  def parseOptimizingModel
+      : PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
+    // todo a lot of these parameters should be configurable -> issue #1725
+
+    val objectiveFunction
+        : PartialFunction[String, ObjectiveFactory[? <: AssetStepVars]] = {
+      case "OPT_MIN_ABS_POWER" =>
+        CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory
+      case "OPT_LIN_QUAD_POWER" =>
+        CommonLossObjectiveFactory
+          .LinearizedQuadraticPowerObjectiveFactory(segmentCount = 10)
+      case "OPT_PRICE" => CommonLossObjectiveFactory.PriceObjectiveFactory
+    }
+
+    objectiveFunction.andThen(objectiveFactory =>
+      new OptimizedFlexStrat(
+        sampleTime = Hours(1),
+        predictionHorizon = Hours(12),
+        objectiveFactory,
+      )
+    )
+  }
+
 }

@@ -69,7 +69,7 @@ trait OptimizingTestLike extends Assertions {
   }
 
   def buildDebugString(
-      containers: AssetVarContainer[? <: AssetStepVars]*
+      containers: Iterable[AssetVarContainer[? <: AssetStepVars]]
   ): String =
     s"\n\tDEBUGGING asset variables:" +
       containers

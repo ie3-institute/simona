@@ -9,6 +9,8 @@ package edu.ie3.simona.ontology.messages.flex
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.DataTimeType
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
@@ -68,39 +70,27 @@ object FlexibilityMessage {
       scheduleKey: Option[ScheduleKey] = None,
   ) extends FlexResponse
 
-  /** Message that activates a controlled asset agent, usually in order to
-    * request [[FlexOptions]] for given tick. During initialization, no flex
-    * option provision is expected.
+  /** Message that activates a controlled asset agent for initialization. No
+    * flex option provision is expected. Initialization is considered complete
+    * when a [[FlexCompletion]] is received as an answer.
+    *
+    * @param flexType
+    *   The flexibility type to calculate [[FlexOptions]] for.
+    * @param dataTimeType
+    *   The data time type of [[FlexOptions]] to be calculated.
+    */
+  final case class FlexInit(flexType: FlexType, dataTimeType: DataTimeType)
+      extends FlexRequest {
+    override val tick: Long = INIT_SIM_TICK
+  }
+
+  /** Message that activates a controlled asset agent in order to request
+    * [[FlexOptions]] (provided by [[ProvideFlexOptions]]) for given tick.
     *
     * @param tick
     *   The tick to request [[FlexOptions]] for.
-    * @param flexType
-    *   The flexibility type to calculate [[FlexOptions]] in. Unused during
-    *   initialization.
     */
-  final case class FlexActivation(override val tick: Long, flexType: FlexType)
-      extends FlexRequest
-
-  object FlexActivation {
-
-    /** Convenience method for creating a [[FlexActivation]] with an implicit
-      * flexType.
-      *
-      * @param tick
-      *   The tick to request [[FlexOptions]] for.
-      * @param flexType
-      *   The flexibility type to calculate [[FlexOptions]] in. Not used during
-      *   initialization.
-      * @param dummy
-      *   Dummy implicit parameter needed due to method signature collisions.
-      * @return
-      *   A [[FlexActivation]].
-      */
-    def apply(
-        tick: Long
-    )(using flexType: FlexType, dummy: DummyImplicit): FlexActivation =
-      FlexActivation(tick, flexType)
-  }
+  final case class FlexActivation(override val tick: Long) extends FlexRequest
 
   /** Message that provides [[FlexOptions]] to an
     * [[edu.ie3.simona.agent.em.EmAgent]] after they have been requested via
@@ -113,7 +103,7 @@ object FlexibilityMessage {
 
   /** Message that issues flexibility control to a controlled asset model, i.e.
     * a feasible set point is delivered that the controlled asset model should
-    * adhere to
+    * adhere to. Sending agent expects a [[FlexCompletion]] as a reply.
     */
   trait IssueFlexControl extends FlexRequest
 

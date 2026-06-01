@@ -7,16 +7,16 @@
 package edu.ie3.simona.ontology.messages
 
 import edu.ie3.simona.agent.em.EmAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.api.ontology.DataMessageFromExt
+import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexRequest,
   FlexResponse,
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.ServiceStateData.InitializeServiceStateData
+import edu.ie3.simona.service.{Data, DataTimeType}
+import edu.ie3.simona.service.Data.PrimaryDataExtra
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -28,15 +28,10 @@ sealed trait ServiceMessage
 
 object ServiceMessage {
 
-  /** Service initialization data can sometimes only be constructed once the
-    * service actor is created (e.g.
-    * [[edu.ie3.simona.service.ev.ExtEvDataService]]). Thus, we need an extra
-    * initialization message.
+  /** Messages sent by a service to an agent, in part as a response to a
+    * [[ServiceMessage]].
     */
-  final case class Create(
-      initializeStateData: InitializeServiceStateData,
-      unlockKey: ScheduleKey,
-  ) extends ServiceMessage
+  trait Response
 
   /** Message used to register for a service.
     */
@@ -47,11 +42,14 @@ object ServiceMessage {
     *
     * @param requestingActor
     *   The actor requesting registration for the data service.
+    * @param dataTimeType
+    *   The data type specifying the temporal dimension of the requested data.
     * @param data
     *   The data, that is used during the registration.
     */
   final case class SecondaryServiceRegistrationMessage(
-      requestingActor: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[Response],
+      dataTimeType: DataTimeType,
       data: Any,
   ) extends ServiceRegistrationMessage
 
@@ -81,7 +79,7 @@ object ServiceMessage {
     *   Identifier of the input model
     */
   final case class PrimaryServiceRegistrationMessage(
-      requestingActor: ActorRef[ParticipantAgent.Request],
+      requestingActor: ActorRef[Response],
       inputModelUuid: UUID,
   ) extends ServiceRegistrationMessage
 
@@ -93,7 +91,7 @@ object ServiceMessage {
     *   Reference to the requesting actor
     */
   final case class WorkerRegistrationMessage(
-      requestingActor: ActorRef[ParticipantAgent.Request]
+      requestingActor: ActorRef[Response]
   ) extends ServiceRegistrationMessage
 
   /** Message that is sent by an [[edu.ie3.simona.api.ExtSimAdapter]] to
@@ -108,6 +106,15 @@ object ServiceMessage {
       unlockKey: ScheduleKey,
   ) extends DataMessageFromExt
 
+  /** A message to the agent outside of regular service data messages.
+    */
+  trait DirectAgentRequest extends Response {
+
+    /** The tick for which the request is valid, which is the current tick.
+      */
+    val tick: Long
+  }
+
   /** Requests number of free lots from evcs. The evcs agent will answer with an
     * [[FreeLotsResponse]].
     *
@@ -119,7 +126,7 @@ object ServiceMessage {
   final case class EvFreeLotsRequest(
       override val tick: Long,
       replyTo: ActorRef[FreeLotsResponse],
-  ) extends ParticipantRequest
+  ) extends DirectAgentRequest
 
   /** Requests EV models of departing EVs with given UUIDs. The evcs agent will
     * answer with a [[DepartingEvsResponse]].
@@ -135,10 +142,11 @@ object ServiceMessage {
       override val tick: Long,
       departingEvs: Seq[UUID],
       replyTo: ActorRef[DepartingEvsResponse],
-  ) extends ParticipantRequest
+  ) extends DirectAgentRequest
 
-  /** Message used in response to a service request. To receive these message,
-    * the service needs to extend [[edu.ie3.simona.service.ExtDataSupport]].
+  /** Message sent to the service by an agent, e.g. in response to a
+    * [[DirectAgentRequest]]. To receive these message, the service needs to
+    * extend [[edu.ie3.simona.service.ExtDataSupport]].
     */
   sealed trait ServiceResponseMessage
 
@@ -175,4 +183,79 @@ object ServiceMessage {
       message: FlexRequest | FlexResponse,
       receiver: UUID | ActorRef[FlexResponse] | ActorRef[EmAgent.Message],
   ) extends ServiceResponseMessage
+
+  /** Messages that are sent by services as responses to registration requests.
+    */
+  sealed trait RegistrationResponseMessage extends Response {
+    val serviceRef: ActorRef[ServiceMessage]
+  }
+
+  /** Message confirming a successful registration with a secondary service.
+    */
+  final case class RegistrationSuccessfulMessage(
+      override val serviceRef: ActorRef[ServiceMessage],
+      firstDataTick: Long,
+      additionalData: Option[AdditionalFactoryData] = None,
+  ) extends RegistrationResponseMessage
+
+  /** Message confirming a successful registration with the primary service.
+    *
+    * @param firstDataTick
+    *   The first tick at which data will be sent.
+    * @param primaryDataExtra
+    *   Extra functionality specific to the primary data class.
+    */
+  final case class PrimaryRegistrationSuccessfulMessage(
+      override val serviceRef: ActorRef[ServiceMessage],
+      firstDataTick: Long,
+      primaryDataExtra: PrimaryDataExtra[?],
+  ) extends RegistrationResponseMessage
+
+  /** Message announcing a failed registration.
+    */
+  final case class RegistrationFailedMessage(
+      override val serviceRef: ActorRef[ServiceMessage]
+  ) extends RegistrationResponseMessage
+
+  /** Data provision messages sent by data services.
+    */
+  sealed trait DataMessage extends Response {
+
+    /** The current tick.
+      */
+    val tick: Long
+
+    /** The sending service actor ref.
+      */
+    val serviceRef: ActorRef[ServiceMessage]
+
+    /** Next tick at which data could arrive. If None, no data is expected for
+      * the rest of the simulation.
+      */
+    val nextDataTick: Option[Long]
+  }
+
+  /** Providing primary or secondary data to an agent.
+    *
+    * @param data
+    *   The data.
+    */
+  final case class DataProvision(
+      override val tick: Long,
+      override val serviceRef: ActorRef[ServiceMessage],
+      data: Data,
+      override val nextDataTick: Option[Long],
+  ) extends DataMessage
+
+  /** Providing the information that no data will be provided by the sending
+    * service for the current tick. The participant could thus potentially skip
+    * calculations for the current tick and reschedule calculation for the next
+    * data tick.
+    */
+  final case class NoDataProvision(
+      override val tick: Long,
+      override val serviceRef: ActorRef[ServiceMessage],
+      override val nextDataTick: Option[Long],
+  ) extends DataMessage
+
 }

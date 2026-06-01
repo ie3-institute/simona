@@ -13,7 +13,11 @@ import edu.ie3.datamodel.models.result.system.{
 }
 import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.flex.ParticipantInflexiblePowerLimitFlexModel
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantConstantEnergyLimitFlexModel,
+  ParticipantFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -40,14 +44,17 @@ class FixedFeedInModel(
     ]
     with ParticipantFixedState[ActivePowerOperatingPoint] {
 
-  override val flexModels
-      : Map[FlexType, ParticipantFlexModel[ParticipantModel.FixedState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    FixedState,
+  ]] =
     Map(
-      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> ParticipantConstantEnergyLimitFlexModel(this),
     )
 
   override def determineOperatingPoint(
-      state: ParticipantModel.FixedState
+      state: FixedState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
     val power = pRated * -1
 
@@ -55,16 +62,15 @@ class FixedFeedInModel(
   }
 
   override def determineOperatingPoint(
-      state: ParticipantModel.FixedState,
+      state: FixedState,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+  ): ActivePowerOperatingPoint = ActivePowerOperatingPoint(setPower)
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
 
   override def createResults(
-      state: ParticipantModel.FixedState,
+      state: FixedState,
       lastOperatingPoint: Option[ActivePowerOperatingPoint],
       currentOperatingPoint: ActivePowerOperatingPoint,
       complexPower: ComplexPower,

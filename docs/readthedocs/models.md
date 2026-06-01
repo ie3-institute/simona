@@ -45,3 +45,11 @@ maxdepth: 1
 ---
 models/measurement_control
 ```
+
+## Model input (services)
+```{toctree}
+---
+maxdepth: 1
+---
+models/price_service
+```

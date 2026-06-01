@@ -7,15 +7,15 @@
 package edu.ie3.simona.model.em.opt
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
-import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
   SplitLossAssetStepVars,
   calculateCommonEta,
   calculateConversionFactor,
 }
+import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
+import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
-import edu.ie3.simona.service.Data
+import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.EnergyPrice
 import optimus.algebra.{Const, Expression, Zero}
@@ -173,6 +173,9 @@ object CommonLossObjectiveFactory {
     */
   object MinAbsPowerObjectiveFactory extends CommonLossObjectiveFactory {
 
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetVars: Iterable[AssetVarContainer[SplitLossAssetStepVars]],
@@ -207,6 +210,9 @@ object CommonLossObjectiveFactory {
       segmentCount: Int
   ) extends CommonLossObjectiveFactory {
 
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetVars: Iterable[AssetVarContainer[SplitLossAssetStepVars]],
@@ -237,7 +243,15 @@ object CommonLossObjectiveFactory {
         }
         .getOrElse((zeroKW, zeroKW))
 
-      val absTotalPowerKW = maxTotalPower.max(-minTotalPower).toKilowatts
+      val absTotalPowerKW = {
+        val absPower = maxTotalPower.max(-minTotalPower).toKilowatts
+        if absPower == 0.0 then {
+          // if there is zero maximum absolute power, the only solution is zero power
+          // for all assets. We thus just assume a placeholder value here so that
+          // numerics do not break
+          1.0
+        } else absPower
+      }
       val segmentSize = absTotalPowerKW / segmentCount
       val adaptFactor = (1d - lowerLimit) / absTotalPowerKW
 
@@ -276,7 +290,10 @@ object CommonLossObjectiveFactory {
     * Since we assume that the buying price is always higher than the selling
     * price, we can use an epigraph to derive a linear objective.
     */
-  class PriceObjectiveFactory extends CommonLossObjectiveFactory {
+  object PriceObjectiveFactory extends CommonLossObjectiveFactory {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.PriceService)
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
@@ -299,8 +316,6 @@ object CommonLossObjectiveFactory {
             s"No prices were given with secondary data $receivedData"
           )
         )
-
-      val upperLimit = 1d
 
       val transformFunc = (price: EnergyPrice) =>
         price.toEuroPerKilowattHour / maxPrice

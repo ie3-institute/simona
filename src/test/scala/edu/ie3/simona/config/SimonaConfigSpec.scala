@@ -16,11 +16,12 @@ import edu.ie3.simona.config.InputConfig.{
   WeatherDatasource,
 }
 import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.config.SimonaConfig.Simona
-import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
-import edu.ie3.simona.config.SimonaConfig.Simona.{
+import edu.ie3.simona.config.SimonaConfig.Powerflow.Newtonraphson
+import edu.ie3.simona.config.SimonaConfig.{
   CongestionManagement,
+  GridConfig,
   Powerflow,
+  Time,
 }
 import edu.ie3.simona.test.common.UnitSpec
 
@@ -52,13 +53,13 @@ class SimonaConfigSpec extends UnitSpec {
           |""".stripMargin
       )
 
-      val simonaConfig = SimonaConfig(minimalConfig).simona
+      val simonaConfig = SimonaConfig(minimalConfig)
 
       // simulation name
       simonaConfig.simulationName shouldBe "ConfigTestDataSimulation"
 
       // time config
-      simonaConfig.time shouldBe Simona.Time(
+      simonaConfig.time shouldBe Time(
         endDateTime = "2011-05-01T01:00:00Z",
         schedulerReadyCheckWindow = None,
         startDateTime = "2011-05-01T00:00:00Z",
@@ -66,15 +67,14 @@ class SimonaConfigSpec extends UnitSpec {
 
       // congestion management config
       simonaConfig.congestionManagement shouldBe CongestionManagement(
-        enableDetection = false,
-        timeout = 30.seconds,
+        enableDetection = false
       )
 
       // control config
       simonaConfig.control shouldBe None
 
       // grid config
-      simonaConfig.gridConfig shouldBe Simona.GridConfig(
+      simonaConfig.gridConfig shouldBe GridConfig(
         refSystems = None,
         voltageLimits = None,
       )
@@ -117,7 +117,6 @@ class SimonaConfigSpec extends UnitSpec {
             sampleParams = None,
             scheme = "icon",
             sqlParams = None,
-            timestampPattern = None,
           )
         ),
       )
@@ -160,7 +159,6 @@ class SimonaConfigSpec extends UnitSpec {
           newtonraphson = Newtonraphson(epsilon = List(1e-12), iterations = 50),
           resolution = 1.hours,
           stopOnFailure = false,
-          sweepTimeout = 30.seconds,
         )
       )
 
@@ -192,7 +190,7 @@ class SimonaConfigSpec extends UnitSpec {
               scaling = 1.0,
               uuids = Nil,
               chargingStrategy = "maxPower",
-              lowestEvSoc = 0.2,
+              departureTargetSoc = 0.75,
             ),
             individualConfigs = Nil,
           ),

@@ -8,14 +8,18 @@ package edu.ie3.simona.agent.grid.congestion
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentData.{
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
 }
-import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
+import edu.ie3.simona.agent.grid.{
+  GridAgent,
+  GridAgentCoordinator,
+  GridEnvironment,
+}
 import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
-import edu.ie3.simona.model.grid.RefSystem
+import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
@@ -37,8 +41,6 @@ import org.mockito.Mockito.when
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
-import scala.concurrent.duration.DurationInt
-
 trait CongestionTestBaseData
     extends ConfigTestData
     with CongestedComponentsTestData
@@ -58,6 +60,11 @@ trait CongestionTestBaseData
     Megawatts(600d),
     Kilovolts(110d),
   )
+
+  protected val voltageLimits: VoltageLimits = VoltageLimits(0.9, 1.1)
+
+  protected val gridAgentCoordinator: TestProbe[GridAgentCoordinator.Message] =
+    TestProbe("gridAgentCoordinator")
 
   protected val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   protected val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
@@ -84,13 +91,15 @@ trait CongestionTestBaseData
     primaryServiceProxy = primaryService.ref,
     resultProxy = resultProxy.ref,
     weather = weatherService.ref,
+    price = None,
     loadProfiles = loadProfileService.ref,
     emDataService = None,
     evDataService = None,
   )
 
-  protected implicit val constantData: GridAgentConstantData =
+  protected given constantData: GridAgentConstantData =
     GridAgentConstantData(
+      gridAgentCoordinator.ref,
       environmentRefs,
       simonaConfig,
       3600,
@@ -124,26 +133,27 @@ trait CongestionTestBaseData
   def gridAgentBaseData(
       inferiorRefs: Set[ActorRef[GridAgent.Message]] = Set.empty,
       isSuperior: Boolean = false,
+      gridModel: Option[GridModel] = None,
   ): GridAgentBaseData = {
     val data = mock[GridAgentBaseData]
-    val map = inferiorRefs.map(ref => ref -> Seq.empty).toMap
-
-    val cmParams = CongestionManagementParams(
-      detectionEnabled = true,
-      30.seconds,
-    )
+    val map = inferiorRefs.map(ref => ref -> Set.empty).toMap
 
     when(data.isSuperior).thenReturn(isSuperior)
-    when(data.congestionManagementParams).thenReturn(cmParams)
     when(data.inferiorGridRefs).thenReturn(map)
-    when(data.superiorGridNodeUuids).thenReturn(Vector.empty)
 
     val gridEnv = mock[GridEnvironment]
     when(data.gridEnv).thenReturn(gridEnv)
 
-    when(gridEnv.gridModel).thenReturn(gridModel)
-    when(gridEnv.subgridGateToActorRef).thenReturn(Map.empty)
+    when(gridEnv.superiorConnections).thenReturn(Map.empty)
     when(gridEnv.nodeToAssetAgents).thenReturn(Map.empty)
+
+    gridModel match {
+      case Some(model) =>
+        when(gridEnv.gridModel).thenReturn(model)
+
+      case None =>
+        when(gridEnv.gridModel).thenReturn(defaultGridModel)
+    }
 
     data
   }

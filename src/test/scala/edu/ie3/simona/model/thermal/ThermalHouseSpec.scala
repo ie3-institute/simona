@@ -540,7 +540,7 @@ class ThermalHouseSpec
             noThermalDemand,
           )
 
-          val simulationTime = tick.toDateTime(simulationStart)
+          val simulationTime = tick.toDateTime(using simulationStart)
 
           val sequenceOfHours =
             thermalHouse.checkIfNeedToDetermineDomesticHotWaterDemand(

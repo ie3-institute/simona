@@ -7,7 +7,6 @@
 package edu.ie3.simona.service.results
 
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.service.results.Transformer3wResultSupport
 import edu.ie3.simona.service.results.Transformer3wResultSupport.AggregatedTransformer3wResult
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.TimeUtil

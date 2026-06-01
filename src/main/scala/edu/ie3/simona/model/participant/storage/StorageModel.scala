@@ -23,11 +23,8 @@ import edu.ie3.simona.model.participant.storage.StorageModel.{
   StorageState,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.{
-  ChargingHelper,
-  ParticipantFlexModel,
-  ParticipantModel,
-}
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
+import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
@@ -61,7 +58,9 @@ class StorageModel private (
       StorageState,
     ] {
 
-  private val minEnergy = zeroKWh
+  /** Minimum state of energy.
+    */
+  val minEnergy: Energy = zeroKWh
 
   /** Tolerance for power comparisons. With very small (dis-)charging powers,
     * problems can occur when calculating the future tick at which storage is
@@ -73,7 +72,7 @@ class StorageModel private (
     * set to zero. The given tolerance value below amounts to 1 W for 1 GWh
     * storage capacity and is sufficient in preventing Long overflows.
     */
-  private implicit val powerTolerance: Power = eStorage / Seconds(1) / 3.6e12
+  implicit val powerTolerance: Power = eStorage / Seconds(1) / 3.6e12
 
   /** In order to avoid faulty behavior of storages, we want to avoid offering
     * charging/discharging when storage is very close to full, to empty or to a
@@ -112,7 +111,10 @@ class StorageModel private (
     )
   }
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[StorageState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    StorageState,
+  ]] =
     Map(
       FlexType.PowerLimit -> StoragePowerLimitFlexModel(this),
       FlexType.EnergyBoundaries -> StorageEnergyBoundariesFlexModel(this),
@@ -180,7 +182,7 @@ class StorageModel private (
   override def determineOperatingPoint(
       state: StorageState,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, ParticipantModel.OperationChangeIndicator) = {
+  ): ActivePowerOperatingPoint = {
     val adaptedSetPower =
       if
         // if power is close to zero, set it to zero
@@ -192,61 +194,7 @@ class StorageModel private (
       then zeroKW
       else setPower
 
-    // if the storage is at minimum or maximum charged energy AND we are charging
-    // or discharging, flex options will be different at the next activation
-    val isEmptyOrFull =
-      isEmpty(state.storedEnergy) || isFull(state.storedEnergy)
-    // if target soc is enabled, we can also be at that exact point
-    val isAtTarget = refTargetSoc.exists { targetParams =>
-      state.storedEnergy <= targetParams.targetWithPosMargin &&
-      state.storedEnergy >= targetParams.targetWithNegMargin
-    }
-    val isChargingOrDischarging = adaptedSetPower != zeroKW
-    // if we've been triggered just before we hit the minimum or maximum energy,
-    // and we're still discharging or charging respectively (happens in edge cases),
-    // we already set the power to zero (see above) and also want to refresh flex options
-    // at the next activation.
-    // Similarly, if the ref target margin area is hit before hitting target SOC, we want
-    // to refresh flex options.
-    val hasObsoleteFlexOptions =
-      (isFull(state.storedEnergy) && setPower > zeroKW) ||
-        (isEmpty(state.storedEnergy) && setPower < zeroKW) ||
-        (isAtTarget && setPower != zeroKW)
-
-    val activateAtNextTick =
-      ((isEmptyOrFull || isAtTarget) && isChargingOrDischarging) || hasObsoleteFlexOptions
-
-    // when charging, calculate time until we're full or at target energy
-    val chargingEnergyTarget = () =>
-      refTargetSoc
-        .filter(_.targetWithNegMargin >= state.storedEnergy)
-        .map(_.targetSoc)
-        .getOrElse(eStorage)
-
-    // when discharging, calculate time until we're at lowest energy allowed or at target energy
-    val dischargingEnergyTarget = () =>
-      refTargetSoc
-        .filter(_.targetWithPosMargin <= state.storedEnergy)
-        .map(_.targetSoc)
-        .getOrElse(minEnergy)
-
-    // calculate the tick from time span
-    val maybeNextTick = ChargingHelper.calcNextEventTick(
-      state.storedEnergy,
-      adaptedSetPower,
-      state.tick,
-      chargingEnergyTarget,
-      dischargingEnergyTarget,
-      eta,
-    )
-
-    (
-      ActivePowerOperatingPoint(adaptedSetPower),
-      ParticipantModel.OperationChangeIndicator(
-        activateAtNextTick,
-        maybeNextTick,
-      ),
-    )
+    ActivePowerOperatingPoint(adaptedSetPower)
   }
 
   /** @param storedEnergy

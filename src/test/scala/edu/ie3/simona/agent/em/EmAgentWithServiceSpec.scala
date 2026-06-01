@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.agent.em
 
-import edu.ie3.datamodel.models.result.system.EmResult
+import edu.ie3.datamodel.models.result.system.{
+  EmResult,
+  PowerLimitFlexOptionsResult,
+}
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.{
@@ -19,10 +22,11 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
+import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
@@ -81,15 +85,14 @@ class EmAgentWithServiceSpec
       val serviceRef = service.ref
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           emInput,
           modelConfig,
           outputConfig,
-          "PRIORITIZED",
           simulationStartDate,
           parent = Right(parentEmAgent.ref),
           listener = resultServiceProxy.ref,
-          Some(serviceRef),
+          emDataService = Some(serviceRef),
         )
       )
 
@@ -132,11 +135,13 @@ class EmAgentWithServiceSpec
       service.expectNoMessage()
 
       /* TICK -1 */
-      emAgentFlex ! FlexActivation(INIT_SIM_TICK, PowerLimit)
+      emAgentFlex ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -165,11 +170,11 @@ class EmAgentWithServiceSpec
       )
 
       /* TICK 0 */
-      emAgentFlex ! FlexActivation(0, PowerLimit)
+      emAgentFlex ! FlexActivation(0)
 
       // expect activations and flex requests
-      pvAgent.expectMessage(FlexActivation(0, PowerLimit))
-      evcsAgent.expectMessage(FlexActivation(0, PowerLimit))
+      pvAgent.expectMessage(FlexActivation(0))
+      evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
       emAgent ! ProvideFlexOptions(
@@ -194,7 +199,7 @@ class EmAgentWithServiceSpec
       )
 
       resultServiceProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -355,20 +360,20 @@ class EmAgentWithServiceSpec
         .copy()
         .uuid(UUID.randomUUID())
         .id("parent")
+        .controlStrategy("PROPORTIONAL")
         .build()
 
       val updatedEmInput = emInput.copy().parentEm(parentEmInput).build()
 
       val parentEmAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           parentEmInput,
           modelConfig,
           outputConfig,
-          "PROPORTIONAL",
           simulationStartDate,
           parent = Left(scheduler.ref),
           listener = resultServiceProxy.ref,
-          Some(serviceRef),
+          emDataService = Some(serviceRef),
         )
       )
 
@@ -386,15 +391,14 @@ class EmAgentWithServiceSpec
       }
 
       val emAgent = spawn(
-        EmAgent(
+        EmAgentInit(
           updatedEmInput,
           modelConfig,
           outputConfig,
-          "PRIORITIZED",
           simulationStartDate,
           parent = Right(parentEmAgent),
           listener = resultServiceProxy.ref,
-          Some(serviceRef),
+          emDataService = Some(serviceRef),
         )
       )
 
@@ -442,20 +446,22 @@ class EmAgentWithServiceSpec
       service.expectNoMessage()
 
       /* TICK -1 */
-      parentEmAgent ! FlexActivation(INIT_SIM_TICK, PowerLimit)
+      parentEmAgent ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
       service.expectMessage(
         EmFlexMessage(
-          FlexActivation(INIT_SIM_TICK, PowerLimit),
+          FlexInit(FlexType.PowerLimit, DataTimeType.Current),
           emAgent,
         )
       )
 
-      emAgent ! FlexActivation(INIT_SIM_TICK, PowerLimit)
+      emAgent ! FlexInit(FlexType.PowerLimit, DataTimeType.Current)
 
       // expect flex activations
-      pvAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
-      evcsAgent.expectMessage(FlexActivation(INIT_SIM_TICK, PowerLimit))
+      pvAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+      evcsAgent.expectMessage(
+        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+      )
 
       // receive flex completions
       emAgent ! FlexCompletion(
@@ -499,20 +505,20 @@ class EmAgentWithServiceSpec
       )
 
       /* TICK 0 */
-      parentEmAgent ! FlexActivation(0, PowerLimit)
+      parentEmAgent ! FlexActivation(0)
 
       service.expectMessage(
         EmFlexMessage(
-          FlexActivation(0, PowerLimit),
+          FlexActivation(0),
           emAgent,
         )
       )
 
-      emAgent ! FlexActivation(0, PowerLimit)
+      emAgent ! FlexActivation(0)
 
       // expect activations and flex requests
-      pvAgent.expectMessage(FlexActivation(0, PowerLimit))
-      evcsAgent.expectMessage(FlexActivation(0, PowerLimit))
+      pvAgent.expectMessage(FlexActivation(0))
+      evcsAgent.expectMessage(FlexActivation(0))
 
       // send flex options
       emAgent ! ProvideFlexOptions(
@@ -537,7 +543,7 @@ class EmAgentWithServiceSpec
       )
 
       resultServiceProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexResult) =>
+        case FlexOptionsResultEvent(flexResult: PowerLimitFlexOptionsResult) =>
           flexResult.getInputModel shouldBe updatedEmInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
@@ -637,10 +643,10 @@ class EmAgentWithServiceSpec
 
       // expect correct results
       resultServiceProxy.expectMessageType[FlexOptionsResultEvent] match {
-        case FlexOptionsResultEvent(flexOptionsResult) =>
-          flexOptionsResult.getpRef should equalWithTolerance(0.asMegaWatt)
-          flexOptionsResult.getpMin should equalWithTolerance(-0.016.asMegaWatt)
-          flexOptionsResult.getpMax should equalWithTolerance(0.006.asMegaWatt)
+        case FlexOptionsResultEvent(result: PowerLimitFlexOptionsResult) =>
+          result.getpRef should equalWithTolerance(0.asMegaWatt)
+          result.getpMin should equalWithTolerance(-0.016.asMegaWatt)
+          result.getpMax should equalWithTolerance(0.006.asMegaWatt)
       }
 
       resultServiceProxy.expectMessageType[ParticipantResultEvent] match {

@@ -10,13 +10,13 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
-import edu.ie3.simona.ontology.messages.flex.{
-  FlexOptions,
-  FlexOptionsExtra,
-  FlexType,
-  PowerLimitFlexOptions,
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  FlexInit,
+  IssueFlexControl,
 }
+import edu.ie3.simona.ontology.messages.flex.*
+import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.DataTimeType
 import squants.Power
 
 import java.time.ZonedDateTime
@@ -31,7 +31,7 @@ final case class EmModelShell[FO <: FlexOptions](
     id: String,
     modelStrategy: EmModelStrat[FO],
     aggregateFlex: EmAggregateFlex[FO],
-    private val modelToParticipantInput: Map[UUID, AssetInput] = Map.empty,
+    private val modelToAssetInput: Map[UUID, AssetInput] = Map.empty,
     private val flexOptions: Option[FO] = None,
     private val flexOptionsExtra: FlexOptionsExtra[FO],
 ) {
@@ -45,6 +45,14 @@ final case class EmModelShell[FO <: FlexOptions](
     */
   def identifier: String =
     s"EmModel[$id/$uuid]"
+
+  /** Returns the data time type of the model strategy.
+    *
+    * @return
+    *   The data time type.
+    */
+  def getDataTimeType: DataTimeType =
+    modelStrategy.getServiceRegistrationData.dataTimeType
 
   /** Returns the type of flex options that are expected by the energy
     * management model as input and by the aggregation model as input and
@@ -84,8 +92,7 @@ final case class EmModelShell[FO <: FlexOptions](
       assetInput: AssetInput,
   ): EmModelShell[FO] =
     copy(
-      modelToParticipantInput =
-        modelToParticipantInput.updated(modelUuid, assetInput)
+      modelToAssetInput = modelToAssetInput.updated(modelUuid, assetInput)
     )
 
   /** Updates the aggregated flex options of this EM.
@@ -102,10 +109,10 @@ final case class EmModelShell[FO <: FlexOptions](
   ): EmModelShell[FO] = {
     val updatedAllFlexOptions = allFlexOptions.map {
       case (modelUuid, flexOptions) =>
-        val assetInput = modelToParticipantInput.getOrElse(
+        val assetInput = modelToAssetInput.getOrElse(
           modelUuid,
           throw new CriticalFailureException(
-            s"Asset input for model with UUID $modelUuid was not found."
+            s"$identifier: Asset input for model with UUID $modelUuid was not found."
           ),
         )
 
@@ -143,6 +150,8 @@ final case class EmModelShell[FO <: FlexOptions](
     *   The target power value.
     * @param currentTick
     *   The current tick.
+    * @param receivedData
+    *   The secondary data received by the EM agent.
     * @return
     *   The flexibility control for controlled assets as a map from asset uuid
     *   to its target power.
@@ -151,6 +160,7 @@ final case class EmModelShell[FO <: FlexOptions](
       allFlexOptions: Iterable[(UUID, FlexOptions)],
       target: Power,
       currentTick: Long,
+      receivedData: Seq[SecondaryData],
   ): Iterable[(UUID, Power)] = {
 
     val typedFlexOptions =
@@ -159,10 +169,10 @@ final case class EmModelShell[FO <: FlexOptions](
         .toMap
 
     val uuidToFlexOptions = typedFlexOptions.map { case (modelUuid, fo) =>
-      val assetInput = modelToParticipantInput.getOrElse(
+      val assetInput = modelToAssetInput.getOrElse(
         modelUuid,
         throw new CriticalFailureException(
-          s"Asset input for model with UUID $modelUuid was not found."
+          s"$identifier: Asset input for model with UUID $modelUuid was not found."
         ),
       )
       assetInput -> fo
@@ -173,14 +183,14 @@ final case class EmModelShell[FO <: FlexOptions](
         uuidToFlexOptions,
         target,
         currentTick,
-        Seq.empty, // todo -> issue #1628
+        receivedData,
       )
 
     setPoints.map { case (model, power) =>
       val fo = typedFlexOptions.getOrElse(
         model,
         throw new CriticalFailureException(
-          s"Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
+          s"$identifier: Set point for model $model has been calculated by ${modelStrategy.getClass.getSimpleName}, which is not connected to this EM."
         ),
       )
 
@@ -190,7 +200,7 @@ final case class EmModelShell[FO <: FlexOptions](
       } catch {
         case fe: FlexException =>
           throw new CriticalFailureException(
-            s"Determining flex power failed for asset $model",
+            s"$identifier: Determining flex power failed for asset $model",
             fe,
           )
       }
@@ -214,6 +224,24 @@ final case class EmModelShell[FO <: FlexOptions](
       dateTime,
     )
 
+  /** Validates the initialization message regarding flex type and data time
+    * type. For now, both types have to be identical, respectively, but more
+    * sophisticated validation can be implemented at a later time.
+    *
+    * @param msg
+    *   The received [[FlexInit]] message.
+    */
+  def validateInit(msg: FlexInit): Unit = {
+    if msg.flexType != getFlexType then
+      throw new CriticalFailureException(
+        s"$identifier: Flex type of parent ${msg.flexType} and our flex type $getFlexType do not match!"
+      )
+
+    if msg.dataTimeType != getDataTimeType then
+      throw new CriticalFailureException(
+        s"$identifier: Data time type of parent ${msg.dataTimeType} and our data time type $getDataTimeType do not match!"
+      )
+  }
 }
 
 object EmModelShell {
@@ -236,7 +264,12 @@ object EmModelShell {
         EmModelStrat.parsePowerLimitModel(modelConfig),
         EmAggregateFlex.parsePowerLimitModel,
         PowerLimitFlexOptions,
-      )
+      ),
+      StratFactoryWrapper(
+        EmModelStrat.parseOptimizingModel,
+        EmAggregateFlex.parseOptimizingModel,
+        EnergyBoundariesFlexOptions,
+      ),
     )
 
     val aggregateFlexName = modelConfig.aggregateFlex

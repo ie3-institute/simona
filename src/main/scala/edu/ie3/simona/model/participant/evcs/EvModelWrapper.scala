@@ -14,8 +14,8 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import squants.Power
-import squants.energy.{Energy, KilowattHours}
+import squants.energy.{Power, Energy, KilowattHours}
+import squants.time.{Time, Seconds}
 
 import java.util.UUID
 
@@ -46,6 +46,16 @@ final case class EvModelWrapper(
   lazy val eStorage: Energy = original.getEStorage.toSquants
 
   def departureTick: Long = original.getDepartureTick
+
+  /** Returns time to departure from given tick.
+    *
+    * @param tick
+    *   The tick to subtract from departure time.
+    * @return
+    *   The time until departure.
+    */
+  def timeToDeparture(tick: Long): Time =
+    Seconds(departureTick - tick)
 
   /** Unwrapping the original [[EvModel]] while also updating the
     * [[storedEnergy]], which could have changed.

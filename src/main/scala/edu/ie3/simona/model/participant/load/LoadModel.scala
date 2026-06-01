@@ -12,15 +12,12 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
 }
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
-import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
+import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
-  OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.flex.ParticipantInflexiblePowerLimitFlexModel
-import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
@@ -41,19 +38,13 @@ abstract class LoadModel[S <: ModelState]
       S,
     ] {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[S]] =
-    Map(
-      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
-    )
-
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero
 
   override def determineOperatingPoint(
       state: S,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+  ): ActivePowerOperatingPoint = ActivePowerOperatingPoint(setPower)
 
   override def createResults(
       state: S,

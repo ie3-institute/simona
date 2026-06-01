@@ -99,15 +99,15 @@ object RuntimeConfig {
     *   value is ignored.
     * @param chargingStrategy
     *   The charging strategy to use.
-    * @param lowestEvSoc
-    *   The lowest SOC possible for EV batteries (inverse of max dod).
+    * @param departureTargetSoc
+    *   The minimum SOC that an EV should have at departure.
     */
   final case class EvcsRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
       override val uuids: List[String] = List.empty,
       chargingStrategy: String = "maxPower",
-      lowestEvSoc: Double = 0.2,
+      departureTargetSoc: Double = 0.75,
   ) extends BaseRuntimeConfig
       derives ConfigConvert
 

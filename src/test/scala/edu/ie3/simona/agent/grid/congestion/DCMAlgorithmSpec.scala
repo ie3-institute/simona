@@ -7,8 +7,9 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.congestion.data.CongestionManagementData
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.PowerFlowResults
 import edu.ie3.simona.agent.grid.congestion.detection.DetectionMessages.CongestionCheckRequest
+import edu.ie3.simona.agent.grid.data.CongestionManagementData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.test.common.UnitSpec
@@ -86,6 +87,13 @@ class DCMAlgorithmSpec
           )(using constantData, buffer)
         }
       )
+
+      val pfResults =
+        gridAgentCoordinator.expectMessageType[PowerFlowResults].results
+
+      // normally the grid agent coordinator would send the results to the proxy and a completion to the scheduler
+      pfResults.foreach(resultProxy ! _)
+      scheduler ! Completion(gridAgentCoordinator.ref, Some(7200))
 
       // we should receive an empty result event
       resultProxy.expectMessageType[PowerFlowResultEvent] match {

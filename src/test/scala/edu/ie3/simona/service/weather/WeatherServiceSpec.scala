@@ -6,34 +6,27 @@
 
 package edu.ie3.simona.service.weather
 
-import com.typesafe.config.ConfigFactory
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.config.ConfigParams.SampleParams
+import edu.ie3.simona.config.InputConfig.{CoordinateSource, WeatherDatasource}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
-  SecondaryServiceRegistrationMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{
-  WeatherData,
   SecondarySeriesData,
+  WeatherData,
 }
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.weather.WeatherService.{
   InitWeatherServiceStateData,
   WeatherRegistrationData,
 }
-import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
@@ -48,6 +41,7 @@ import squants.motion.MetersPerSecond
 import squants.thermal.Celsius
 import squants.time.Hours
 
+import java.time.ZonedDateTime
 import scala.collection.immutable.SortedMap
 import scala.language.implicitConversions
 
@@ -56,30 +50,20 @@ class WeatherServiceSpec
     with AnyWordSpecLike
     with PrivateMethodTester
     with LazyLogging
-    with ConfigTestData
     with TestSpawnerTyped {
 
-  // setup config for scheduler
-  private val config = ConfigFactory
-    .parseString(s"""
-            simona.time.startDateTime = "2011-01-01T00:00:00Z"
-            simona.time.endDateTime = "2011-01-01T01:00:00Z"
-            simona.time.schedulerReadyCheckWindow = 900
-            simona.input.grid.datasource.id = "csv"
-            simona.input.grid.datasource.csvParams.folderPath = "netdata"
-            simona.input.grid.datasource.csvParams.csvSep =","
-            simona.input.weather.datasource.scheme = "icon"
-            simona.input.weather.datasource.sampleParams.use = true
-            simona.input.weather.datasource.coordinateSource.sampleParams.use = true
-            simona.powerflow.maxSweepPowerDeviation = 1E-5 // the maximum allowed deviation in power between two sweeps, before overall convergence is assumed
-            simona.powerflow.newtonraphson.epsilon = [1E-12]
-            simona.powerflow.newtonraphson.iterations = 50
-            simona.simulationName = "ConfigTestDataSimulation"
-            simona.gridConfig.refSystems = []
-          """)
-    .resolve()
-    .withFallback(typesafeConfig)
-  override protected val simonaConfig: SimonaConfig = SimonaConfig(config)
+  private given simulationStartDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
+
+  private val simulationEndDate: ZonedDateTime =
+    TimeUtil.withDefaults.toZonedDateTime("2011-01-01T01:00:00Z")
+
+  private val dataSourceConfig = WeatherDatasource(
+    coordinateSource = CoordinateSource(
+      sampleParams = Some(SampleParams())
+    ),
+    sampleParams = Some(SampleParams()),
+  )
 
   // setup values
   private val invalidCoordinate: Coordinate = Coordinate(180.5, 90.5)
@@ -87,61 +71,51 @@ class WeatherServiceSpec
 
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
 
-  private val agent1 = TestProbe[ParticipantAgent.Request]("agent1")
-  private val agent2 = TestProbe[ParticipantAgent.Request]("agent2")
-
-  // build the weather service
-  private val weatherService = testKit.spawn(
-    WeatherService(scheduler.ref)
-  )
+  private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
+  private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
   "A weather service" must {
-    "receive correct completion message after initialisation" in {
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      scheduler
-        .expectMessageType[ScheduleActivation] // lock activation scheduled
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
 
-      weatherService ! Create(
+    val weatherService = spawn(
+      WeatherService(
+        scheduler.ref,
         InitWeatherServiceStateData(
-          simonaConfig.simona.input.weather.datasource,
-          TimeUtil.withDefaults.toZonedDateTime(
-            simonaConfig.simona.time.startDateTime
-          ),
-          TimeUtil.withDefaults.toZonedDateTime(
-            simonaConfig.simona.time.endDateTime
-          ),
+          dataSourceConfig,
+          simulationStartDate,
+          simulationEndDate,
         ),
-        key,
+        serviceKey,
       )
+    )
 
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
-
-      weatherService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor, Some(0)))
+    "send correct completion message after initialisation" in {
+      scheduler.expectMessage(
+        ScheduleActivation(weatherService, 0L, Some(serviceKey))
+      )
     }
 
     "announce failed weather registration on invalid coordinate" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
+        DataTimeType.Current,
         WeatherRegistrationData(
-          Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude),
-          WeatherDataType.Current,
+          Coordinate(invalidCoordinate.latitude, invalidCoordinate.longitude)
         ),
       )
 
       agent1.expectMessage(RegistrationFailedMessage(weatherService))
     }
 
-    "announce, that a valid coordinate is registered for current weather data" in {
-      /* The successful registration stems from the test above */
+    "announce that a valid coordinate is registered for current weather data" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
+        DataTimeType.Current,
         WeatherRegistrationData(
-          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
-          WeatherDataType.Current,
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude)
         ),
       )
 
@@ -151,15 +125,14 @@ class WeatherServiceSpec
     }
 
     "announce, that a valid coordinate is registered for forecast data" in {
-      /* The successful registration stems from the test above */
       weatherService ! SecondaryServiceRegistrationMessage(
         agent2.ref,
+        DataTimeType.CurrentAndForecast(
+          forecastLength = Hours(6),
+          forecastResolution = Hours(1),
+        ),
         WeatherRegistrationData(
-          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
-          WeatherDataType.CurrentAndForecast(
-            forecastLength = Hours(6),
-            forecastResolution = Hours(1),
-          ),
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude)
         ),
       )
 
@@ -170,17 +143,17 @@ class WeatherServiceSpec
       agent1.expectNoMessage()
     }
 
-    "recognize, that a valid coordinate is already registered" in {
-      /* The successful registration stems from the test above */
+    "recognize that agent is already registered" in {
       weatherService ! SecondaryServiceRegistrationMessage(
         agent1.ref,
+        DataTimeType.Current,
         WeatherRegistrationData(
-          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
-          WeatherDataType.Current,
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude)
         ),
       )
 
       agent1.expectNoMessage()
+      agent2.expectNoMessage()
     }
 
     "send out correct weather information upon activity start trigger and request the triggering for the next tick" in {
@@ -206,7 +179,7 @@ class WeatherServiceSpec
 
       agent2.expectMessageType[DataProvision] match {
         case DataProvision(tick, serviceRef, data, nextTick) =>
-          tick shouldBe 0
+          tick shouldBe 0L
           serviceRef shouldBe weatherService
           data match {
             case SecondarySeriesData(series) =>
@@ -223,8 +196,8 @@ class WeatherServiceSpec
       /* Send out an activity start trigger as the scheduler */
       weatherService ! Activation(3600)
 
-      val activationMsg = scheduler.expectMessageType[Completion]
-      activationMsg.newTick shouldBe None
+      val completionMsg = scheduler.expectMessageType[Completion]
+      completionMsg.newTick shouldBe None
 
       agent1.expectMessage(
         DataProvision(

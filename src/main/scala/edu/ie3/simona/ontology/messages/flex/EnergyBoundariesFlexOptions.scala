@@ -6,13 +6,27 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.datamodel.models.result.system.{
+  EnergyBoundariesFlexOptionsResult,
+  FlexOptionsResult,
+}
+import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
+  IssueNoControl,
+  IssuePowerControl,
+}
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaWattHour}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
+import org.slf4j.{Logger, LoggerFactory}
+import squants.energy.EnergyConversions.EnergyNumeric
+import squants.energy.PowerConversions.PowerNumeric
 import squants.time.Seconds
 import squants.{Dimensionless, Energy, Power}
 
+import java.time.ZonedDateTime
+import java.util.UUID
 import scala.collection.immutable.SortedMap
 
 /** Energy boundaries for one or several assets. See [[AssetEnergyBoundaries]]
@@ -23,9 +37,106 @@ import scala.collection.immutable.SortedMap
   */
 final case class EnergyBoundariesFlexOptions(
     energyBoundaries: Seq[AssetEnergyBoundaries]
-) extends FlexOptions
+) extends FlexOptions {
 
-object EnergyBoundariesFlexOptions {
+  /** The sum of all power limits (lower and upper each) of the enclosed
+    * [[AssetEnergyBoundaries]].
+    */
+  lazy val powerLimits: ClosedInterval[Power] =
+    new ClosedInterval(
+      energyBoundaries
+        .map(_.powerLimits.getLower)
+        .sum,
+      energyBoundaries
+        .map(_.powerLimits.getUpper)
+        .sum,
+    )
+}
+
+object EnergyBoundariesFlexOptions
+    extends FlexOptionsExtra[EnergyBoundariesFlexOptions] {
+
+  private val log: Logger =
+    LoggerFactory.getLogger(classOf[EnergyBoundariesFlexOptions])
+
+  override val flexType: FlexType = FlexType.EnergyBoundaries
+
+  override def determineFlexPower(
+      flexOptions: EnergyBoundariesFlexOptions,
+      flexCtrl: FlexibilityMessage.IssueFlexControl,
+  ): Power =
+    flexCtrl match {
+      case IssuePowerControl(_, setPower) =>
+        // sanity check: setPower is in range of latest flex options
+        checkSetPower(flexOptions, setPower)
+
+        setPower
+
+      case IssueNoControl(_) =>
+        log.warn(
+          s"${classOf[EnergyBoundariesFlexOptions].getSimpleName} currently have no reference power, " +
+            s"thus a set point of zero kW is chosen because we received $IssueNoControl."
+        )
+        zeroKW
+    }
+
+  override def checkSetPower(
+      flexOptions: EnergyBoundariesFlexOptions,
+      setPower: Power,
+  ): Unit = {
+    if setPower < flexOptions.powerLimits.getLower then
+      throw new FlexException(
+        s"The set power $setPower must not be lower than the minimum power ${flexOptions.powerLimits.getLower}!"
+      )
+    else if setPower > flexOptions.powerLimits.getUpper then
+      throw new FlexException(
+        s"The set power $setPower must not be greater than the maximum power ${flexOptions.powerLimits.getLower}!"
+      )
+  }
+
+  override def createResult(
+      flexOptions: EnergyBoundariesFlexOptions,
+      modelUuid: UUID,
+      dateTime: ZonedDateTime,
+  ): FlexOptionsResult = {
+
+    val firstEnergyLimits = flexOptions.energyBoundaries
+      .map(
+        _.energyLimits.headOption.getOrElse(
+          throw new CriticalFailureException(
+            s"Empty energy limits. At least one entry needs to be provided."
+          )
+        )
+      )
+
+    val lowerEnergyLimit = firstEnergyLimits.map { case (_, energyLimits) =>
+      energyLimits.getLower
+    }.sum
+    val upperEnergyLimit = firstEnergyLimits.map { case (_, energyLimits) =>
+      energyLimits.getUpper
+    }.sum
+
+    new EnergyBoundariesFlexOptionsResult(
+      dateTime,
+      modelUuid,
+      lowerEnergyLimit.toMegawattHours.asMegaWattHour,
+      upperEnergyLimit.toMegawattHours.asMegaWattHour,
+      flexOptions.powerLimits.getLower.toMegawatts.asMegaWatt,
+      flexOptions.powerLimits.getUpper.toMegawatts.asMegaWatt,
+    )
+  }
+
+  override def zero(tick: Long): EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = zeroKWh,
+        currentEnergy = zeroKWh,
+        pMax = zeroKW,
+        etaCharge = onePU,
+        etaDischarge = onePU,
+        currentTick = tick,
+      )
+    )
 
   /** Creates energy boundaries with a single [[AssetEnergyBoundaries]].
     *
@@ -68,6 +179,25 @@ object EnergyBoundariesFlexOptions {
   )
 
   object AssetEnergyBoundaries {
+
+    /** Creating energy boundaries for a power that is assumed to remain
+      * constant over the forecasted time horizon.
+      *
+      * @param constantPower
+      *   The constant power.
+      * @return
+      *   The [[AssetEnergyBoundaries]].
+      */
+    def apply(
+        constantPower: Power,
+        currentTick: Long,
+    ): AssetEnergyBoundaries = {
+      AssetEnergyBoundaries(
+        energyLimits =
+          SortedMap(currentTick -> new ClosedInterval(zeroKWh, zeroKWh)),
+        powerLimits = new ClosedInterval(constantPower, constantPower),
+      )
+    }
 
     /** Creating energy boundaries for a fixed power time series. Assumes
       * equidistant power series entries - otherwise, results are not defined!

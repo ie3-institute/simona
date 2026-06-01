@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.input.PvInputTestData
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.commons.csv.{CSVFormat, CSVRecord}
@@ -15,13 +16,13 @@ import squants.energy.Megawatts
 import squants.motion.MetersPerSecond
 import squants.{Kelvin, Power}
 
-import java.io.{BufferedReader, File, FileInputStream, InputStreamReader}
+import java.io.{BufferedReader, FileInputStream, InputStreamReader}
 import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
 import scala.jdk.CollectionConverters.IterableHasAsScala
 
-trait PvModelITHelper extends PvInputTestData {
+trait PvModelITHelper extends PvInputTestData with TestResourceHelper {
 
   private val CSV_FORMAT: CSVFormat =
     CSVFormat.DEFAULT.builder().setHeader().get()
@@ -30,8 +31,7 @@ trait PvModelITHelper extends PvInputTestData {
     TimeUtil.withDefaults.toZonedDateTime("2011-01-01T00:00:00Z")
 
   def getCsvRecords(fileName: String): Iterable[CSVRecord] = {
-    val resourcePath = getClass.getResource(fileName).getPath
-    val resultsInputData = new File(resourcePath)
+    val resultsInputData = getResourceFile(fileName)
     val fileStream = new FileInputStream(resultsInputData)
     val gzipStream = new GZIPInputStream(fileStream)
     val decoder = new InputStreamReader(gzipStream, StandardCharsets.UTF_8)

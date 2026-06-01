@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.ontology.messages.flex
 
-import edu.ie3.datamodel.models.result.system.FlexOptionsResult
+import edu.ie3.datamodel.models.result.system.{
+  FlexOptionsResult,
+  PowerLimitFlexOptionsResult,
+}
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
@@ -90,13 +93,15 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
       modelUuid: UUID,
       dateTime: ZonedDateTime,
   ): FlexOptionsResult =
-    new FlexOptionsResult(
+    new PowerLimitFlexOptionsResult(
       dateTime,
       modelUuid,
       flexOptions.ref.toMegawatts.asMegaWatt,
       flexOptions.min.toMegawatts.asMegaWatt,
       flexOptions.max.toMegawatts.asMegaWatt,
     )
+
+  override def zero(tick: Long): PowerLimitFlexOptions = noFlexOption(zeroKW)
 
   extension (flexOptions: Iterable[PowerLimitFlexOptions]) {
     def flexSum: PowerLimitFlexOptions =

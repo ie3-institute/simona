@@ -6,9 +6,6 @@
 
 package edu.ie3.simona.util
 
-import java.io.{BufferedWriter, File, FileWriter}
-import java.nio.file.{Files, Path, Paths}
-import java.text.SimpleDateFormat
 import com.typesafe.config.{Config, ConfigRenderOptions}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.naming.{
@@ -16,14 +13,22 @@ import edu.ie3.datamodel.io.naming.{
   FileNamingStrategy,
 }
 import edu.ie3.datamodel.models.result.ResultEntity
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.datamodel.models.result.system.{
+  EnergyBoundariesFlexOptionsResult,
+  PowerLimitFlexOptionsResult,
+}
+import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.exceptions.FileHierarchyException
 import edu.ie3.simona.io.result.ResultSinkType
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.logging.LogbackConfiguration
+import edu.ie3.simona.util.ConfigUtil.{GridOutputConfigUtil, OutputConfigUtil}
 import edu.ie3.util.io.FileIOUtils
 import org.apache.commons.io.FilenameUtils.*
 
+import java.io.{BufferedWriter, File, FileWriter}
+import java.nio.file.{Files, Path, Paths}
+import java.text.SimpleDateFormat
 import scala.jdk.OptionConverters.RichOptional
 
 /** Represents the output directory where the results will be materialized.
@@ -39,6 +44,45 @@ final case class ResultFileHierarchy private (
 )
 
 object ResultFileHierarchy extends LazyLogging {
+
+  /** Build the result file hierarchy based on the provided configuration file.
+    * The provided type safe config must be able to be parsed as
+    * [[SimonaConfig]], otherwise an exception is thrown.
+    *
+    * @param typeSafeConfig
+    *   All configuration parameters.
+    * @param simonaConfig
+    *   The configuration for SIMONA.
+    * @return
+    *   The resulting result file hierarchy.
+    */
+  def apply(
+      typeSafeConfig: Config,
+      simonaConfig: SimonaConfig,
+  ): ResultFileHierarchy = {
+
+    /* Determine the result models to write */
+    val modelsToWrite = allResultEntitiesToWrite(simonaConfig.output)
+
+    val simonaLogConfig = simonaConfig.output.log
+
+    ResultFileHierarchy(
+      simonaConfig.output.base.dir,
+      simonaConfig.simulationName,
+      ResultEntityPathConfig(
+        modelsToWrite,
+        ResultSinkType(
+          simonaConfig.output.sink,
+          simonaConfig.simulationName,
+        ),
+      ),
+      configureLogger = LogbackConfiguration
+        .default(simonaLogConfig.level, simonaLogConfig.consoleLevel),
+      config = Some((typeSafeConfig, simonaConfig)),
+      addTimeStampToOutputDir =
+        simonaConfig.output.base.addTimestampToOutputDir,
+    )
+  }
 
   /** Creates the [[ResultFileHierarchy]] and relevant directories
     */
@@ -227,7 +271,7 @@ object ResultFileHierarchy extends LazyLogging {
     maybeConfig.foreach { case (config, simonaConfig) =>
       logger.info(
         "Processing configs for simulation: {}.",
-        simonaConfig.simona.simulationName,
+        simonaConfig.simulationName,
       )
 
       val outFile =
@@ -318,5 +362,44 @@ object ResultFileHierarchy extends LazyLogging {
   def deleteTmpDir(outputFileHierarchy: ResultFileHierarchy): Unit = {
     FileIOUtils.deleteRecursively(outputFileHierarchy.tmpDir)
   }
+
+  /** Determine a comprehensive collection of all [[ResultEntity]] classes, that
+    * will have to be considered.
+    *
+    * @param outputConfig
+    *   configuration to consider.
+    * @return
+    *   Set of [[ResultEntity]] classes.
+    */
+  private def allResultEntitiesToWrite(
+      outputConfig: OutputConfig
+  ): Set[Class[? <: ResultEntity]] =
+    GridOutputConfigUtil(
+      outputConfig.grid
+    ).simulationResultEntitiesToConsider ++
+      (OutputConfigUtil
+        .participants(
+          outputConfig.participant
+        )
+        .simulationResultIdentifiersToConsider(thermal =
+          false
+        ) ++ OutputConfigUtil
+        .thermal(
+          outputConfig.thermal
+        )
+        .simulationResultIdentifiersToConsider(thermal = true))
+        .map(notifierId => EntityMapperUtil.getResultEntityClass(notifierId)) ++
+      (if OutputConfigUtil
+           .participants(
+             outputConfig.participant
+           )
+           ._1
+           .flexResult
+       then
+         Seq(
+           classOf[PowerLimitFlexOptionsResult],
+           classOf[EnergyBoundariesFlexOptionsResult],
+         )
+       else Seq.empty)
 
 }
