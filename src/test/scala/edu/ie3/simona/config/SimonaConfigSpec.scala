@@ -67,7 +67,7 @@ class SimonaConfigSpec extends UnitSpec {
       )
 
       // ampacity config
-      simonaConfig.ampacityCalculations shouldBe AmpacityCalculation(
+      simonaConfig.ampacityCalculation shouldBe AmpacityCalculation(
         activateAmpacityCalculation = false
       )
 

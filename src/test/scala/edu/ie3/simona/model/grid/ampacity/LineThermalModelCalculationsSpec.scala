@@ -711,7 +711,7 @@ class LineThermalModelCalculationsSpec
     val groundTemp = Celsius(20)
 
     val startingState =
-      LineSegmentThermalModel.startingState(
+      LineSegmentThermalModel.determineState(
         groundTemp,
         cigreT880LandCable33kV,
         lineSegmentThermalModel,

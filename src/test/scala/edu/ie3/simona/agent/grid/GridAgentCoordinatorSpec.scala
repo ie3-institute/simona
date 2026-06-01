@@ -7,12 +7,25 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentCoordinator.{CongestionResult, RegisterAssets, StateData}
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  CongestionResult,
+  RegisterAssets,
+  StateData,
+}
 import edu.ie3.simona.agent.grid.GridAgentMessages.RegisterParticipants
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{GotoIdle, NextStep}
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
+  GotoIdle,
+  NextStep,
+}
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
-import edu.ie3.simona.agent.grid.congestion.{CongestionManagementParams, Congestions}
-import edu.ie3.simona.agent.grid.data.GridAgentData.{GridAgentConstantData, GridAgentRef}
+import edu.ie3.simona.agent.grid.congestion.{
+  CongestionManagementParams,
+  Congestions,
+}
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentConstantData,
+  GridAgentRef,
+}
 import edu.ie3.simona.agent.grid.powerflow.PowerFlowParams
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.event.RuntimeEvent
@@ -26,7 +39,11 @@ import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.testkit.typed.Effect.{Spawned, Watched}
-import org.apache.pekko.actor.testkit.typed.scaladsl.{BehaviorTestKit, ScalaTestWithActorTestKit, TestProbe}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{
+  BehaviorTestKit,
+  ScalaTestWithActorTestKit,
+  TestProbe,
+}
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.scalatestplus.mockito.MockitoSugar
 

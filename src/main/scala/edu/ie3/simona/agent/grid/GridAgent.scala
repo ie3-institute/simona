@@ -189,6 +189,22 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           )
       }
 
+    // FIXME maybe this is a good spot to include ampacity calc?
+    val doAmpacityCalc =
+      constantData.simonaConfig.ampacityCalculation.activateAmpacityCalculation
+
+    val lineCurrent = ???
+    val lastLineState = ???
+    if doAmpacityCalc then
+      gridAgentBaseData.gridEnv.gridModel.gridComponents.thermalLineSegments
+        .foreach(lineSegment =>
+          lineSegment.determineState(
+            currentTick,
+            lastLineState = lastLineState,
+            lineCurrent = lineCurrent,
+          )
+        )
+
     // clean up agent and go back to idle
     gotoIdle(gridAgentBaseData, results, ctx)
   }

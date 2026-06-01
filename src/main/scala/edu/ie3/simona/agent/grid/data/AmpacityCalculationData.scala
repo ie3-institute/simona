@@ -62,7 +62,7 @@ final case class AmpacityCalculationData(
         subgridNo: Int,
         powerFlowResults: Option[PowerFlowResultEvent] = None,
     ): AmpacityCalculationData = {
-   ???
+      ???
     }
   }
 }

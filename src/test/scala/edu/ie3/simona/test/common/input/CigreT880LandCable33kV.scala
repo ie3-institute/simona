@@ -12,6 +12,7 @@ import edu.ie3.simona.model.grid.ampacity.{
   Layer,
   ScreenLayer,
 }
+import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
@@ -149,7 +150,9 @@ object CigreT880LandCable33kV {
 
   val cable: CableSetup = new CableSetup(
     UUID.fromString("b8152c3f-d12f-4857-9746-a30aef6aee08"),
-    "CigreT880_33kVLancCable",
+    "CigreT880_33kVLandCable",
+    Coordinate3D(0.0, 0.0, -1.0),
+    Coordinate3D(1.0, 0.0, -1.0),
     conductor,
     List(conductorScreen, insulation, insulationScreen, screenTape),
     Some(screen),

@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.model.grid.LineModel
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
   LineState,
@@ -105,14 +106,18 @@ final case class LineSegmentThermalModel(
     updatedLineState
   }
 
-  def handleInput(
+  def getGroundTemperature(
       state: LineState,
+      nodeInput: NodeInput,
       receivedData: Seq[Data],
   ): LineState = {
+    // FIXME the depth of the cable should come from the geometry / coordinates
     val (weightTempLvl3, weightTempLvl4) =
       LineSegmentThermalModel.determineWeightsGroundTemperatures(
         state.cableSetup.depthCables
       )
+
+    // nodeInput.getGeoPosition.getZ
 
     receivedData
       .collectFirst { case weatherData: WeatherData =>
@@ -137,13 +142,13 @@ final case class LineSegmentThermalModel(
 
   /*
   /** Determine the next threshold, that will be reached.
-    *
-    * @param lineState
-    *   State of a thermal line segment model.
-    * @param electricCurrent
-    *   The electric current of that line in this simulation step.
-    * @return
-    */
+   *
+   * @param lineState
+   *   State of a thermal line segment model.
+   * @param electricCurrent
+   *   The electric current of that line in this simulation step.
+   * @return
+   */
   def determineNextThreshold(
       lineState: LineState,
       electricCurrent: ElectricCurrent,
@@ -227,7 +232,7 @@ object LineSegmentThermalModel {
       lineTemperatures: LineTemperatures,
   ) extends ModelState
 
-  def startingState(
+  def determineState(
       groundTemperature: Temperature,
       cableSetup: CableSetup,
       lineSegmentModel: LineSegmentThermalModel,

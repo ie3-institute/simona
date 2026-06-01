@@ -372,9 +372,13 @@ object GridAgentCoordinator {
 
         } else {
           // FIXME here the ampacity calculation needs to be done in case of
-          if stateData.ampacityCalculationParams.activateAmpacityCalculation then {
+          if stateData.ampacityCalculationParams.activateAmpacityCalculation
+          then {
             stateData.informGridAgents(ref =>
-              DoAmpacityCalculation(stateData.currentTick, updated.receivedData(ref))
+              DoAmpacityCalculation(
+                stateData.currentTick,
+                updated.receivedData(ref),
+              )
             )
           }
           finishTick(stateData, updated.values.flatten, ctx)

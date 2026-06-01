@@ -25,3 +25,21 @@ final case class Coordinate(
       new org.locationtech.jts.geom.Coordinate(longitude, latitude)
     )
 }
+
+/** A simple coordinate class.
+  *
+  * @param latitude
+  *   The latitude of the coordinate.
+  * @param longitude
+  *   The longitude of the coordinate. FIXME
+  */
+final case class Coordinate3D(
+    latitude: Double,
+    longitude: Double,
+    depth: Double,
+) {
+  def toPoint: Point =
+    GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
+      new org.locationtech.jts.geom.Coordinate(longitude, latitude, depth)
+    )
+}

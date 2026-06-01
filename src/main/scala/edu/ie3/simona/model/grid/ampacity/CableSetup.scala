@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.util.scala.quantities.*
 import squants.Temperature
 import squants.electro.{Capacitance, ElectricPotential, Resistivity}
@@ -88,6 +89,8 @@ final case class ScreenLayer(
 final case class CableSetup(
     uuid: UUID,
     id: String,
+    pointA: Coordinate3D,
+    pointB: Coordinate3D,
     conductor: Layer,
     layersIsolationElements: List[Layer],
     screenLayer: Option[ScreenLayer],
