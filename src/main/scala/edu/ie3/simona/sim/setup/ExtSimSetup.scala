@@ -15,7 +15,6 @@ import edu.ie3.simona.api.simulation.ExtSimulation
 import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
-import edu.ie3.simona.ontology.messages.ResultMessage.RequestResult
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -91,7 +90,7 @@ object ExtSimSetup {
 
       // creating the data connection
       val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-      given setupData: SetupData = new SetupData(
+      val setupData = new SetupData(
         args,
         config,
         grid,

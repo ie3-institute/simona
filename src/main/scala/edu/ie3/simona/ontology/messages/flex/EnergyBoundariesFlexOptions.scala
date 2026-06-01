@@ -58,11 +58,6 @@ final case class EnergyBoundariesFlexOptions(
         .map(_.powerLimits.getUpper)
         .sum,
     )
-
-  override def toExt(recipient: UUID, model: UUID): ExtFlexOptions =
-    throw new FlexException(
-      "Converting EnergyBoundariesFlexOptions to external model is not supported yet."
-    )
 }
 
 object EnergyBoundariesFlexOptions

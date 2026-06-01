@@ -113,10 +113,7 @@ object FlexibilityMessage {
     * a feasible set point is delivered that the controlled asset model should
     * adhere to. Sending agent expects a [[FlexCompletion]] as a reply.
     */
-  trait IssueFlexControl extends FlexRequest {
-
-    def toExt(receiver: UUID): SetPoint
-  }
+  trait IssueFlexControl extends FlexRequest
 
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] that specifies a power
     * target that needs to be produced/consumed by the system participant.
@@ -130,12 +127,7 @@ object FlexibilityMessage {
   final case class IssuePowerControl(
       override val tick: Long,
       setPower: Power,
-  ) extends IssueFlexControl {
-    override def toExt(receiver: UUID): SetPoint = new AggregatedSetPoint(
-      receiver,
-      setPower.toQuantity,
-    )
-  }
+  ) extends IssueFlexControl
 
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] that specifies
     * disaggregated power values that needs to be produced/consumed by the
@@ -150,15 +142,7 @@ object FlexibilityMessage {
   final case class IssueDisaggregatedControl(
       override val tick: Long,
       setPowers: Map[UUID, Power],
-  ) extends IssueFlexControl {
-    override def toExt(receiver: UUID): SetPoint = {
-      val disaggregated = setPowers.map { case (uuid, power) =>
-        uuid -> new PValue(power.toQuantity)
-      }.asJava
-
-      new DisaggregatedSetPoints(receiver, disaggregated)
-    }
-  }
+  ) extends IssueFlexControl
 
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] indicating that no
     * power target is set and the reference power communicated by
@@ -168,11 +152,7 @@ object FlexibilityMessage {
     *   The current tick
     */
   final case class IssueNoControl(override val tick: Long)
-      extends IssueFlexControl {
-    override def toExt(receiver: UUID): SetPoint = new AggregatedSetPoint(
-      receiver
-    )
-  }
+      extends IssueFlexControl
 
   /** Message sent by controlled asset models that transports the result after
     * flex control has been handled. Has to be sent before [[FlexCompletion]],

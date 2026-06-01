@@ -10,24 +10,20 @@ import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   PowerLimitFlexOptionsResult,
 }
+import edu.ie3.simona.api.data.model.em.PowerLimitFlexOptions as ExtPowerLimitFlexOptions
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueFlexControl,
   IssueNoControl,
   IssuePowerControl,
 }
-import edu.ie3.simona.api.data.model.em.PowerLimitFlexOptions as ExtPowerLimitFlexOptions
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
-
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toQuantity,
-  toSquants,
-}
 
 /** A [[FlexOptions]] type that provides interval-based flexibility in form of
   * reference, minimum and maximum power of an asset. It is possible that the
@@ -57,16 +53,6 @@ final case class PowerLimitFlexOptions(
       min + rhs.min,
       max + rhs.max,
     )
-
-  override def toExt(recipient: UUID, model: UUID): ExtPowerLimitFlexOptions = {
-    new ExtPowerLimitFlexOptions(
-      recipient,
-      model,
-      ref.toQuantity,
-      min.toQuantity,
-      max.toQuantity,
-    )
-  }
 }
 
 object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {

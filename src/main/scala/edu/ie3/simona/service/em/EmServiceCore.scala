@@ -8,6 +8,7 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.FlexConversion
+import edu.ie3.simona.api.FlexConversion.convertOptions
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{
@@ -17,12 +18,12 @@ import edu.ie3.simona.api.data.model.em.{
   FlexOptions as ExtFlexOptions,
 }
 import edu.ie3.simona.api.ontology.em.*
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
@@ -574,7 +575,7 @@ case class EmServiceCore(
   )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
     val updated = provideFlexOptions match {
       case ProvideFlexOptions(modelUuid: UUID, fo) =>
-        val result = fo.toExt(receiver, modelUuid)
+        val result = convertOptions(fo, receiver, modelUuid)
 
         if emDataStore.expects(modelUuid) then {
           emDataStore.addData(modelUuid, result)
