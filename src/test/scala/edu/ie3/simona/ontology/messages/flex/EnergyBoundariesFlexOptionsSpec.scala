@@ -9,14 +9,13 @@ package edu.ie3.simona.ontology.messages.flex
 import edu.ie3.datamodel.models.result.system.EnergyBoundariesFlexOptionsResult
 import edu.ie3.simona.exceptions.FlexException
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
-  IssueNoControl,
-  IssuePowerControl,
-}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{IssueNoControl, IssuePowerControl}
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaWattHour}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW}
+import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.time.Hours
 
 import java.util.UUID
 
@@ -90,6 +89,33 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
       )
     }
 
+  }
+  
+  "Tightening energy boundaries should result in proper energy limits" when {
+    
+    val startTick = 3600L
+    val sampleTime = Hours(0.5)
+    val predictionHorizon = Hours(4)
+    
+    "providing battery storage options with high capacity" in {
+
+      val a = AssetEnergyBoundaries.tighten(
+        boundaries = AssetEnergyBoundaries(
+          eStorage = KilowattHours(40),
+          currentEnergy = KilowattHours(20),
+          pMax = Kilowatts(5),
+          etaCharge = Each(0.8),
+          etaDischarge = Each(0.8),
+          currentTick = startTick
+        ),
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
+      )
+
+      val b =1
+      
+    }
+    
   }
 
 }
