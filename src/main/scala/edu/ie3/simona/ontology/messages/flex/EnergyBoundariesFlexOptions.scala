@@ -18,7 +18,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
 }
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaWattHour}
-import edu.ie3.util.scala.Scope
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.EnergyConversions.EnergyNumeric
@@ -328,90 +327,94 @@ object EnergyBoundariesFlexOptions
       val (firstTick, _) = boundaries.energyLimits.headOption.getOrElse(
         throw new CriticalFailureException("Empty energy limits")
       )
-      val firstNewLimits =
-        new ClosedInterval(boundaries.currentEnergy, boundaries.currentEnergy)
 
       val maxNetPower =
         boundaries.powerLimits.getUpper * boundaries.etaCharge.toEach
       val minNetPower =
-        boundaries.powerLimits.getLower * boundaries.etaDischarge.toEach
+        boundaries.powerLimits.getLower / boundaries.etaDischarge.toEach
 
       val sampleTicks = sampleTime.toSeconds.toLong
       val lastPredictedTick = firstTick + predictionHorizon.toSeconds.toLong
+      val ticks =
+        Range.Long.inclusive(firstTick, lastPredictedTick, sampleTicks)
 
-      val adaptedEnergyLimits =
-        Scope(boundaries.energyLimits)
-          .map { limits =>
-            // fill in missing values
-            Range.Long
-              .inclusive(firstTick, lastPredictedTick, sampleTicks)
-              .flatMap { tick =>
-                limits.maxBefore(tick + 1).map { case (_, limits) =>
-                  tick -> limits
-                }
-              }
-              .to(SortedMap)
-          }
-          .map { limits =>
-            // tighten bounds of first state
-            limits.updated(firstTick, firstNewLimits).toSeq
-          }
-          .map { limits =>
-            // update in forwards direction
-            limits
-              .sliding(2)
-              .map {
-                case Seq((leftTick, leftLimits), (rightTick, rightLimits)) =>
-                  val sampleTime = Seconds(rightTick - leftTick)
+      val throwMissing: Long => Nothing = tick =>
+        throw new CriticalFailureException(
+          s"There should be limits available at $tick."
+        )
 
-                  val newRightUpper = rightLimits.getUpper.min(
-                    leftLimits.getUpper + maxNetPower * sampleTime
-                  )
-                  val newRightLower = rightLimits.getLower.max(
-                    leftLimits.getLower + minNetPower * sampleTime
-                  )
-                  rightTick -> new ClosedInterval(newRightLower, newRightUpper)
-                case _ =>
-                  // assets constraints need to be created at least for two time steps
-                  // (including eventual tickDisconnect restrictions)
-                  throw new CriticalFailureException(
-                    s"Asset energy boundaries need at least two steps (actual size: ${limits.size})."
-                  )
-              }
-              .toSeq
-              .prepended(firstTick, firstNewLimits)
-          }
-          .map { limits =>
-            // update in backwards direction
-            limits.reverse
-              .sliding(2)
-              .map {
-                case Seq((rightTick, rightLimits), (leftTick, leftLimits)) =>
-                  val sampleTime = Seconds(rightTick - leftTick)
+      val limits = boundaries.energyLimits.to(mutable.SortedMap)
 
-                  val newLeftUpper = leftLimits.getUpper.min(
-                    rightLimits.getUpper - minNetPower * sampleTime
-                  )
-                  val newLeftLower = leftLimits.getLower.max(
-                    rightLimits.getLower - maxNetPower * sampleTime
-                  )
-                  leftTick -> new ClosedInterval(newLeftLower, newLeftUpper)
-                case _ =>
-                  // assets constraints need to be created at least for two time steps
-                  // (including eventual tickDisconnect restrictions)
-                  throw new CriticalFailureException(
-                    s"Asset energy boundaries need at least two steps (actual size: ${limits.size})."
-                  )
-              }
-              .to(SortedMap)
-              .updated
-              .tupled(limits.last)
-          }
-          .get
+      // fill in missing values
+      ticks.foreach { tick =>
+        limits.maxBefore(tick + 1).map { case (_, energyLimits) =>
+          limits.update(tick, energyLimits)
+        }
+      }
+
+      // tighten bounds of first state
+      val firstNewLimits =
+        new ClosedInterval(boundaries.currentEnergy, boundaries.currentEnergy)
+      limits.update(firstTick, firstNewLimits)
+
+      // update in forwards direction
+      ticks.sliding(2).foreach {
+        case Seq(leftTick, rightTick) =>
+          val sampleTime = Seconds(rightTick - leftTick)
+          val leftLimits = limits.getOrElse(leftTick, throwMissing(leftTick))
+          val rightLimits = limits.getOrElse(rightTick, throwMissing(rightTick))
+
+          val newRightLower = rightLimits.getLower.max(
+            leftLimits.getLower + minNetPower * sampleTime
+          )
+          val newRightUpper = rightLimits.getUpper.min(
+            leftLimits.getUpper + maxNetPower * sampleTime
+          )
+
+          limits.update(
+            rightTick,
+            new ClosedInterval(newRightLower, newRightUpper),
+          )
+        case _ =>
+          // assets constraints need to be created at least for two time steps
+          // (including eventual tickDisconnect restrictions)
+          throw new CriticalFailureException(
+            s"Asset energy boundaries need at least two steps (actual size: ${limits.size})."
+          )
+      }
+
+      ticks.reverse
+        .sliding(2)
+        .foreach {
+          case Seq(rightTick, leftTick) =>
+            val sampleTime = Seconds(rightTick - leftTick)
+            val leftLimits = limits.getOrElse(leftTick, throwMissing(leftTick))
+            val rightLimits =
+              limits.getOrElse(rightTick, throwMissing(rightTick))
+
+            val newLeftLower = leftLimits.getLower.max(
+              rightLimits.getLower - maxNetPower * sampleTime
+            )
+            val newLeftUpper = leftLimits.getUpper.min(
+              rightLimits.getUpper - minNetPower * sampleTime
+            )
+
+            limits.update(
+              leftTick,
+              new ClosedInterval(newLeftLower, newLeftUpper),
+            )
+          case _ =>
+            // assets constraints need to be created at least for two time steps
+            // (including eventual tickDisconnect restrictions)
+            throw new CriticalFailureException(
+              s"Asset energy boundaries need at least two steps (actual size: ${limits.size})."
+            )
+        }
 
       boundaries.copy(
-        energyLimits = adaptedEnergyLimits
+        energyLimits = limits.to(SortedMap)
       )
+
     }
 
   }
