@@ -274,6 +274,18 @@ simona.runtime.participant.load = {
 }
 ```
 
+An example for individual configuration of loads:
+
+```
+uuid,cos_phi_rated,e_cons_annual,id,load_profile,node,operates_from,operates_until,operator,q_characteristics,s_rated,controlling_em,modelBehaviour,reference
+8221a6b1-eff3-48fe-88ab-0685a9f59cce,0.9700000286102295,4000.0,NS_NET116_L_S1_2(8),h0,3e21f3a1-2c9c-4138-bcc9-466b004609ed,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,,,
+5d4b96bf-a6ad-4026-b97a-4e6d77896480,0.9700000286102295,4000.0,NS_NET116_L_S2_2(4),h0,d53ff076-dadd-44f8-85d4-68f48991f7d0,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,,,
+a964d9b8-a035-41df-86c0-4c5306af2158,0.9700000286102295,4000.0,NS_NET116_L_S2_4(7),h0,e05c68b1-11cd-43fd-a4b2-31e4db380c78,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,,,
+50c89980-8da2-4e98-8602-e2f0b560e7c4,0.949999988079071,4000.0,NS_NET146_L_F1_(8),h0,d5489e1b-0e7e-4ca9-a362-09c23576a622,,,,"cosPhiFixed:{(0.0,1.0)}",2.3157899379730225,,fix,energy
+```
+
+
+
 The reactive power is determined based on the chosen Q-control of the participant, when: 
 
     calculateMissingReactivePowerWithModel = true

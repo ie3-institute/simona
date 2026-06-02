@@ -583,6 +583,28 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
       }
 
+      "Checking a runtime model config" should {
+        "throw an InvalidConfigParameterException if the scaling factor of the load model config is negative" in {
+          val baseRuntimeConfig = ConfigFactory.parseString(
+            """simona.runtime.participant.load = {
+              |    calculateMissingReactivePowerWithModel = false
+              |    scaling = -5.3
+              |    modelBehaviour = "profile"
+              |    reference = "power"
+              |}""".stripMargin
+          )
+          val config =
+            baseRuntimeConfig.withFallback(typesafeConfig).resolve()
+          val simonaConfig = SimonaConfig(config)
+
+          intercept[InvalidConfigParameterException] {
+            ConfigFailFast.checkBaseRuntimeConfigs(
+              simonaConfig.runtime.participant.load
+            )
+          }.getMessage shouldBe "The scaling factor for system participants with UUID 'default' may not be negative."
+        }
+      }
+
       "Checking specific load model configs" should {
         "throw an InvalidConfigParameterException if the model behaviour of the load model config is not supported" in {
           val loadModelConfig = ConfigFactory.parseString(
