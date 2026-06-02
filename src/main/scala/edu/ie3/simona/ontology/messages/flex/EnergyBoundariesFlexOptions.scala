@@ -23,7 +23,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
 import squants.time.Seconds
-import squants.{Dimensionless, Energy, Power, Time}
+import squants.{Dimensionless, Energy, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -141,14 +141,23 @@ object EnergyBoundariesFlexOptions
       )
     )
 
+  /** Tightens energy limits for each tick (where possible) by taking into
+    * account the maximum energy added and subtracted at each step.
+    *
+    * @param flexOptions
+    *   The energy boundaries flex options to adapt.
+    * @param ticks
+    *   The ticks to base the adapted boundaries on.
+    * @return
+    *   The adapted flex options.
+    */
   def tighten(
       flexOptions: EnergyBoundariesFlexOptions,
-      sampleTime: Time,
-      predictionHorizon: Time,
+      ticks: Seq[Long],
   ): EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       flexOptions.energyBoundaries.map(
-        AssetEnergyBoundaries.tighten(_, sampleTime, predictionHorizon)
+        AssetEnergyBoundaries.tighten(_, ticks)
       )
     )
 
@@ -319,24 +328,26 @@ object EnergyBoundariesFlexOptions
         etaDischarge = etaDischarge,
       )
 
+    /** Tightens energy limits for each tick (where possible) by taking into
+      * account the maximum energy added and subtracted at each step. Bases the
+      * returned energy boundaries on the given ticks.
+      *
+      * @param boundaries
+      *   The energy boundaries to adapt.
+      * @param ticks
+      *   The ticks to base the adapted boundaries on. The first tick needs to
+      *   be equal to or later than the first tick of the original boundaries.
+      * @return
+      *   The adapted energy boundaries.
+      */
     def tighten(
         boundaries: AssetEnergyBoundaries,
-        sampleTime: Time,
-        predictionHorizon: Time,
+        ticks: Seq[Long],
     ): AssetEnergyBoundaries = {
-      val (firstTick, _) = boundaries.energyLimits.headOption.getOrElse(
-        throw new CriticalFailureException("Empty energy limits")
-      )
-
       val maxNetPower =
         boundaries.powerLimits.getUpper * boundaries.etaCharge.toEach
       val minNetPower =
         boundaries.powerLimits.getLower / boundaries.etaDischarge.toEach
-
-      val sampleTicks = sampleTime.toSeconds.toLong
-      val lastPredictedTick = firstTick + predictionHorizon.toSeconds.toLong
-      val ticks =
-        Range.Long.inclusive(firstTick, lastPredictedTick, sampleTicks)
 
       val throwMissing: Long => Nothing = tick =>
         throw new CriticalFailureException(
@@ -353,6 +364,9 @@ object EnergyBoundariesFlexOptions
       }
 
       // tighten bounds of first state
+      val firstTick = ticks.headOption.getOrElse(
+        throw new CriticalFailureException("Empty ticks")
+      )
       val firstNewLimits =
         new ClosedInterval(boundaries.currentEnergy, boundaries.currentEnergy)
       limits.update(firstTick, firstNewLimits)

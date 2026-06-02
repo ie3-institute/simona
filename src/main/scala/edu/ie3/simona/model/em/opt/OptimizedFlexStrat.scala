@@ -89,7 +89,7 @@ final case class OptimizedFlexStrat(
     val flexOptionsById =
       flexOptions.map { case (asset: AssetInput, fo) =>
         asset.getUuid ->
-          EnergyBoundariesFlexOptions.tighten(fo, sampleTime, predictionHorizon)
+          EnergyBoundariesFlexOptions.tighten(fo, ticks)
       }
 
     val (assetVars, objectiveContainer) =

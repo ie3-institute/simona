@@ -99,10 +99,10 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
 
   "Tightening energy boundaries should result in proper energy limits" when {
 
-    val sampleTime = Hours(0.5)
-    val predictionHorizon = Hours(4)
-
     val ticks = {
+      val sampleTime = Hours(0.5)
+      val predictionHorizon = Hours(4)
+
       val startTick = 3600L
       val sampleTicks = sampleTime.toSeconds.toLong
       val lastPredictedTick = startTick + predictionHorizon.toSeconds.toLong
@@ -121,8 +121,7 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
           etaDischarge = Each(0.8),
           currentTick = ticks(0),
         ),
-        sampleTime = sampleTime,
-        predictionHorizon = predictionHorizon,
+        ticks = ticks,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
@@ -150,8 +149,7 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
           etaDischarge = Each(0.8),
           currentTick = ticks(0),
         ),
-        sampleTime = sampleTime,
-        predictionHorizon = predictionHorizon,
+        ticks = ticks,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
@@ -180,8 +178,7 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
           powerLimits = ClosedInterval(zeroKW, Kilowatts(10)),
           tickDisconnect = Some(18000L),
         ),
-        sampleTime = sampleTime,
-        predictionHorizon = predictionHorizon,
+        ticks = ticks,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
@@ -219,8 +216,7 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
           etaDischarge = Each(0.6),
           tickDisconnect = Some(ticks(8)),
         ),
-        sampleTime = sampleTime,
-        predictionHorizon = predictionHorizon,
+        ticks = ticks,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
