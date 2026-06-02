@@ -176,7 +176,7 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
             ticks(8) -> limits(40, 50),
           ),
           powerLimits = ClosedInterval(zeroKW, Kilowatts(10)),
-          tickDisconnect = Some(18000L),
+          tickDisconnect = Some(ticks(8)),
         ),
         ticks = ticks,
       )
@@ -214,7 +214,6 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
           powerLimits = ClosedInterval(Kilowatts(-6), Kilowatts(16)),
           etaCharge = Each(0.625),
           etaDischarge = Each(0.6),
-          tickDisconnect = Some(ticks(8)),
         ),
         ticks = ticks,
       )
@@ -231,6 +230,27 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
         ticks(8) -> limits(25, 25),
       )
 
+    }
+
+    "providing flex options that might cause numerical issues" in {
+      val adaptedBoundaries = AssetEnergyBoundaries.tighten(
+        boundaries = AssetEnergyBoundaries(
+          currentEnergy = KilowattHours(9.9),
+          energyLimits = SortedMap(
+            ticks(0) -> limits(0, 60),
+            ticks(2) -> limits(29.700000000000003, 60),
+          ),
+          powerLimits = ClosedInterval(Kilowatts(-19.8), Kilowatts(19.8)),
+          tickDisconnect = Some(ticks(2)),
+        ),
+        ticks = ticks,
+      )
+
+      adaptedBoundaries.energyLimits should contain allOf (
+        ticks(0) -> limits(9.9, 9.9),
+        ticks(1) -> limits(19.8, 19.8),
+        ticks(2) -> limits(29.700000000000003, 29.700000000000003)
+      )
     }
 
   }
