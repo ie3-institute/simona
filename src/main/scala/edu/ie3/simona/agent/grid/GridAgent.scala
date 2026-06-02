@@ -27,6 +27,7 @@ import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
@@ -34,6 +35,7 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
+import squants.ElectricCurrent
 import squants.electro.Amperes
 
 import java.util.UUID
@@ -192,17 +194,36 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           )
       }
 
-    // FIXME maybe this is a good spot to include ampacity calc?
     val doAmpacityCalc =
       constantData.simonaConfig.ampacityCalculation.activateAmpacityCalculation
 
-    val updatedThermalLineStates =
+    val updatedThermalLineStates = {
       if doAmpacityCalc then {
-        val lineCurrent = Amperes(1d) // FIXME
-        val lastLineState = ???
+        gridAgentBaseData.gridEnv.gridModel.gridComponents.thermalLineSegments.map {
+          lineSegment =>
+            val lastLineState =
+              gridAgentBaseData.thermalLineStates.getOrElse(
+                lineSegment.uuid,
+                throw new RuntimeException(
+                  s"No previous state for line ${lineSegment.uuid}"
+                ),
+              )
 
-        gridAgentBaseData.gridEnv.gridModel.gridComponents.thermalLineSegments
-          .map(lineSegment =>
+            val currentFromPFResults: ElectricCurrent =
+              results.toSeq
+                .flatMap(_.lineResults)
+                .find(_.getInputModel == lineSegment.lineUuid)
+                .map(_.getiAMag().toSquants)
+                .getOrElse(
+                  throw new RuntimeException(
+                    s"No power flow result for line ${lineSegment.lineUuid}"
+                  )
+                )
+
+            val lineCurrent =
+              if currentFromPFResults >= Amperes(0d) then currentFromPFResults
+              else currentFromPFResults * -1
+
             lineSegment.uuid ->
               lineSegment.determineState(
                 currentTick,
@@ -210,11 +231,11 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
                 lineCurrent,
                 gridAgentBaseData.simulationStart,
               )
-          )
-          .toMap
+        }.toMap
       } else {
         gridAgentBaseData.thermalLineStates
       }
+    }
 
     val updatedBaseData =
       gridAgentBaseData.copy(thermalLineStates = updatedThermalLineStates)
