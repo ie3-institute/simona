@@ -99,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplify handling of results [#1752](https://github.com/ie3-institute/simona/issues/1752)
 - Cleaned out unused files in exceptions [#1308](https://github.com/ie3-institute/simona/issues/1308)
 - Reintroduced `greclipse` for groovy formating [#1805](https://github.com/ie3-institute/simona/issues/1805)
+- Remove duplication of Irradiance and make use of the squants version [#1829](https://github.com/ie3-institute/simona/issues/1829)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

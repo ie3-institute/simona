@@ -6,19 +6,25 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.util.scala.quantities.KilowattHoursPerCubicMeter
 import edu.ie3.util.scala.quantities.SquantsUtils.{
   RichElectricPotential,
   RichEnergy,
+  RichIrradiance,
   RichThermalCapacity,
+}
+import edu.ie3.util.scala.quantities.{
+  KilowattHoursPerCubicMeter,
+  WattHoursPerSquareMeter,
 }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.Each
 import squants.electro.Kilovolts
 import squants.energy.KilowattHours
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.space.CubicMeters
 import squants.thermal.JoulesPerKelvin
+import squants.time.Hours
 
 class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
 
@@ -40,5 +46,9 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
 
   it should "convert a ThermalCapacity to correct value in WattSecondsPerKelvin" in {
     JoulesPerKelvin(3600).toWattSecondsPerKelvin should be(3600.0)
+  }
+
+  it should "return Irradiation when Irradiance is multiplied by Time" in {
+    WattsPerSquareMeter(10) * Hours(2) should be (WattHoursPerSquareMeter(20.0))
   }
 }
