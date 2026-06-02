@@ -144,7 +144,7 @@ object ExtSimSetup {
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
-    *   The scheduler of simona.
+    *   The scheduler of SIMONA.
     * @param extSimAdapter
     *   The adapter for the external simulation.
     * @return
@@ -160,7 +160,6 @@ object ExtSimSetup {
       extSimAdapter: ActorRef[ControlResponseMessageFromExt],
       resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
-      apiSetupData: SetupData,
   ): ExtSimSetupData = {
     // the data connections this external simulation provides
     val connections = extSimulation.getDataConnections.asScala
@@ -202,9 +201,6 @@ object ExtSimSetup {
               )
               setupData
             } else {
-              val emUnits =
-                apiSetupData.gridContainer.getEmUnits.getEmUnitsMap.keySet.asScala.toSet
-
               val serviceRef = context.spawn(
                 ExtEmDataService(
                   scheduler,

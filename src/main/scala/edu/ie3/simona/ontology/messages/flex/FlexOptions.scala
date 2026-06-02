@@ -11,7 +11,4 @@ import edu.ie3.simona.api.data.model.em.FlexOptions as ExtFlexOptions
 import java.util.UUID
 
 /** Trait that all flex option types have to extend. */
-trait FlexOptions {
-
-  def toExt(recipient: UUID, model: UUID): ExtFlexOptions
-}
+trait FlexOptions

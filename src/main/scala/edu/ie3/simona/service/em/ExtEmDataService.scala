@@ -103,7 +103,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       scheduler: ActorRef[SchedulerMessage],
       extEmData: ExtEmDataConnection,
       startTime: ZonedDateTime,
-      emUnits: Set[UUID],
   ) extends InitializeServiceStateData
 
   override def init(

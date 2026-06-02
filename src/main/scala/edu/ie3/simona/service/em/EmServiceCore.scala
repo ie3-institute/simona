@@ -112,7 +112,7 @@ case class EmServiceCore(
     internal: Set[UUID] = Set.empty,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, SetPoint]] = None,
-    openMsg: mutable.Set[UUID] = mutable.Set.empty
+    openMsg: mutable.Set[UUID] = mutable.Set.empty,
 ) {
 
   given Conversion[OptionalLong, Option[Long]] =
@@ -503,7 +503,7 @@ case class EmServiceCore(
 
         } else {
           // flex option to ext
-          val convertedOption = flexOptions.toExt(receiverUuid, sender)
+          val convertedOption = convertOptions(flexOptions, receiverUuid, sender)
 
           val resultToExt = if emStates(sender).sentDisaggregated then {
             val disaggregatedOptions = uuidToInferior(receiverUuid)
@@ -597,6 +597,8 @@ case class EmServiceCore(
         }
 
       case completion: FlexCompletion =>
+        receiver.foreach(_ ! completion)
+
         handleCompletion(tick, completion)
 
       case _ =>
@@ -808,7 +810,7 @@ case class EmServiceCore(
                   receiverUuid,
                   sender,
                   msgId,
-                  control.toExt(receiverUuid),
+                  convert(receiverUuid, control),
                 ),
               )
             }
@@ -923,8 +925,6 @@ case class EmServiceCore(
       tick: Long,
       completion: FlexCompletion,
   )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
-    receiver.foreach(_ ! completion)
-
     val (updated, extMsgOption, finished) = {
       val uuid = completion.modelUuid
 
