@@ -10,11 +10,11 @@ import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.test.common.input.PvInputTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.commons.csv.{CSVFormat, CSVRecord}
 import squants.energy.Megawatts
 import squants.motion.MetersPerSecond
 import squants.{Kelvin, Power}
+import squants.radio.WattsPerSquareMeter
 
 import java.io.{BufferedReader, FileInputStream, InputStreamReader}
 import java.nio.charset.StandardCharsets

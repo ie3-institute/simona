@@ -8,10 +8,12 @@ package edu.ie3.util.scala.quantities
 
 import squants.electro.{Capacitance, ElectricPotential, Resistivity, Volts}
 import squants.energy.{Energy, Power, Watts}
+import squants.radio.Irradiance
 import squants.space.{Area, CubicMeters, Volume}
 import squants.thermal.ThermalCapacity
+import squants.time.Hours
+import squants.{Dimensionless, Each, Time}
 import squants.time.Frequency
-import squants.{Dimensionless, Each}
 
 import scala.math.Pi
 
@@ -44,6 +46,14 @@ object SquantsUtils {
       this.thermalCapacity.toJoulesPerKelvin / 3600
     def toWattSecondsPerKelvin: Double =
       this.thermalCapacity.toJoulesPerKelvin // Joule == Ws
+  }
+
+  implicit class RichIrradiance(
+      irradiance: Irradiance
+  ) {
+    def *(that: Time): Irradiation = WattHoursPerSquareMeter(
+      irradiance.toWattsPerSquareMeter * that.toSeconds / Hours(1).toSeconds
+    )
   }
 
   implicit class RichCapacitance(

@@ -43,6 +43,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toSquants,
 }
 import squants.*
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.space.{Degrees, SquareMeters}
 
 import java.time.ZonedDateTime

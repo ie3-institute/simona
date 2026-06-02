@@ -28,7 +28,8 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapperSpec.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.geo.GeoUtils
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
+import squants.radio.Irradiance
+import squants.radio.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
 import squants.motion.MetersPerSecond
 import squants.thermal.{Celsius, Kelvin}
