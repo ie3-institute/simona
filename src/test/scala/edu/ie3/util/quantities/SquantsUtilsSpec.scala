@@ -49,6 +49,6 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "return Irradiation when Irradiance is multiplied by Time" in {
-    WattsPerSquareMeter(10) * Hours(2) should be (WattHoursPerSquareMeter(20.0))
+    WattsPerSquareMeter(10) * Hours(2) should be(WattHoursPerSquareMeter(20.0))
   }
 }
