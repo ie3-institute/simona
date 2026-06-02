@@ -814,6 +814,7 @@ object LineThermalModelCalculations extends LazyLogging {
       tick: Long,
       state: LineState,
       lineCurrent: ElectricCurrent,
+      groundTemperature: Temperature,
   ): LineTemperatures = {
     val currentLineModel = state.currentLineSegmentThermalModel
     val cableSetup = state.cableSetup
@@ -1051,7 +1052,7 @@ object LineThermalModelCalculations extends LazyLogging {
       0d,
       (sheathLossesMiddlePhase.toWatts + dielectricLosses.toWatts / 2) / c3,
       0d,
-      (g5 * state.groundTemperature.toCelsiusScale) / c5,
+      (g5 * groundTemperature.toCelsiusScale) / c5,
     )
 
     val (eigenvalues, eigenvectors) =

@@ -36,7 +36,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.{ConfigTestData, DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.testkit.typed.Effect.{Spawned, Watched}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -54,7 +54,8 @@ class GridAgentCoordinatorSpec
     with UnitSpec
     with DbfsTestGrid
     with ConfigTestData
-    with MockitoSugar {
+    with MockitoSugar
+    with DefaultTestData {
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
@@ -242,6 +243,8 @@ class GridAgentCoordinatorSpec
             GridAgentCoordinator.createGridAgents(
               Seq(hvGridContainer, ehvGridContainer),
               ctx,
+              defaultSimulationStart,
+              AmpacityCalculationParams(cfg.ampacityCalculation),
               PowerFlowParams(cfg.powerflow.value),
             )
 

@@ -23,6 +23,7 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
+import edu.ie3.simona.model.grid.ampacity.AmpacityCalculationParams
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
@@ -128,6 +129,8 @@ class DBFSAlgorithmCenGridSpec
 
     val gridAgentInitData = GridAgentInitData(
       gridModel,
+      startTime,
+      AmpacityCalculationParams(simonaConfig.ampacityCalculation),
       PowerFlowParams(simonaConfig.powerflow.value),
     )
 

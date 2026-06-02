@@ -22,14 +22,28 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
-import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
+import edu.ie3.simona.model.grid.ampacity.{
+  CableMaterial,
+  CableSetup,
+  Layer,
+  LineSegmentThermalModel,
+  ScreenLayer,
+}
+import edu.ie3.simona.util.{CollectionUtils, Coordinate3D}
+import edu.ie3.util.scala.quantities.{
+  JoulesPerMeterKelvin,
+  KelvinMetersPerWatt,
+  OhmsPerMeter,
+}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 import play.api.libs.json.*
+import squants.Meters
+import squants.electro.{Kilovolts, Nanofarads, OhmMeters}
+import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
+import squants.time.Hertz
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -529,6 +543,153 @@ object GridModel {
         .flatMap { lineInput =>
           val jsonStringLineInput = lineInputToJson(lineInput)
           val json = Json.parse(jsonStringLineInput)
+          // FIXME Move this into some thermalLineSegment Builder Class that reads from csv input
+          val conductor: Layer = {
+            val mat = CableMaterial.fromString("Copper")
+            Layer(
+              "conductor",
+              mat,
+              Millimeters(0),
+              Millimeters(18.4),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              Some(SquareMeters(0.00024)),
+            )
+          }
+
+          val conductorScreen: Layer = {
+            val mat = CableMaterial.fromString("semicondscreen")
+            Layer(
+              "conductorScreen",
+              mat,
+              Millimeters(18.4),
+              Millimeters(19.4),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              None,
+            )
+          }
+
+          val insulation: Layer = {
+            val mat = CableMaterial.fromString("XLPE")
+            Layer(
+              "insulation",
+              mat,
+              Millimeters(19.4),
+              Millimeters(34.8),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              None,
+            )
+          }
+
+          val insulationScreen: Layer = {
+            val mat = CableMaterial.fromString("semicondscreen")
+            Layer(
+              "insulationScreen",
+              mat,
+              Millimeters(34.8),
+              Millimeters(35.8),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              None,
+            )
+          }
+
+          val screenTape: Layer = {
+            val mat = CableMaterial.fromString("copperwoventape")
+            Layer(
+              "screenTape",
+              mat,
+              Millimeters(35.8),
+              Millimeters(36.8),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              None,
+            )
+          }
+
+          val screen: ScreenLayer = {
+            ScreenLayer(
+              CableMaterial.Copper,
+              Millimeters(36.8),
+              Millimeters(38.6),
+              CableSetup.materialProps(CableMaterial.Copper)._1,
+              CableSetup.materialProps(CableMaterial.Copper)._2,
+              Some(SquareMeters(35.62566069e-6)),
+              56,
+              Millimeters(0.9),
+              Some(Millimeters(240)),
+              OhmMeters(1.7241e-8),
+            )
+          }
+
+          val jackTape: Layer = {
+            val mat = CableMaterial.fromString("copperwoventape")
+            Layer(
+              "jackTape",
+              mat,
+              Millimeters(38.6),
+              Millimeters(39.2),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              None,
+            )
+          }
+
+          val jack: Layer = {
+            val mat = CableMaterial.fromString("XLPE")
+            Layer(
+              "jack",
+              mat,
+              Millimeters(39.2),
+              Millimeters(43.6),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              None,
+            )
+          }
+
+          val outerCover: Layer = {
+            val mat = CableMaterial.fromString("semicondscreen")
+            Layer(
+              "outerCover",
+              mat,
+              Millimeters(43.6),
+              Millimeters(44.0),
+              CableSetup.materialProps(mat)._1,
+              CableSetup.materialProps(mat)._2,
+              None,
+            )
+          }
+
+          val cable: CableSetup = new CableSetup(
+            UUID.fromString("b8152c3f-d12f-4857-9746-a30aef6aee08"),
+            "CigreT880_33kVLandCable",
+            Coordinate3D(0.0, 0.0, -1.0),
+            Coordinate3D(1.0, 0.0, -1.0),
+            conductor,
+            List(conductorScreen, insulation, insulationScreen, screenTape),
+            Some(screen),
+            List.empty[Layer],
+            List.empty[Layer],
+            List(jackTape, jack, outerCover),
+            "trefoil-touching",
+            Meters(1),
+            Meters(0.044),
+            KelvinMetersPerWatt(1.0),
+            JoulesPerMeterKelvin(1.0), // FIXME check this
+            Celsius(90),
+            Kilovolts(33),
+            Hertz(50),
+            OhmsPerMeter(0.0754e-3),
+            1.0,
+            1.0,
+            Nanofarads(0.237683304),
+            0.004,
+            0.0435122656,
+            0.0,
+          )
 
           val coordinates =
             (json \ "coordinates").as[JsArray].value.map { coord =>
@@ -544,6 +705,7 @@ object GridModel {
                     UUID.randomUUID(),
                     lineInput.getId + "_" + start.toString + "_" + end.toString,
                     lineInput.getUuid,
+                    cable,
                     KelvinMetersPerWatt(1),
                     KelvinMetersPerWatt(1),
                     KelvinMetersPerWatt(1),
@@ -554,7 +716,7 @@ object GridModel {
                     JoulesPerMeterKelvin(1),
                     JoulesPerMeterKelvin(1),
                     Celsius(90),
-                  )(using startDate)
+                  )
                 }
                 .toSet
             )

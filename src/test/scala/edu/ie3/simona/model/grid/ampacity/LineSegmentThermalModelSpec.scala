@@ -64,11 +64,10 @@ class LineSegmentThermalModelSpec
         ) =>
           val groundTemperature = Celsius(groundTemp)
 
-          val startingState: LineState = LineSegmentThermalModel.determineState(
+          val startingState: LineState = LineSegmentThermalModel.initState(
             groundTemperature,
             cableSetup,
             lineSegmentThermalModel,
-            defaultSimulationStart,
           )
 
           val currentModel: LineSegmentThermalModel =
@@ -82,6 +81,7 @@ class LineSegmentThermalModelSpec
             tick,
             startingState,
             current,
+            defaultSimulationStart,
           )
 
           updatedState match {

@@ -34,6 +34,7 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
+import squants.electro.Amperes
 
 import java.util.UUID
 
@@ -87,6 +88,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         initData.superiorConnections,
         initData.nodeToAssetAgents,
         initData.refToSubgrid,
+        initData.simulationStart,
+        initData.ampacityCalculationParams,
         initData.powerFlowParams,
         actorName,
       )
@@ -193,20 +196,31 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val doAmpacityCalc =
       constantData.simonaConfig.ampacityCalculation.activateAmpacityCalculation
 
-    val lineCurrent = ???
-    val lastLineState = ???
-    if doAmpacityCalc then
-      gridAgentBaseData.gridEnv.gridModel.gridComponents.thermalLineSegments
-        .foreach(lineSegment =>
-          lineSegment.determineState(
-            currentTick,
-            lastLineState = lastLineState,
-            lineCurrent = lineCurrent,
+    val updatedThermalLineStates =
+      if doAmpacityCalc then {
+        val lineCurrent = Amperes(1d) // FIXME
+        val lastLineState = ???
+
+        gridAgentBaseData.gridEnv.gridModel.gridComponents.thermalLineSegments
+          .map(lineSegment =>
+            lineSegment.uuid ->
+              lineSegment.determineState(
+                currentTick,
+                lastLineState,
+                lineCurrent,
+                gridAgentBaseData.simulationStart,
+              )
           )
-        )
+          .toMap
+      } else {
+        gridAgentBaseData.thermalLineStates
+      }
+
+    val updatedBaseData =
+      gridAgentBaseData.copy(thermalLineStates = updatedThermalLineStates)
 
     // clean up agent and go back to idle
-    gotoIdle(gridAgentBaseData, results, ctx)
+    gotoIdle(updatedBaseData, results, ctx)
   }
 
   /** Method that will clean up the [[GridAgentBaseData]] and go to the

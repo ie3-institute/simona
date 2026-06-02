@@ -27,6 +27,7 @@ trait LineSegmentThermalModelInputData extends DefaultTestData {
       UUID.fromString("9d62d1dd-a5a2-41e0-aaaa-dfd44365224f"),
       "testModel",
       UUID.fromString("4be05b08-08a8-49ce-a427-0655a60b5616"),
+      CigreT880LandCable33kV.cable,
       KelvinMetersPerWatt(1.0),
       KelvinMetersPerWatt(1.0),
       KelvinMetersPerWatt(1.0),
@@ -37,6 +38,6 @@ trait LineSegmentThermalModelInputData extends DefaultTestData {
       JoulesPerMeterKelvin(1.0),
       JoulesPerMeterKelvin(1.0),
       Celsius(90d),
-    )(using defaultSimulationStart)
+    )
 
 }

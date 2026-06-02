@@ -22,6 +22,11 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.GridModel
+import edu.ie3.simona.model.grid.ampacity.{
+  AmpacityCalculationParams,
+  LineSegmentThermalModel,
+}
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,
   OutputConfigUtil,
@@ -31,6 +36,7 @@ import edu.ie3.simona.util.{ConfigUtil, ReceiveDataMap}
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
+import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -92,6 +98,10 @@ object GridAgentData {
     *
     * @param gridModel
     *   [[GridModel]] with all asset information.
+    * @param simulationStart
+    *   Date of the very first tick in the simulation.
+    * @param ampacityCalculationParams
+    *   Parameters for the ampacity calculation.
     * @param powerFlowParams
     *   Parameters for the power flow calculation.
     * @param refToSubgrid
@@ -107,6 +117,8 @@ object GridAgentData {
     */
   final case class GridAgentInitData(
       gridModel: GridModel,
+      simulationStart: ZonedDateTime,
+      ampacityCalculationParams: AmpacityCalculationParams,
       powerFlowParams: PowerFlowParams,
       refToSubgrid: Map[GridAgentRef, Int] = Map.empty,
       inferiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty,
@@ -226,6 +238,8 @@ object GridAgentData {
         superiorConnections: MultiMap[GridAgentRef, UUID],
         nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]],
         refToSubgrid: Map[GridAgentRef, Int],
+        simulationStart: ZonedDateTime,
+        ampacityCalculationParams: AmpacityCalculationParams,
         powerFlowParams: PowerFlowParams,
         actorName: String,
     ): GridAgentBaseData = {
@@ -250,12 +264,28 @@ object GridAgentData {
           SweepValueStore,
         ] // initialization is assumed to be always with no sweep data
 
+      val groundTemperature = Celsius(20) // FIXME
+
+      val thermalLineStates =
+        if ampacityCalculationParams.activateAmpacityCalculation
+        then
+          gridModel.gridComponents.thermalLineSegments.map { lineSeg =>
+            lineSeg.uuid -> LineSegmentThermalModel.initState(
+              groundTemperature,
+              lineSeg.cableSetup,
+              lineSeg,
+            )
+          }.toMap
+        else Map.empty[UUID, LineState]
+
       GridAgentBaseData(
         gridEnv,
         powerFlowParams,
         currentSweepNo,
         ReceivedValuesStore.empty(gridEnv),
         sweepValueStores,
+        thermalLineStates,
+        simulationStart,
         actorName,
       )
     }
@@ -277,6 +307,13 @@ object GridAgentData {
     *   A value store for received values.
     * @param sweepValueStores
     *   A value store for sweep results.
+    * @param thermalLineStates
+    *   A map [[UUID]] of [[LineSegmentThermalModel]] and the current
+    *   [[LineState]].
+    * @param simulationStart
+    *   Date of the very first tick in the simulation.
+    * @param actorName
+    *   The name of the actor.
     */
   final case class GridAgentBaseData(
       gridEnv: GridEnvironment,
@@ -284,6 +321,8 @@ object GridAgentData {
       currentSweepNo: Int,
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
+      thermalLineStates: Map[UUID, LineState],
+      simulationStart: ZonedDateTime,
       actorName: String,
   ) extends GridAgentData {
 

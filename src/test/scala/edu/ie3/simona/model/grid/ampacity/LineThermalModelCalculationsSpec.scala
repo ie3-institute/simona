@@ -711,11 +711,10 @@ class LineThermalModelCalculationsSpec
     val groundTemp = Celsius(20)
 
     val startingState =
-      LineSegmentThermalModel.determineState(
+      LineSegmentThermalModel.initState(
         groundTemp,
         cigreT880LandCable33kV,
         lineSegmentThermalModel,
-        defaultSimulationStart,
       )
 
     val current = Amperes(537.46)
@@ -725,6 +724,7 @@ class LineThermalModelCalculationsSpec
         tick,
         startingState,
         current,
+        groundTemp,
       )
 
     actual.currentLineTemp1 should approximate(expected)

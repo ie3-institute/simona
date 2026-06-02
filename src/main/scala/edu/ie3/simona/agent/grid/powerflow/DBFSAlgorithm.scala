@@ -452,8 +452,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               gridAgentBaseData: GridAgentBaseData,
             ) =>
           val nextTick = currentTick + constantData.resolution
-          
-          //FIXME maybe this is a good spot to include ampacity calc?
 
           // inform my child grids about the end of this grid simulation
           gridAgentBaseData.inferiorGridRefs.keys.foreach(

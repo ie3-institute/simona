@@ -213,6 +213,8 @@ object GridAgentCoordinator {
           val (subgridToRef, nodeToSubgrid, superiorGrids) = createGridAgents(
             subgrids,
             resolution,
+            stateData.simStartTime,
+            ampacityCalculationParams,
             PowerFlowParams(pfConfig),
             config,
           )(using ctx, environmentRefs)
@@ -498,6 +500,10 @@ object GridAgentCoordinator {
     *   A sequence of subgrid containers.
     * @param resolution
     *   The power flow resolution.
+    * @param simulationStart
+    *   Date of the very first tick in the simulation.
+    * @param ampaCalcParams
+    *   FIXME
     * @param pfParams
     *   The power flow parameters.
     * @param cfg
@@ -513,6 +519,8 @@ object GridAgentCoordinator {
   private def createGridAgents(
       subgrids: Seq[SubGridContainer],
       resolution: Long,
+      simulationStart: ZonedDateTime,
+      ampaCalcParams: AmpacityCalculationParams,
       pfParams: PowerFlowParams,
       cfg: SimonaConfig,
   )(using
@@ -540,6 +548,8 @@ object GridAgentCoordinator {
     val (subGridToActorRefMap, actorRefToNodes) = createGridAgents(
       subgrids,
       context,
+      simulationStart,
+      ampaCalcParams,
       pfParams,
     )
 
@@ -567,6 +577,10 @@ object GridAgentCoordinator {
     *   A sequence of subgrid container.
     * @param context
     *   The actor context for spawning grid agents.
+    * @param simulationStart
+    *   Date of the very first tick in the simulation.
+    * @param ampaCalcParams
+    *   FIXME
     * @param pfParams
     *   The parameter for the power flow.
     * @param constantData
@@ -578,6 +592,8 @@ object GridAgentCoordinator {
   private[grid] def createGridAgents(
       subgrids: Seq[SubGridContainer],
       context: ActorContext[Message],
+      simulationStart: ZonedDateTime,
+      ampaCalcParams: AmpacityCalculationParams,
       pfParams: PowerFlowParams,
   )(using
       constantData: GridAgentConstantData
@@ -620,7 +636,8 @@ object GridAgentCoordinator {
       )
 
       // create the GridAgentInitData
-      val gridAgentInitData = GridAgentInitData(gridModel, pfParams)
+      val gridAgentInitData =
+        GridAgentInitData(gridModel, simulationStart, ampaCalcParams, pfParams)
 
       val gridAgentRef =
         context.spawn(

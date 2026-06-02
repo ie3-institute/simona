@@ -29,6 +29,7 @@ import edu.ie3.simona.agent.participant.{ParticipantAgent, ParticipantAgentInit}
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
+import edu.ie3.simona.model.grid.ampacity.AmpacityCalculationParams
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -129,6 +130,8 @@ class DBFSAlgorithmParticipantSpec
 
     val gridAgentInitData = GridAgentInitData(
       gridModel,
+      startTime,
+      AmpacityCalculationParams(simonaConfig.ampacityCalculation),
       PowerFlowParams(simonaConfig.powerflow.value),
     )
 

@@ -6,24 +6,23 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.datamodel.models.input.NodeInput
 import edu.ie3.simona.model.grid.LineModel
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
-  LineState,
-  temperatureTolerance,
-}
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
-import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
   ThermalCapacitance,
   ThermalResistivity,
+  WattHoursPerSquareMeter,
 }
+import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.space.{Length, Meters}
 import squants.thermal.Celsius
 import squants.{ElectricCurrent, Kelvin, Temperature}
@@ -52,35 +51,18 @@ final case class LineSegmentThermalModel(
     uuid: UUID,
     id: String,
     lineUuid: UUID,
+    cableSetup: CableSetup,
     thermalResistanceT1: ThermalResistivity,
     thermalResistanceT2: ThermalResistivity,
     thermalResistanceT3: ThermalResistivity,
-    thermalResistanceT4: ThermalResistivity,
+    thermalResistanceT4: ThermalResistivity, // FIXME Think about to remove this one here, since it needs to be calculated everytime new in case of changes in surrounding conditions (e.g. parallel cables and their current load)
     thermalCapacityCc: ThermalCapacitance,
     thermalCapacityCd: ThermalCapacitance,
     thermalCapacityCs: ThermalCapacitance,
     thermalCapacityCj: ThermalCapacitance,
     thermalCapacityCe: ThermalCapacitance,
     upperBoundaryTemperature: Temperature,
-)(using simulationStart: ZonedDateTime) {
-
-  /** Check if the temperature of a line element is higher than the allowed
-    * maximum temperature.
-    *
-    * @param lineTemperature
-    *   The temperature of the line element.
-    * @param boundaryTemperature
-    *   The applied boundary temperature to check against.
-    * @return
-    *   True, if inner temperature is too high.
-    */
-  def isLineTemperatureTooHigh(
-      lineTemperature: Temperature,
-      boundaryTemperature: Temperature = Celsius(90),
-  ): Boolean =
-    lineTemperature > (
-      boundaryTemperature - temperatureTolerance
-    )
+) {
 
   /** Update the current state of the line segment
     */
@@ -88,12 +70,19 @@ final case class LineSegmentThermalModel(
       tick: Long,
       lastLineState: LineState,
       lineCurrent: ElectricCurrent,
+      simulationStart: ZonedDateTime,
   ): LineState = {
+
+    val point = ???
+
+    val groundTemperature =
+      getGroundTemperature(tick, point, lastLineState.cableSetup.depthCables)
 
     val updatedLineTemperatures = createAndCalcRCNetworkMvCableShortDuration(
       tick,
       lastLineState,
       lineCurrent,
+      groundTemperature,
     )
 
     val updatedLineState = lastLineState.copy(
@@ -107,37 +96,41 @@ final case class LineSegmentThermalModel(
   }
 
   def getGroundTemperature(
-      state: LineState,
-      nodeInput: NodeInput,
-      receivedData: Seq[Data],
-  ): LineState = {
+      tick: Long,
+      point: Coordinate,
+      depth: Length,
+  ): Temperature = {
     // FIXME the depth of the cable should come from the geometry / coordinates
     val (weightTempLvl3, weightTempLvl4) =
       LineSegmentThermalModel.determineWeightsGroundTemperatures(
-        state.cableSetup.depthCables
+        depth
       )
 
     // nodeInput.getGeoPosition.getZ
 
-    receivedData
-      .collectFirst { case weatherData: WeatherData =>
-        weatherData
-      }
-      .map(newData =>
-        val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
-          throw new IllegalArgumentException(
-            s"Ground Temperature Level 1 expected but not found."
-          )
-        ) * weightTempLvl3 +
-          newData.groundTempLvl4.getOrElse(
-            throw new IllegalArgumentException(
-              s"Ground Temperature Level 2 expected but not found."
-            )
-          ) * weightTempLvl4
+    // FIXME
+    val newData: WeatherData = WeatherData(
+      WattsPerSquareMeter(0d),
+      WattsPerSquareMeter(0d),
+      Celsius(0),
+      MetersPerSecond(0),
+      Some(Celsius(20)),
+      Some(Celsius(20)),
+    )
 
-        state.copy(groundTemperature = groundTempCableDepth)
+    val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
+      throw new IllegalArgumentException(
+        s"Ground Temperature Level 3 expected but not found."
       )
-      .getOrElse(state)
+    ) * weightTempLvl3 +
+      newData.groundTempLvl4.getOrElse(
+        throw new IllegalArgumentException(
+          s"Ground Temperature Level 4 expected but not found."
+        )
+      ) * weightTempLvl4
+
+    groundTempCableDepth
+
   }
 
   /*
@@ -189,13 +182,14 @@ object LineSegmentThermalModel {
   protected def temperatureTolerance: Temperature = Kelvin(0.01d)
 
   def apply(
-      input: LineModel,
-      simulationStart: ZonedDateTime,
-  ): LineSegmentThermalModel =
+      input: LineModel
+  ): LineSegmentThermalModel = {
+    val cableSetup = ???
     new LineSegmentThermalModel(
       UUID.randomUUID(),
       input.id,
       input.uuid,
+      cableSetup,
       KelvinMetersPerWatt(1),
       KelvinMetersPerWatt(1),
       KelvinMetersPerWatt(1),
@@ -206,7 +200,8 @@ object LineSegmentThermalModel {
       JoulesPerMeterKelvin(1),
       JoulesPerMeterKelvin(1),
       Celsius(90),
-    )(using simulationStart)
+    )
+  }
 
   /** State of a thermal line segment model.
     *
@@ -232,11 +227,10 @@ object LineSegmentThermalModel {
       lineTemperatures: LineTemperatures,
   ) extends ModelState
 
-  def determineState(
+  def initState(
       groundTemperature: Temperature,
       cableSetup: CableSetup,
       lineSegmentModel: LineSegmentThermalModel,
-      simulationStart: ZonedDateTime,
   ): LineState = {
     val t1 = calcThermalResistanceT1(cableSetup, cableSetup.voltage)
 
@@ -321,6 +315,7 @@ object LineSegmentThermalModel {
       lineSegmentModel.uuid,
       lineSegmentModel.id,
       lineSegmentModel.lineUuid,
+      cableSetup,
       t1,
       t2,
       t3,
@@ -331,7 +326,7 @@ object LineSegmentThermalModel {
       thermalCapacityCj,
       thermalCapacityCe,
       Celsius(90),
-    )(using simulationStart)
+    )
 
     val initLineTemperatures = LineTemperatures(
       groundTemperature,
