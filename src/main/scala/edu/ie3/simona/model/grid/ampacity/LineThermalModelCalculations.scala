@@ -209,9 +209,9 @@ object LineThermalModelCalculations extends LazyLogging {
     * @param screenLayer
     *   Cable layer of the screen with type [[ScreenLayer]].
     * @param limitTemperature
-    *   FIXME
+    *   Limit temperature of the cable.
     * @param thermalResistanceT1
-    *   FIXME
+    *   The resistance T1 (between conductor and screen) of this line segment.
     * @param conductorLosses
     *   The thermal losses of the conductor of this line segment in power per
     *   unit cable length.

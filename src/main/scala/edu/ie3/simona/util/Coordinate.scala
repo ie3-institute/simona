@@ -31,15 +31,18 @@ final case class Coordinate(
   * @param latitude
   *   The latitude of the coordinate.
   * @param longitude
-  *   The longitude of the coordinate. FIXME
+  *   The longitude of the coordinate.
+  * @param height
+  *   The height above ground level longitude of the coordinate. Negative values
+  *   refer to depth accordingly.
   */
 final case class Coordinate3D(
     latitude: Double,
     longitude: Double,
-    depth: Double,
+    height: Double,
 ) {
   def toPoint: Point =
     GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
-      new org.locationtech.jts.geom.Coordinate(longitude, latitude, depth)
+      new org.locationtech.jts.geom.Coordinate(longitude, latitude, height)
     )
 }

@@ -503,7 +503,7 @@ object GridAgentCoordinator {
     * @param simulationStart
     *   Date of the very first tick in the simulation.
     * @param ampaCalcParams
-    *   FIXME
+    *   The parameters of the ampacity calculation.
     * @param pfParams
     *   The power flow parameters.
     * @param cfg
@@ -580,7 +580,7 @@ object GridAgentCoordinator {
     * @param simulationStart
     *   Date of the very first tick in the simulation.
     * @param ampaCalcParams
-    *   FIXME
+    *   The parameters of the ampacity calculation.
     * @param pfParams
     *   The parameter for the power flow.
     * @param constantData
