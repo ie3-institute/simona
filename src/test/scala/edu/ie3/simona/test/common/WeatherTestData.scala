@@ -7,10 +7,10 @@
 package edu.ie3.simona.test.common
 
 import edu.ie3.simona.service.Data.SecondaryData.{
-  WeatherData,
   SecondarySeriesData,
+  WeatherData,
 }
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.motion.KilometersPerHour
 import squants.thermal.Celsius
 
