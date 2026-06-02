@@ -204,6 +204,67 @@ case class EmServiceCore(
     case requestEmCompletion: RequestEmCompletion =>
       handleExtCompletion(tick, requestEmCompletion)
 
+    case provideEmData: ProvideEmData if mode == EmMode.EM_COMMUNICATION =>
+      log.debug(s"Handling ext message: $provideEmData")
+      checkTick(tick, provideEmData.tick)
+
+      // handling of requests
+      val flexRequests = provideEmData.flexRequests.asScala
+
+      val requestMapping = flexRequests.flatMap { case (uuid, request) =>
+        if emStates(uuid).isWaitingForActivation then {
+
+          uuidToAgent.get(uuid).map { agent =>
+            // update the em state
+            emStates(uuid).setReceivedRequest(request.disaggregated)
+
+            agent ! FlexActivation(tick, true)
+
+            val count = Try(uuidToInferior(uuid).size).getOrElse(0)
+
+            // uuid -> number of sent flex requests
+            uuid -> count
+          }
+        } else None
+      }.toMap
+
+      // handling of set points
+      val setPointMapping = provideEmData
+        .setPoints()
+        .asScala
+        .flatMap { case (receiver, setPoint) =>
+          val agent = uuidToAgent(receiver)
+
+          // updates the em state
+          emStates(receiver).setReceivedSetPoint()
+
+          agent ! FlexConversion.convert(tick, setPoint)
+
+          val count = Try {
+            uuidToInferior(receiver).count { id => emStates(id).isActivated }
+          }.getOrElse(0)
+
+          // sender -> number of set points to send
+          Some(receiver -> count)
+        }
+        .toMap
+
+      /* update internal state */
+      val mapping = requestMapping ++ setPointMapping
+
+      val updatedExpectDataFrom = emDataStore.addExpectedKeys(mapping)
+
+      // check if we need to wait for internal answers
+      val msgToExt = getMsgToExtOption
+
+      // update state data
+      val newState = copy(
+        emDataStore = updatedExpectDataFrom,
+        completions = completions.addExpectedKeys(mapping.keySet),
+      )
+
+      (newState, msgToExt)
+
     case provideEmData: ProvideEmData =>
       checkTick(tick, provideEmData.tick)
 
@@ -627,7 +688,10 @@ case class EmServiceCore(
     val uuids = uncontrolled
       .filter { uuid => nextActivation(uuid) == internalTick }
       .map { uuid =>
-        uuidToAgent(uuid) ! FlexActivation(internalTick)
+        uuidToAgent(uuid) ! FlexActivation(
+          internalTick,
+          mode == EmMode.EM_COMMUNICATION,
+        )
         uuid
       }
 
