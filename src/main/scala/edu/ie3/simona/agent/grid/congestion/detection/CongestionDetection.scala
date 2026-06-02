@@ -7,11 +7,7 @@
 package edu.ie3.simona.agent.grid.congestion.detection
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.GridAgent.{
-  askInferior,
-  finishCongestionManagement,
-  unsupported,
-}
+import edu.ie3.simona.agent.grid.GridAgent.{askInferior, unsupported}
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.CongestionResult
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
 import edu.ie3.simona.agent.grid.congestion.Congestions
@@ -34,6 +30,8 @@ trait CongestionDetection {
     * congestion in the grid.
     * @param stateData
     *   Of the actor.
+    * @param awaitingData
+    *   Awaiting data of type [[Congestions]].
     * @param constantData
     *   Constant data of the [[GridAgent]].
     * @param buffer
