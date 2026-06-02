@@ -46,9 +46,9 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapper.{
 import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
 import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
 import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 

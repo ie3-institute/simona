@@ -32,9 +32,9 @@ import edu.ie3.simona.util.{Coordinate, ParsableEnumeration}
 import edu.ie3.util.geo.CoordinateDistance
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
 import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities

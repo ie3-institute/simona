@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.model.participant
 
-import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
-import squants.{Angle, Radians}
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.time.Minutes
+import squants.{Angle, Radians}
 
 import java.time.{ZoneId, ZonedDateTime}
 import scala.math.*
