@@ -368,7 +368,6 @@ case class EmServiceCore(
 
     val receiverUuid = receiver match {
       case Right(ref) =>
-        ref ! flexResponse
         agentToUuid(ref)
       case Left(uuid) =>
         uuid
@@ -402,6 +401,8 @@ case class EmServiceCore(
         )
 
       case completion: FlexCompletion =>
+        receiver.foreach(_ ! completion)
+
         handleCompletion(tick, completion)
 
       case _ =>
