@@ -7,22 +7,14 @@
 package edu.ie3.simona.ontology.messages.flex
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.datamodel.models.value.PValue
-import edu.ie3.simona.api.data.model.em.SetPoint
-import edu.ie3.simona.api.data.model.em.SetPoint.{
-  AggregatedSetPoint,
-  DisaggregatedSetPoints,
-}
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toQuantity
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.MapHasAsJava
 
 /** Messages used to facilitate flexibility-based communication between
   * [[edu.ie3.simona.agent.em.EmAgent]] and

@@ -17,7 +17,6 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueNoControl,
   IssuePowerControl,
 }
-import edu.ie3.simona.api.data.model.em.PowerLimitFlexOptions as ExtPowerLimitFlexOptions
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
@@ -25,11 +24,6 @@ import squants.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
-
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toQuantity,
-  toSquants,
-}
 
 /** A [[FlexOptions]] type that provides interval-based flexibility in form of
   * reference, minimum and maximum power of an asset. It is possible that the
