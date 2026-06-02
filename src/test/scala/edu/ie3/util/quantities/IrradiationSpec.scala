@@ -6,13 +6,11 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.util.scala.quantities.{
-  WattHoursPerSquareMeter,
-  WattsPerSquareMeter,
-}
+import edu.ie3.util.scala.quantities.WattHoursPerSquareMeter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.WattHours
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.space.SquareMeters
 import squants.time.Hours
 
