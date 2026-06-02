@@ -39,7 +39,6 @@ import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -47,6 +46,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Each
 import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime

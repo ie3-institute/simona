@@ -30,7 +30,7 @@ import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
+import squants.radio.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,

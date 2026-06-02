@@ -7,9 +7,9 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.util.scala.quantities.{Irradiance, WattsPerSquareMeter}
 import org.scalatest.GivenWhenThen
 import squants.energy.Megajoules
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.space.{Angle, Degrees, Radians}
 
 import java.time.ZonedDateTime
