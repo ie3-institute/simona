@@ -326,27 +326,24 @@ object OptimizedFlexStrat {
     // we are interested in the energy limits at the end of the step interval,
     // since they tell us in which energy the power of this step interval may
     // result in
-    val energyLimits = energyBoundaries.energyLimits
+    val (limitsTickEnd, energyLimitsEnd) = energyBoundaries.energyLimits
       .maxBefore(stepEndTick + 1)
-      .map { case (_, limits) =>
-        limits
-      }
       .getOrElse(throw new CriticalFailureException("No energy limits found!"))
 
     // the energy limits at the beginning of the interval can in some
     // circumstances provide information on constraints
-    val formerEnergyLimits =
-      energyBoundaries.energyLimits.maxBefore(stepEndTick).map {
+    val energyLimitsStart =
+      energyBoundaries.energyLimits.maxBefore(limitsTickEnd).map {
         case (_, limits) => limits
       }
 
-    if energyLimits.getLower == energyLimits.getUpper &&
-      formerEnergyLimits.forall(limits => limits.getLower == limits.getUpper)
+    if energyLimitsEnd.getLower == energyLimitsEnd.getUpper &&
+      energyLimitsStart.forall(limits => limits.getLower == limits.getUpper)
     then {
       // there is no flexibility at all, thus we don't need any state to keep track of
 
-      val formerEnergy = formerEnergyLimits.map(_.getUpper).getOrElse(zeroKWh)
-      val currentEnergy = energyLimits.getUpper
+      val formerEnergy = energyLimitsStart.map(_.getUpper).getOrElse(zeroKWh)
+      val currentEnergy = energyLimitsEnd.getUpper
 
       val energyChange = currentEnergy - formerEnergy
 
@@ -358,7 +355,7 @@ object OptimizedFlexStrat {
       val previousEnergy = maybePreviousState.getOrElse {
 
         // we have been given no former state as a parameter. Either...
-        formerEnergyLimits
+        energyLimitsStart
           // ... there was no flexibility in the last step, thus we use the last energy value
           .filter(limits => limits.getLower == limits.getUpper)
           .map(limits => Const(limits.getUpper.toKilowattHours))
@@ -370,8 +367,8 @@ object OptimizedFlexStrat {
         previousStateEnergy = previousEnergy,
         pMin = energyBoundaries.powerLimits.getLower,
         pMax = energyBoundaries.powerLimits.getUpper,
-        eMin = energyLimits.getLower,
-        eMax = energyLimits.getUpper,
+        eMin = energyLimitsEnd.getLower,
+        eMax = energyLimitsEnd.getUpper,
         etaCharge = energyBoundaries.etaCharge,
         etaDischarge = energyBoundaries.etaDischarge,
       )
