@@ -163,6 +163,21 @@ object FlexibilityMessage {
     }
   }
 
+  /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] that specifies
+    * disaggregated power values that needs to be produced/consumed by the
+    * system participant.
+    *
+    * @param tick
+    *   The current tick
+    * @param setPowers
+    *   A map: uuid to power that should be produced (negative) or consumed
+    *   (positive)
+    */
+  final case class IssueDisaggregatedControl(
+      override val tick: Long,
+      setPowers: Map[UUID, Power],
+  ) extends IssueFlexControl
+
   /** Message sent by [[edu.ie3.simona.agent.em.EmAgent]] indicating that no
     * power target is set and the reference power communicated by
     * [[ProvideFlexOptions]] shall be produced/consumed.

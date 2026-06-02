@@ -8,6 +8,7 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
@@ -109,9 +110,8 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       initServiceData: InitializeServiceStateData
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
-      case InitExtEmData(scheduler, extEmDataConnection, startTime, emUnits) =>
-        val serviceCore =
-          EmServiceCore(extEmDataConnection.mode, scheduler, emUnits)
+      case InitExtEmData(scheduler, extEmDataConnection, startTime) =>
+        val serviceCore = EmServiceCore(extEmDataConnection.mode, scheduler)
 
         val emDataInitializedStateData =
           ExtEmDataStateData(

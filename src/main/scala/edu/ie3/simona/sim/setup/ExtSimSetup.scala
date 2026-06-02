@@ -90,7 +90,7 @@ object ExtSimSetup {
 
       // creating the data connection
       val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-      given setupData: SetupData = new SetupData(
+      val setupData = new SetupData(
         args,
         config,
         grid,
@@ -208,12 +208,7 @@ object ExtSimSetup {
               val serviceRef = context.spawn(
                 ExtEmDataService(
                   scheduler,
-                  InitExtEmData(
-                    scheduler,
-                    extEmDataConnection,
-                    startTime,
-                    emUnits,
-                  ),
+                  InitExtEmData(scheduler, extEmDataConnection, startTime),
                   ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
                 ),
                 "ExtEmDataService",
