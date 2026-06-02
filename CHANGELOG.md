@@ -98,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapting to changes in simonaAPI version `0.14.0` [#1773](https://github.com/ie3-institute/simona/issues/1773)
 - Simplify handling of results [#1752](https://github.com/ie3-institute/simona/issues/1752)
 - Cleaned out unused files in exceptions [#1308](https://github.com/ie3-institute/simona/issues/1308)
+- Reintroduced `greclipse` for groovy formating [#1805](https://github.com/ie3-institute/simona/issues/1805)
 - Simplify conversion of flex options and setpoints between SIMONA and its API [#1785](https://github.com/ie3-institute/simona/issues/1785)
 
 ### Fixed
