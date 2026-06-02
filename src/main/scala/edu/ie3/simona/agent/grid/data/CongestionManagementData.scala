@@ -35,6 +35,8 @@ import java.util.UUID
   *   Result of the previous power flow calculation.
   * @param congestions
   *   The found congestions.
+  * @param congestedComponents
+  *   The assets that are currently congested.
   */
 final case class CongestionManagementData(
     gridAgentBaseData: GridAgentBaseData,
