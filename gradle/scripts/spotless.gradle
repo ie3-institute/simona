@@ -18,6 +18,7 @@ spotless {
   groovyGradle {
     // same as groovy, but for .gradle (defaults to '*.gradle')
     target('*.gradle', 'gradle/scripts/*.gradle')
+    greclipse()
     leadingTabsToSpaces(2)
   }
 

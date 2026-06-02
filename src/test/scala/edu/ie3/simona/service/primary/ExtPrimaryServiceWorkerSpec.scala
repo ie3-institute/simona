@@ -35,7 +35,7 @@ import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.energy.Kilowatts
 
-import java.util.{Optional, UUID}
+import java.util.{Optional, OptionalLong, UUID}
 import scala.jdk.CollectionConverters.*
 
 class ExtPrimaryServiceWorkerSpec
@@ -186,7 +186,7 @@ class ExtPrimaryServiceWorkerSpec
         new ProvidePrimaryData(
           0L,
           Map(validUuid -> new PValue(10.asKiloWatt)).asJava,
-          Optional.of(900L),
+          OptionalLong.of(900L),
         )
       )
 
