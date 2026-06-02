@@ -109,6 +109,7 @@ case class EmServiceCore(
     sendDataToExt: Boolean = true,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, SetPoint]] = None,
+    openMsg: mutable.Set[UUID] = mutable.Set.empty
 ) {
 
   given Conversion[OptionalLong, Option[Long]] =
@@ -363,6 +364,8 @@ case class EmServiceCore(
       val messages = comMsg.messages.asScala
 
       val mapping = messages.flatMap { msg =>
+        openMsg.remove(msg.msgId)
+
         val receiver = msg.receiver
         val sender = msg.sender
 
@@ -437,6 +440,8 @@ case class EmServiceCore(
         emDataStore = emDataStore.addExpectedKeys(mapping),
         completions = completions.addExpectedKeys(mapping.keySet),
       )
+
+      log.warn(s"Open messages: $openMsg")
 
       (newState, msgToExt)
 
@@ -614,7 +619,10 @@ case class EmServiceCore(
 
           // wrap the result, if sender and receiver are not the same, since we want to use ext communication
           val msg = if receiverUuid != sender then {
-            new EmCommunicationMessage(receiverUuid, sender, resultToExt)
+            val msgId = UUID.randomUUID()
+            openMsg.add(msgId)
+
+            new EmCommunicationMessage(receiverUuid, sender, msgId, resultToExt)
           } else resultToExt
 
           val updated = emDataStore.addData(sender, msg)
@@ -810,6 +818,8 @@ case class EmServiceCore(
           case FlexActivation(tick, _) =>
             // update the em state => waiting for external flex option provision
             emStates(sender).addSendRequest(receiverUuid)
+            val msgId = UUID.randomUUID()
+            openMsg.add(msgId)
 
             // send request to ext
             emDataStore.addData(
@@ -817,6 +827,7 @@ case class EmServiceCore(
               new EmCommunicationMessage(
                 receiverUuid,
                 sender,
+                msgId,
                 new FlexOptionRequest(receiverUuid),
               ),
             )
@@ -836,12 +847,16 @@ case class EmServiceCore(
             } else {
               state.setWaitingForInternal(false)
 
+              val msgId = UUID.randomUUID()
+              openMsg.add(msgId)
+
               // send set point to ext
               emDataStore.addData(
                 sender,
                 new EmCommunicationMessage(
                   receiverUuid,
                   sender,
+                  msgId,
                   control.toExt(receiverUuid),
                 ),
               )
