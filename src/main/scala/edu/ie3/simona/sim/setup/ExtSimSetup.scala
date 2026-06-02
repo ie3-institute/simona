@@ -144,7 +144,7 @@ object ExtSimSetup {
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
-    *   The scheduler of simona.
+    *   The scheduler of SIMONA.
     * @param extSimAdapter
     *   The adapter for the external simulation.
     * @return
@@ -186,7 +186,7 @@ object ExtSimSetup {
               extSimAdapter,
             )
 
-            extSimSetupData.update(extPrimaryDataConnection, serviceRef)
+            setupData.update(extPrimaryDataConnection, serviceRef)
 
           case extEmDataConnection: ExtEmDataConnection =>
             if setupData.emDataService.nonEmpty then {
