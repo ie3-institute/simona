@@ -284,35 +284,15 @@ object ConfigFailFast extends LazyLogging {
       )
 
     /* Check basic model configuration parameters common to each participant */
-    checkBaseRuntimeConfigs(
-      subConfig.load.defaultConfig,
-      subConfig.load.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.fixedFeedIn.defaultConfig,
-      subConfig.fixedFeedIn.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.evcs.defaultConfig,
-      subConfig.evcs.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.pv.defaultConfig,
-      subConfig.pv.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.wec.defaultConfig,
-      subConfig.wec.individualConfigs,
-    )
+    checkBaseRuntimeConfigs(subConfig.load)
+    checkBaseRuntimeConfigs(subConfig.fixedFeedIn)
+    checkBaseRuntimeConfigs(subConfig.evcs)
+    checkBaseRuntimeConfigs(subConfig.pv)
+    checkBaseRuntimeConfigs(subConfig.wec)
 
     /* check model configuration parameters specific to participants */
     // load model
-    (subConfig.load.defaultConfig +: subConfig.load.individualConfigs)
-      .foreach(checkSpecificLoadModelConfig)
+    checkSpecificLoadModelConfig(subConfig.load)
   }
 
   /** Check the runtime event listener config
@@ -330,69 +310,28 @@ object ConfigFailFast extends LazyLogging {
   /** Check participants' basic runtime configurations, as well as in default as
     * in individual configs. This comprises i.e. uuid and scaling factor
     */
-  private def checkBaseRuntimeConfigs(
-      defaultConfig: BaseRuntimeConfig,
-      individualConfigs: List[BaseRuntimeConfig],
+  def checkBaseRuntimeConfigs(
+      config: BaseRuntimeConfig,
+      identifier: String = "default",
   ): Unit = {
-    // special default config check
-    val defaultUuids = defaultConfig.uuids
-    if defaultUuids.nonEmpty then
-      logger.warn(
-        s"You provided '${defaultUuids.mkString(",")}' as uuid reference for the default model config. Those references will not be considered!"
-      )
-
-    // special individual configs check
-    /* Check, if there are ambiguous configs and then check all configs */
-    if !CollectionUtils.isUniqueList(individualConfigs.flatMap(_.uuids)) then
+    // check for scaling
+    if config.scaling < 0 then
       throw new InvalidConfigParameterException(
-        "The basic model configurations contain ambiguous definitions."
+        s"The scaling factor for system participants with UUID '$identifier' may not be negative."
       )
 
-    // check that is valid for all model configs
-    val allConfigs = Map(defaultConfig -> true) ++
-      individualConfigs.map(config => (config, false)).toMap
-
-    allConfigs.foreach { case (config, default) =>
-      // we only check the uuids for individual configs
-      if !default then {
-        /* Checking the uuids */
-        if config.uuids.isEmpty then
-          throw new InvalidConfigParameterException(
-            "There has to be at least one identifier for each participant."
-          )
-
-        /* Checking if all uuids are valid */
-        config.uuids.foreach(uuid =>
-          try {
-            UUID.fromString(uuid)
-          } catch {
-            case e: IllegalArgumentException =>
-              throw new InvalidConfigParameterException(
-                s"The UUID '$uuid' cannot be parsed as it is invalid.",
-                e,
-              )
-          }
-        )
-      }
-
-      // check for scaling
-      if config.scaling < 0 then
-        throw new InvalidConfigParameterException(
-          s"The scaling factor for system participants with UUID '${config.uuids.mkString(",")}' may not be negative."
-        )
-    }
   }
 
   /** Check model configuration parameters specific to the load model, i.e.
     * model behaviour and reference
     */
-  private def checkSpecificLoadModelConfig(
-      loadModelConfig: LoadRuntimeConfig
+  def checkSpecificLoadModelConfig(
+      loadModelConfig: LoadRuntimeConfig,
+      identifier: String = "default",
   ): Unit = {
     if !LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour) then
       throw new InvalidConfigParameterException(
-        s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '${loadModelConfig.uuids
-            .mkString(",")}' is invalid."
+        s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '$identifier' is invalid."
       )
 
     if !LoadReferenceType.isEligibleInput(
@@ -400,8 +339,7 @@ object ConfigFailFast extends LazyLogging {
       )
     then
       throw new InvalidConfigParameterException(
-        s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '${loadModelConfig.uuids
-            .mkString(",")}' is invalid."
+        s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '$identifier' is invalid."
       )
   }
 
@@ -839,35 +777,22 @@ object ConfigFailFast extends LazyLogging {
     * @param storageRuntimeConfig
     *   RuntimeConfig of Storages
     */
-  private def checkStoragesConfig(
-      storageRuntimeConfig: RuntimeConfig.StorageRuntimeConfigs
+  def checkStoragesConfig(
+      storageRuntimeConfig: RuntimeConfig.StorageRuntimeConfig
   ): Unit = {
-    if storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
+    if storageRuntimeConfig.initialSoc < 0.0 || storageRuntimeConfig.initialSoc > 1.0
     then
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
       )
 
-    if storageRuntimeConfig.defaultConfig.targetSoc.exists(
+    if storageRuntimeConfig.targetSoc.exists(
         _ < 0.0
-      ) || storageRuntimeConfig.defaultConfig.targetSoc.exists(_ > 1.0)
+      ) || storageRuntimeConfig.targetSoc.exists(_ > 1.0)
     then
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
       )
-
-    storageRuntimeConfig.individualConfigs.foreach { config =>
-      if config.initialSoc < 0.0 || config.initialSoc > 1.0 then
-        throw new RuntimeException(
-          s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."
-        )
-
-      if config.targetSoc.exists(_ < 0.0) || config.targetSoc.exists(_ > 1.0)
-      then
-        throw new RuntimeException(
-          s"StorageRuntimeConfig: ${config.uuids} target SOC needs to be between 0.0 and 1.0."
-        )
-    }
   }
 
   /** Check the default config
