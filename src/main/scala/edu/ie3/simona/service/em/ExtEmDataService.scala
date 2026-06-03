@@ -166,8 +166,13 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       )
     )
 
-    val nonCompleted =
-      tick != serviceStateData.tick && core.completions.nonComplete
+    val nonCompleted = extMsg match {
+      case _: EmCommunicationMessages =>
+        false
+
+      case _ =>
+        tick != serviceStateData.tick && core.completions.nonComplete
+    }
 
     core match {
       case _ if nonCompleted =>

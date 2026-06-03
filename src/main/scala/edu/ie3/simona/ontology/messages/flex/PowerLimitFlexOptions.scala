@@ -79,10 +79,7 @@ object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
   ): Power =
     flexCtrl match {
       case IssuePowerControl(_, setPower) =>
-        // sanity check: setPower is in range of latest flex options
-        checkSetPower(flexOptions, setPower)
-
-        setPower
+        setPower.max(flexOptions.min).min(flexOptions.max)
 
       case IssueNoControl(_) =>
         // no override, take reference power
