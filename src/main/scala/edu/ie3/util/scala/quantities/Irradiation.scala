@@ -8,6 +8,7 @@ package edu.ie3.util.scala.quantities
 
 import squants.*
 import squants.energy.WattHours
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.space.SquareMeters
 
 import scala.util.Try

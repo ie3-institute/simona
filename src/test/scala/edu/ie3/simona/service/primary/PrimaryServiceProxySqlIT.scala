@@ -93,6 +93,7 @@ class PrimaryServiceProxySqlIT
         sqlParams = Some(sqlParams),
       ),
       simulationStart,
+      Seq.empty,
     )
 
     testKit.spawn(

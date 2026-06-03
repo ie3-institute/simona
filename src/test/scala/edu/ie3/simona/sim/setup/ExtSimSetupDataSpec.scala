@@ -23,6 +23,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.slf4j.{Logger, LoggerFactory}
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
@@ -30,6 +31,7 @@ import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
   "An ExtSimSetupData" should {
+    given Logger = LoggerFactory.getLogger("ExtSimSetupDataSpec")
 
     val emptyMapInput = Map.empty[UUID, Class[? <: Value]].asJava
     val emptyUuidList = List.empty[UUID].asJava

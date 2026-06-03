@@ -18,12 +18,14 @@ import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Velocity}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
+
 import javax.measure.quantity.*
 
 /** Some utilities to improve the conversion between [[ComparableQuantity]] and
@@ -44,6 +46,16 @@ object QuantityConversionUtils {
   extension (quantity: squants.Dimensionless) {
     def toQuantity: ComparableQuantity[Dimensionless] =
       Quantities.getQuantity(quantity.toEach, PU)
+  }
+
+  extension (value: squants.Power) {
+    def toQuantity: ComparableQuantity[Power] =
+      Quantities.getQuantity(value.toMegawatts, MEGAWATT)
+  }
+
+  extension (value: squants.Energy) {
+    def toQuantity: ComparableQuantity[Energy] =
+      Quantities.getQuantity(value.toMegawattHours, MEGAWATTHOUR)
   }
 
   /** Extension for [[ComparableQuantity]] of type [[ElectricPotential]] that
@@ -227,11 +239,11 @@ object QuantityConversionUtils {
   }
 
   /** Extension for [[ComparableQuantity]] of type [[Irradiance]] that allows
-    * conversion into a [[quantities.Irradiance]] squants quantity.
+    * conversion into a [[Irradiance]] squants quantity.
     */
   extension (quantity: ComparableQuantity[Irradiance]) {
 
-    def toSquants: quantities.Irradiance = WattsPerSquareMeter(
+    def toSquants: squants.radio.Irradiance = WattsPerSquareMeter(
       quantity
         .to(WATT_PER_SQUAREMETRE)
         .getValue
