@@ -344,7 +344,8 @@ object ParticipantAgentFactory {
           SimpleInputContainer(input),
           buildData.participantConfigUtil
             .getOrDefault[FixedFeedInRuntimeConfig](
-              input.getUuid
+              input.getId,
+              input.getAdditionalInformation,
             ),
           buildData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.FixedFeedIn
@@ -356,7 +357,8 @@ object ParticipantAgentFactory {
         buildParticipant(
           SimpleInputContainer(input),
           buildData.participantConfigUtil.getOrDefault[LoadRuntimeConfig](
-            input.getUuid
+            input.getId,
+            input.getAdditionalInformation,
           ),
           buildData.outputConfigUtil.getOrDefault(NotifierIdentifier.Load),
           environmentRefs.scheduler,
@@ -366,7 +368,8 @@ object ParticipantAgentFactory {
         buildParticipant(
           SimpleInputContainer(input),
           buildData.participantConfigUtil.getOrDefault[PvRuntimeConfig](
-            input.getUuid
+            input.getId,
+            input.getAdditionalInformation,
           ),
           buildData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.PvPlant
@@ -378,7 +381,8 @@ object ParticipantAgentFactory {
         buildParticipant(
           SimpleInputContainer(input),
           buildData.participantConfigUtil.getOrDefault[BmRuntimeConfig](
-            input.getUuid
+            input.getId,
+            input.getAdditionalInformation,
           ),
           buildData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.BioMassPlant
@@ -390,7 +394,8 @@ object ParticipantAgentFactory {
         buildParticipant(
           SimpleInputContainer(input),
           buildData.participantConfigUtil.getOrDefault[WecRuntimeConfig](
-            input.getUuid
+            input.getId,
+            input.getAdditionalInformation,
           ),
           buildData.outputConfigUtil.getOrDefault(NotifierIdentifier.Wec),
           environmentRefs.scheduler,
@@ -400,7 +405,8 @@ object ParticipantAgentFactory {
         buildParticipant(
           SimpleInputContainer(input),
           buildData.participantConfigUtil.getOrDefault[EvcsRuntimeConfig](
-            input.getUuid
+            input.getId,
+            input.getAdditionalInformation,
           ),
           buildData.outputConfigUtil.getOrDefault(NotifierIdentifier.Evcs),
           environmentRefs.scheduler,
@@ -412,7 +418,8 @@ object ParticipantAgentFactory {
             buildParticipant(
               WithHeatInputContainer(input, thermalGrid),
               buildData.participantConfigUtil.getOrDefault[HpRuntimeConfig](
-                input.getUuid
+                input.getId,
+                input.getAdditionalInformation,
               ),
               buildData.outputConfigUtil.getOrDefault(NotifierIdentifier.Hp),
               environmentRefs.scheduler,
@@ -427,7 +434,8 @@ object ParticipantAgentFactory {
         buildParticipant(
           SimpleInputContainer(input),
           buildData.participantConfigUtil.getOrDefault[StorageRuntimeConfig](
-            input.getUuid
+            input.getId,
+            input.getAdditionalInformation,
           ),
           buildData.outputConfigUtil.getOrDefault(
             NotifierIdentifier.Storage
@@ -495,7 +503,8 @@ object ParticipantAgentFactory {
     ctx.spawn(
       EmAgentInit(
         emInput,
-        buildData.emConfigUtil.getOrDefault(emInput.getUuid),
+        buildData.emConfigUtil
+          .getOrDefault(emInput.getId, emInput.getAdditionalInformation),
         buildData.outputConfigUtil.getOrDefault(NotifierIdentifier.Em),
         buildData.simStartTime,
         maybeControllingEm.toRight(environmentRefs.scheduler),

@@ -60,7 +60,10 @@ object SimonaConfig {
     apply(ConfigSource.fromConfig(typeSafeConfig))
 
   def apply(confSrc: ConfigObjectSource): SimonaConfig =
-    confSrc.at("simona").load[SimonaConfig] match {
+    confSrc.at("simona").load[SimonaConfig].getOrThrow
+
+  extension [C](result: ConfigReader.Result[C]) {
+    def getOrThrow: C = result match {
       case Left(readerFailures) =>
         val detailedErrors = readerFailures.toList
           .map {
@@ -81,6 +84,7 @@ object SimonaConfig {
         )
       case Right(conf) => conf
     }
+  }
 
   // pure config end
 

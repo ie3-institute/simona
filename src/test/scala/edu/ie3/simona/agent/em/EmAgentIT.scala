@@ -84,8 +84,7 @@ class EmAgentIT
   )
 
   private val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    uuids = List("default"),
-    aggregateFlex = "SELF_OPT",
+    aggregateFlex = "SELF_OPT"
   )
 
   private given quantityTolerance: Double = 1e-10d
