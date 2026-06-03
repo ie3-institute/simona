@@ -59,17 +59,16 @@ private[grid] trait GridResultsSupport {
   def createResultModels(
       grid: GridModel,
       sweepValueStore: SweepValueStore,
-  )(implicit timestamp: ZonedDateTime, log: Logger): PowerFlowResultEvent = {
+  )(using timestamp: ZonedDateTime, log: Logger): PowerFlowResultEvent = {
     // no sanity check for duplicated uuid result data as we expect valid data at this point
-    implicit val sweepValueStoreData: Map[UUID, SweepValueStoreData] =
+    given sweepValueStoreData: Map[UUID, SweepValueStoreData] =
       sweepValueStore.sweepData
         .map(sweepValueStoreData =>
           sweepValueStoreData.nodeUuid -> sweepValueStoreData
         )
         .toMap
 
-    implicit val iNominal: ElectricCurrent =
-      grid.mainRefSystem.nominalCurrent
+    given ElectricCurrent = grid.mainRefSystem.nominalCurrent
 
     /* When creating node results, we have to consider two things:
      *   1) The result of a two winding transformer's hv node is calculated twice. If this grid contains the

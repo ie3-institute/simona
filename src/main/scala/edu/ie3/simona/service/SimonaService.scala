@@ -25,6 +25,7 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
@@ -87,8 +88,8 @@ abstract class SimonaService {
       stateData: S,
       scheduler: ActorRef[SchedulerMessage],
   ): Behavior[Message] = Behaviors.receive[Message] { case (ctx, msg) =>
-    idleInternal
-      .orElse(idleExternal)
+    idleExternal
+      .orElse(idleInternal)
       .applyOrElse((ctx, msg), unhandled.tupled)
   }
 
@@ -181,21 +182,6 @@ abstract class SimonaService {
   def init(
       initServiceData: InitializeServiceStateData
   )(using log: Logger): Try[(S, Option[Long])]
-
-  /** Handles some service response messages that are received during
-    * initialization.
-    * @param serviceResponse
-    *   To handle.
-    * @param ctx
-    *   The actor context of this service.
-    */
-  protected def handleServiceResponse(
-      serviceResponse: ServiceResponseMessage
-  )(using
-      ctx: ActorContext[Message]
-  ): Unit = ctx.log.warn(
-    s"This service (${ctx.self}) received an unhandled service response message during initialization. Msg: $serviceResponse"
-  )
 
   /** Handle a request to register for information from this service.
     *

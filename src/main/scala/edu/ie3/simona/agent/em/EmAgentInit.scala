@@ -7,8 +7,8 @@
 package edu.ie3.simona.agent.em
 
 import edu.ie3.datamodel.models.input.EmInput
-import edu.ie3.simona.agent.{DataInputHandler, SecondaryServiceRegistration}
 import edu.ie3.simona.agent.em.EmAgent.{EmData, Message}
+import edu.ie3.simona.agent.{DataInputHandler, SecondaryServiceRegistration}
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -74,13 +74,6 @@ object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
 
         val uuid = inputModel.getUuid
 
-        service ! EmServiceRegistration(
-          ctx.self,
-          uuid,
-          parent.toOption,
-          inputModel.getControllingEm.toScala.map(_.getUuid),
-        )
-
         // given to the parent
         val requestAdapter = ExtEmDataService.emServiceRequestAdapter(
           service,
@@ -106,6 +99,13 @@ object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
             inputModel,
           )
         }
+
+        service ! EmServiceRegistration(
+          ctx.self,
+          uuid,
+          parent.toOption,
+          inputModel.getControllingEm.toScala.map(_.getUuid),
+        )
 
         Right(responseAdapter)
 
