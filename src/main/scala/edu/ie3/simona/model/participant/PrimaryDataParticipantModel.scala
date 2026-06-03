@@ -16,6 +16,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 }
 import edu.ie3.simona.model.participant.PrimaryDataParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexType,
@@ -27,7 +28,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
-import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.simona.service.{Data, DataTimeType, ServiceType}
 import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import squants.{Dimensionless, Power}
 
@@ -61,8 +62,10 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
       PrimaryDataState[PD],
     ] {
 
-  override val flexModels
-      : Map[FlexType, ParticipantFlexModel[PrimaryDataState[PD]]] = Map(
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    PrimaryOperatingPoint[PD],
+    PrimaryDataState[PD],
+  ]] = Map(
     FlexType.PowerLimit -> PrimaryDataPowerLimitFlexModel(this)
   )
 
@@ -121,13 +124,13 @@ final case class PrimaryDataParticipantModel[PD <: PrimaryData: ClassTag](
   override def determineOperatingPoint(
       state: PrimaryDataState[PD],
       setPower: Power,
-  ): (PrimaryOperatingPoint[PD], OperationChangeIndicator) = {
+  ): PrimaryOperatingPoint[PD] = {
     // scale the whole primary data by the same factor that
     // the active power set point was scaled by
     val factor = state.data.p / setPower
     val scaledData: PD = primaryDataExtra.scale(state.data, factor)
 
-    (PrimaryOperatingPoint(scaledData), OperationChangeIndicator())
+    PrimaryOperatingPoint(scaledData)
   }
 
 }
@@ -194,15 +197,27 @@ object PrimaryDataParticipantModel {
     */
   private final case class PrimaryDataPowerLimitFlexModel[PD <: PrimaryData](
       model: PrimaryDataParticipantModel[PD]
-  ) extends ParticipantFlexModel[PrimaryDataState[PD]] {
+  ) extends ParticipantFlexModel[
+        PrimaryOperatingPoint[PD],
+        PrimaryDataState[PD],
+      ] {
 
     override def determineFlexOptions(
-        state: PrimaryDataState[PD]
+        state: PrimaryDataState[PD],
+        dataTimeType: DataTimeType,
     ): FlexOptions = {
       val (operatingPoint, _) = model.determineOperatingPoint(state)
 
       PowerLimitFlexOptions.noFlexOption(operatingPoint.activePower)
     }
+
+    override def determineNextActivation(
+        state: PrimaryDataState[PD],
+        operatingPoint: PrimaryOperatingPoint[PD],
+        setPower: Power,
+        dataTimeType: DataTimeType,
+    ): OperationChangeIndicator =
+      OperationChangeIndicator.empty
 
   }
 

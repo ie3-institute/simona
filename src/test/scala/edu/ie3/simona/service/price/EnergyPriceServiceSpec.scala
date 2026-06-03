@@ -14,7 +14,6 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   ScheduleActivation,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  Create,
   DataProvision,
   RegistrationSuccessfulMessage,
   SecondaryServiceRegistrationMessage,
@@ -72,34 +71,29 @@ class EnergyPriceServiceSpec
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
-  private val priceService = spawn(
-    EnergyPriceService(scheduler.ref)
-  )
-
-  // testing tolerances
   private given EnergyPrice = EuroPerKilowattHour(1e-3)
 
   "A price service" must {
-    "send correct completion message after initialisation" in {
-      val key =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
 
-      priceService ! Create(
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    scheduler.expectMessageType[ScheduleActivation]
+    val priceService = spawn(
+      EnergyPriceService(
+        scheduler.ref,
         InitPriceServiceStateData(
           dataSourceConfig,
           simulationStartDate,
         ),
-        key,
+        serviceKey,
       )
+    )
 
-      val activationMsg = scheduler.expectMessageType[ScheduleActivation]
-      activationMsg.tick shouldBe INIT_SIM_TICK
-      activationMsg.unlockKey shouldBe Some(key)
-
-      priceService ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessage(Completion(activationMsg.actor, Some(0)))
+    "send correct schedule message after initialisation" in {
+      scheduler.expectMessage(
+        ScheduleActivation(priceService, 0L, Some(serviceKey))
+      )
     }
 
     "announce that agent is registered for current price data" in {

@@ -8,8 +8,6 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.datamodel.models.result.system.{EvResult, EvcsResult}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
-import edu.ie3.simona.model.participant.ParticipantModel.OperationChangeIndicator
 import edu.ie3.simona.model.participant.evcs.EvcsModel.{
   EvcsOperatingPoint,
   EvcsState,
@@ -40,19 +38,6 @@ class EvcsModelSpec
   private val dateTime: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-02T03:04:05Z")
 
-  private def createModel(
-      chargingStrategy: String,
-      vehicle2Grid: Boolean = true,
-  ): EvcsModel =
-    EvcsModel
-      .Factory(
-        evcsInputModel.copy().v2gSupport(vehicle2Grid).build(),
-        EvcsRuntimeConfig(
-          chargingStrategy = chargingStrategy
-        ),
-      )
-      .create()
-
   // Testing tolerances
   given Energy = KilowattHours(1e-10)
   given Power = Kilowatts(1e-10)
@@ -62,7 +47,7 @@ class EvcsModelSpec
     "calculate new schedules correctly" when {
 
       "configured with max power charging" in {
-        val evcsModel = createModel("maxPower")
+        val evcsModel = createTestModel("maxPower")
 
         val evModel = EvModelWrapper(
           ev3.copyWith(5.0.asKiloWattHour)
@@ -85,7 +70,7 @@ class EvcsModelSpec
       }
 
       "configured with constant power charging" in {
-        val evcsModel = createModel("constantPower")
+        val evcsModel = createTestModel("constantPower")
 
         val evModel = EvModelWrapper(ev3)
 
@@ -105,7 +90,7 @@ class EvcsModelSpec
       }
 
       "Ev is fully charged" in {
-        val evcsModel = createModel("maxPower")
+        val evcsModel = createTestModel("maxPower")
 
         val evModel = EvModelWrapper(
           ev1.copyWith(10.0.asKiloWattHour)
@@ -127,7 +112,7 @@ class EvcsModelSpec
     "determining current state correctly" when {
 
       "being provided with a ChargingSchedule consisting of one entry" in {
-        val evcsModel = createModel("constantPower")
+        val evcsModel = createTestModel("constantPower")
 
         val cases = Table(
           (
@@ -204,7 +189,7 @@ class EvcsModelSpec
 
     "calculate results correctly" when {
 
-      val evcsModel = createModel("constantPower")
+      val evcsModel = createTestModel("constantPower")
 
       val evA = EvModelWrapper(ev1)
       val evB = EvModelWrapper(ev2)
@@ -333,10 +318,68 @@ class EvcsModelSpec
     }
 
     "handle power control correctly" when {
-      val evcsModel = createModel("constantPower")
+
+      val evcsModel = createTestModel(
+        chargingStrategy = "constantPower",
+        departureTargetSoc = 0.8,
+      )
+
+      val currentTick = 3600L
+
+      "dealing with one ev" in {
+
+        val cases = Table(
+          (
+            "stored",
+            "setPower",
+            "expPower",
+          ),
+
+          /* setPower is 0 kW */
+          (0.0, 0.0, 0.0),
+
+          /* setPower is positive (charging) */
+          (0.0, 4.0, 4.0),
+          (4.0, 4.0, 4.0),
+
+          /* setPower is set to > ev (charging) */
+          (0.0, 11.0, 10.0),
+          (5.0, 15.0, 10.0),
+
+          /* setPower is negative (discharging) */
+          (10.0, -6.0, -6.0),
+          (5.0, -10.0, -10.0),
+
+          /* setPower is set to > ev (discharging) */
+          (10.0, -11.0, -10.0),
+          (5.0, -15.0, -10.0),
+        )
+
+        forAll(cases) {
+          (
+              stored: Double,
+              setPower: Double,
+              expPower: Double,
+          ) =>
+            // 10 kWh capacity, 10 kWh target, 10 kW max power, stays two hours
+            val ev = EvModelWrapper(
+              ev4
+                .copyWith(stored.asKiloWattHour)
+                .copyWithDeparture(currentTick + 7200L)
+            )
+
+            evcsModel
+              .determineOperatingPoint(
+                EvcsState(Seq(ev), currentTick),
+                Kilowatts(setPower),
+              )
+              .evOperatingPoints
+              .get(ev.uuid)
+              .value shouldBe Kilowatts(expPower)
+        }
+      }
 
       "dealing with two evs" in {
-        val currentTick = 3600L
 
         val cases = Table(
           (
@@ -345,51 +388,32 @@ class EvcsModelSpec
             "setPower",
             "expPower1",
             "expPower2",
-            "expNextActivation",
-            "expNextTick",
           ),
 
-          /* setPower is 0 kWh */
-          (0.0, 0.0, 0.0, 0.0, 0.0, false, N),
-          (10.0, 5.0, 0.0, 0.0, 0.0, false, N),
-          (5.0, 15.0, 0.0, 0.0, 0.0, false, N),
-          (10.0, 15.0, 0.0, 0.0, 0.0, false, N),
+          /* setPower is 0 kW */
+          (0.0, 0.0, 0.0, 0.0, 0.0),
+          (10.0, 5.0, 0.0, 0.0, 0.0),
+          (5.0, 15.0, 0.0, 0.0, 0.0),
 
           /* setPower is positive (charging) */
-          (0.0, 0.0, 4.0, 2.0, 2.0, true, S(7200L)),
-          (5.0, 0.0, 4.0, 0.0, 4.0, true, S(6300L)),
-          (0.0, 7.5, 4.0, 4.0, 0.0, true, S(5400L)),
-          (9.0, 0.0, 4.0, 0.0, 4.0, true, S(6300L)),
-          (5.0, 14.0, 4.0, 2.0, 2.0, false, S(5400L)),
-          (9.0, 14.0, 4.0, 2.0, 2.0, false, S(5400L)),
-          (10.0, 14.0, 4.0, 0.0, 4.0, false, S(4500L)),
-          (6.0, 15.0, 4.0, 4.0, 0.0, false, S(7200L)),
+          (0.0, 0.0, 4.0, 0.0, 4.0),
+          (0.0, 10.0, 4.0, 2.0, 2.0),
+          (10.0, 14.0, 4.0, 0.0, 4.0),
 
           /* setPower is set to > (ev2 * 2) (charging) */
-          (0.0, 0.0, 13.0, 8.0, 5.0, true, S(4500L)),
-          (7.0, 0.0, 11.0, 6.0, 5.0, true, S(5400L)),
-          (0.0, 5.0, 15.0, 10.0, 5.0, true, S(4320L)),
-          (0.0, 12.5, 15.0, 10.0, 5.0, true, S(4320L)),
-          (0.0, 0.0, 15.0, 10.0, 5.0, true, S(4320L)),
-          (5.0, 7.5, 15.0, 10.0, 5.0, false, S(5400L)),
+          (7.0, 0.0, 11.0, 6.0, 5.0),
+          (0.0, 5.0, 15.0, 10.0, 5.0),
+          (5.0, 7.5, 15.0, 10.0, 5.0),
 
           /* setPower is negative (discharging) */
-          (10.0, 15.0, -4.0, -2.0, -2.0, true, S(7200L)),
-          (5.0, 15.0, -4.0, -2.0, -2.0, true, S(7200L)),
-          (10.0, 7.5, -4.0, -2.0, -2.0, true, S(7200L)),
-          (3.0, 15.0, -4.0, -2.0, -2.0, true, S(5400L)),
-          (5.0, 4.0, -4.0, -2.0, -2.0, false, S(5400L)),
-          (3.0, 4.0, -4.0, -2.0, -2.0, false, S(5400L)),
-          (0.0, 4.0, -4.0, 0.0, -4.0, false, S(4500L)),
-          (6.0, 0.0, -4.0, -4.0, 0.0, false, S(7200L)),
+          (10.0, 15.0, -4.0, -2.0, -2.0),
+          (0.0, 4.0, -4.0, 0.0, -4.0),
+          (7.5, 0.0, -5.0, -5.0, 0.0),
 
           /* setPower is set to > (ev2 * 2) (discharging) */
-          (10.0, 15.0, -13.0, -8.0, -5.0, true, S(7200L)),
-          (5.0, 15.0, -11.0, -6.0, -5.0, true, S(5400L)),
-          (10.0, 8.0, -15.0, -10.0, -5.0, true, S(6480L)),
-          (10.0, 5.5, -15.0, -10.0, -5.0, true, S(5400L)),
-          (10.0, 15.0, -15.0, -10.0, -5.0, true, S(6480L)),
-          (7.0, 10.5, -15.0, -10.0, -5.0, false, S(5400L)),
+          (10.0, 15.0, -13.0, -8.0, -5.0),
+          (5.0, 15.0, -15.0, -10.0, -5.0),
+          (10.0, 15.0, -15.0, -10.0, -5.0),
         )
 
         forAll(cases) {
@@ -399,41 +423,31 @@ class EvcsModelSpec
               setPower: Double,
               expPower1: Double,
               expPower2: Double,
-              expNextActivation: Boolean,
-              expNextTick: Option[Long],
           ) =>
+            // 10 kWh capacity, 10 kWh target, 10 kW max power, stays one hour
             val evA = EvModelWrapper(
               ev4.copyWith(stored1.asKiloWattHour).copyWithDeparture(7200L)
             )
-
+            // 15 kWh capacity, 15 kWh target, 5 kW max power, stays two hours
             val evB = EvModelWrapper(
               ev5.copyWith(stored2.asKiloWattHour).copyWithDeparture(10800L)
             )
 
-            evcsModel.determineOperatingPoint(
+            val op = evcsModel.determineOperatingPoint(
               EvcsState(
                 Seq(evA, evB),
                 currentTick,
               ),
               Kilowatts(setPower),
-            ) match {
-              case (
-                    EvcsOperatingPoint(evOperatingPoints),
-                    OperationChangeIndicator(
-                      actualNextActivation,
-                      actualNextTick,
-                    ),
-                  ) =>
-                evOperatingPoints
-                  .get(evA.uuid)
-                  .value shouldBe Kilowatts(expPower1)
-                evOperatingPoints
-                  .get(evB.uuid)
-                  .value shouldBe Kilowatts(expPower2)
+            )
 
-                actualNextActivation shouldBe expNextActivation
-                actualNextTick shouldBe expNextTick
-            }
+            op.evOperatingPoints
+              .get(evA.uuid)
+              .value shouldBe Kilowatts(expPower1)
+            op.evOperatingPoints
+              .get(evB.uuid)
+              .value shouldBe Kilowatts(expPower2)
+
         }
 
       }
@@ -441,7 +455,7 @@ class EvcsModelSpec
     }
 
     "handle arrivals correctly" in {
-      val evcsModel = createModel("maxPower")
+      val evcsModel = createTestModel("maxPower")
 
       val state = EvcsState(
         Seq(EvModelWrapper(ev1)),
@@ -461,12 +475,13 @@ class EvcsModelSpec
     }
 
     "reply to requests" when {
-      val evcsModel = createModel("constantPower")
+      val evcsModel = createTestModel("constantPower")
 
       val evModel = EvModelWrapper(
         ev3.copyWith(5.0.asKiloWattHour)
       )
 
+      // dummy agent because we need a context
       def testAgent(
           model: EvcsModel,
           state: EvcsState,

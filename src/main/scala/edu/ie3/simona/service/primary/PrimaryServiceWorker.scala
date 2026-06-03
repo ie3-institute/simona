@@ -42,7 +42,6 @@ import org.slf4j.Logger
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
@@ -87,8 +86,6 @@ object PrimaryServiceWorker extends SimonaService {
     *   ending!)
     * @param fileNamingStrategy
     *   [[FileNamingStrategy]], the input files follow
-    * @param timePattern
-    *   The time format pattern of the time series
     */
   final case class CsvInitPrimaryServiceStateData[V <: Value](
       override val timeSeriesUuid: UUID,
@@ -98,7 +95,6 @@ object PrimaryServiceWorker extends SimonaService {
       directoryPath: Path,
       filePath: Path,
       fileNamingStrategy: FileNamingStrategy,
-      timePattern: String,
   ) extends InitPrimaryServiceStateData[V]
 
   /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
@@ -161,14 +157,10 @@ object PrimaryServiceWorker extends SimonaService {
             directoryPath,
             filePath,
             fileNamingStrategy,
-            timePattern,
           ) =>
         Try {
           /* Set up source and acquire information */
-          val factory = new TimeBasedSimpleValueFactory(
-            valueClass,
-            DateTimeFormatter.ofPattern(timePattern),
-          )
+          val factory = new TimeBasedSimpleValueFactory(valueClass)
           val source = new CsvTimeSeriesSource(
             csvSep,
             directoryPath,
@@ -190,10 +182,7 @@ object PrimaryServiceWorker extends SimonaService {
           ) =>
         Try {
           val factory =
-            new TimeBasedSimpleValueFactory(
-              valueClass,
-              DateTimeFormatter.ofPattern(sqlParams.timePattern),
-            )
+            new TimeBasedSimpleValueFactory(valueClass)
 
           val sqlConnector = new SqlConnector(
             sqlParams.jdbcUrl,

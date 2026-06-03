@@ -17,14 +17,12 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexType,
 }
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
-import edu.ie3.util.scala.quantities.{
-  ApparentPower,
-  Kilovoltamperes,
-  WattsPerSquareMeter,
-}
+import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import squants.radio.WattsPerSquareMeter
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
 import squants.energy.{Power, WattHours, Watts}
@@ -45,6 +43,7 @@ class PvModelSpec
 
   // testing tolerances
   private given Power = Watts(1e-6)
+  private given ApparentPower = Kilovoltamperes(1e-6)
   private given Energy = WattHours(1e-6)
 
   // build the NodeInputModel (which defines the location of the pv input model)
@@ -78,16 +77,12 @@ class PvModelSpec
     getQuantity(41.01871871948242, DEGREE_GEOM),
     0.8999999761581421,
     1,
-    false,
     getQuantity(10, KILOVOLTAMPERE),
     0.8999999761581421,
   )
 
   // build the PvModel
   val pvModel: PvModel = PvModel.Factory(pvInput).create()
-
-  private implicit val apparentPowerTolerance: ApparentPower =
-    Kilovoltamperes(1e-10)
 
   "A PV Model" should {
 
@@ -184,7 +179,13 @@ class PvModelSpec
       val flexOptions =
         pvModel
           .flexModels(FlexType.EnergyBoundaries)
-          .determineFlexOptions(state)
+          .determineFlexOptions(
+            state,
+            DataTimeType.CurrentAndForecast(
+              forecastLength = Hours(4),
+              forecastResolution = Hours(1),
+            ),
+          )
 
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>

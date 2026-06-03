@@ -7,9 +7,16 @@
 package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
-import edu.ie3.simona.agent.grid.GridAgent.Message
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.StartStep
+import edu.ie3.simona.agent.grid.GridAgent.{Message, simulateGrid}
+import edu.ie3.simona.agent.grid.GridAgentMessages.DoPowerFlowTrigger
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
+  GotoIdle,
+  NextStep,
+  StartStep,
+}
 import edu.ie3.simona.agent.grid.congestion.detection.CongestionDetection
+import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps.TransformerTapChange
+import edu.ie3.simona.agent.grid.congestion.mitigations.TransformerTapPositionChange
 import edu.ie3.simona.agent.grid.data.CongestionManagementData
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
@@ -18,13 +25,16 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.typed.Behavior
+import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * congestion management (DCM) algorithm execution. It is considered to be the
   * standard behavior of a [[GridAgent]].
   */
-trait DCMAlgorithm extends CongestionDetection {
+trait DCMAlgorithm
+    extends CongestionDetection
+    with TransformerTapPositionChange {
 
   /** Method for starting the congestion management.
     *
@@ -52,19 +62,49 @@ trait DCMAlgorithm extends CongestionDetection {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Message],
   ): Behavior[Message] = {
-
-    // get result or build empty data
-    val congestionManagementData = results
-      .map(res => CongestionManagementData(gridAgentBaseData, currentTick, res))
-      .getOrElse(
-        CongestionManagementData.empty(gridAgentBaseData, currentTick)
-      )
+    // build the state data
+    val congestionManagementData =
+      CongestionManagementData(gridAgentBaseData, currentTick, results)
 
     ctx.self ! StartStep
     GridAgent.checkForCongestion(
       congestionManagementData,
       ReceiveDataMap(congestionManagementData.inferiorGridRefs.keySet),
     )
+  }
+
+  private[congestion] def waitForNextStep(
+      stateData: CongestionManagementData
+  )(using
+      constantData: GridAgentConstantData,
+      buffer: StashBuffer[Message],
+  ): Behavior[GridAgent.Message] = Behaviors.receivePartial {
+    case (ctx, GotoIdle) =>
+      // inform my inferior grids about the end of the congestion management
+      stateData.inferiorGridRefs.keys.foreach(_ ! GotoIdle)
+
+      // directly finish congestion management, since we don't have any steps
+      finishCongestionManagement(stateData, ctx)
+
+    case (ctx, nextStep: NextStep) =>
+      stateData.inferiorGridRefs.keys.foreach(_ ! nextStep)
+
+      nextStep.step match {
+        case TransformerTapChange =>
+          ctx.self ! StartStep
+
+          updateTransformerTapping(
+            stateData,
+            ReceiveDataMap(stateData.inferiorGridRefs.keySet),
+          )
+
+        case _ =>
+          throw new IllegalStateException("This should not happen!")
+      }
+
+    case (ctx, doPowerFlowTrigger: DoPowerFlowTrigger) =>
+      ctx.self ! doPowerFlowTrigger
+      simulateGrid(stateData.gridAgentBaseData, doPowerFlowTrigger.tick)
   }
 
   /** Method for finishing the congestion management. This method will return to
@@ -81,7 +121,7 @@ trait DCMAlgorithm extends CongestionDetection {
     * @return
     *   A [[Behavior]].
     */
-  private[grid] def finishCongestionManagement(
+  private[congestion] def finishCongestionManagement(
       stateData: CongestionManagementData,
       ctx: ActorContext[Message],
   )(using
@@ -94,7 +134,6 @@ trait DCMAlgorithm extends CongestionDetection {
     // return to idle
     GridAgent.gotoIdle(
       stateData.gridAgentBaseData,
-      stateData.currentTick + constantData.resolution,
       Some(powerFlowResults),
       ctx,
     )

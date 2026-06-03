@@ -22,8 +22,11 @@ import java.util.UUID
 import scala.deriving.Mirror
 
 /** Input configuration for simona.
+  * @param baseInputDir
+  *   The base input directory for file based inputs (default: ./input).
   * @param extSimDir
-  *   Option for the directory, where external simulation are placed in.
+  *   Option for the directory, where external simulation are placed in
+  *   (default: None).
   * @param grid
   *   Mainly the source for grid data.
   * @param loadProfile
@@ -36,6 +39,7 @@ import scala.deriving.Mirror
   *   Source for price data (default: empty).
   */
 final case class InputConfig(
+    baseInputDir: String = "./input",
     extSimDir: Option[String] = None,
     grid: Grid,
     loadProfile: LoadProfile = LoadProfile(),
@@ -151,9 +155,6 @@ object InputConfig {
     * @param sqlParams
     *   Used for [[edu.ie3.datamodel.io.source.sql.SqlDataSource]] (default:
     *   None).
-    * @param timestampPattern
-    *   Option for overriding the time pattern used for the source (default:
-    *   None).
     */
   final case class WeatherDatasource(
       coordinateSource: CoordinateSource = CoordinateSource(),
@@ -165,7 +166,6 @@ object InputConfig {
       sampleParams: Option[SampleParams] = None,
       scheme: String = "icon",
       sqlParams: Option[BaseSqlParams] = None,
-      timestampPattern: Option[String] = None,
   ) derives ConfigConvert
 
   /** Case class with options for coordinate source parameters.
@@ -211,16 +211,12 @@ object InputConfig {
     *   UUID of the price timeseries to use as data source. The individual time
     *   series with given UUID and column scheme ENERGY_PRICE is providing the
     *   price data.
-    * @param timestampPattern
-    *   Option for overriding the time pattern used for the source (default:
-    *   None).
     */
   final case class PriceDatasource(
       buyingPrice: PriceAdjustments = PriceAdjustments(),
       sellingPrice: PriceAdjustments = PriceAdjustments(),
       timeseriesUuid: UUID,
       csvParams: Option[BaseCsvParams] = None,
-      timestampPattern: Option[String] = None,
   ) derives ConfigConvert
 
   /** Class with parameters for price adjustments given a wholesale price.

@@ -34,11 +34,6 @@ CONTRIBUTING.md file in the root directory of this repository.
 For all SIMONA related questions please feel free to contact people involved in the development and maintenance of SIMONA.
 For the moment, these people are:
 
+- Staudt, Marius - [marius.staudt@tu-dortmund.de](mailto:marius.staudt@tu-dortmund.de)
 - Feismann, Daniel - [daniel.feismann@tu-dortmund.de](mailto:daniel.feismann@tu-dortmund.de)
 - Peter, Sebastian - [sebastian.peter@tu-dortmund.de](mailto:sebastian.peter@tu-dortmund.de)
-- Oberließen, Thomas - [thomas.oberliessen@tu-dortmund.de](mailto:thomas.oberliessen@tu-dortmund.de)
-- Sen Sarma, Debopama - [debopama-sen.sarma@tu-dortmund.de](mailto:debopama-sen.sarma@tu-dortmund.de)
-- Bao, Johannes - [johannes.bao@tu-dortmund.de](mailto:johannes.bao@tu-dortmund.de)
-- Hohmann, Julian - [julian.hohmann@tu-dortmund.de](mailto:julian.hohmann@tu-dortmund.de)
-- Kittl, Chris - [chris.kittl@tu-dortmund.de](mailto:chris.kittl@tu-dortmund.de)
-- Hiry, Johannes - [johannes.hiry@tu-dortmund.de](mailto:johannes.hiry@tu-dortmund.de)

@@ -7,29 +7,25 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.actor.SimonaActorNaming
-import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgentMessages.CreateGridAgent
-import edu.ie3.simona.agent.grid.congestion.{
-  CongestionManagementParams,
-  DCMAlgorithm,
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
+  FinishedInitialization,
+  PowerFlowResults,
 }
+import edu.ie3.simona.agent.grid.GridAgentMessages.*
+import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.DoCongestionManagement
+import edu.ie3.simona.agent.grid.congestion.DCMAlgorithm
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentConstantData,
   GridAgentInitData,
 }
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
@@ -38,7 +34,6 @@ import org.apache.pekko.actor.typed.scaladsl.{
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 
-import java.time.ZonedDateTime
 import java.util.UUID
 
 object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
@@ -57,137 +52,45 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   }
 
   def apply(
-      environmentRefs: EnvironmentRefs,
-      simonaConfig: SimonaConfig,
+      initData: GridAgentInitData,
       bufferSize: Int = 1000,
+  )(using
+      constantData: GridAgentConstantData
   ): Behavior[Message] = Behaviors.withStash(bufferSize) { buffer =>
-    val cfg = simonaConfig.simona
-
-    given simStartTime: ZonedDateTime = cfg.time.simStartTime
-    val simEndTime = cfg.time.simEndTime
-
-    // this determines the agents regular time bin it wants to be triggered e.g. one hour
-    // if no resolution is given, we use the maximal long value as a placeholder, as no future activation should take place
-    val resolution =
-      cfg.powerflow.map(_.resolution.toSeconds).getOrElse(Long.MaxValue)
-
-    val agentValues = GridAgentConstantData(
-      environmentRefs,
-      simonaConfig,
-      resolution,
-      simStartTime,
-      simEndTime,
-    )
-
-    uninitialized(using agentValues, buffer, simonaConfig)
+    uninitialized(initData)(using constantData, buffer)
   }
 
-  private def uninitialized(using
+  private def uninitialized(initData: GridAgentInitData)(using
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Message],
-      simonaConfig: SimonaConfig,
   ): Behavior[Message] = Behaviors.receivePartial {
-    case (
-          ctx,
-          CreateGridAgent(gridAgentInitData, unlockKey, onlyOneSubGrid),
-        ) =>
+    case (_, RegisterInferiorGrid(gridRef, nodes, subgridNo)) =>
+      uninitialized(initData.registerInferior(gridRef, nodes, subgridNo))
+
+    case (_, RegisterSuperiorGrid(gridRef, nodes, subgridNo)) =>
+      uninitialized(initData.registerSuperior(gridRef, nodes, subgridNo))
+
+    case (_, RegisterParticipants(nodeToParticipants)) =>
+      uninitialized(initData.registerParticipants(nodeToParticipants))
+
+    case (ctx, CompleteInitialization(onlyOneSubGrid)) =>
+      val actorName = SimonaActorNaming.actorName(ctx.self)
+
       // fail fast sanity checks
-      failFast(
-        gridAgentInitData,
-        SimonaActorNaming.actorName(ctx.self),
-        onlyOneSubGrid,
-      )
-
-      ctx.log.debug(
-        s"Inferior sub grids: {}; Inferior sub grid nodes: {}",
-        gridAgentInitData.inferiorGridIds,
-        gridAgentInitData.inferiorGridNodeUuids,
-      )
-
-      ctx.log.debug(
-        s"Superior sub grids: {}; Superior sub grid nodes: {}",
-        gridAgentInitData.superiorGridIds,
-        gridAgentInitData.superiorGridNodeUuids,
-      )
-
-      val cfg = constantData.simonaConfig.simona
-
-      // build the assets concurrently
-      val subGridContainer = gridAgentInitData.subGridContainer
-      val refSystem = gridAgentInitData.refSystem
-      val thermalGridsByBusId = gridAgentInitData.thermalIslandGrids.map {
-        thermalGrid => thermalGrid.bus().getUuid -> thermalGrid
-      }.toMap
-      ctx.log.debug(s"Thermal island grids: ${thermalGridsByBusId.size}")
-
-      // get the [[GridModel]]
-      val gridModel = GridModel(
-        subGridContainer,
-        refSystem,
-        gridAgentInitData.voltageLimits,
-        constantData.simStartTime,
-        constantData.simEndTime,
-        simonaConfig,
-      )
-
-      /* Reassure, that there are also calculation models for the given uuids */
-      val nodeToAssetAgentsMap
-          : Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] =
-        GridAgentBuilder
-          .buildSystemParticipants(subGridContainer, thermalGridsByBusId)(using
-            constantData,
-            ctx,
-            ctx.log,
-          )
-          .map { case (uuid: UUID, actorSet) =>
-            val nodeUuid = gridModel.gridComponents.nodes
-              .find(_.uuid == uuid)
-              .getOrElse(
-                throw new RuntimeException(
-                  s"Unable to find node with uuid $uuid"
-                )
-              )
-              .uuid
-            nodeUuid -> actorSet
-          }
-
-      // create powerflow parameters
-      val pfParams = cfg.powerflow match {
-        case Some(value) =>
-          PowerFlowParams(
-            value.maxSweepPowerDeviation,
-            value.newtonraphson.epsilon.toVector.sorted,
-            value.newtonraphson.iterations,
-            value.stopOnFailure,
-          )
-        case None =>
-          // empty powerflow params, since we need an object
-          PowerFlowParams(0, Vector.empty, 0, false)
-      }
+      failFast(initData, actorName, onlyOneSubGrid)
 
       // create the GridAgentBaseData
       val gridAgentBaseData = GridAgentBaseData(
-        gridModel,
-        pfParams,
-        CongestionManagementParams(cfg.congestionManagement.enableDetection),
-        SimonaActorNaming.actorName(ctx.self),
-        nodeToAssetAgentsMap,
-        gridAgentInitData.inferiorConnections,
-        gridAgentInitData.superiorConnections,
-        gridAgentInitData.superiorGridIds,
+        initData.gridModel,
+        initData.inferiorConnections,
+        initData.superiorConnections,
+        initData.nodeToAssetAgents,
+        initData.refToSubgrid,
+        initData.powerFlowParams,
+        actorName,
       )
 
-      val resolution = constantData.resolution
-
-      if resolution == Long.MaxValue then {
-        unlockKey.unlock()
-      } else {
-        constantData.environmentRefs.scheduler ! ScheduleActivation(
-          ctx.self,
-          resolution,
-          Some(unlockKey),
-        )
-      }
+      constantData.gridAgentCoordinator ! FinishedInitialization(ctx.self)
 
       idle(gridAgentBaseData)
   }
@@ -209,19 +112,25 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[Message],
   ): Behavior[Message] = Behaviors.receivePartial {
-    case (ctx, activation: Activation) =>
-      constantData.environmentRefs.scheduler ! Completion(
-        ctx.self,
-        Some(activation.tick),
-      )
-
+    case (ctx, doPowerFlowTrigger: DoPowerFlowTrigger) =>
       // inform the result proxy that this grid agent will send new results
       constantData.environmentRefs.resultProxy ! ExpectResult(
         gridAgentBaseData.assets,
-        activation.tick,
+        doPowerFlowTrigger.tick,
       )
 
-      buffer.unstashAll(simulateGrid(gridAgentBaseData, activation.tick))
+      ctx.self ! doPowerFlowTrigger
+      buffer.unstashAll(
+        simulateGrid(gridAgentBaseData, doPowerFlowTrigger.tick)
+      )
+
+    case (ctx, DoCongestionManagement(currentTick, results)) =>
+      startCongestionManagement(
+        gridAgentBaseData,
+        currentTick,
+        results,
+        ctx,
+      )
 
     case (_, msg: Message) =>
       // needs to be set here to handle if the messages arrive too early
@@ -248,7 +157,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   private[grid] def afterPowerFlow(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      nextTick: Long,
       ctx: ActorContext[Message],
   )(using
       constantData: GridAgentConstantData,
@@ -269,13 +177,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
           )
       }
 
-    // check if congestion management is enabled
-    if gridAgentBaseData.congestionManagementParams.detectionEnabled then {
-      startCongestionManagement(gridAgentBaseData, currentTick, results, ctx)
-    } else {
-      // clean up agent and go back to idle
-      gotoIdle(gridAgentBaseData, nextTick, results, ctx)
-    }
+    // clean up agent and go back to idle
+    gotoIdle(gridAgentBaseData, results, ctx)
   }
 
   /** Method that will clean up the [[GridAgentBaseData]] and go to the
@@ -283,8 +186,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     *
     * @param gridAgentBaseData
     *   State data of the actor.
-    * @param nextTick
-    *   The next tick in the simulation.
     * @param results
     *   Option for the last power flow, that should be written.
     * @param ctx
@@ -298,7 +199,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     */
   private[grid] def gotoIdle(
       gridAgentBaseData: GridAgentBaseData,
-      nextTick: Long,
       results: Option[PowerFlowResultEvent],
       ctx: ActorContext[Message],
   )(using
@@ -306,20 +206,16 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[Message] = {
 
-    // notify listener about the results
-    results.foreach(constantData.notifyListeners)
+    constantData.gridAgentCoordinator ! PowerFlowResults(
+      ctx.self,
+      results,
+    )
 
     // do my cleanup stuff
     ctx.log.debug("Doing my cleanup stuff")
 
     // / clean copy of the gridAgentBaseData
     val cleanedGridAgentBaseData = gridAgentBaseData.clean
-
-    // / inform scheduler that we are done with the whole simulation and request new trigger for next time step
-    constantData.environmentRefs.scheduler ! Completion(
-      ctx.self,
-      Some(nextTick),
-    )
 
     // return to Idle
     buffer.unstashAll(idle(cleanedGridAgentBaseData))
@@ -336,17 +232,22 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     *   Actor context to use.
     * @tparam T
     *   Type of data.
+    * @return
+    *   True if this grids has connected inferior grids or false if this no
+    *   inferior grids.
     */
   private[grid] def askInferior[T](
-      inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]],
-      askMsgBuilder: ActorRef[GridAgent.Message] => Message,
-      ctx: ActorContext[GridAgent.Message],
-  ): Unit = {
+      inferiorGridRefs: MultiMap[ActorRef[GridAgent.Message], UUID],
+      askMsgBuilder: (ActorRef[GridAgent.Message], Set[UUID]) => Message,
+  )(using ctx: ActorContext[GridAgent.Message]): Boolean = {
     if inferiorGridRefs.nonEmpty then {
-      inferiorGridRefs.foreach { case (inferiorGridAgentRef, _) =>
-        inferiorGridAgentRef ! askMsgBuilder(ctx.self)
+      inferiorGridRefs.foreach {
+        case (inferiorGridAgentRef, inferiorGridNodes) =>
+          inferiorGridAgentRef ! askMsgBuilder(ctx.self, inferiorGridNodes)
       }
-    }
+
+      true
+    } else false
   }
 
   private def failFast(

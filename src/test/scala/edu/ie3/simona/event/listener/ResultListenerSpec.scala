@@ -15,33 +15,23 @@ import edu.ie3.datamodel.models.result.connector.{
 }
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
-import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
-import edu.ie3.simona.event.ResultEvent.{
-  ParticipantResultEvent,
-  PowerFlowResultEvent,
-}
 import edu.ie3.simona.io.result.ResultSinkType.Csv
 import edu.ie3.simona.io.result.{ResultEntitySink, ResultSinkType}
 import edu.ie3.simona.logging.LogbackConfiguration
-import edu.ie3.simona.service.results.{
-  ThreeWindingResultTestData,
-  Transformer3wResultSupport,
-}
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
+import edu.ie3.simona.service.results.ThreeWindingResultTestData
 import edu.ie3.simona.test.common.result.PowerFlowResultData
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.ResultFileHierarchy.ResultEntityPathConfig
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.io.FileIOUtils
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKit,
   ScalaTestWithActorTestKit,
 }
 import org.apache.pekko.testkit.TestKit.awaitCond
-import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 
 import java.io.{File, FileInputStream}
-import java.util.UUID
 import java.util.zip.GZIPInputStream
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.duration.*

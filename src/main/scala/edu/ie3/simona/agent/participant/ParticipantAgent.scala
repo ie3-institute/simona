@@ -15,6 +15,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModelShell
+import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.Completion
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   DataMessage,
@@ -38,19 +39,6 @@ import squants.{Dimensionless, Each}
 object ParticipantAgent {
 
   type Message = Request | ActivationRequest | ServiceMessage.Response
-
-  type ActivationRequest = Activation | FlexRequest
-
-  /** Extension method for the `Activation` and `FlexRequest` types to retrieve
-    * the tick associated with the activation.
-    */
-  extension (activation: ActivationRequest) {
-    def tick: Long =
-      activation match {
-        case a: Activation  => a.tick
-        case f: FlexRequest => f.tick
-      }
-  }
 
   sealed trait Request
 
@@ -295,7 +283,12 @@ object ParticipantAgent {
                     data.gridAdapter.storePowerValue(results.totalPower, tick)
 
                   (newShell, newGridAdapter)
-                } else (shell, data.gridAdapter)
+                } else {
+                  // inform result proxy not to wait for results
+                  data.resultHandler.sendNoResult(data.modelShell.uuid, tick)
+
+                  (shell, data.gridAdapter)
+                }
 
               val changeIndicator = shellWithOP.getChangeIndicator(
                 tick,
@@ -314,16 +307,21 @@ object ParticipantAgent {
               )
               (shellWithOP, gridAdapterWithResult)
 
-            case FlexActivation(tick, flexType) =>
+            case FlexActivation(tick) =>
               val shellWithFlex =
                 if isCalculationRequired(shell, data.inputHandler, activation)
                 then {
-                  val newShell = shell.updateFlexOptions(tick, flexType)
+                  val newShell = shell.updateFlexOptions(tick)
                   data.resultHandler.maybeSend(
-                    newShell.determineFlexOptionsResult(tick, flexType)
+                    newShell.determineFlexOptionsResult(tick)
                   )
                   newShell
-                } else shell
+                } else {
+                  // inform result proxy not to wait for results
+                  data.resultHandler.sendNoResult(data.modelShell.uuid, tick)
+
+                  shell
+                }
 
               parent.fold(
                 _ =>
@@ -379,6 +377,10 @@ object ParticipantAgent {
               )
 
               (shellWithOP, gridAdapterWithResult)
+            case unexpected =>
+              throw new CriticalFailureException(
+                s"Unexpected activation message $unexpected."
+              )
           }
         }
         .get
@@ -435,11 +437,14 @@ object ParticipantAgent {
       modelShell: ParticipantModelShell[?, ?],
       inputHandler: DataInputHandler,
       activation: ActivationRequest,
-  ): Boolean =
+  ): Boolean = {
+    val modelIndicator = modelShell
+      .getChangeIndicator(activation.tick - 1, None)
+
     inputHandler.hasNewData(activation.tick) ||
-      modelShell
-        .getChangeIndicator(activation.tick - 1, None)
-        .changesAtTick
-        .contains(activation.tick)
+    modelIndicator.changesAtNextActivation ||
+    modelIndicator.changesAtTick
+      .contains(activation.tick)
+  }
 
 }

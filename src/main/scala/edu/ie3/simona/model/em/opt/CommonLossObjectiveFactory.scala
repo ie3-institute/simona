@@ -7,13 +7,13 @@
 package edu.ie3.simona.model.em.opt
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
-import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
   SplitLossAssetStepVars,
   calculateCommonEta,
   calculateConversionFactor,
 }
+import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
+import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -243,7 +243,15 @@ object CommonLossObjectiveFactory {
         }
         .getOrElse((zeroKW, zeroKW))
 
-      val absTotalPowerKW = maxTotalPower.max(-minTotalPower).toKilowatts
+      val absTotalPowerKW = {
+        val absPower = maxTotalPower.max(-minTotalPower).toKilowatts
+        if absPower == 0.0 then {
+          // if there is zero maximum absolute power, the only solution is zero power
+          // for all assets. We thus just assume a placeholder value here so that
+          // numerics do not break
+          1.0
+        } else absPower
+      }
       val segmentSize = absTotalPowerKW / segmentCount
       val adaptFactor = (1d - lowerLimit) / absTotalPowerKW
 

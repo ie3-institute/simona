@@ -10,13 +10,11 @@ import edu.ie3.datamodel.io.processor.result.ResultEntityProcessor
 import edu.ie3.datamodel.models.result.{NodeResult, ResultEntity}
 import edu.ie3.simona.api.data.connection.ExtResultListener
 import edu.ie3.simona.api.ontology.results.ProvideResultEntities
-import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.exceptions.{
   FileHierarchyException,
   ProcessResultEventException,
 }
 import edu.ie3.simona.io.result.*
-import edu.ie3.simona.ontology.messages.ResultMessage
 import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.ResultFileHierarchy

@@ -11,13 +11,9 @@ import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{
-  EnergyPrice,
-  Irradiance,
-  Kilovars,
-  ReactivePower,
-}
+import edu.ie3.util.scala.quantities.{EnergyPrice, Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
+import squants.radio.Irradiance
 import squants.{Temperature, Velocity}
 
 import scala.collection.immutable.SortedMap
@@ -343,16 +339,6 @@ object Data {
       */
     final case class ArrivingEvs(
         arrivals: Seq[EvModelWrapper]
-    ) extends SecondaryData
-
-    /** Container class for the load profile information at a certain point in
-      * time.
-      *
-      * @param averagePower
-      *   The average power for the current interval.
-      */
-    final case class LoadData(
-        averagePower: Power
     ) extends SecondaryData
 
     /** Container class for the load profile information at a certain point in

@@ -8,18 +8,20 @@ package edu.ie3.simona.agent.grid.data
 
 import edu.ie3.datamodel.models.result.CongestionResult
 import edu.ie3.datamodel.models.result.CongestionResult.InputModelType
-import edu.ie3.simona.agent.grid.GridAgent
-import GridAgentData.{GridAgentBaseData, GridAgentDataInternal}
 import edu.ie3.simona.agent.grid.congestion.{CongestedComponents, Congestions}
+import edu.ie3.simona.agent.grid.data.GridAgentData.{
+  GridAgentBaseData,
+  GridAgentDataInternal,
+  GridAgentRef,
+}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.util.quantities.QuantityUtils.asPercent
-import org.apache.pekko.actor.typed.ActorRef
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import squants.Each
 import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.util.UUID
-import scala.concurrent.duration.FiniteDuration
 
 /** State data of a grid agent during the congestion management.
   *
@@ -33,6 +35,8 @@ import scala.concurrent.duration.FiniteDuration
   *   Result of the previous power flow calculation.
   * @param congestions
   *   The found congestions.
+  * @param congestedComponents
+  *   The assets that are currently congested.
   */
 final case class CongestionManagementData(
     gridAgentBaseData: GridAgentBaseData,
@@ -118,23 +122,34 @@ final case class CongestionManagementData(
   def getAllResults(startTime: ZonedDateTime): PowerFlowResultEvent =
     powerFlowResults + getCongestionResults(startTime)
 
-  def inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
+  lazy val inferiorGridRefs: MultiMap[GridAgentRef, UUID] =
     gridAgentBaseData.inferiorGridRefs
 
-  def superiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
+  lazy val superiorGridRefs: MultiMap[GridAgentRef, UUID] =
     gridAgentBaseData.superiorGridRefs
 }
 
 object CongestionManagementData {
+
   def apply(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-      powerFlowResults: PowerFlowResultEvent,
+      powerFlowResults: Option[PowerFlowResultEvent] = None,
   ): CongestionManagementData = {
+    val results = powerFlowResults.getOrElse(
+      PowerFlowResultEvent(
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+        Seq.empty,
+      )
+    )
+
     val gridModel = gridAgentBaseData.gridEnv.gridModel
 
     val congestedComponents = CongestedComponents(
-      powerFlowResults,
+      results,
       gridModel.gridComponents,
       gridModel.voltageLimits,
       gridModel.mainRefSystem.nominalVoltage,
@@ -145,7 +160,7 @@ object CongestionManagementData {
       gridAgentBaseData,
       currentTick,
       gridModel.subnetNo,
-      powerFlowResults,
+      results,
       Congestions(congestedComponents),
       congestedComponents,
     )
@@ -163,15 +178,5 @@ object CongestionManagementData {
   def empty(
       gridAgentBaseData: GridAgentBaseData,
       currentTick: Long,
-  ): CongestionManagementData = apply(
-    gridAgentBaseData,
-    currentTick,
-    PowerFlowResultEvent(
-      Seq.empty,
-      Seq.empty,
-      Seq.empty,
-      Seq.empty,
-      Seq.empty,
-    ),
-  )
+  ): CongestionManagementData = apply(gridAgentBaseData, currentTick, None)
 }

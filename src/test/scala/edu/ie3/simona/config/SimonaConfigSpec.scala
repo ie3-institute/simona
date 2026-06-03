@@ -16,11 +16,12 @@ import edu.ie3.simona.config.InputConfig.{
   WeatherDatasource,
 }
 import edu.ie3.simona.config.RuntimeConfig.*
-import edu.ie3.simona.config.SimonaConfig.Simona
-import edu.ie3.simona.config.SimonaConfig.Simona.Powerflow.Newtonraphson
-import edu.ie3.simona.config.SimonaConfig.Simona.{
+import edu.ie3.simona.config.SimonaConfig.Powerflow.Newtonraphson
+import edu.ie3.simona.config.SimonaConfig.{
   CongestionManagement,
+  GridConfig,
   Powerflow,
+  Time,
 }
 import edu.ie3.simona.test.common.UnitSpec
 
@@ -52,13 +53,13 @@ class SimonaConfigSpec extends UnitSpec {
           |""".stripMargin
       )
 
-      val simonaConfig = SimonaConfig(minimalConfig).simona
+      val simonaConfig = SimonaConfig(minimalConfig)
 
       // simulation name
       simonaConfig.simulationName shouldBe "ConfigTestDataSimulation"
 
       // time config
-      simonaConfig.time shouldBe Simona.Time(
+      simonaConfig.time shouldBe Time(
         endDateTime = "2011-05-01T01:00:00Z",
         schedulerReadyCheckWindow = None,
         startDateTime = "2011-05-01T00:00:00Z",
@@ -73,7 +74,7 @@ class SimonaConfigSpec extends UnitSpec {
       simonaConfig.control shouldBe None
 
       // grid config
-      simonaConfig.gridConfig shouldBe Simona.GridConfig(
+      simonaConfig.gridConfig shouldBe GridConfig(
         refSystems = None,
         voltageLimits = None,
       )
@@ -116,7 +117,6 @@ class SimonaConfigSpec extends UnitSpec {
             sampleParams = None,
             scheme = "icon",
             sqlParams = None,
-            timestampPattern = None,
           )
         ),
       )
@@ -164,88 +164,52 @@ class SimonaConfigSpec extends UnitSpec {
 
       // runtime config
       simonaConfig.runtime shouldBe RuntimeConfig(
-        em = EmRuntimeConfigs(
-          defaultConfig = EmRuntimeConfig(
-            calculateMissingReactivePowerWithModel = false,
-            scaling = 1.0,
-            uuids = Nil,
-            aggregateFlex = "SELF_OPT_EXCL_REG",
-            curtailRegenerative = false,
-          ),
-          individualConfigs = Nil,
+        em = EmRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          aggregateFlex = "SELF_OPT_EXCL_REG",
+          curtailRegenerative = false,
         ),
         listener = RuntimeConfig.Listener(eventsToProcess = None, kafka = None),
         participant = RuntimeConfig.Participant(
-          bm = BmRuntimeConfigs(
-            defaultConfig = BmRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-            ),
-            individualConfigs = Nil,
+          bm = BmRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
           ),
-          evcs = EvcsRuntimeConfigs(
-            defaultConfig = EvcsRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-              chargingStrategy = "maxPower",
-              lowestEvSoc = 0.2,
-            ),
-            individualConfigs = Nil,
+          evcs = EvcsRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+            chargingStrategy = "maxPower",
+            departureTargetSoc = 0.75,
           ),
-          fixedFeedIn = FixedFeedInRuntimeConfigs(
-            defaultConfig = FixedFeedInRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-            ),
-            individualConfigs = Nil,
+          fixedFeedIn = FixedFeedInRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
           ),
-          hp = HpRuntimeConfigs(
-            defaultConfig = HpRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-            ),
-            individualConfigs = Nil,
+          hp = HpRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
           ),
-          load = LoadRuntimeConfigs(
-            defaultConfig = LoadRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-              modelBehaviour = "fix",
-              reference = "power",
-            ),
-            individualConfigs = Nil,
+          load = LoadRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+            modelBehaviour = "fix",
+            reference = "power",
           ),
-          pv = PvRuntimeConfigs(
-            defaultConfig = PvRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-            ),
-            individualConfigs = Nil,
+          pv = PvRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
           ),
           requestVoltageDeviationThreshold = 1e-14,
-          storage = StorageRuntimeConfigs(
-            defaultConfig = StorageRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-              initialSoc = 0.0,
-              targetSoc = None,
-            ),
-            individualConfigs = Nil,
+          storage = StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+            initialSoc = 0.0,
+            targetSoc = None,
           ),
-          wec = WecRuntimeConfigs(
-            defaultConfig = WecRuntimeConfig(
-              calculateMissingReactivePowerWithModel = false,
-              scaling = 1.0,
-              uuids = Nil,
-            ),
-            individualConfigs = Nil,
+          wec = WecRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
           ),
         ),
         selectedSubgrids = None,

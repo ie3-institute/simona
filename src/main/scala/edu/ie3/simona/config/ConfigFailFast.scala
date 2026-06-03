@@ -8,6 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.config
 import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
@@ -34,7 +35,6 @@ import edu.ie3.util.{StringUtils, TimeUtil}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 
-import java.text.SimpleDateFormat
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
 import java.util.UUID
@@ -112,43 +112,41 @@ object ConfigFailFast extends LazyLogging {
   def check(simonaConfig: SimonaConfig): Unit = {
 
     /* check date and time */
-    checkTimeConfig(simonaConfig.simona.time)
+    checkTimeConfig(simonaConfig.time)
 
     // check if the provided combinations of refSystems provided are valid
-    simonaConfig.simona.gridConfig.refSystems.foreach(checkRefSystem)
+    simonaConfig.gridConfig.refSystems.foreach(checkRefSystem)
 
     // check if the provided combinations of voltageLimits provided are valid
-    simonaConfig.simona.gridConfig.voltageLimits.foreach(checkVoltageLimits)
+    simonaConfig.gridConfig.voltageLimits.foreach(checkVoltageLimits)
 
     /* Check all participant model configurations */
     checkParticipantRuntimeConfiguration(
-      simonaConfig.simona.runtime.participant
+      simonaConfig.runtime.participant
     )
 
     /* Check the runtime listener configuration */
-    checkRuntimeListenerConfiguration(
-      simonaConfig.simona.runtime.listener
-    )
+    checkRuntimeListenerConfiguration(simonaConfig.runtime.listener)
 
     /* Check if the provided combination of data source and parameters are valid */
-    checkGridDataSource(simonaConfig.simona.input.grid.datasource)
+    checkGridDataSource(simonaConfig.input.grid.datasource)
 
     /* Check correct parameterization of primary source */
-    checkPrimaryDataSource(simonaConfig.simona.input.primary)
+    checkPrimaryDataSource(simonaConfig.input.primary)
 
     /* Check if the provided combination of data source and parameters are valid */
-    checkWeatherDataSource(simonaConfig.simona.input.weather.datasource)
+    checkWeatherDataSource(simonaConfig.input.weather.datasource)
 
-    checkOutputConfig(simonaConfig.simona.output)
+    checkOutputConfig(simonaConfig.output)
 
     /* Check power flow resolution configuration */
-    simonaConfig.simona.powerflow.foreach(checkPowerFlowResolutionConfiguration)
+    simonaConfig.powerflow.foreach(checkPowerFlowResolutionConfiguration)
 
     /* Check control scheme definitions */
-    simonaConfig.simona.control.foreach(checkControlSchemes)
+    simonaConfig.control.foreach(checkControlSchemes)
 
     /* Check correct parameterization of storages */
-    checkStoragesConfig(simonaConfig.simona.runtime.participant.storage)
+    checkStoragesConfig(simonaConfig.runtime.participant.storage)
   }
 
   /** Checks for valid output configuration
@@ -233,7 +231,7 @@ object ConfigFailFast extends LazyLogging {
     *   the time config
     */
   private def checkTimeConfig(
-      timeConfig: SimonaConfig.Simona.Time
+      timeConfig: SimonaConfig.Time
   ): Unit = {
 
     val startDate = createDateTime(timeConfig.startDateTime)
@@ -286,35 +284,15 @@ object ConfigFailFast extends LazyLogging {
       )
 
     /* Check basic model configuration parameters common to each participant */
-    checkBaseRuntimeConfigs(
-      subConfig.load.defaultConfig,
-      subConfig.load.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.fixedFeedIn.defaultConfig,
-      subConfig.fixedFeedIn.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.evcs.defaultConfig,
-      subConfig.evcs.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.pv.defaultConfig,
-      subConfig.pv.individualConfigs,
-    )
-
-    checkBaseRuntimeConfigs(
-      subConfig.wec.defaultConfig,
-      subConfig.wec.individualConfigs,
-    )
+    checkBaseRuntimeConfigs(subConfig.load)
+    checkBaseRuntimeConfigs(subConfig.fixedFeedIn)
+    checkBaseRuntimeConfigs(subConfig.evcs)
+    checkBaseRuntimeConfigs(subConfig.pv)
+    checkBaseRuntimeConfigs(subConfig.wec)
 
     /* check model configuration parameters specific to participants */
     // load model
-    (subConfig.load.defaultConfig +: subConfig.load.individualConfigs)
-      .foreach(checkSpecificLoadModelConfig)
+    checkSpecificLoadModelConfig(subConfig.load)
   }
 
   /** Check the runtime event listener config
@@ -332,69 +310,28 @@ object ConfigFailFast extends LazyLogging {
   /** Check participants' basic runtime configurations, as well as in default as
     * in individual configs. This comprises i.e. uuid and scaling factor
     */
-  private def checkBaseRuntimeConfigs(
-      defaultConfig: BaseRuntimeConfig,
-      individualConfigs: List[BaseRuntimeConfig],
+  def checkBaseRuntimeConfigs(
+      config: BaseRuntimeConfig,
+      identifier: String = "default",
   ): Unit = {
-    // special default config check
-    val defaultUuids = defaultConfig.uuids
-    if defaultUuids.nonEmpty then
-      logger.warn(
-        s"You provided '${defaultUuids.mkString(",")}' as uuid reference for the default model config. Those references will not be considered!"
-      )
-
-    // special individual configs check
-    /* Check, if there are ambiguous configs and then check all configs */
-    if !CollectionUtils.isUniqueList(individualConfigs.flatMap(_.uuids)) then
+    // check for scaling
+    if config.scaling < 0 then
       throw new InvalidConfigParameterException(
-        "The basic model configurations contain ambiguous definitions."
+        s"The scaling factor for system participants with UUID '$identifier' may not be negative."
       )
 
-    // check that is valid for all model configs
-    val allConfigs = Map(defaultConfig -> true) ++
-      individualConfigs.map(config => (config, false)).toMap
-
-    allConfigs.foreach { case (config, default) =>
-      // we only check the uuids for individual configs
-      if !default then {
-        /* Checking the uuids */
-        if config.uuids.isEmpty then
-          throw new InvalidConfigParameterException(
-            "There has to be at least one identifier for each participant."
-          )
-
-        /* Checking if all uuids are valid */
-        config.uuids.foreach(uuid =>
-          try {
-            UUID.fromString(uuid)
-          } catch {
-            case e: IllegalArgumentException =>
-              throw new InvalidConfigParameterException(
-                s"The UUID '$uuid' cannot be parsed as it is invalid.",
-                e,
-              )
-          }
-        )
-      }
-
-      // check for scaling
-      if config.scaling < 0 then
-        throw new InvalidConfigParameterException(
-          s"The scaling factor for system participants with UUID '${config.uuids.mkString(",")}' may not be negative."
-        )
-    }
   }
 
   /** Check model configuration parameters specific to the load model, i.e.
     * model behaviour and reference
     */
-  private def checkSpecificLoadModelConfig(
-      loadModelConfig: LoadRuntimeConfig
+  def checkSpecificLoadModelConfig(
+      loadModelConfig: LoadRuntimeConfig,
+      identifier: String = "default",
   ): Unit = {
     if !LoadModelBehaviour.isEligibleInput(loadModelConfig.modelBehaviour) then
       throw new InvalidConfigParameterException(
-        s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '${loadModelConfig.uuids
-            .mkString(",")}' is invalid."
+        s"The load model behaviour '${loadModelConfig.modelBehaviour}' for the loads with UUIDs '$identifier' is invalid."
       )
 
     if !LoadReferenceType.isEligibleInput(
@@ -402,8 +339,7 @@ object ConfigFailFast extends LazyLogging {
       )
     then
       throw new InvalidConfigParameterException(
-        s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '${loadModelConfig.uuids
-            .mkString(",")}' is invalid."
+        s"The standard load profile reference '${loadModelConfig.reference}' for the loads with UUIDs '$identifier' is invalid."
       )
   }
 
@@ -455,8 +391,7 @@ object ConfigFailFast extends LazyLogging {
     }
   }
 
-  /** Method to check the common elements of a
-    * [[SimonaConfig.Simona.GridConfig]].
+  /** Method to check the common elements of a [[SimonaConfig.GridConfig]].
     * @param gridConfig
     *   the individual config
     * @param configType
@@ -564,10 +499,8 @@ object ConfigFailFast extends LazyLogging {
       logger.warn("No primary data source configured.")
     } else {
       sourceConfigs.headOption match {
-        case Some(csvParams: TimeStampedCsvParams) =>
-          checkTimePattern(csvParams.timePattern)
-        case Some(sqlParams: TimeStampedSqlParams) =>
-          checkTimePattern(sqlParams.timePattern)
+        case Some(_: TimeStampedCsvParams) =>
+        case Some(_: TimeStampedSqlParams) =>
         case Some(x) =>
           throw new InvalidConfigParameterException(
             s"Invalid configuration '$x' for a time series source.\nAvailable types:\n\t${supportedSources
@@ -769,7 +702,7 @@ object ConfigFailFast extends LazyLogging {
     *   the power flow configuration that should be checked
     */
   private def checkPowerFlowResolutionConfiguration(
-      powerFlow: SimonaConfig.Simona.Powerflow
+      powerFlow: SimonaConfig.Powerflow
   ): Unit = {
 
     // check if time bin is not smaller than in seconds
@@ -790,7 +723,7 @@ object ConfigFailFast extends LazyLogging {
     * @param control
     *   Control scheme definitions
     */
-  private def checkControlSchemes(control: Simona.Control): Unit = {
+  private def checkControlSchemes(control: SimonaConfig.Control): Unit = {
     control.transformer.foreach(checkTransformerControl)
   }
 
@@ -844,35 +777,22 @@ object ConfigFailFast extends LazyLogging {
     * @param storageRuntimeConfig
     *   RuntimeConfig of Storages
     */
-  private def checkStoragesConfig(
-      storageRuntimeConfig: RuntimeConfig.StorageRuntimeConfigs
+  def checkStoragesConfig(
+      storageRuntimeConfig: RuntimeConfig.StorageRuntimeConfig
   ): Unit = {
-    if storageRuntimeConfig.defaultConfig.initialSoc < 0.0 || storageRuntimeConfig.defaultConfig.initialSoc > 1.0
+    if storageRuntimeConfig.initialSoc < 0.0 || storageRuntimeConfig.initialSoc > 1.0
     then
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default initial SOC needs to be between 0.0 and 1.0."
       )
 
-    if storageRuntimeConfig.defaultConfig.targetSoc.exists(
+    if storageRuntimeConfig.targetSoc.exists(
         _ < 0.0
-      ) || storageRuntimeConfig.defaultConfig.targetSoc.exists(_ > 1.0)
+      ) || storageRuntimeConfig.targetSoc.exists(_ > 1.0)
     then
       throw new RuntimeException(
         s"StorageRuntimeConfig: Default target SOC needs to be between 0.0 and 1.0."
       )
-
-    storageRuntimeConfig.individualConfigs.foreach { config =>
-      if config.initialSoc < 0.0 || config.initialSoc > 1.0 then
-        throw new RuntimeException(
-          s"StorageRuntimeConfig: ${config.uuids} initial SOC needs to be between 0.0 and 1.0."
-        )
-
-      if config.targetSoc.exists(_ < 0.0) || config.targetSoc.exists(_ > 1.0)
-      then
-        throw new RuntimeException(
-          s"StorageRuntimeConfig: ${config.uuids} target SOC needs to be between 0.0 and 1.0."
-        )
-    }
   }
 
   /** Check the default config
@@ -972,22 +892,5 @@ object ConfigFailFast extends LazyLogging {
         )
     }
   }
-
-  /** Check the validity of the given time pattern.
-    * @param dtfPattern
-    *   That should be checked.
-    */
-  private def checkTimePattern(dtfPattern: String): Unit =
-    Try {
-      new SimpleDateFormat(dtfPattern)
-    } match {
-      case Failure(exception) =>
-        throw new InvalidConfigParameterException(
-          s"Invalid timePattern '$dtfPattern' found. Please provide a valid pattern!" +
-            s"\nException: $exception"
-        )
-      case Success(_) =>
-      // this is fine
-    }
 
 }

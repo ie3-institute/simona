@@ -6,25 +6,29 @@
 
 package edu.ie3.simona.agent.grid.data
 
-import edu.ie3.datamodel.models.input.container.{SubGridContainer, ThermalGrid}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.*
 import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.ReceivedValuesStore.NodeToReceivedPower
-import edu.ie3.simona.agent.grid.congestion.CongestionManagementParams
+import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.NodeToReceivedPower
+import edu.ie3.simona.agent.grid.powerflow.{
+  PowerFlowParams,
+  ReceivedValuesStore,
+  SweepValueStore,
+}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
+import edu.ie3.simona.model.grid.GridModel
 import edu.ie3.simona.util.ConfigUtil.{
   EmConfigUtil,
   OutputConfigUtil,
   ParticipantConfigUtil,
 }
 import edu.ie3.simona.util.{ConfigUtil, ReceiveDataMap}
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
@@ -37,6 +41,7 @@ sealed trait GridAgentData
   */
 object GridAgentData {
 
+  final type GridAgentRef = ActorRef[GridAgent.Message]
   final type AwaitingData[T] = ReceiveDataMap[ActorRef[Message], T]
 
   private[grid] trait GridAgentDataInternal extends GridAgentData
@@ -44,6 +49,8 @@ object GridAgentData {
   /** Class holding some [[GridAgent]] values that can be considered constant
     * across simulation time.
     *
+    * @param gridAgentCoordinator
+    *   The reference of the grid agent coordinator.
     * @param environmentRefs
     *   Containing actor references, that are relevant for the environment of
     *   the grid agent.
@@ -58,6 +65,7 @@ object GridAgentData {
     *   Send time of the simulation.
     */
   final case class GridAgentConstantData(
+      gridAgentCoordinator: ActorRef[GridAgentCoordinator.Message],
       environmentRefs: EnvironmentRefs,
       simonaConfig: SimonaConfig,
       resolution: Long,
@@ -68,15 +76,12 @@ object GridAgentData {
       environmentRefs.resultProxy ! event
 
     val participantConfigUtil: ParticipantConfigUtil =
-      ConfigUtil.ParticipantConfigUtil(simonaConfig.simona.runtime.participant)
+      ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
     val outputConfigUtil: OutputConfigUtil =
-      ConfigUtil.OutputConfigUtil.participants(
-        simonaConfig.simona.output.participant
-      )
+      ConfigUtil.OutputConfigUtil.participants(simonaConfig.output.participant)
 
-    val emConfigUtil: EmConfigUtil =
-      EmConfigUtil(simonaConfig.simona.runtime.em)
+    val emConfigUtil: EmConfigUtil = EmConfigUtil(simonaConfig.runtime.em)
 
   }
 
@@ -85,42 +90,94 @@ object GridAgentData {
     * [[GridAgent]] individual data, for data that is the same for all
     * [[GridAgent]] s please use [[GridAgent.apply()]].
     *
-    * @param subGridContainer
-    *   Raw grid information in the input data format.
-    * @param thermalIslandGrids
-    *   Collection of thermal island grids (mostly one per household / building)
-    *   that are of relevance to the given sub grid container.
+    * @param gridModel
+    *   [[GridModel]] with all asset information.
+    * @param powerFlowParams
+    *   Parameters for the power flow calculation.
+    * @param refToSubgrid
+    *   A mapping of all known references to their subgrid id.
     * @param inferiorConnections
     *   A map of actor refs to all inferior grids.
-    * @param inferiorGridIds
-    *   A set of all inferior grid ids.
     * @param superiorConnections
     *   A map of actor refs to all superior grids with the corresponding
     *   superior nodes.
-    * @param superiorGridIds
-    *   A map of all superior grid uuids to their grid ids.
-    * @param refSystem
-    *   Of the grid.
-    * @param voltageLimits
-    *   Of the grid, used to evaluate voltage congestion.
+    * @param nodeToAssetAgents
+    *   A mapping of all node uuids to a set of asset [[ActorRef]] s at those
+    *   nodes.
     */
   final case class GridAgentInitData(
-      subGridContainer: SubGridContainer,
-      thermalIslandGrids: Seq[ThermalGrid],
-      inferiorGridIds: Set[Int],
-      inferiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]],
-      superiorGridIds: Map[UUID, Int] = Map.empty,
-      superiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]],
-      refSystem: RefSystem,
-      voltageLimits: VoltageLimits,
+      gridModel: GridModel,
+      powerFlowParams: PowerFlowParams,
+      refToSubgrid: Map[GridAgentRef, Int] = Map.empty,
+      inferiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty,
+      superiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty,
+      nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]] =
+        Map.empty,
   ) extends GridAgentData {
-    val subgridId: Int = subGridContainer.getSubnet
 
-    lazy val inferiorGridNodeUuids: Set[UUID] =
-      inferiorConnections.values.flatten.toSet
+    /** Updates the init data to incorporate the inferior grid.
+      * @param reference
+      *   The actor reference of the inferior grid.
+      * @param nodes
+      *   All nodes of the higher side of the transformers that connect this
+      *   grid to the inferior grid.
+      * @param subgridNo
+      *   The number of the inferior grid.
+      * @return
+      *   The updated init data.
+      */
+    def registerInferior(
+        reference: GridAgentRef,
+        nodes: Set[UUID],
+        subgridNo: Int,
+    ): GridAgentInitData =
+      copy(
+        inferiorConnections = inferiorConnections.added(reference, nodes),
+        refToSubgrid = refToSubgrid.updated(reference, subgridNo),
+      )
 
-    lazy val superiorGridNodeUuids: Set[UUID] =
-      superiorConnections.values.flatten.toSet
+    /** Updates the init data to incorporate the superior grid.
+      * @param reference
+      *   The actor reference of the superior grid.
+      * @param nodes
+      *   All nodes of the higher side of the transformers that connect this
+      *   grid to the superior grid.
+      * @param subgridNo
+      *   The number of the superior grid.
+      * @return
+      *   The updated init data.
+      */
+    def registerSuperior(
+        reference: GridAgentRef,
+        nodes: Set[UUID],
+        subgridNo: Int,
+    ): GridAgentInitData =
+      copy(
+        superiorConnections = superiorConnections.added(reference, nodes),
+        refToSubgrid = refToSubgrid.updated(reference, subgridNo),
+      )
+
+    /** Updates the init data to incorporate connected assets.
+      * @param nodeToParticipants
+      *   A map: node uuid to set of participant actor references.
+      * @return
+      *   The updated init data.
+      */
+    def registerParticipants(
+        nodeToParticipants: MultiMap[UUID, ActorRef[ParticipantAgent.Request]]
+    ): GridAgentInitData = {
+      val updated = nodeToParticipants.map { case (node, assets) =>
+        nodeToAssetAgents.get(node) match {
+          case Some(value) =>
+            node -> (value ++ assets)
+          case None =>
+            node -> assets
+        }
+      }
+
+      copy(nodeToAssetAgents = nodeToAssetAgents ++ updated)
+    }
+
   }
 
   /** State data indicating that a power flow has been executed.
@@ -165,24 +222,26 @@ object GridAgentData {
 
     def apply(
         gridModel: GridModel,
+        inferiorConnections: MultiMap[GridAgentRef, UUID],
+        superiorConnections: MultiMap[GridAgentRef, UUID],
+        nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]],
+        refToSubgrid: Map[GridAgentRef, Int],
         powerFlowParams: PowerFlowParams,
-        congestionManagementParams: CongestionManagementParams,
         actorName: String,
-        nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
-        inferiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
-          Map.empty,
-        superiorGridRefs: Map[ActorRef[GridAgent.Message], Set[UUID]] =
-          Map.empty,
-        superiorGridIds: Map[UUID, Int] = Map.empty,
     ): GridAgentBaseData = {
-      val gridEnv =
-        GridEnvironment(
-          gridModel,
-          nodeToAssetAgents,
-          inferiorGridRefs,
-          superiorGridRefs,
-          superiorGridIds,
-        )
+      val superiorGridIds = superiorConnections.flatMap { case (ref, nodes) =>
+        val subgrid = refToSubgrid(ref)
+        nodes.map(_ -> subgrid)
+      }
+
+      val gridEnv = GridEnvironment(
+        gridModel,
+        inferiorConnections,
+        superiorConnections,
+        nodeToAssetAgents,
+        refToSubgrid,
+        superiorGridIds,
+      )
 
       val currentSweepNo = 0 // initialization is assumed to be always @ sweep 0
       val sweepValueStores: Map[Int, SweepValueStore] = Map
@@ -194,7 +253,6 @@ object GridAgentData {
       GridAgentBaseData(
         gridEnv,
         powerFlowParams,
-        congestionManagementParams,
         currentSweepNo,
         ReceivedValuesStore.empty(gridEnv),
         sweepValueStores,
@@ -213,8 +271,6 @@ object GridAgentData {
     *   The grid environment.
     * @param powerFlowParams
     *   Power flow configuration parameters.
-    * @param congestionManagementParams
-    *   Parameters for the congestions management.
     * @param currentSweepNo
     *   The current sweep number.
     * @param receivedValueStore
@@ -225,7 +281,6 @@ object GridAgentData {
   final case class GridAgentBaseData(
       gridEnv: GridEnvironment,
       powerFlowParams: PowerFlowParams,
-      congestionManagementParams: CongestionManagementParams,
       currentSweepNo: Int,
       receivedValueStore: ReceivedValuesStore,
       sweepValueStores: Map[Int, SweepValueStore],
@@ -254,17 +309,24 @@ object GridAgentData {
       assetAndGridPowerValuesReady & allSlackVoltagesReceived
     }
 
-    def isSuperior: Boolean = gridEnv.superiorConnections.isEmpty
+    val isSuperior: Boolean = gridEnv.superiorConnections.isEmpty
 
-    def inferiorGridRefs: Map[ActorRef[Message], Set[UUID]] =
+    lazy val inferiorGridRefs: MultiMap[GridAgentRef, UUID] =
       gridEnv.inferiorConnections
 
-    def superiorGridRefs: Map[ActorRef[Message], Set[UUID]] =
+    lazy val superiorGridRefs: MultiMap[GridAgentRef, UUID] =
       gridEnv.superiorConnections
 
     lazy val inferiorGridNodeUuids: Set[UUID] = gridEnv.inferiorNodeUuids
     lazy val superiorGridNodeUuids: Set[UUID] = gridEnv.superiorNodeUuids
 
+    /** Method to try looking up the subgrid number of the superior grid based
+      * on the given node uuid.
+      * @param node
+      *   The uuid of one of the connecting nodes.
+      * @return
+      *   An option for the number.
+      */
     def getSuperiorSubgridNumber(node: UUID): Option[Int] =
       gridEnv.superiorGridIds.get(node)
 
@@ -285,6 +347,10 @@ object GridAgentData {
         _.values.exists(_.exists(_.isInstanceOf[FailedPowerFlow]))
       )
 
+    /** Method for clearing the stored asset power.
+      * @return
+      *   The updated state data.
+      */
     def clearAssetPower: GridAgentBaseData =
       copy(receivedValueStore = receivedValueStore.clearAssetPower)
 

@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.model.grid.GridModel
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.{MultiMap, valueSet}
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
@@ -17,28 +19,32 @@ import java.util.UUID
   *
   * @param gridModel
   *   [[GridModel]] with all asset information.
-  * @param nodeToAssetAgents
-  *   A mapping of all node uuids to a set of asset [[ActorRef]] s at those
-  *   nodes.
   * @param inferiorConnections
   *   A map of actor refs to all inferior grids.
   * @param superiorConnections
   *   A map of actor refs to all superior grids with the corresponding superior
   *   nodes.
+  * @param nodeToAssetAgents
+  *   A mapping of all node uuids to a set of asset [[ActorRef]] s at those
+  *   nodes.
+  * @param refToSubgrid
+  *   A mapping of all known references to their subgrid id.
   * @param superiorGridIds
   *   A map of all superior grid uuids to their grid ids.
   */
 final case class GridEnvironment(
     gridModel: GridModel,
-    nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
-    inferiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]] =
-      Map.empty,
-    superiorConnections: Map[ActorRef[GridAgent.Message], Set[UUID]] =
-      Map.empty,
-    superiorGridIds: Map[UUID, Int] = Map.empty,
+    inferiorConnections: MultiMap[GridAgentRef, UUID],
+    superiorConnections: MultiMap[GridAgentRef, UUID],
+    nodeToAssetAgents: MultiMap[UUID, ActorRef[ParticipantAgent.Request]],
+    refToSubgrid: Map[GridAgentRef, Int],
+    superiorGridIds: Map[UUID, Int],
 ) {
 
-  def inferiorNodeUuids: Set[UUID] = inferiorConnections.values.flatten.toSet
+  lazy val allParticipants: Set[ActorRef[ParticipantAgent.Request]] =
+    nodeToAssetAgents.valueSet
 
-  def superiorNodeUuids: Set[UUID] = superiorConnections.values.flatten.toSet
+  def inferiorNodeUuids: Set[UUID] = inferiorConnections.valueSet
+
+  def superiorNodeUuids: Set[UUID] = superiorConnections.valueSet
 }

@@ -7,6 +7,7 @@
 package edu.ie3.util.scala.quantities
 
 import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.thermal.Celsius
 import squants.{Dimensionless, Each, Energy, Power, Temperature}
 

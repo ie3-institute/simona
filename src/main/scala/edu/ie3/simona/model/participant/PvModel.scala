@@ -16,15 +16,15 @@ import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
-  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.PvModel.*
 import edu.ie3.simona.model.participant.SolarIrradiationCalculation.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
-  ParticipantInflexiblePowerLimitFlexModel,
+  ParticipantFlexModel,
   ParticipantInflexibleEnergyLimitFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{
@@ -32,8 +32,8 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
-  WeatherData,
   SecondarySeriesData,
+  WeatherData,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
@@ -43,6 +43,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toSquants,
 }
 import squants.*
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.space.{Degrees, SquareMeters}
 
 import java.time.ZonedDateTime
@@ -82,7 +83,10 @@ class PvModel private (
   private val activationThreshold =
     sRated.toActivePower(cosPhiRated) * 0.001 * -1
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[PvState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    PvState,
+  ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
       FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
@@ -203,8 +207,7 @@ class PvModel private (
   override def determineOperatingPoint(
       state: PvState,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+  ): ActivePowerOperatingPoint = ActivePowerOperatingPoint(setPower)
 
   override def zeroPowerOperatingPoint: ActivePowerOperatingPoint =
     ActivePowerOperatingPoint.zero

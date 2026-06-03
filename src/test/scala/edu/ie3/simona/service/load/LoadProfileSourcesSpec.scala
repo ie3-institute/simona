@@ -25,7 +25,7 @@ class LoadProfileSourcesSpec extends UnitSpec with TestResourceHelper {
       val profileSources = LoadProfileSources.buildSources(sourceDefinition)
 
       profileSources.size shouldBe 1
-      profileSources.contains(BdewStandardLoadProfile.G0) shouldBe true
+      profileSources.contains(BdewStandardLoadProfile.G0.getKey) shouldBe true
     }
 
   }

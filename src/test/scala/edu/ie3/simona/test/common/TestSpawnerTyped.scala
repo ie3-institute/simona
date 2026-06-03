@@ -14,7 +14,7 @@ trait TestSpawnerTyped {
   this: ActorTestKitBase =>
 
   object TSpawner extends Spawner {
-    override def spawn[T](behavior: Behavior[T]): ActorRef[T] =
-      TestSpawnerTyped.this.spawn(behavior)
+    override def spawn[T](behavior: Behavior[T], name: String): ActorRef[T] =
+      TestSpawnerTyped.this.spawn(behavior, name)
   }
 }
