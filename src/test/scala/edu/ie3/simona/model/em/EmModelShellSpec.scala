@@ -35,7 +35,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
     }
 
     "apply PRIORITIZED strategy with curtailRegenerative correctly" in {
-      val config = EmRuntimeConfig.apply(false, 1.0, null, "SELF_OPT", true)
+      val config = EmRuntimeConfig.apply(false, 1.0, "SELF_OPT", true)
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID2",
@@ -67,7 +67,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
     }
 
     "apply SIMPLE_SUM strategy correctly" in {
-      val config = EmRuntimeConfig.apply(false, 1.0, null, "SIMPLE_SUM", true)
+      val config = EmRuntimeConfig.apply(false, 1.0, "SIMPLE_SUM", true)
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID4",
@@ -80,7 +80,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
 
     "apply SELF_POWER_* strategy with correct power limit" in {
       val config =
-        EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_100.5", true)
+        EmRuntimeConfig.apply(false, 1.0, "SELF_POWER_100.5", true)
       val result = EmModelShell.apply(
         UUID.randomUUID(),
         "TestID5",
@@ -95,7 +95,6 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
       val config = EmRuntimeConfig.apply(
         false,
         1.0,
-        null,
         "SELF_POWER_200_EXCL_REG",
       )
       val result = EmModelShell.apply(
@@ -110,7 +109,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
 
     "throw CriticalFailureException for invalid power limit format" in {
       val config =
-        EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_100.100.100")
+        EmRuntimeConfig.apply(false, 1.0, "SELF_POWER_100.100.100")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
@@ -128,7 +127,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
 
     "throw CriticalFailureException for non numeric power limit format" in {
       val config =
-        EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_abc")
+        EmRuntimeConfig.apply(false, 1.0, "SELF_POWER_abc")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
@@ -145,7 +144,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
     }
 
     "throw CriticalFailureException for invalid format in SELF_POWER strategy" in {
-      val config = EmRuntimeConfig.apply(false, 1.0, null, "SELF_POWER_")
+      val config = EmRuntimeConfig.apply(false, 1.0, "SELF_POWER_")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(
@@ -162,7 +161,7 @@ class EmModelShellSpec extends UnitSpec with MockitoSugar {
     }
 
     "throw CriticalFailureException for unknown aggregate flex strategy" in {
-      val config = EmRuntimeConfig.apply(false, 1.0, null, "UNKNOWN_FLEX")
+      val config = EmRuntimeConfig.apply(false, 1.0, "UNKNOWN_FLEX")
 
       val exception = intercept[CriticalFailureException] {
         EmModelShell.apply(

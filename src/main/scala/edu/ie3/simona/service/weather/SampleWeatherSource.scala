@@ -13,13 +13,13 @@ import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.util.TickUtil
 import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.geo.CoordinateDistance
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.locationtech.jts.geom.Point
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units
 import squants.Kelvin
 import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
