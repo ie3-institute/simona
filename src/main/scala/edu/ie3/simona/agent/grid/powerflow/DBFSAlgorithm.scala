@@ -511,7 +511,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             gridAgentBaseData.receivedValueStore.nodeToReceivedPower,
           )
 
-          // FIXME: The GridModel needs to be adapted, since the parameter of r (and others?) are temperature dependent!
+          // FIXME DF: The GridModel needs to be adapted, since the parameter of r (and others?) are temperature dependent!
           val gridModel = gridAgentBaseData.gridEnv.gridModel
 
           val (operatingPoint, slackNodeVoltages) = composeOperatingPoint(

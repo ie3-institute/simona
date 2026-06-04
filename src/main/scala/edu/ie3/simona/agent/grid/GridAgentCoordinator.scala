@@ -363,7 +363,7 @@ object GridAgentCoordinator {
             stateData.copy(hasRunCongestionManagement = true),
             ReceiveDataMap(stateData.superiorGrids),
           )
-          // FIXME here the ampacity calculation needs to be done after the last congestion round
+          // FIXME DF here the ampacity calculation needs to be done after the last congestion round
           /*if stateData.ampacityCalculationParams.activateAmpacityCalculation then {
             stateData.informGridAgents(ref =>
               DoAmpacityCalculation(currentTick, results(ref))
@@ -373,7 +373,10 @@ object GridAgentCoordinator {
            */
 
         } else {
-          // FIXME here the ampacity calculation needs to be done in case of
+          // FIXME DF here the ampacity calculation needs to be done in case of
+          //FIXME DF or this is not necessary at all
+
+          /*
           if stateData.ampacityCalculationParams.activateAmpacityCalculation
           then {
             stateData.informGridAgents(ref =>
@@ -383,6 +386,7 @@ object GridAgentCoordinator {
               )
             )
           }
+          */
           finishTick(stateData, updated.values.flatten, ctx)
         }
       }

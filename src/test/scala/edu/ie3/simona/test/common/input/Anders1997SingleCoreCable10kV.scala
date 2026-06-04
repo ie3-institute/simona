@@ -124,7 +124,7 @@ object Anders1997SingleCoreCable10kV {
     Meters(1),
     Meters(2 * 0.0358),
     KelvinMetersPerWatt(1.0),
-    JoulesPerMeterKelvin(1.0), // FIXME check this
+    JoulesPerMeterKelvin(1.0), // FIXME DF check this
     Celsius(90),
     Kilovolts(10),
     Hertz(50),

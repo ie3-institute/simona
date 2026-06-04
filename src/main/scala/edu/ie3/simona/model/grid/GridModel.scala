@@ -543,7 +543,7 @@ object GridModel {
         .flatMap { lineInput =>
           val jsonStringLineInput = lineInputToJson(lineInput)
           val json = Json.parse(jsonStringLineInput)
-          // FIXME Move this into some thermalLineSegment Builder Class that reads from csv input
+          // FIXME DF Move this into some thermalLineSegment Builder Class that reads from csv input
           val conductor: Layer = {
             val mat = CableMaterial.fromString("Copper")
             Layer(

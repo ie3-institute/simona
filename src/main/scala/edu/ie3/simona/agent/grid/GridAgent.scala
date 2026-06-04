@@ -129,10 +129,10 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       buffer.unstashAll(
         simulateGrid(gridAgentBaseData, doPowerFlowTrigger.tick)
       )
-
+/* //FIXME DF is this necessary at all?
     case (ctx, DoAmpacityCalculation(currentTick, results)) =>
       val subGridNo =
-        gridAgentBaseData.gridEnv.gridModel.subnetNo // FIXME are all subgrids check or only this one, why this one?
+        gridAgentBaseData.gridEnv.gridModel.subnetNo // FIXME DF are all subgrids checked or only this one?
       startAmpacityCalculation(
         gridAgentBaseData,
         currentTick,
@@ -141,6 +141,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         ctx,
       )
 
+
+ */
     case (ctx, DoCongestionManagement(currentTick, results)) =>
       startCongestionManagement(
         gridAgentBaseData,

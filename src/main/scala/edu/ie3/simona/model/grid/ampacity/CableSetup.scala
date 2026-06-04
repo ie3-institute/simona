@@ -168,8 +168,8 @@ object CableSetup {
             1 / 35.0
           ), // 34,7 - 35,3 (pure) https://en.wikipedia.org/wiki/List_of_thermal_conductivities
           JoulesPerMeterKelvin(
-            2.4
-          ), // Heat Capacity of Steel 3.756 J/(cm³K)  https://en.wikipedia.org/wiki/Table_of_specific_heat_capacities
+            1463892d
+          ), // c = 129 J/(kg * K), rho= 11.348 g/cm³ => 1463892 J / (m³ * K)
         )
       case CableMaterial.Steel =>
         (

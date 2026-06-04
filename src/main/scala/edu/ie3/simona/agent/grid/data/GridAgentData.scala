@@ -264,7 +264,7 @@ object GridAgentData {
           SweepValueStore,
         ] // initialization is assumed to be always with no sweep data
 
-      val groundTemperature = Celsius(20) // FIXME
+      val groundTemperature = Celsius(20) // FIXME DF
 
       val thermalLineStates =
         if ampacityCalculationParams.activateAmpacityCalculation
