@@ -426,7 +426,7 @@ object CommonLossObjectiveFactory {
     *   The charging efficiency.
     * @param etaCommon
     *   The common charging efficiency (e.g. calculated by
-    *   [[calculateCommonEta]].
+    *   [[calculateCommonEta]]).
     * @return
     *   The conversion factor.
     */
