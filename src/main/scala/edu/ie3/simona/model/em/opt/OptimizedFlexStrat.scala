@@ -128,7 +128,7 @@ final case class OptimizedFlexStrat(
             ) match {
             case (_, res) =>
               // Operating point of first result
-              res.getOperationResult
+              res.getOperatingPowerResult
           }
         }
           // Add up solutions for all asset assigned to the same UUID
@@ -274,7 +274,7 @@ object OptimizedFlexStrat {
             .foldLeft[SortedMap[Long, AV]](SortedMap.empty) {
               case (previousResults, Seq(stepStartTick, stepEndTick)) =>
                 val previousState = previousResults.lastOption.flatMap {
-                  case (_, res) => res.stateVar
+                  case (_, res) => res.state
                 }
 
                 val assetStep = createAssetParameters(
@@ -433,23 +433,18 @@ object OptimizedFlexStrat {
     */
   abstract class AssetStepVars {
 
-    /** The operation variable, describing the power in kW to get from the
-      * energy state at the start to the state at the end of the interval.
-      */
-    val operationVar: Const | MPVar
-
     /** The state variable, describing the state of energy in kWh at the end of
-      * the interval.
+      * the time step interval.
       */
-    val stateVar: Option[Expression]
+    val state: Option[Expression]
 
-    /** The tick at the start of the interval, i.e. the tick at which the
-      * operation of the step starts.
+    /** The tick at the start of the time step interval, i.e. the tick at which
+      * the operation of the step starts.
       */
     val stepStartTick: Long
 
-    /** The tick at the end of the interval, i.e. the tick at which the
-      * operation of the step ends (and a next step might start).
+    /** The tick at the end of the time step interval, i.e. the tick at which
+      * the operation of the step ends (and a next step might start).
       */
     val stepEndTick: Long
 
@@ -457,15 +452,22 @@ object OptimizedFlexStrat {
       */
     val softConstraint: Option[SoftConstraint] = None
 
-    /** Returns the result of [[operationVar]] as a power. This only works after
-      * optimization has successfully completed.
+    /** Returns the resulting operating power.
+      *
+      * This method should only be called after optimization has successfully
+      * completed. Otherwise, results might not be available and an exception
+      * might be thrown.
       */
-    def getOperationResult: Power
+    def getOperatingPowerResult: Power
 
-    /** Returns the result of [[stateVar]] as an energy. This only works after
-      * optimization has successfully completed.
+    /** If applicable, returns the result of [[state]] as an energy.
+      *
+      * This method should only be called after optimization has successfully
+      * completed. Otherwise, results might not be available and an exception
+      * might be thrown.
       */
-    def getStateResult: Energy
+    def getStateOfEnergyResult: Option[Energy]
+
   }
 
   /** Container holding all optimization variables and soft constraints (as

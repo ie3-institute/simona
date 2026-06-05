@@ -8,7 +8,7 @@ package edu.ie3.simona.model.em.opt
 
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
-  SplitLossAssetStepVars,
+  CommonLossAssetStepVars,
   calculateCommonEta,
   calculateConversionFactor,
 }
@@ -16,7 +16,7 @@ import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
 import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.EnergyPrice
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
@@ -39,21 +39,21 @@ import java.util.UUID
   * which is kept close to the real absolute value by using a soft constraint.
   */
 abstract class CommonLossObjectiveFactory
-    extends ObjectiveFactory[SplitLossAssetStepVars] {
+    extends ObjectiveFactory[CommonLossAssetStepVars] {
 
   override def createAssetVars(
       assetParams: AssetStepParameters,
       stepStartTick: Long,
       stepEndTick: Long,
       sampleTime: Time,
-  )(using model: MPModel): SplitLossAssetStepVars =
+  )(using model: MPModel): CommonLossAssetStepVars =
     assetParams match {
       case fixedPower: FixedPowerStepParameters =>
-        val fixedPowerVar = Const(
+        val fixedPowerConst = Const(
           (fixedPower.energyChange / sampleTime).toKilowatts
         )
-        SplitLossAssetStepVars(
-          fixedPowerVar,
+        CommonLossAssetStepVars(
+          fixedPowerConst,
           None,
           stepStartTick,
           stepEndTick,
@@ -129,7 +129,7 @@ abstract class CommonLossObjectiveFactory
             None
           }
 
-        SplitLossAssetStepVars(
+        CommonLossAssetStepVars(
           p,
           Some(newState),
           stepStartTick,
@@ -154,7 +154,7 @@ abstract class CommonLossObjectiveFactory
     *   The absolute difference variable.
     */
   protected def createAbsDifference(
-      assetVars: Iterable[SplitLossAssetStepVars],
+      assetVars: Iterable[CommonLossAssetStepVars],
       target: Power,
       stepStartTick: Long,
   )(using model: MPModel): Expression = {
@@ -165,10 +165,10 @@ abstract class CommonLossObjectiveFactory
   }
 
   protected def createPowerSum(
-      assetVars: Iterable[SplitLossAssetStepVars]
+      assetVars: Iterable[CommonLossAssetStepVars]
   ): Expression =
     assetVars
-      .map(_.operationVar)
+      .map(_.power)
       .reduceOption[Expression](_ + _)
       .getOrElse(Zero)
 
@@ -186,7 +186,7 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetVarContainer[SplitLossAssetStepVars]],
+        assetVars: Iterable[AssetVarContainer[CommonLossAssetStepVars]],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
     )(using model: MPModel): Expression = {
@@ -223,7 +223,7 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetVarContainer[SplitLossAssetStepVars]],
+        assetVars: Iterable[AssetVarContainer[CommonLossAssetStepVars]],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
     )(using model: MPModel): Expression = {
@@ -305,7 +305,7 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetVarContainer[SplitLossAssetStepVars]],
+        assetVars: Iterable[AssetVarContainer[CommonLossAssetStepVars]],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
     )(using model: MPModel): Expression = {
@@ -367,40 +367,40 @@ object CommonLossObjectiveFactory {
   /** Container holding the relevant variables and potentially a soft constraint
     * for a specific asset and optimization time step.
     *
-    * @param operationVar
+    * @param power
     *   The operation variable, describing the power in kW to get from the
     *   energy state at the start to the state at the end of the interval.
-    * @param stateVar
+    * @param state
     *   The state variable, describing the state of energy in kWh at the end of
-    *   the interval.
+    *   the time step interval.
     * @param stepStartTick
-    *   The tick at the start of the interval, i.e. the tick at which the
-    *   operation of the step starts.
+    *   The tick at the start of the time step interval, i.e. the tick at which
+    *   the operation of the step starts.
     * @param stepEndTick
-    *   The tick at the end of the interval, i.e. the tick at which the
-    *   operation of the step ends (and a next step might start).
+    *   The tick at the end of the time step interval, i.e. the tick at which
+    *   the operation of the step ends (and a next step might start).
     * @param softConstraint
     *   Optionally a soft constraint to be added to the objective.
     * @param energyConversionFactor
     *   Since the model adapts energy values, this is the conversion factor that
     *   allows deriving proper energy values for use within the simulation.
     */
-  final case class SplitLossAssetStepVars(
-      override val operationVar: MPVar | Const,
-      override val stateVar: Option[MPVar | Const],
+  final case class CommonLossAssetStepVars(
+      power: MPVar | Const,
+      override val state: Option[MPVar | Const],
       override val stepStartTick: Long,
       override val stepEndTick: Long,
       override val softConstraint: Option[SoftConstraint] = None,
       energyConversionFactor: Double = 1d,
   ) extends AssetStepVars {
 
-    override def getOperationResult: Power = Kilowatts(operationVar.getValue)
+    override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
 
-    override def getStateResult: Energy =
-      stateVar
+    override def getStateOfEnergyResult: Option[Energy] =
+      state
         .map(_.getValue / energyConversionFactor)
         .map(KilowattHours(_))
-        .getOrElse(zeroKWh)
+
   }
 
   /** Calculates the common efficiency that is used for the loss that occurs

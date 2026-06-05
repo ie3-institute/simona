@@ -35,7 +35,7 @@ class CommonLossObjectiveFactorySpec
   given Energy = WattHours(1e-9)
   private val constraintTolerance = 1e-3
 
-  "An optimized flex strat" when {
+  "An optimizing flex strat" when {
 
     "provided with a flex energy model to adapt" should {
 

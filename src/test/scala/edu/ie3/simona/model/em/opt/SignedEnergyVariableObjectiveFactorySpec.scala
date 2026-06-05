@@ -15,7 +15,7 @@ import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
 
-class ConvexEpigraphObjectiveFactorySpec
+class SignedEnergyVariableObjectiveFactorySpec
     extends UnitSpec
     with OptimizingTestLike
     with PowerObjectiveTestScenario {
@@ -23,9 +23,9 @@ class ConvexEpigraphObjectiveFactorySpec
   // Testing tolerances
   given Double = 1e-6
 
-  "An optimized flex strat" when {
+  "An optimizing flex strat" when {
 
-    "provided with a convex epigraph objective factory" should {
+    "provided with a SignedEnergyVariableObjectiveFactory" should {
 
       given ticks: Seq[Long] = ticksScenario1
 
@@ -40,7 +40,7 @@ class ConvexEpigraphObjectiveFactorySpec
             ticks = ticks,
             target = zeroKW,
             receivedData = Seq(priceDataScenario1),
-            objectiveFactory = ConvexEpigraphObjectiveFactory,
+            objectiveFactory = SignedEnergyVariableObjectiveFactory,
           )
 
         // factory should not produce soft constraints
@@ -169,7 +169,7 @@ class ConvexEpigraphObjectiveFactorySpec
             ticks = ticks,
             target = zeroKW,
             receivedData = Seq(priceData),
-            objectiveFactory = ConvexEpigraphObjectiveFactory,
+            objectiveFactory = SignedEnergyVariableObjectiveFactory,
           )
 
         // factory should not produce soft constraints

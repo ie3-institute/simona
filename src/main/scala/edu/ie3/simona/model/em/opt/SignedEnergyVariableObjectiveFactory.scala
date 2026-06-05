@@ -7,8 +7,8 @@
 package edu.ie3.simona.model.em.opt
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.opt.ConvexEpigraphObjectiveFactory.EpigraphAssetStepVars
 import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
+import edu.ie3.simona.model.em.opt.SignedEnergyVariableObjectiveFactory.SignedEnergyStepVars
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.Data.SecondaryData.ProsumerPrice
@@ -17,7 +17,6 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{
   onePU,
   zeroEurPerKWh,
   zeroKW,
-  zeroKWh,
 }
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
@@ -34,25 +33,25 @@ import scala.collection.SortedSet
   * the objective in terms of energy change between states instead of power.
   * This makes the problem convex, but only for positive prices.
   */
-object ConvexEpigraphObjectiveFactory
-    extends ObjectiveFactory[EpigraphAssetStepVars] {
+object SignedEnergyVariableObjectiveFactory
+    extends ObjectiveFactory[SignedEnergyStepVars] {
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable(ServiceType.PriceService)
 
   private val log: Logger =
-    LoggerFactory.getLogger(ConvexEpigraphObjectiveFactory.getClass)
+    LoggerFactory.getLogger(SignedEnergyVariableObjectiveFactory.getClass)
 
   override def createAssetVars(
       assetParams: AssetStepParameters,
       stepStartTick: Long,
       stepEndTick: Long,
       sampleTime: Time,
-  )(using model: MPModel): EpigraphAssetStepVars =
+  )(using model: MPModel): SignedEnergyStepVars =
     assetParams match {
       case fixedPower: FixedPowerStepParameters =>
         val energyChange = Const(fixedPower.energyChange.toKilowattHours)
-        EpigraphAssetStepVars(
+        SignedEnergyStepVars(
           energyChange,
           None,
           stepStartTick,
@@ -85,7 +84,7 @@ object ConvexEpigraphObjectiveFactory
 
         model.add(newEnergy := varPower.previousStateEnergy + energyChange)
 
-        EpigraphAssetStepVars(
+        SignedEnergyStepVars(
           energyChange,
           Some(newEnergy),
           stepStartTick,
@@ -97,7 +96,7 @@ object ConvexEpigraphObjectiveFactory
 
   override def build(
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      assetVars: Iterable[AssetVarContainer[EpigraphAssetStepVars]],
+      assetVars: Iterable[AssetVarContainer[SignedEnergyStepVars]],
       target: Power,
       receivedData: Seq[SecondaryData],
   )(using model: MPModel): Expression = {
@@ -113,19 +112,6 @@ object ConvexEpigraphObjectiveFactory
         tick
       }
       .to(SortedSet)
-    // todo and negative fixed load?
-    val assetVarsByTick = sortVarsByTick(assetVars)
-
-    assetVarsByTick.filter { case (tick, operationVars) =>
-      negPrices.contains(tick)
-      operationVars.flatMap { vars =>
-        vars.operationVar match {
-          case constVar: Const => Some(constVar.value)
-          case _               => None
-        }
-      }.sum < 0d
-    }
-    // todo ...
 
     if negPrices.nonEmpty then
       log.warn(
@@ -133,12 +119,7 @@ object ConvexEpigraphObjectiveFactory
           "Results might deviate from optimal solution."
       )
 
-    // todo: also, some functions need to be left out when selling price is negative:
-    // those that are not correctly contributing, e.g. if constant powers are negative,
-    // the buying/discharging line is either dominated (if buying price is positive)
-    // or not correct (if buying price is negative)
-
-    assetVarsByTick
+    sortVarsByTick(assetVars)
       // create objective expression for every time step
       .map { (stepStartTick, tickAssetVars) =>
         val segments = tickAssetVars.foldLeft(Seq[Expression](Zero)) {
@@ -150,18 +131,18 @@ object ConvexEpigraphObjectiveFactory
                 // etaDischarge < 1/etaCharge.
                 Seq(
                   Const(1d / assetVars.etaCharge.toEach) *
-                    assetVars.operationVar,
+                    assetVars.energyChange,
                   Const(assetVars.etaDischarge.toEach) *
-                    assetVars.operationVar,
+                    assetVars.energyChange,
                 )
-              else Seq(assetVars.operationVar)
+              else Seq(assetVars.energyChange)
 
             terms.flatMap { term =>
               previousSegments.map(_ + term)
             }
         }
 
-        val priceData: ProsumerPrice = priceSeries
+        val priceData = priceSeries
           .maxBefore(stepStartTick + 1)
           .map { case (_, priceData) => priceData }
           .getOrElse(
@@ -196,28 +177,27 @@ object ConvexEpigraphObjectiveFactory
   /** Container holding the relevant variables for a specific asset and
     * optimization time step. Soft constraints are not used.
     *
-    * @param operationVar
+    * @param energyChange
     *   The operation variable, describing the energy change in kWh to get from
-    *   the energy state at the start to the state at the end of the interval.
-    * @param stateVar
+    *   the energy state at the start to the state at the end of the time step
+    *   interval.
+    * @param state
     *   The state variable, describing the amount of energy in kWh at the end of
-    *   the interval. Generally, the state energy signifies the upwards and
-    *   downwards change of energy, compared to the energy potential (zero kWh)
-    *   at the start of the prediction horizon (the current simulation tick).
+    *   the time step interval.
     * @param stepStartTick
-    *   The tick at the start of the interval, i.e. the tick at which the
-    *   operation of the step starts.
+    *   The tick at the start of the time step interval, i.e. the tick at which
+    *   the operation of the step starts.
     * @param stepEndTick
-    *   The tick at the end of the interval, i.e. the tick at which the
-    *   operation of the step ends (and a next step might start).
+    *   The tick at the end of the time step interval, i.e. the tick at which
+    *   the operation of the step ends (and a next step might start).
     * @param etaCharge
     *   The charging efficiency of the asset.
     * @param etaDischarge
     *   The discharging efficiency of the asset.
     */
-  final case class EpigraphAssetStepVars(
-      override val operationVar: MPVar | Const,
-      override val stateVar: Option[MPVar | Const],
+  final case class SignedEnergyStepVars(
+      energyChange: MPVar | Const,
+      state: Option[MPVar | Const],
       override val stepStartTick: Long,
       override val stepEndTick: Long,
       etaCharge: Dimensionless = onePU,
@@ -227,10 +207,10 @@ object ConvexEpigraphObjectiveFactory
     def isInefficient: Boolean =
       etaCharge < onePU || etaDischarge < onePU
 
-    override def getOperationResult: Power = {
+    override def getOperatingPowerResult: Power = {
       val duration = Seconds(stepEndTick - stepStartTick)
 
-      val storagePower = KilowattHours(operationVar.getValue) / duration
+      val storagePower = KilowattHours(energyChange.getValue) / duration
 
       val factor =
         if storagePower < zeroKW then etaDischarge.toEach
@@ -240,8 +220,9 @@ object ConvexEpigraphObjectiveFactory
       storagePower * factor
     }
 
-    override def getStateResult: Energy =
-      stateVar.map(_.getValue).map(KilowattHours(_)).getOrElse(zeroKWh)
+    override def getStateOfEnergyResult: Option[Energy] =
+      state.map(_.getValue).map(KilowattHours(_))
+
   }
 
 }
