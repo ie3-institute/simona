@@ -12,7 +12,7 @@ import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
   calculateCommonEta,
   calculateConversionFactor,
 }
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
 import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.{Data, ServiceType}

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common
 
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
   AssetStepVars,
   AssetVarContainer,
 }

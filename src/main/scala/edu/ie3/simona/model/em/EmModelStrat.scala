@@ -10,9 +10,9 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.model.em.opt.{
   CommonLossObjectiveFactory,
-  OptimizedFlexStrat,
+  OptimizingFlexStrat,
 }
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
   AssetStepVars,
   ObjectiveFactory,
 }
@@ -113,7 +113,7 @@ object EmModelStrat {
     }
 
     objectiveFunction.andThen(objectiveFactory =>
-      new OptimizedFlexStrat(
+      new OptimizingFlexStrat(
         sampleTime = Hours(1),
         predictionHorizon = Hours(12),
         objectiveFactory,

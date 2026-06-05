@@ -9,7 +9,7 @@ package edu.ie3.simona.model.em.opt
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.*
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.service.Data.SecondaryData
@@ -49,14 +49,14 @@ import scala.collection.immutable.SortedMap
   *   The factory creating asset variables and the optimization objective to
   *   use.
   */
-final case class OptimizedFlexStrat(
+final case class OptimizingFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
     objectiveFactory: ObjectiveFactory[? <: AssetStepVars],
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
 
   private val logger: Logger = LoggerFactory.getLogger(
-    s"${classOf[OptimizedFlexStrat].getSimpleName}(${objectiveFactory.getClass.getSimpleName})"
+    s"${classOf[OptimizingFlexStrat].getSimpleName}(${objectiveFactory.getClass.getSimpleName})"
   )
 
   override def getServiceRegistrationData: ServiceRegistrationData = {
@@ -160,7 +160,7 @@ final case class OptimizedFlexStrat(
 
 }
 
-object OptimizedFlexStrat {
+object OptimizingFlexStrat {
 
   /** Threshold for the error of soft constraints after optimization. Every soft
     * constraint error should stay below this threshold.

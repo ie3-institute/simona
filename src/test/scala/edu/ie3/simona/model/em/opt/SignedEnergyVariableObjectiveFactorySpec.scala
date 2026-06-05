@@ -34,7 +34,7 @@ class SignedEnergyVariableObjectiveFactorySpec
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
         val (assetVars, objectiveContainer) =
-          OptimizedFlexStrat.buildModel(
+          OptimizingFlexStrat.buildModel(
             flexOptions = flexOptionsScenario1,
             sampleTime = halfHour,
             ticks = ticks,
@@ -163,7 +163,7 @@ class SignedEnergyVariableObjectiveFactorySpec
         val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
 
         val (assetVars, objectiveContainer) =
-          OptimizedFlexStrat.buildModel(
+          OptimizingFlexStrat.buildModel(
             flexOptions = flexOptions,
             sampleTime = halfHour,
             ticks = ticks,
