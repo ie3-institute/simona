@@ -170,19 +170,19 @@ class CommonLossObjectiveFactorySpec
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
-          batRes(0).energyVal should approximate(-3.125)
+          batRes(0).energyVal should approximate(2.875)
 
           // charging 5 kWh minus 1 kWh losses
           batRes(1).pVal should approximate(10)
-          batRes(1).energyVal should approximate(0.875)
+          batRes(1).energyVal should approximate(6.875)
 
           // discharging 5 kWh plus 1.25 kWh losses
           batRes(2).pVal should approximate(-10)
-          batRes(2).energyVal should approximate(-5.375)
+          batRes(2).energyVal should approximate(0.625)
 
           // charging 1 kWh minus 0.2 kWh losses
           batRes(3).pVal should approximate(2)
-          batRes(3).energyVal should approximate(-4.575)
+          batRes(3).energyVal should approximate(1.425)
 
         } withClue buildDebugString(assetVars)
 
@@ -241,19 +241,19 @@ class CommonLossObjectiveFactorySpec
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
-          batRes(0).energyVal should approximate(-3.125)
+          batRes(0).energyVal should approximate(2.875)
 
           // charging 5 kWh minus 1 kWh losses
           batRes(1).pVal should approximate(10)
-          batRes(1).energyVal should approximate(0.875)
+          batRes(1).energyVal should approximate(6.875)
 
           // discharging 5 kWh plus 1.25 kWh losses
           batRes(2).pVal should approximate(-10)
-          batRes(2).energyVal should approximate(-5.375)
+          batRes(2).energyVal should approximate(0.625)
 
           // charging 1 kWh minus 0.2 kWh losses
           batRes(3).pVal should approximate(2)
-          batRes(3).energyVal should approximate(-4.575)
+          batRes(3).energyVal should approximate(1.425)
 
         } withClue buildDebugString(assetVars)
 
@@ -319,24 +319,22 @@ class CommonLossObjectiveFactorySpec
 
           // possibly charging
           batRes(0).pVal should be >= 0d
-          batRes(0).energyVal should (be >= 0d and be <= 6d)
+          batRes(0).energyVal should (be >= 6d and be <= 12d)
 
           // possibly charging, now we should have reached 12 kWh
-          // (6 kWh above starting energy)
           batRes(1).pVal should be >= 0d
-          batRes(1).energyVal should approximate(6d)
+          batRes(1).energyVal should approximate(12d)
 
           // we should've charged with 12 kW plus 3 kW losses in total
           batRes(0).pVal + batRes(1).pVal should approximate(15d)
 
           // possibly discharging
           batRes(2).pVal should be <= 0d
-          batRes(2).energyVal should (be >= -6d and be <= 6d)
+          batRes(2).energyVal should (be >= 0d and be <= 12d)
 
           // possibly discharging, now we should have reached 0 kWh
-          // (12 kWh below starting energy)
           batRes(3).pVal should be <= 0d
-          batRes(3).energyVal should approximate(-6d)
+          batRes(3).energyVal should approximate(0d)
 
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
@@ -406,24 +404,23 @@ class CommonLossObjectiveFactorySpec
 
           // possibly charging
           batRes(0).pVal should be >= 0d
-          batRes(0).energyVal should (be >= 0d and be <= 6d)
+          batRes(0).energyVal should (be >= 6d and be <= 12d)
 
           // possibly charging, now we should have reached 12 kWh
-          // (6 kWh above starting energy)
           batRes(1).pVal should be >= 0d
-          batRes(1).energyVal should approximate(6d)
+          batRes(1).energyVal should approximate(12d)
 
           // we should've charged with 12 kW plus 3 kW losses in total
           batRes(0).pVal + batRes(1).pVal should approximate(15d)
 
           // possibly discharging
           batRes(2).pVal should be <= 0d
-          batRes(2).energyVal should (be >= -6d and be <= 6d)
+          batRes(2).energyVal should (be >= 0d and be <= 12d)
 
           // possibly discharging, now we should have reached 0 kWh
           // (6 kWh below starting energy)
           batRes(3).pVal should be <= 0d
-          batRes(3).energyVal should approximate(-6d)
+          batRes(3).energyVal should approximate(0d)
 
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
@@ -488,20 +485,19 @@ class CommonLossObjectiveFactorySpec
 
           // discharging 0.5 kWh plus 0.125 kWh losses
           batRes(0).pVal should approximate(-1d)
-          batRes(0).energyVal should approximate(-0.625d)
+          batRes(0).energyVal should approximate(5.375d)
 
           // discharging 0.5 kWh plus 0.125 kWh losses
           batRes(1).pVal should approximate(-1d)
-          batRes(1).energyVal should approximate(-1.25d)
+          batRes(1).energyVal should approximate(4.75d)
 
           // possibly charging
           batRes(2).pVal should be >= 0d
-          batRes(2).energyVal should (be >= -1.25d and be <= 6d)
+          batRes(2).energyVal should (be >= 4.75d and be <= 12d)
 
           // possibly charging, now we should have reached 12 kWh
-          // (6 kWh above starting energy)
           batRes(3).pVal should be >= 0d
-          batRes(3).energyVal should approximate(6d)
+          batRes(3).energyVal should approximate(12d)
 
           // we should've charged with 14.5 kW plus 3.625 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(18.125d)
@@ -579,19 +575,19 @@ class CommonLossObjectiveFactorySpec
 
           // discharging 5 kWh
           batRes(0).pVal should approximate(-5)
-          batRes(0).energyVal should approximate(-5)
+          batRes(0).energyVal should approximate(7)
 
           // charging 10 kWh
           batRes(1).pVal should approximate(10)
-          batRes(1).energyVal should approximate(5)
+          batRes(1).energyVal should approximate(17)
 
           // discharging 10 kWh
           batRes(2).pVal should approximate(-10)
-          batRes(2).energyVal should approximate(-5)
+          batRes(2).energyVal should approximate(7)
 
           // charging 2 kWh
           batRes(3).pVal should approximate(2)
-          batRes(3).energyVal should approximate(-3)
+          batRes(3).energyVal should approximate(9)
 
         } withClue buildDebugString(assetVars)
 
@@ -618,16 +614,17 @@ class CommonLossObjectiveFactorySpec
       )
       val evcsFlex = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
+          currentEnergy = KilowattHours(5d),
           energyLimits = SortedMap(
             // half full in the beginning
             0L -> new ClosedInterval(
-              KilowattHours(-5d),
-              KilowattHours(5d),
+              zeroKWh,
+              KilowattHours(10d),
             ),
             // we need to be 90% full when disconnecting
             3600L -> new ClosedInterval(
-              KilowattHours(4d),
-              KilowattHours(5d),
+              KilowattHours(9d),
+              KilowattHours(10d),
             ),
           ),
           powerLimits = ClosedInterval(Kilowatts(-11d), Kilowatts(11)),
@@ -689,27 +686,27 @@ class CommonLossObjectiveFactorySpec
 
           // EV needs to take the 4 kW to reach its target
           evcsRes(0).pVal should approximate(4)
-          evcsRes(0).energyVal should approximate(2)
+          evcsRes(0).energyVal should approximate(7)
           // battery is left with 0
           batRes(0).pVal should approximate(0)
-          batRes(0).energyVal should approximate(0)
+          batRes(0).energyVal should approximate(6)
 
           // EV needs to take the 4 kW to reach its target
           evcsRes(1).pVal should approximate(4)
-          evcsRes(1).energyVal should approximate(4)
+          evcsRes(1).energyVal should approximate(9)
           // battery is left with 0
           batRes(1).pVal should approximate(0)
-          batRes(1).energyVal should approximate(0)
+          batRes(1).energyVal should approximate(6)
 
           // EV is not available from here on
 
           // discharging 5 kWh
           batRes(2).pVal should approximate(-8)
-          batRes(2).energyVal should approximate(-5)
+          batRes(2).energyVal should approximate(1)
 
           // charging 3.2 kWh
           batRes(3).pVal should approximate(8)
-          batRes(3).energyVal should approximate(-1.8)
+          batRes(3).energyVal should approximate(4.2)
 
         } withClue buildDebugString(assetVars)
 
@@ -1071,7 +1068,7 @@ class CommonLossObjectiveFactorySpec
 
           // 0 kW, since result is pushed down by soft constraint
           batRes(0).pVal should approximate(0d)
-          batRes(0).energyVal should approximate(0d)
+          batRes(0).energyVal should approximate(20d)
 
         } withClue buildDebugString(assetVars)
 
@@ -1175,24 +1172,24 @@ class CommonLossObjectiveFactorySpec
           be spared to cover the high load and cannot contribute beforehand.
          */
         bat1Res(0).pVal should approximate(-4d)
-        bat1Res(0).energyVal should approximate(-2.5d)
+        bat1Res(0).energyVal should approximate(7.5d)
         bat2Res(0).pVal should approximate(0d)
-        bat2Res(0).energyVal should approximate(0d)
+        bat2Res(0).energyVal should approximate(6.25d)
 
         bat1Res(1).pVal should approximate(-4d)
-        bat1Res(1).energyVal should approximate(-5d)
+        bat1Res(1).energyVal should approximate(5d)
         bat2Res(1).pVal should approximate(0d)
-        bat2Res(1).energyVal should approximate(0d)
+        bat2Res(1).energyVal should approximate(6.25d)
 
         bat1Res(2).pVal should approximate(-4d)
-        bat1Res(2).energyVal should approximate(-7.5d)
+        bat1Res(2).energyVal should approximate(2.5d)
         bat2Res(2).pVal should approximate(0d)
-        bat2Res(2).energyVal should approximate(0d)
+        bat2Res(2).energyVal should approximate(6.25d)
 
         bat1Res(3).pVal should approximate(-4d)
-        bat1Res(3).energyVal should approximate(-10d)
+        bat1Res(3).energyVal should approximate(0d)
         bat2Res(3).pVal should approximate(-10d)
-        bat2Res(3).energyVal should approximate(-6.25d)
+        bat2Res(3).energyVal should approximate(0d)
 
         /*
           Second period (steps 4-9):
@@ -1204,34 +1201,34 @@ class CommonLossObjectiveFactorySpec
           two steps, thus can't be used at other times during this period.
          */
         bat1Res(4).pVal should approximate(4d)
-        bat1Res(4).energyVal should approximate(-8.4d)
+        bat1Res(4).energyVal should approximate(1.6d)
         bat2Res(4).pVal should approximate(0d)
-        bat2Res(4).energyVal should approximate(-6.25d)
+        bat2Res(4).energyVal should approximate(0d)
 
         bat1Res(5).pVal should approximate(4d)
-        bat1Res(5).energyVal should approximate(-6.8d)
+        bat1Res(5).energyVal should approximate(3.2d)
         bat2Res(5).pVal should approximate(0d)
-        bat2Res(5).energyVal should approximate(-6.25d)
+        bat2Res(5).energyVal should approximate(0d)
 
         bat1Res(6).pVal should approximate(4d)
-        bat1Res(6).energyVal should approximate(-5.2d)
+        bat1Res(6).energyVal should approximate(4.8d)
         bat2Res(6).pVal should approximate(0d)
-        bat2Res(6).energyVal should approximate(-6.25d)
+        bat2Res(6).energyVal should approximate(0d)
 
         bat1Res(7).pVal should approximate(4d)
-        bat1Res(7).energyVal should approximate(-3.6d)
+        bat1Res(7).energyVal should approximate(6.4d)
         bat2Res(7).pVal should approximate(10d)
-        bat2Res(7).energyVal should approximate(-2.25d)
+        bat2Res(7).energyVal should approximate(4d)
 
         bat1Res(8).pVal should approximate(4d)
-        bat1Res(8).energyVal should approximate(-2d)
+        bat1Res(8).energyVal should approximate(8d)
         bat2Res(8).pVal should approximate(5.625d)
-        bat2Res(8).energyVal should approximate(0d)
+        bat2Res(8).energyVal should approximate(6.25d)
 
         bat1Res(9).pVal should approximate(4d)
-        bat1Res(9).energyVal should approximate(-0.4d)
+        bat1Res(9).energyVal should approximate(9.6d)
         bat2Res(9).pVal should approximate(0d)
-        bat2Res(9).energyVal should approximate(0d)
+        bat2Res(9).energyVal should approximate(6.25d)
 
         /*
           Third period (steps 10-11):
@@ -1240,14 +1237,14 @@ class CommonLossObjectiveFactorySpec
           capacity of battery 2 (similar to end of phase 1).
          */
         bat1Res(10).pVal should approximate(-4d)
-        bat1Res(10).energyVal should approximate(-2.9d)
+        bat1Res(10).energyVal should approximate(7.1d)
         bat2Res(10).pVal should approximate(-10d)
-        bat2Res(10).energyVal should approximate(-6.25d)
+        bat2Res(10).energyVal should approximate(0d)
 
         bat1Res(11).pVal should approximate(-4d)
-        bat1Res(11).energyVal should approximate(-5.4d)
+        bat1Res(11).energyVal should approximate(4.6d)
         bat2Res(11).pVal should approximate(0d)
-        bat2Res(11).energyVal should approximate(-6.25d)
+        bat2Res(11).energyVal should approximate(0d)
 
       } withClue buildDebugString(assetVars)
 

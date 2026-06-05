@@ -72,13 +72,13 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.1.0') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.1') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:9.0.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.1.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -91,7 +91,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.14.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.15.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
