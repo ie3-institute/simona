@@ -19,12 +19,12 @@ import java.time.temporal.ChronoUnit
 object TickUtil {
 
   /** Provides conversions from ZonedDateTime into ticks (actually seconds) */
-  implicit class RichZonedDateTime(private val zdt: ZonedDateTime) {
+  extension (zdt: ZonedDateTime) {
 
     /** Calculates the difference between this date time and the provided date
       * time in ticks (= actual seconds)
       */
-    def toTick(implicit startDateTime: ZonedDateTime): Long =
+    def toTick(using startDateTime: ZonedDateTime): Long =
       ChronoUnit.SECONDS.between(startDateTime, zdt)
 
   }
@@ -32,10 +32,10 @@ object TickUtil {
   /** Provides conversions from ticks (seconds) into instances of
     * [[ZonedDateTime]]
     */
-  implicit class TickLong(private val tick: Long) {
+  extension (tick: Long) {
 
     /** Calculates the current [[ZonedDateTime]] based on this tick */
-    def toDateTime(implicit startDateTime: ZonedDateTime): ZonedDateTime =
+    def toDateTime(using startDateTime: ZonedDateTime): ZonedDateTime =
       startDateTime.plusSeconds(tick)
 
     /** Calculates time spam of given time bin resolution */
@@ -64,7 +64,7 @@ object TickUtil {
     *   Array with data ticks
     */
   def getTicksInBetween(frameStart: Long, frameEnd: Long, resolution: Long)(
-      implicit startDateTime: ZonedDateTime
+      using startDateTime: ZonedDateTime
   ): Array[Long] = {
     val firstFullHourTick = TimeUtil
       .toNextFull(frameStart.toDateTime, ChronoUnit.HOURS)

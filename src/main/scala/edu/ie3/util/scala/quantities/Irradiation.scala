@@ -34,7 +34,7 @@ final class Irradiation private (val value: Double, val unit: IrradiationUnit)
 }
 
 object Irradiation extends Dimension[Irradiation] {
-  def apply[A](n: A, unit: IrradiationUnit)(implicit num: Numeric[A]) =
+  def apply[A](n: A, unit: IrradiationUnit)(using num: Numeric[A]) =
     new Irradiation(num.toDouble(n), unit)
   def apply(value: Any): Try[Irradiation] = parse(value)
   def name = "Irradiation"
@@ -44,7 +44,7 @@ object Irradiation extends Dimension[Irradiation] {
 }
 
 trait IrradiationUnit extends UnitOfMeasure[Irradiation] with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): Irradiation =
+  def apply[A](n: A)(using num: Numeric[A]): Irradiation =
     Irradiation(n, this)
 }
 
@@ -58,10 +58,9 @@ object WattHoursPerSquareMeter
 object IrradiationConversions {
   lazy val wattHoursPerSquareMeter: Irradiation = WattHoursPerSquareMeter(1)
 
-  implicit class IrradiationConversions[A](n: A)(implicit num: Numeric[A]) {
+  extension [A](n: A)(using num: Numeric[A]) {
     def wattHoursPerSquareMeter: Irradiation = WattHoursPerSquareMeter(n)
   }
 
-  implicit object IrradiationNumeric
-      extends AbstractQuantityNumeric[Irradiation](Irradiation.primaryUnit)
+  given IrradiationNumeric: AbstractQuantityNumeric[Irradiation](Irradiation.primaryUnit) with {}
 }
