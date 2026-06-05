@@ -7,8 +7,8 @@
 package edu.ie3.simona.test.common
 
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
-  AssetStepVars,
-  AssetVarContainer,
+  AssetStepSymbols,
+  AssetSymbolContainer,
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
@@ -34,12 +34,12 @@ trait OptimizingTestLike extends Assertions {
         ProsumerPrice(EuroPerKilowattHour(sell), EuroPerKilowattHour(buy))
       })))
 
-  extension (vars: AssetStepVars) {
+  extension (vars: AssetStepSymbols) {
 
     /** The state of energy in kWh, if applicable (NaN else).
       */
     def energyVal: Double =
-      vars.getStateOfEnergyResult.map(_.toKilowattHours).getOrElse(Double.NaN)
+      vars.getStateOfEnergyResult.toKilowattHours
 
     /** Power value in kW.
       */
@@ -48,9 +48,11 @@ trait OptimizingTestLike extends Assertions {
 
   }
 
-  extension [AV <: AssetStepVars](containers: Iterable[AssetVarContainer[AV]]) {
+  extension [AV <: AssetStepSymbols](
+      containers: Iterable[AssetSymbolContainer[AV]]
+  ) {
 
-    def vars(uuid: UUID): AssetVarContainer[AV] = containers
+    def vars(uuid: UUID): AssetSymbolContainer[AV] = containers
       .find(_.assetUuid == uuid)
       .getOrElse(fail(s"No asset variables for battery ($uuid) found."))
 
@@ -62,7 +64,7 @@ trait OptimizingTestLike extends Assertions {
   }
 
   def buildDebugString(
-      containers: Iterable[AssetVarContainer[? <: AssetStepVars]]
+      containers: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]]
   ): String =
     s"\n\tDEBUGGING asset variables:" +
       containers
@@ -73,7 +75,7 @@ trait OptimizingTestLike extends Assertions {
                 s"\n\t\t\tTrajectory: ${sortedVars
                     .map { case (_, vars) =>
                       vars.getOperatingPowerResult.in(Kilowatts).rounded(6).toString +
-                        vars.getStateOfEnergyResult.map(stateRes => s" ( -> ${stateRes.in(KilowattHours).rounded(6).toString})").getOrElse("")
+                        s" ( -> ${vars.getStateOfEnergyResult.in(KilowattHours).rounded(6).toString})"
                     }
                     .mkString(", ")}"
               }

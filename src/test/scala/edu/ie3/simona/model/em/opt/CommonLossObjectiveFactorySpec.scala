@@ -162,7 +162,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -233,7 +233,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -311,7 +311,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -396,7 +396,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -477,7 +477,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -567,7 +567,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -678,7 +678,7 @@ class CommonLossObjectiveFactorySpec
         evcsRes.size shouldBe 2
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -754,7 +754,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -833,7 +833,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -935,7 +935,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -1034,6 +1034,7 @@ class CommonLossObjectiveFactorySpec
         )
 
         // adapted eta: ~0.781
+        // fixme
         val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
 
         val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
@@ -1060,7 +1061,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = assetVars.res(batUUID)
 
         {
-          objectiveContainer.softConstraints.foreach { constraint =>
+          objectiveContainer.accuracyChecks.foreach { constraint =>
             withClue(constraint.getWarningMessage) {
               constraint.getError should be < constraintTolerance
             }
@@ -1155,7 +1156,7 @@ class CommonLossObjectiveFactorySpec
       val bat2Res = assetVars.res(bat2UUID)
 
       {
-        objectiveContainer.softConstraints.foreach { constraint =>
+        objectiveContainer.accuracyChecks.foreach { constraint =>
           withClue(constraint.getWarningMessage) {
             constraint.getError should be < constraintTolerance
           }

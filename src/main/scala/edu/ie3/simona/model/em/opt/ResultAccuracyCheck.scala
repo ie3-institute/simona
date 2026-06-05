@@ -14,7 +14,7 @@ import squants.Dimensionless
 /** Trait to be extended by classes detailing a soft constraint as part of the
   * optimization objective, including possible error handling.
   */
-trait SoftConstraint {
+trait ResultAccuracyCheck {
 
   /** The soft constraint expression to be included in the objective to be
     * minimized.
@@ -45,7 +45,7 @@ trait SoftConstraint {
 
 }
 
-object SoftConstraint {
+object ResultAccuracyCheck {
 
   /** Small number to add to the constraint penalty, in order for the penalty to
     * be slightly larger than the absolute value.
@@ -63,11 +63,11 @@ object SoftConstraint {
     *   The penalty factor to be multiplied with the absolute value for the soft
     *   constraint expression.
     */
-  final case class AbsValueSoftConstraint(
+  final case class AbsValueResultAccuracyCheck(
       variable: MPFloatVar,
       absoluteVariable: MPFloatVar,
       penalty: Double,
-  ) extends SoftConstraint {
+  ) extends ResultAccuracyCheck {
 
     override def getExpression: Expression =
       absoluteVariable * penalty
@@ -94,7 +94,7 @@ object SoftConstraint {
 
   }
 
-  object AbsValueSoftConstraint {
+  object AbsValueResultAccuracyCheck {
 
     /** Creates a soft constraint for the absolute value of a power value, used
       * during energy optimization.
@@ -112,13 +112,13 @@ object SoftConstraint {
         p: MPFloatVar,
         pAbs: MPFloatVar,
         eta: Dimensionless,
-    ): AbsValueSoftConstraint = {
+    ): AbsValueResultAccuracyCheck = {
       // Total penalty is slightly larger than the model losses.
       // Thus, the value of pAbs should be pushed down to the
       // absolute of p.
       val penalty = 1 - eta.toEach + epsilon
 
-      AbsValueSoftConstraint(p, pAbs, penalty)
+      AbsValueResultAccuracyCheck(p, pAbs, penalty)
     }
   }
 

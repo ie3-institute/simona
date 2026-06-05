@@ -8,7 +8,7 @@ package edu.ie3.simona.model.em.opt
 
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
-import edu.ie3.simona.model.em.opt.SignedEnergyVariableObjectiveFactory.SignedEnergyStepVars
+import edu.ie3.simona.model.em.opt.SignedEnergyVariableObjectiveFactory.SignedEnergyStepSymbols
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.Data.SecondaryData.ProsumerPrice
@@ -23,7 +23,7 @@ import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.KilowattHours
-import squants.{Dimensionless, Energy, Power, Seconds, Time}
+import squants.{Energy, Power}
 
 import java.util.UUID
 import scala.collection.SortedSet
@@ -34,7 +34,7 @@ import scala.collection.SortedSet
   * This makes the problem convex, but only for positive prices.
   */
 object SignedEnergyVariableObjectiveFactory
-    extends ObjectiveFactory[SignedEnergyStepVars] {
+    extends ObjectiveFactory[SignedEnergyStepSymbols] {
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable(ServiceType.PriceService)
@@ -42,31 +42,22 @@ object SignedEnergyVariableObjectiveFactory
   private val log: Logger =
     LoggerFactory.getLogger(SignedEnergyVariableObjectiveFactory.getClass)
 
-  override def createAssetVars(
-      assetParams: AssetStepParameters,
-      stepStartTick: Long,
-      stepEndTick: Long,
-      sampleTime: Time,
-  )(using model: MPModel): SignedEnergyStepVars =
+  override def createAssetSymbols(
+      assetParams: AssetStepParameters
+  )(using model: MPModel): SignedEnergyStepSymbols =
     assetParams match {
       case fixedPower: FixedPowerStepParameters =>
-        val energyChange = Const(fixedPower.energyChange.toKilowattHours)
-        SignedEnergyStepVars(
-          energyChange,
-          None,
-          stepStartTick,
-          stepEndTick,
-        )
+        FixedSignedEnergyStepSymbols(fixedPower)
       case varPower: VariablePowerStepParameters =>
         val lowerBound =
-          varPower.pMin * sampleTime / varPower.etaDischarge.toEach
+          varPower.pMin * varPower.sampleTime / varPower.etaDischarge.toEach
         val upperBound =
-          varPower.pMax * sampleTime * varPower.etaCharge.toEach
+          varPower.pMax * varPower.sampleTime * varPower.etaCharge.toEach
 
         // modeling the energy change between previous and new state
         // instead of power, which most models would do
         val energyChange = MPFloatVar(
-          symbol = s"E_delta_$stepStartTick",
+          symbol = s"E_delta_${varPower.stepStartTick}",
           lowerBound = lowerBound.toKilowattHours,
           upperBound = upperBound.toKilowattHours,
         )
@@ -77,26 +68,23 @@ object SignedEnergyVariableObjectiveFactory
             Const(varPower.eMax.toKilowattHours)
           else
             MPFloatVar(
-              symbol = s"E_$stepEndTick",
+              symbol = s"E_${varPower.stepEndTick}",
               lowerBound = varPower.eMin.toKilowattHours,
               upperBound = varPower.eMax.toKilowattHours,
             )
 
         model.add(newEnergy := varPower.previousStateEnergy + energyChange)
 
-        SignedEnergyStepVars(
+        VariableSignedEnergyStepSymbols(
+          varPower,
           energyChange,
-          Some(newEnergy),
-          stepStartTick,
-          stepEndTick,
-          etaCharge = varPower.etaCharge,
-          etaDischarge = varPower.etaDischarge,
+          newEnergy,
         )
     }
 
   override def build(
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      assetVars: Iterable[AssetVarContainer[SignedEnergyStepVars]],
+      assetVars: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
       target: Power,
       receivedData: Seq[SecondaryData],
   )(using model: MPModel): Expression = {
@@ -119,25 +107,12 @@ object SignedEnergyVariableObjectiveFactory
           "Results might deviate from optimal solution."
       )
 
-    sortVarsByTick(assetVars)
+    sortSymbolsByTick(assetVars)
       // create objective expression for every time step
       .map { (stepStartTick, tickAssetVars) =>
         val segments = tickAssetVars.foldLeft(Seq[Expression](Zero)) {
           case (previousSegments, assetVars) =>
-            val terms =
-              if assetVars.isInefficient then
-                // Using energy change variables to preserve
-                // linearity of the problem. Convex, because
-                // etaDischarge < 1/etaCharge.
-                Seq(
-                  Const(1d / assetVars.etaCharge.toEach) *
-                    assetVars.energyChange,
-                  Const(assetVars.etaDischarge.toEach) *
-                    assetVars.energyChange,
-                )
-              else Seq(assetVars.energyChange)
-
-            terms.flatMap { term =>
+            assetVars.getObjectiveVariations.flatMap { term =>
               previousSegments.map(_ + term)
             }
         }
@@ -174,6 +149,35 @@ object SignedEnergyVariableObjectiveFactory
       .getOrElse(Zero)
   }
 
+  trait SignedEnergyStepSymbols extends AssetStepSymbols {
+
+    def getObjectiveVariations: Seq[Expression]
+
+  }
+
+  private final case class FixedSignedEnergyStepSymbols(
+      assetParams: FixedPowerStepParameters
+  ) extends SignedEnergyStepSymbols {
+
+    private lazy val energyChange = Const(
+      assetParams.energyChange.toKilowattHours
+    )
+
+    override def getObjectiveVariations: Seq[Expression] = Seq(energyChange)
+
+    override def getOperationSymbol: Expression = energyChange
+
+    override def getStateSymbol: Expression = Const(
+      assetParams.stepEndEnergy.toKilowattHours
+    )
+
+    override def getOperatingPowerResult: Power =
+      assetParams.energyChange / assetParams.sampleTime
+
+    override def getStateOfEnergyResult: Energy = assetParams.stepEndEnergy
+
+  }
+
   /** Container holding the relevant variables for a specific asset and
     * optimization time step. Soft constraints are not used.
     *
@@ -195,33 +199,45 @@ object SignedEnergyVariableObjectiveFactory
     * @param etaDischarge
     *   The discharging efficiency of the asset.
     */
-  final case class SignedEnergyStepVars(
-      energyChange: MPVar | Const,
-      state: Option[MPVar | Const],
-      override val stepStartTick: Long,
-      override val stepEndTick: Long,
-      etaCharge: Dimensionless = onePU,
-      etaDischarge: Dimensionless = onePU,
-  ) extends AssetStepVars {
+  private final case class VariableSignedEnergyStepSymbols(
+      assetParams: VariablePowerStepParameters,
+      energyChange: MPVar,
+      stepEndState: MPVar | Const,
+  ) extends SignedEnergyStepSymbols {
 
-    def isInefficient: Boolean =
-      etaCharge < onePU || etaDischarge < onePU
+    override def getOperationSymbol: Expression = energyChange
+
+    override def getStateSymbol: Expression = stepEndState
+
+    override def getObjectiveVariations: Seq[Expression] =
+      if isInefficient then
+        // Using energy change variables to preserve
+        // linearity of the problem. Convex, because
+        // etaDischarge < 1/etaCharge.
+        Seq(
+          Const(1d / assetParams.etaCharge.toEach) * energyChange,
+          Const(assetParams.etaDischarge.toEach) * energyChange,
+        )
+      else Seq(energyChange)
+
+    private def isInefficient: Boolean =
+      assetParams.etaCharge < onePU || assetParams.etaDischarge < onePU
 
     override def getOperatingPowerResult: Power = {
-      val duration = Seconds(stepEndTick - stepStartTick)
 
-      val storagePower = KilowattHours(energyChange.getValue) / duration
+      val storagePower =
+        KilowattHours(energyChange.getValue) / assetParams.sampleTime
 
       val factor =
-        if storagePower < zeroKW then etaDischarge.toEach
-        else 1d / etaCharge.toEach
+        if storagePower < zeroKW then assetParams.etaDischarge.toEach
+        else 1d / assetParams.etaCharge.toEach
 
       // outside power
       storagePower * factor
     }
 
-    override def getStateOfEnergyResult: Option[Energy] =
-      state.map(_.getValue).map(KilowattHours(_))
+    override def getStateOfEnergyResult: Energy =
+      KilowattHours(stepEndState.getValue)
 
   }
 

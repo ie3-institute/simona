@@ -44,7 +44,7 @@ class SignedEnergyVariableObjectiveFactorySpec
           )
 
         // factory should not produce soft constraints
-        objectiveContainer.softConstraints should be(empty)
+        objectiveContainer.accuracyChecks should be(empty)
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -173,7 +173,7 @@ class SignedEnergyVariableObjectiveFactorySpec
           )
 
         // factory should not produce soft constraints
-        objectiveContainer.softConstraints should be(empty)
+        objectiveContainer.accuracyChecks should be(empty)
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)

@@ -7,22 +7,17 @@
 package edu.ie3.simona.model.em.opt
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
-  CommonLossAssetStepVars,
-  calculateCommonEta,
-  calculateConversionFactor,
-}
+import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.*
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
-import edu.ie3.simona.model.em.opt.SoftConstraint.AbsValueSoftConstraint
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroEurPerKWh, zeroKW}
 import edu.ie3.util.scala.quantities.EnergyPrice
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Dimensionless, Each, Energy, Power, Time}
+import squants.{Dimensionless, Each, Energy, Power}
 
 import java.util.UUID
 
@@ -39,25 +34,15 @@ import java.util.UUID
   * which is kept close to the real absolute value by using a soft constraint.
   */
 abstract class CommonLossObjectiveFactory
-    extends ObjectiveFactory[CommonLossAssetStepVars] {
+    extends ObjectiveFactory[CommonLossAssetStepSymbols] {
 
-  override def createAssetVars(
-      assetParams: AssetStepParameters,
-      stepStartTick: Long,
-      stepEndTick: Long,
-      sampleTime: Time,
-  )(using model: MPModel): CommonLossAssetStepVars =
+  override def createAssetSymbols(
+      assetParams: AssetStepParameters
+  )(using model: MPModel): CommonLossAssetStepSymbols =
     assetParams match {
       case fixedPower: FixedPowerStepParameters =>
-        val fixedPowerConst = Const(
-          (fixedPower.energyChange / sampleTime).toKilowatts
-        )
-        CommonLossAssetStepVars(
-          fixedPowerConst,
-          None,
-          stepStartTick,
-          stepEndTick,
-        )
+        FixedCommonLossAssetStepSymbols(fixedPower)
+
       case varPower: VariablePowerStepParameters =>
         val etaCh = varPower.etaCharge
         val etaDis = varPower.etaCharge
@@ -65,7 +50,7 @@ abstract class CommonLossObjectiveFactory
         // modeling the operating point (power),
         // valid between previous and new state
         val p = MPFloatVar(
-          symbol = s"p_$stepStartTick",
+          symbol = s"p_${varPower.stepStartTick}",
           lowerBound = varPower.pMin.toKilowatts,
           upperBound = varPower.pMax.toKilowatts,
         )
@@ -80,12 +65,12 @@ abstract class CommonLossObjectiveFactory
             Const(varPower.eMax.toKilowattHours * conversionFactor)
           else
             MPFloatVar(
-              symbol = s"e_$stepEndTick",
+              symbol = s"e_${varPower.stepEndTick}",
               lowerBound = varPower.eMin.toKilowattHours * conversionFactor,
               upperBound = varPower.eMax.toKilowattHours * conversionFactor,
             )
 
-        val softConstraint =
+        val pAbsVar =
           if varPower.isInefficient then {
             // there are charging/discharging losses, thus use the full model
 
@@ -95,7 +80,7 @@ abstract class CommonLossObjectiveFactory
             val pAbsMax = varPower.pMax.max(-varPower.pMin)
 
             val pAbs = MPFloatVar(
-              symbol = s"pAbs_$stepStartTick",
+              symbol = s"pAbs_${varPower.stepStartTick}",
               lowerBound = 0,
               upperBound = pAbsMax.toKilowatts,
             )
@@ -114,27 +99,27 @@ abstract class CommonLossObjectiveFactory
             model.add(
               newState := adaptedPreviousEnergy +
                 (p - pAbs * Const(1 - etaCommon.toEach)) *
-                Const(sampleTime.toHours)
+                Const(varPower.sampleTime.toHours)
             )
 
-            Some(AbsValueSoftConstraint(p, pAbs, etaCommon))
+            Some(pAbs)
           } else {
             // there are no charging/discharging losses, we can keep it simple
 
             model.add(
               newState := varPower.previousStateEnergy + p * Const(
-                sampleTime.toHours
+                varPower.sampleTime.toHours
               )
             )
             None
           }
 
-        CommonLossAssetStepVars(
+        VariableCommonLossAssetStepSymbols(
+          varPower,
           p,
-          Some(newState),
-          stepStartTick,
-          stepEndTick,
-          softConstraint,
+          pAbsVar,
+          newState,
+          etaCommon,
           conversionFactor,
         )
     }
@@ -154,7 +139,7 @@ abstract class CommonLossObjectiveFactory
     *   The absolute difference variable.
     */
   protected def createAbsDifference(
-      assetVars: Iterable[CommonLossAssetStepVars],
+      assetVars: Iterable[AssetStepSymbols],
       target: Power,
       stepStartTick: Long,
   )(using model: MPModel): Expression = {
@@ -165,10 +150,10 @@ abstract class CommonLossObjectiveFactory
   }
 
   protected def createPowerSum(
-      assetVars: Iterable[CommonLossAssetStepVars]
+      assetVars: Iterable[AssetStepSymbols]
   ): Expression =
     assetVars
-      .map(_.power)
+      .map(_.getOperationSymbol)
       .reduceOption[Expression](_ + _)
       .getOrElse(Zero)
 
@@ -186,14 +171,23 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetVarContainer[CommonLossAssetStepVars]],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[CommonLossAssetStepSymbols]
+        ],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
     )(using model: MPModel): Expression = {
-      sortVarsByTick(assetVars)
+      sortSymbolsByTick(assetSymbols)
         // create objective expression for every time step
-        .map { case (stepStartTick, tickAssetVars) =>
-          createAbsDifference(tickAssetVars, target, stepStartTick)
+        .map { case (stepStartTick, tickAssetSymbols) =>
+          val absDiff =
+            createAbsDifference(tickAssetSymbols, target, stepStartTick)
+          val softConstraint = tickAssetSymbols
+            .flatMap(_.objectiveAddition)
+            .reduceOption[Expression](_ + _)
+            .getOrElse(Zero)
+
+          absDiff + softConstraint
         }
         // combine expressions of all time steps
         .reduceOption[Expression](_ + _)
@@ -223,7 +217,9 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetVarContainer[CommonLossAssetStepVars]],
+        assetVars: Iterable[
+          AssetSymbolContainer[CommonLossAssetStepSymbols]
+        ],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
     )(using model: MPModel): Expression = {
@@ -235,7 +231,7 @@ object CommonLossObjectiveFactory {
         .minOption
         .map { lowestEta =>
           // we have to be at least a bit above the penalties of all soft constraints
-          1d - lowestEta.toEach + SoftConstraint.epsilon * 2
+          1d - lowestEta.toEach + ResultAccuracyCheck.epsilon * 2
         }
         .getOrElse(0d)
 
@@ -263,11 +259,11 @@ object CommonLossObjectiveFactory {
       val segmentSize = absTotalPowerKW / segmentCount
       val adaptFactor = (1d - lowerLimit) / absTotalPowerKW
 
-      sortVarsByTick(assetVars)
+      sortSymbolsByTick(assetVars)
         // create objective expression for every time step
-        .map { case (stepStartTick, tickAssetVars) =>
+        .map { case (stepStartTick, tickAssetSymbols) =>
           val differenceAbs =
-            createAbsDifference(tickAssetVars, target, stepStartTick)
+            createAbsDifference(tickAssetSymbols, target, stepStartTick)
 
           val epigraph = MPFloatVar.positive(s"epigraph_$stepStartTick")
 
@@ -283,7 +279,12 @@ object CommonLossObjectiveFactory {
               model.add(epigraph >:= Const(m) * differenceAbs + Const(b))
             }
 
-          epigraph
+          val softConstraint = tickAssetSymbols
+            .flatMap(_.objectiveAddition)
+            .reduceOption[Expression](_ + _)
+            .getOrElse(Zero)
+
+          epigraph + softConstraint
         }
         // combine expressions of all time steps
         .reduceOption[Expression](_ + _)
@@ -305,7 +306,9 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetVarContainer[CommonLossAssetStepVars]],
+        assetVars: Iterable[
+          AssetSymbolContainer[CommonLossAssetStepSymbols]
+        ],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
     )(using model: MPModel): Expression = {
@@ -325,13 +328,20 @@ object CommonLossObjectiveFactory {
           )
         )
 
+      // Whether at least one selling price is negative. Neg.
+      // selling price is a good indicator for a neg. buying
+      // price as well (selling price < buying price).
+      val negPriceExists = priceSeries.exists { case (_, priceData) =>
+        priceData.priceSell < zeroEurPerKWh
+      }
+
       val transformFunc = (price: EnergyPrice) =>
         price.toEuroPerKilowattHour / maxPrice
 
-      sortVarsByTick(assetVars)
+      sortSymbolsByTick(assetVars)
         // create objective expression for every time step
-        .map { case (stepStartTick, tickAssetVars) =>
-          val totalPower = createPowerSum(tickAssetVars)
+        .map { case (stepStartTick, tickAssetSymbols) =>
+          val totalPower = createPowerSum(tickAssetSymbols)
 
           val priceData = priceSeries
             .maxBefore(stepStartTick + 1)
@@ -353,15 +363,53 @@ object CommonLossObjectiveFactory {
             )
 
           // convex, since priceSell < priceBuy
-          createEpigraphVar(
+          val epigraphVar = createEpigraphVar(
             Seq(Const(priceSell) * totalPower, Const(priceBuy) * totalPower),
             s"cost_$stepStartTick",
           )
+          if negPriceExists then {
+            // add soft constraint only when prices are negative
+            epigraphVar + tickAssetSymbols
+              .flatMap(_.objectiveAddition)
+              .reduceOption[Expression](_ + _)
+              .getOrElse(Zero)
+          } else epigraphVar
         }
         // combine expressions of all time steps
         .reduceOption[Expression](_ + _)
         .getOrElse(Zero)
     }
+  }
+
+  /** Small number to add to the constraint penalty, in order for the penalty to
+    * be slightly larger than the absolute value.
+    */
+  val epsilon: Double = 1e-6
+
+  trait CommonLossAssetStepSymbols extends AssetStepSymbols {
+
+    lazy val objectiveAddition: Option[Expression]
+
+  }
+
+  private final case class FixedCommonLossAssetStepSymbols(
+      assetParams: FixedPowerStepParameters
+  ) extends CommonLossAssetStepSymbols {
+
+    lazy val objectiveAddition: Option[Expression] = None
+
+    private lazy val power = assetParams.energyChange / assetParams.sampleTime
+
+    override def getOperationSymbol: Expression = Const(power.toKilowatts)
+
+    override def getStateSymbol: Expression = Const(
+      assetParams.stepEndEnergy.toKilowattHours
+    )
+
+    override def getOperatingPowerResult: Power = power
+
+    override def getStateOfEnergyResult: Energy = assetParams.stepEndEnergy
+
   }
 
   /** Container holding the relevant variables and potentially a soft constraint
@@ -373,33 +421,33 @@ object CommonLossObjectiveFactory {
     * @param state
     *   The state variable, describing the state of energy in kWh at the end of
     *   the time step interval.
-    * @param stepStartTick
-    *   The tick at the start of the time step interval, i.e. the tick at which
-    *   the operation of the step starts.
-    * @param stepEndTick
-    *   The tick at the end of the time step interval, i.e. the tick at which
-    *   the operation of the step ends (and a next step might start).
     * @param softConstraint
     *   Optionally a soft constraint to be added to the objective.
     * @param energyConversionFactor
     *   Since the model adapts energy values, this is the conversion factor that
     *   allows deriving proper energy values for use within the simulation.
     */
-  final case class CommonLossAssetStepVars(
-      power: MPVar | Const,
-      override val state: Option[MPVar | Const],
-      override val stepStartTick: Long,
-      override val stepEndTick: Long,
-      override val softConstraint: Option[SoftConstraint] = None,
+  private final case class VariableCommonLossAssetStepSymbols(
+      assetParams: VariablePowerStepParameters,
+      power: MPVar,
+      powerAbs: Option[MPVar],
+      state: MPVar | Const,
+      etaCommon: Dimensionless,
       energyConversionFactor: Double = 1d,
-  ) extends AssetStepVars {
+  ) extends CommonLossAssetStepSymbols {
+
+    lazy val objectiveAddition: Option[Expression] = powerAbs.map { pAbs =>
+      pAbs * Const(1 - etaCommon.toEach + epsilon)
+    }
+
+    override def getOperationSymbol: Expression = power
+
+    override def getStateSymbol: Expression = state
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
 
-    override def getStateOfEnergyResult: Option[Energy] =
-      state
-        .map(_.getValue / energyConversionFactor)
-        .map(KilowattHours(_))
+    override def getStateOfEnergyResult: Energy =
+      KilowattHours(state.getValue / energyConversionFactor)
 
   }
 
