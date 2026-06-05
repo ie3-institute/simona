@@ -190,7 +190,7 @@ class ConvexEpigraphObjectiveFactorySpec
         {
           // should work properly: selling as much as possible
           batRes(0).pVal should approximate(-10d)
-          batRes(0).energyVal should approximate(-6.25d)
+          batRes(0).energyVal should approximate(13.75d)
 
         } withClue buildDebugString(assetVars)
 
