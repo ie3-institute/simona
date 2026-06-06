@@ -84,7 +84,7 @@ object SignedEnergyVariableObjectiveFactory
 
   override def build(
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      assetVars: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
+      assetSymbols: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
       target: Power,
       receivedData: Seq[SecondaryData],
   )(using model: MPModel): Expression = {
@@ -107,12 +107,12 @@ object SignedEnergyVariableObjectiveFactory
           "Results might deviate from optimal solution."
       )
 
-    sortSymbolsByTick(assetVars)
+    sortSymbolsByTick(assetSymbols)
       // create objective expression for every time step
-      .map { (stepStartTick, tickAssetVars) =>
-        val segments = tickAssetVars.foldLeft(Seq[Expression](Zero)) {
-          case (previousSegments, assetVars) =>
-            assetVars.getObjectiveVariations.flatMap { term =>
+      .map { (stepStartTick, tickAssetSymbols) =>
+        val segments = tickAssetSymbols.foldLeft(Seq[Expression](Zero)) {
+          case (previousSegments, assetSymbolsAdd) =>
+            assetSymbolsAdd.getObjectiveVariations.flatMap { term =>
               previousSegments.map(_ + term)
             }
         }
@@ -159,13 +159,8 @@ object SignedEnergyVariableObjectiveFactory
       assetParams: FixedPowerStepParameters
   ) extends SignedEnergyStepSymbols {
 
-    private lazy val energyChange = Const(
-      assetParams.energyChange.toKilowattHours
-    )
-
-    override def getObjectiveVariations: Seq[Expression] = Seq(energyChange)
-
-    override def getOperationSymbol: Expression = energyChange
+    override def getObjectiveVariations: Seq[Expression] =
+      Seq(Const(assetParams.energyChange.toKilowattHours))
 
     override def getStateSymbol: Expression = Const(
       assetParams.stepEndEnergy.toKilowattHours
@@ -204,8 +199,6 @@ object SignedEnergyVariableObjectiveFactory
       energyChange: MPVar,
       stepEndState: MPVar | Const,
   ) extends SignedEnergyStepSymbols {
-
-    override def getOperationSymbol: Expression = energyChange
 
     override def getStateSymbol: Expression = stepEndState
 

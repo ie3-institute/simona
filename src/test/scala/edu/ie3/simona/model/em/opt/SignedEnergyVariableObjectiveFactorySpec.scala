@@ -33,7 +33,7 @@ class SignedEnergyVariableObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val (assetVars, objectiveContainer) =
+        val (assetSymbols, objectiveContainer) =
           OptimizingFlexStrat.buildModel(
             flexOptions = flexOptionsScenario1,
             sampleTime = halfHour,
@@ -63,7 +63,7 @@ class SignedEnergyVariableObjectiveFactorySpec
           prices are high, the battery is used instead.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           // 0 kW to compensate
@@ -125,7 +125,7 @@ class SignedEnergyVariableObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -162,7 +162,7 @@ class SignedEnergyVariableObjectiveFactorySpec
 
         val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
 
-        val (assetVars, objectiveContainer) =
+        val (assetSymbols, objectiveContainer) =
           OptimizingFlexStrat.buildModel(
             flexOptions = flexOptions,
             sampleTime = halfHour,
@@ -185,14 +185,14 @@ class SignedEnergyVariableObjectiveFactorySpec
           The price-based objective works as expected with low prices.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           // should work properly: selling as much as possible
           batRes(0).pVal should approximate(-10d)
           batRes(0).energyVal should approximate(13.75d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 

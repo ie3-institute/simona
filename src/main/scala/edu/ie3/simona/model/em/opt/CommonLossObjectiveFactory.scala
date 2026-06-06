@@ -21,7 +21,7 @@ import squants.{Dimensionless, Each, Energy, Power}
 
 import java.util.UUID
 
-/** Produces asset variables and an optimization objective that uses a single
+/** Produces asset symbols and an optimization objective that uses a single
   * power variable and a common loss term for both charging and discharging.
   * This means that with this model, it is no longer necessary to distinguish
   * between charging and discharging when formulating the state constraint. For
@@ -127,8 +127,8 @@ abstract class CommonLossObjectiveFactory
   /** Creates an absolute variable of the difference between power sum and
     * target power.
     *
-    * @param assetVars
-    *   The asset vars to optimize for.
+    * @param assetSymbols
+    *   The asset symbols to optimize for.
     * @param target
     *   The target power for each time step.
     * @param stepStartTick
@@ -139,20 +139,20 @@ abstract class CommonLossObjectiveFactory
     *   The absolute difference variable.
     */
   protected def createAbsDifference(
-      assetVars: Iterable[AssetStepSymbols],
+      assetSymbols: Iterable[CommonLossAssetStepSymbols],
       target: Power,
       stepStartTick: Long,
   )(using model: MPModel): Expression = {
     val difference =
-      createPowerSum(assetVars) - Const(target.toKilowatts)
+      createPowerSum(assetSymbols) - Const(target.toKilowatts)
 
     createAbsoluteVariable(difference, s"differenceAbs_$stepStartTick")
   }
 
   protected def createPowerSum(
-      assetVars: Iterable[AssetStepSymbols]
+      assetSymbols: Iterable[CommonLossAssetStepSymbols]
   ): Expression =
-    assetVars
+    assetSymbols
       .map(_.getOperationSymbol)
       .reduceOption[Expression](_ + _)
       .getOrElse(Zero)
@@ -217,7 +217,7 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[
+        assetSymbols: Iterable[
           AssetSymbolContainer[CommonLossAssetStepSymbols]
         ],
         target: Power,
@@ -259,7 +259,7 @@ object CommonLossObjectiveFactory {
       val segmentSize = absTotalPowerKW / segmentCount
       val adaptFactor = (1d - lowerLimit) / absTotalPowerKW
 
-      sortSymbolsByTick(assetVars)
+      sortSymbolsByTick(assetSymbols)
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetSymbols) =>
           val differenceAbs =
@@ -306,7 +306,7 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[
+        assetSymbols: Iterable[
           AssetSymbolContainer[CommonLossAssetStepSymbols]
         ],
         target: Power,
@@ -338,7 +338,7 @@ object CommonLossObjectiveFactory {
       val transformFunc = (price: EnergyPrice) =>
         price.toEuroPerKilowattHour / maxPrice
 
-      sortSymbolsByTick(assetVars)
+      sortSymbolsByTick(assetSymbols)
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetSymbols) =>
           val totalPower = createPowerSum(tickAssetSymbols)
@@ -387,6 +387,8 @@ object CommonLossObjectiveFactory {
   val epsilon: Double = 1e-6
 
   trait CommonLossAssetStepSymbols extends AssetStepSymbols {
+
+    def getOperationSymbol: Expression
 
     lazy val objectiveAddition: Option[Expression]
 

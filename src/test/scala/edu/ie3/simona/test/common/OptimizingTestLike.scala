@@ -54,7 +54,7 @@ trait OptimizingTestLike extends Assertions {
 
     def vars(uuid: UUID): AssetSymbolContainer[AV] = containers
       .find(_.assetUuid == uuid)
-      .getOrElse(fail(s"No asset variables for battery ($uuid) found."))
+      .getOrElse(fail(s"No asset symbols for battery ($uuid) found."))
 
     def res(uuid: UUID): IndexedSeq[AV] = vars(uuid).results.headOption
       .getOrElse(fail(s"Empty results for battery ($uuid)."))
@@ -66,7 +66,7 @@ trait OptimizingTestLike extends Assertions {
   def buildDebugString(
       containers: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]]
   ): String =
-    s"\n\tDEBUGGING asset variables:" +
+    s"\n\tDEBUGGING asset symbols:" +
       containers
         .map { container =>
           s"\n\t\t ${container.assetUuid}:" +

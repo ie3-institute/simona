@@ -136,7 +136,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -145,9 +145,9 @@ class CommonLossObjectiveFactorySpec
           objectiveFactory = MinAbsPowerObjectiveFactory,
         )
 
-        assetVars.toSeq should have size 2
-        assetVars.foreach(_.results should have size 1)
-        assetVars.foreach(_.results.foreach(_ should have size 4))
+        assetSymbols.toSeq should have size 2
+        assetSymbols.foreach(_.results should have size 1)
+        assetSymbols.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -159,7 +159,7 @@ class CommonLossObjectiveFactorySpec
           Battery should be able to fully cover the additional power
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -184,7 +184,7 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(1.425)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
       }
@@ -206,7 +206,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -215,9 +215,9 @@ class CommonLossObjectiveFactorySpec
           objectiveFactory = MinAbsPowerObjectiveFactory,
         )
 
-        assetVars.toSeq should have size 2
-        assetVars.foreach(_.results should have size 1)
-        assetVars.foreach(_.results.foreach(_ should have size 4))
+        assetSymbols.toSeq should have size 2
+        assetSymbols.foreach(_.results should have size 1)
+        assetSymbols.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -230,7 +230,7 @@ class CommonLossObjectiveFactorySpec
           up to its maximum power
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -255,7 +255,7 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(1.425)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
       }
@@ -277,7 +277,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -286,9 +286,9 @@ class CommonLossObjectiveFactorySpec
           objectiveFactory = MinAbsPowerObjectiveFactory,
         )
 
-        assetVars.toSeq should have size 2
-        assetVars.foreach(_.results should have size 1)
-        assetVars.foreach(_.results.foreach(_ should have size 4))
+        assetSymbols.toSeq should have size 2
+        assetSymbols.foreach(_.results should have size 1)
+        assetSymbols.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -308,7 +308,7 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -339,7 +339,7 @@ class CommonLossObjectiveFactorySpec
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -362,7 +362,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -371,9 +371,9 @@ class CommonLossObjectiveFactorySpec
           objectiveFactory = MinAbsPowerObjectiveFactory,
         )
 
-        assetVars.toSeq should have size 2
-        assetVars.foreach(_.results should have size 1)
-        assetVars.foreach(_.results.foreach(_ should have size 4))
+        assetSymbols.toSeq should have size 2
+        assetSymbols.foreach(_.results should have size 1)
+        assetSymbols.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -393,7 +393,7 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -425,7 +425,7 @@ class CommonLossObjectiveFactorySpec
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -448,7 +448,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -457,9 +457,9 @@ class CommonLossObjectiveFactorySpec
           objectiveFactory = MinAbsPowerObjectiveFactory,
         )
 
-        assetVars.toSeq should have size 2
-        assetVars.foreach(_.results should have size 1)
-        assetVars.foreach(_.results.foreach(_ should have size 4))
+        assetSymbols.toSeq should have size 2
+        assetSymbols.foreach(_.results should have size 1)
+        assetSymbols.foreach(_.results.foreach(_ should have size 4))
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
@@ -474,7 +474,7 @@ class CommonLossObjectiveFactorySpec
           second half.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -502,7 +502,7 @@ class CommonLossObjectiveFactorySpec
           // we should've charged with 14.5 kW plus 3.625 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(18.125d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -544,7 +544,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = hour,
           ticks = ticks,
@@ -564,7 +564,7 @@ class CommonLossObjectiveFactorySpec
           No losses should be subtracted.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -589,7 +589,7 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(9)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
       }
@@ -650,7 +650,7 @@ class CommonLossObjectiveFactorySpec
           bat2UUID -> evcsFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -671,10 +671,10 @@ class CommonLossObjectiveFactorySpec
           balance out the additional power.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
         batRes.size shouldBe 4
 
-        val evcsRes = assetVars.res(bat2UUID)
+        val evcsRes = assetSymbols.res(bat2UUID)
         evcsRes.size shouldBe 2
 
         {
@@ -708,7 +708,7 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(8)
           batRes(3).energyVal should approximate(4.2)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -724,7 +724,7 @@ class CommonLossObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptionsScenario1,
           sampleTime = halfHour,
           ticks = ticks,
@@ -751,7 +751,7 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -787,7 +787,7 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -797,7 +797,7 @@ class CommonLossObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptionsScenario1,
           sampleTime = halfHour,
           ticks = ticks,
@@ -830,7 +830,7 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -896,7 +896,7 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -906,7 +906,7 @@ class CommonLossObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptionsScenario1,
           sampleTime = halfHour,
           ticks = ticks,
@@ -932,7 +932,7 @@ class CommonLossObjectiveFactorySpec
           prices are high, the battery is used instead.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -998,7 +998,7 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -1037,7 +1037,7 @@ class CommonLossObjectiveFactorySpec
         // fixme
         val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
 
-        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
+        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -1058,7 +1058,7 @@ class CommonLossObjectiveFactorySpec
           loss factor.
          */
 
-        val batRes = assetVars.res(batUUID)
+        val batRes = assetSymbols.res(batUUID)
 
         {
           objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -1071,7 +1071,7 @@ class CommonLossObjectiveFactorySpec
           batRes(0).pVal should approximate(0d)
           batRes(0).energyVal should approximate(20d)
 
-        } withClue buildDebugString(assetVars)
+        } withClue buildDebugString(assetSymbols)
 
         model.release()
 
@@ -1129,7 +1129,7 @@ class CommonLossObjectiveFactorySpec
           Seq.fill(6)((-0.2d, -0.1)) ++
           Seq.fill(2)((0.05d, 0.15d))).toPriceData
 
-      val (assetVars, objectiveContainer) =
+      val (assetSymbols, objectiveContainer) =
         OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
@@ -1152,8 +1152,8 @@ class CommonLossObjectiveFactorySpec
         explanations below.
        */
 
-      val bat1Res = assetVars.res(batUUID)
-      val bat2Res = assetVars.res(bat2UUID)
+      val bat1Res = assetSymbols.res(batUUID)
+      val bat2Res = assetSymbols.res(bat2UUID)
 
       {
         objectiveContainer.accuracyChecks.foreach { constraint =>
@@ -1247,7 +1247,7 @@ class CommonLossObjectiveFactorySpec
         bat2Res(11).pVal should approximate(0d)
         bat2Res(11).energyVal should approximate(0d)
 
-      } withClue buildDebugString(assetVars)
+      } withClue buildDebugString(assetSymbols)
 
       model.release()
 

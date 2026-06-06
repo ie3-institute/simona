@@ -46,7 +46,7 @@ import scala.collection.immutable.SortedMap
   *   is this amount of time away from the current point in simulation time.
   *   Should be a multiple of [[sampleTime]].
   * @param objectiveFactory
-  *   The factory creating asset variables and the optimization objective to
+  *   The factory creating asset symbols and the optimization objective to
   *   use.
   */
 final case class OptimizingFlexStrat(
@@ -89,7 +89,7 @@ final case class OptimizingFlexStrat(
     val flexOptionsById =
       flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo }
 
-    val (assetVars, objectiveContainer) =
+    val (allAssetSymbols, objectiveContainer) =
       buildModel(
         flexOptionsById,
         sampleTime,
@@ -116,9 +116,9 @@ final case class OptimizingFlexStrat(
 
     // we're only interested in the solutions for the current time step
     val flexOptionsMap = flexOptionsById.toMap
-    val assetCtrl = assetVars.map {
-      case AssetSymbolContainer(assetUuid, assetVars) =>
-        val setPoint = assetVars.map {
+    val assetCtrl = allAssetSymbols.map {
+      case AssetSymbolContainer(assetUuid, assetSymbols) =>
+        val setPoint = assetSymbols.map {
           // Taking only the first result for set points
           _.headOption
             .getOrElse(
@@ -168,7 +168,7 @@ object OptimizingFlexStrat {
   private val softConstraintThreshold: Double = 1e-3
 
   /** Constructs the optimization model by creating the required variables and
-    * constraints and the objective. Asset variables and objective are created
+    * constraints and the objective. Asset symbols and objective are created
     * using the objective factory.
     *
     * @param flexOptions
@@ -185,14 +185,14 @@ object OptimizingFlexStrat {
     * @param receivedData
     *   The secondary data received by the EM agent. Empty if none was received.
     * @param objectiveFactory
-    *   The factory creating asset variables and the optimization objective to
+    *   The factory creating asset symbols and the optimization objective to
     *   use.
     * @param model
     *   The optimization model to add variables and constraints to.
     * @tparam AV
-    *   The type of asset variables that the objective factory returns.
+    *   The type of asset symbols that the objective factory returns.
     * @return
-    *   The created asset variable containers and the objective container.
+    *   The created asset symbols containers and the objective container.
     */
   def buildModel[AV <: AssetStepSymbols](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
@@ -205,7 +205,7 @@ object OptimizingFlexStrat {
       model: MPModel
   ): (Iterable[AssetSymbolContainer[AV]], ObjectiveContainer) = {
 
-    val assetVars = addAssetConstraints(
+    val assetSymbols = addAssetConstraints(
       flexOptions,
       sampleTime,
       ticks,
@@ -214,13 +214,13 @@ object OptimizingFlexStrat {
 
     val objective = objectiveFactory.build(
       flexOptions,
-      assetVars,
+      assetSymbols,
       target,
       receivedData,
     )
 
     (
-      assetVars,
+      assetSymbols,
       ObjectiveContainer(objective, Iterable.empty), // fixme
     )
 
@@ -230,7 +230,7 @@ object OptimizingFlexStrat {
     * time. States and operating points are linked according to the time steps.
     *
     * @param flexOptions
-    *   The [[EnergyBoundariesFlexOptions]] to create asset variables from.
+    *   The [[EnergyBoundariesFlexOptions]] to create asset symbols from.
     * @param sampleTime
     *   The amount of time between the steps.
     * @param ticks
@@ -238,7 +238,7 @@ object OptimizingFlexStrat {
     *   steps to consider in the optimization. The ticks should all be exactly
     *   the sample time duration (in seconds) apart from each other.
     * @param objectiveFactory
-    *   The factory that creates asset variables.
+    *   The factory that creates asset symbols.
     * @param model
     *   The optimization model to add variables and constraints to.
     * @return
@@ -450,8 +450,6 @@ object OptimizingFlexStrat {
     */
   trait AssetStepSymbols {
 
-    def getOperationSymbol: Expression
-
     def getStateSymbol: Expression
 
     /** Returns the resulting operating power.
@@ -462,32 +460,13 @@ object OptimizingFlexStrat {
       */
     def getOperatingPowerResult: Power
 
-    /** If applicable, returns the result of [[state]] as an energy.
+    /** Returns the resulting state of energy.
       *
       * This method should only be called after optimization has successfully
       * completed. Otherwise, results might not be available and an exception
       * might be thrown.
       */
     def getStateOfEnergyResult: Energy
-
-  }
-
-  trait AssetStepSymbolsFactory {
-
-    /** Creates asset variables of type [[AV]] from given
-      * [[AssetStepParameters]] according to the requirements of the objective
-      * factory.
-      *
-      * @param assetParams
-      *   The asset parameters to use for creating asset variables.
-      * @param model
-      *   The optimization model to add variables and constraints to.
-      * @return
-      *   The asset variables for the given asset and time step.
-      */
-    def apply(
-        assetParams: AssetStepParameters
-    )(using model: MPModel): AssetStepSymbols
 
   }
 
@@ -535,28 +514,28 @@ object OptimizingFlexStrat {
       */
     def getRequiredSecondaryServices: Iterable[ServiceType]
 
-    /** Creates asset variables of type [[AV]] from given
+    /** Creates asset symbols of type [[AV]] from given
       * [[AssetStepParameters]] according to the requirements of the objective
       * factory.
       *
       * @param assetParams
-      *   The asset parameters to use for creating asset variables.
+      *   The asset parameters to use for creating asset symbols.
       * @param model
-      *   The optimization model to add variables and constraints to.
+      *   The optimization model to add symbols and constraints to.
       * @return
-      *   The asset variables for the given asset and time step.
+      *   The asset symbols for the given asset and time step.
       */
     def createAssetSymbols(assetParams: AssetStepParameters)(using
         model: MPModel
     ): AV
 
-    /** Builds an objective to minimize given the asset variables and an
+    /** Builds an objective to minimize given the asset symbols and an
       * objective factory.
       *
       * @param flexOptions
       *   The flex options that connected assets provided.
-      * @param assetVars
-      *   The asset vars to optimize for.
+      * @param assetSymbols
+      *   The asset symbols to optimize for.
       * @param target
       *   The target power for each time step.
       * @param receivedData
@@ -568,7 +547,7 @@ object OptimizingFlexStrat {
       */
     def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetSymbolContainer[AV]],
+        assetSymbols: Iterable[AssetSymbolContainer[AV]],
         target: Power,
         receivedData: Seq[SecondaryData],
     )(using model: MPModel): Expression
@@ -612,13 +591,13 @@ object OptimizingFlexStrat {
     protected def sortSymbolsByTick(
         assetSymbols: Iterable[AssetSymbolContainer[AV]]
     ): SortedMap[Long, Iterable[AV]] = {
-      // asset vars should all have the same ticks,
+      // asset symbols should all have the same ticks,
       // since they should have all been created with the same ticks
       val ticks = assetSymbols.headOption
         .flatMap(_.results.headOption.map(_.keys.toSeq))
         .getOrElse(Seq.empty)
 
-      // sort all asset vars by tick
+      // sort all asset symbols by tick
       ticks
         .map { stepStartTick =>
           stepStartTick -> assetSymbols.flatMap {
