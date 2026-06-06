@@ -1033,9 +1033,10 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        // adapted eta: ~0.781
-        // fixme
-        val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
+        // to produce the wrong results here, we need two things:
+        // 1. transformed prices with absolute values below (1 - eta), with adapted eta here: ~0.781
+        // 2. a negative price somewhere
+        val priceData = Seq((0.1d, 0.21d), (-0.1d, 1d)).toPriceData
 
         val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
