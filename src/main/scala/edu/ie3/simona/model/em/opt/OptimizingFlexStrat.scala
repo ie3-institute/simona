@@ -46,8 +46,7 @@ import scala.collection.immutable.SortedMap
   *   is this amount of time away from the current point in simulation time.
   *   Should be a multiple of [[sampleTime]].
   * @param objectiveFactory
-  *   The factory creating asset symbols and the optimization objective to
-  *   use.
+  *   The factory creating asset symbols and the optimization objective to use.
   */
 final case class OptimizingFlexStrat(
     sampleTime: Time,
@@ -514,9 +513,8 @@ object OptimizingFlexStrat {
       */
     def getRequiredSecondaryServices: Iterable[ServiceType]
 
-    /** Creates asset symbols of type [[AV]] from given
-      * [[AssetStepParameters]] according to the requirements of the objective
-      * factory.
+    /** Creates asset symbols of type [[AV]] from given [[AssetStepParameters]]
+      * according to the requirements of the objective factory.
       *
       * @param assetParams
       *   The asset parameters to use for creating asset symbols.
@@ -529,8 +527,8 @@ object OptimizingFlexStrat {
         model: MPModel
     ): AV
 
-    /** Builds an objective to minimize given the asset symbols and an
-      * objective factory.
+    /** Builds an objective to minimize given the asset symbols and an objective
+      * factory.
       *
       * @param flexOptions
       *   The flex options that connected assets provided.
