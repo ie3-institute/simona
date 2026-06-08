@@ -62,5 +62,7 @@ object IrradiationConversions {
     def wattHoursPerSquareMeter: Irradiation = WattHoursPerSquareMeter(n)
   }
 
-  given IrradiationNumeric: AbstractQuantityNumeric[Irradiation](Irradiation.primaryUnit) with {}
+  given IrradiationNumeric: AbstractQuantityNumeric[Irradiation](
+    Irradiation.primaryUnit
+  ) with {}
 }

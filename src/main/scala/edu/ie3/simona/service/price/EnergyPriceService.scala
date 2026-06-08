@@ -33,7 +33,7 @@ import edu.ie3.simona.service.{
   SimonaService,
   TimeSeriesUtil,
 }
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
@@ -299,16 +299,15 @@ object EnergyPriceService extends SimonaService {
           val interval = ClosedInterval(tick.toDateTime, endTick.toDateTime)
 
           // price time series is forwarded as forecast without adding noise
-          val valueSeries = updatedStateData.priceSource
-            .getTimeSeries(
-              interval
-            )
-            .getEntries
-            .asScala
-            .map { timeBasedValue =>
-              timeBasedValue.getTime.toTick -> timeBasedValue.getValue
-            }
-            .to(SortedMap)
+          val valueSeries = SortedMap.from(
+            updatedStateData.priceSource
+              .getTimeSeries(interval)
+              .getEntries
+              .asScala
+              .map { timeBasedValue =>
+                timeBasedValue.getTime.toTick -> timeBasedValue.getValue
+              }
+          )
 
           val priceSeries =
             reduceTimeSeriesResolution(valueSeries, resolution).map {

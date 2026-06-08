@@ -18,7 +18,7 @@ import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.PrimaryData
-import edu.ie3.simona.service.Data.PrimaryData.RichValue
+import edu.ie3.simona.service.Data.PrimaryData.toPrimaryData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
