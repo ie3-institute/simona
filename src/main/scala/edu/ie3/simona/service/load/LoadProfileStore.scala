@@ -93,7 +93,7 @@ final case class LoadProfileStore(
         .flatMap { case (_, source) =>
           source.getNextTimeKey(currentTime).toScala.map(_.toTick)
         }
-        .minOption(Ordering.Long)
+        .minOption(using Ordering.Long)
     }
   }
 
