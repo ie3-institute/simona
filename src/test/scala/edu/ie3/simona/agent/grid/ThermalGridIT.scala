@@ -46,7 +46,7 @@ import edu.ie3.simona.test.common.input.{
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toTick
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import org.apache.pekko.actor.testkit.typed.scaladsl.{

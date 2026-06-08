@@ -51,6 +51,15 @@ object TickUtil {
 
   }
 
+  /** Extension methods for converting Int ticks to ZonedDateTime or Long */
+  extension (tick: Int) {
+    def toDateTime(using startDateTime: ZonedDateTime): ZonedDateTime =
+      startDateTime.plusSeconds(tick.toLong)
+
+    def toTick(using startDateTime: ZonedDateTime): Long =
+      tick.toLong
+  }
+
   /** Determine an Array with all ticks between the request frame's start and
     * end according to the data resolution
     *
