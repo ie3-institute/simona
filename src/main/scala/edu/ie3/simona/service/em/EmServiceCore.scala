@@ -392,9 +392,6 @@ case class EmServiceCore(
         }
       }.toMap
 
-      // check if we need to wait for internal answers
-      val msgToExt = None
-
       // update state data
       val newState = copy(
         emDataStore = emDataStore.addExpectedKeys(mapping),
@@ -403,7 +400,7 @@ case class EmServiceCore(
 
       log.warn(s"Open messages: $openMsg")
 
-      (newState, msgToExt)
+      (newState, None)
 
     case _ =>
       throw new CriticalFailureException(
