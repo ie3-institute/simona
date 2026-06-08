@@ -57,7 +57,8 @@ apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
 apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverage
 apply from: scriptsLocation + 'deploy.gradle'
 apply from: scriptsLocation + 'semVer.gradle'
-apply from: scriptsLocation + 'mavenCentralPublish.gradle'
+apply from: scriptsLocation + 'uploadToMavenCentralPortal.gradle' // upload for deploy
+apply from: scriptsLocation + 'stagingAtMavenCentralPortal.gradle' // stage for deploy
 apply from: scriptsLocation + 'branchName.gradle' // checks naming scheme of branches
 
 configurations {
