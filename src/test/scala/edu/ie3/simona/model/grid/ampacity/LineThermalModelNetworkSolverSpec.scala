@@ -17,16 +17,17 @@ class LineThermalModelNetworkSolverSpec extends UnitSpec {
 
     "determine eigenvalues and eigenvectors for a diagonal matrix" in {
       val cases = Table(
-        ("matrix", "expected"),
-        (DenseMatrix((-2.0, 0.0), (0.0, -5.0)), Array(-2.0, -5.0)),
+        ("matrix", "expectedVal", "expectedVec"),
+        (DenseMatrix((-2.0, 0.0), (0.0, -5.0)), Array(-2.0, -5.0), DenseMatrix((1.0,0.0),(0.0,1.0))),
       )
 
-      forAll(cases) { (matrix: DenseMatrix[Double], expected: Array[Double]) =>
+      forAll(cases) { (matrix: DenseMatrix[Double], expectedVal: Array[Double], expectedVec: DenseMatrix[Double]) =>
 
         val (eigenvalues, eigenvectors) =
           LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrix)
 
-        eigenvalues.toArray.sorted shouldBe expected.sorted
+        eigenvalues.toArray.sorted shouldBe expectedVal.sorted
+        eigenvectors shouldBe expectedVec
       }
     }
 
