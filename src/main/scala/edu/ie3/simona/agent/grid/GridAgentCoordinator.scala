@@ -374,7 +374,7 @@ object GridAgentCoordinator {
 
         } else {
           // FIXME DF here the ampacity calculation needs to be done in case of
-          //FIXME DF or this is not necessary at all
+          // FIXME DF or this is not necessary at all
 
           /*
           if stateData.ampacityCalculationParams.activateAmpacityCalculation
@@ -386,7 +386,7 @@ object GridAgentCoordinator {
               )
             )
           }
-          */
+           */
           finishTick(stateData, updated.values.flatten, ctx)
         }
       }
