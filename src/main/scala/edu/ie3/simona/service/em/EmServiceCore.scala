@@ -254,16 +254,13 @@ case class EmServiceCore(
 
       val updatedExpectDataFrom = emDataStore.addExpectedKeys(mapping)
 
-      // check if we need to wait for internal answers
-      val msgToExt = getMsgToExtOption
-
       // update state data
       val newState = copy(
         emDataStore = updatedExpectDataFrom,
         completions = completions.addExpectedKeys(mapping.keySet),
       )
 
-      (newState, msgToExt)
+      (newState, None)
 
     case provideEmData: ProvideEmData =>
       checkTick(tick, provideEmData.tick)
@@ -546,6 +543,13 @@ case class EmServiceCore(
         }
 
         (this, None)
+
+      case WaitingForData(modelUuid) if mode == EmMode.EM_COMMUNICATION && internal.isEmpty =>
+        val msgToExt = if !emDataStore.expects(modelUuid) && emStates(modelUuid).isWaitingForExtern then {
+          Some(new EmResultResponse(Map.empty.asJava))
+        } else None
+
+        (this, msgToExt)
 
       case provideFlexOptions @ ProvideFlexOptions(sender, flexOptions)
           if mode == EmMode.EM_COMMUNICATION =>
