@@ -18,6 +18,7 @@ import edu.ie3.simona.api.data.model.em.{
   PowerLimitFlexOptions as ExtPowerLimitFlexOptions,
 }
 import edu.ie3.simona.exceptions.FlexException
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueDisaggregatedControl,
   IssueFlexControl,
@@ -29,6 +30,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,
 }
+import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toQuantity,
@@ -37,8 +39,9 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
 import squants.Power
 
 import java.util.UUID
-import scala.jdk.CollectionConverters.{MapHasAsJava, MapHasAsScala}
-import scala.jdk.OptionConverters.RichOptional
+import scala.collection.immutable.SortedMap
+import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 
 object FlexConversion {
 
@@ -86,19 +89,63 @@ object FlexConversion {
         throw new FlexException(s"Cannot convert control message: $other")
     }
 
-  def convertOptions[F <: ExtFlexOptions](
-      externalFlexOptions: F
+  def convertOptions(
+      externalFlexOptions: ExtFlexOptions
   ): FlexOptions = {
     externalFlexOptions match {
       case options: ExtPowerLimitFlexOptions =>
-        PowerLimitFlexOptions(options)
+        convertPowerLimit(options)
 
       case options: ExtEnergyBoundariesFlexOptions =>
-        EnergyBoundariesFlexOptions(options)
+        convertEnergyBoundaries(options)
 
       case other =>
         throw FlexException(s"Cannot convert flex option: $other")
     }
+  }
+
+  private def convertPowerLimit(
+      flexOptions: ExtPowerLimitFlexOptions
+  ): PowerLimitFlexOptions =
+    PowerLimitFlexOptions(
+      flexOptions.pRef.toSquants,
+      flexOptions.pMin.toSquants,
+      flexOptions.pMax.toSquants,
+    )
+
+  private def convertEnergyBoundaries(
+      extOptions: ExtEnergyBoundariesFlexOptions
+  ): EnergyBoundariesFlexOptions = {
+    val convertedAssetBoundaries = extOptions.energyBoundaries.asScala.map {
+      assetBoundaries =>
+        val energyLimits = assetBoundaries.energyLimits.asScala
+          .map {
+            case (tick: Long, limits) =>
+              tick -> new ClosedInterval(
+                limits.getLower.toSquants,
+                limits.getUpper.toSquants,
+              )
+            case _ =>
+              throw new FlexException(
+                "Error occurred while converting EnergyBoundariesFlexOptions."
+              )
+          }
+          .to(SortedMap)
+
+        new AssetEnergyBoundaries(
+          assetBoundaries.currentEnergy.toSquants,
+          energyLimits,
+          new ClosedInterval(
+            assetBoundaries.powerLimits.getLower.toSquants,
+            assetBoundaries.powerLimits.getUpper.toSquants,
+          ),
+          assetBoundaries.etaCharge.toSquants,
+          assetBoundaries.etaDischarge.toSquants,
+          assetBoundaries.tickDisconnect.toScala,
+        )
+    }
+
+    EnergyBoundariesFlexOptions(convertedAssetBoundaries.toSeq)
   }
 
   def convertOptions(

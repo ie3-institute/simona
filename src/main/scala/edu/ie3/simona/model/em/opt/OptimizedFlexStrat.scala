@@ -22,7 +22,7 @@ import edu.ie3.simona.service.{
   ServiceRegistrationData,
   ServiceType,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
+import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
@@ -342,10 +342,12 @@ object OptimizedFlexStrat {
     then {
       // there is no flexibility at all, thus we don't need any state to keep track of
 
-      val formerEnergy = energyLimitsStart.map(_.getUpper).getOrElse(zeroKWh)
+      val previousEnergy = energyLimitsStart
+        .map(_.getUpper)
+        .getOrElse(energyBoundaries.currentEnergy)
       val currentEnergy = energyLimitsEnd.getUpper
 
-      val energyChange = currentEnergy - formerEnergy
+      val energyChange = currentEnergy - previousEnergy
 
       FixedPowerStepParameters(energyChange = energyChange)
     } else {
@@ -359,8 +361,8 @@ object OptimizedFlexStrat {
           // ... there was no flexibility in the last step, thus we use the last energy value
           .filter(limits => limits.getLower == limits.getUpper)
           .map(limits => Const(limits.getUpper.toKilowattHours))
-          // ... or this is the initial step, thus we start at 0
-          .getOrElse(Const(0d))
+          // ... or this is the initial step, thus we start with initial energy
+          .getOrElse(Const(energyBoundaries.currentEnergy.toKilowattHours))
       }
 
       VariablePowerStepParameters(
@@ -405,9 +407,9 @@ object OptimizedFlexStrat {
     * @param pMax
     *   The maximum power allowed.
     * @param eMin
-    *   The minimum energy allowed at the end of this time step.
+    *   The minimum state of energy allowed at the end of this time step.
     * @param eMax
-    *   The maximum energy allowed at the end of this time step.
+    *   The maximum state of energy allowed at the end of this time step.
     * @param etaCharge
     *   The charging efficiency.
     * @param etaDischarge
@@ -436,10 +438,8 @@ object OptimizedFlexStrat {
       */
     val operationVar: Const | MPVar
 
-    /** The state variable, describing the amount of energy in kWh at the end of
-      * the interval. Generally, the state energy signifies the upwards and
-      * downwards change of energy, compared to the energy potential (zero kWh)
-      * at the start of the prediction horizon (the current tick).
+    /** The state variable, describing the state of energy in kWh at the end of
+      * the interval.
       */
     val stateVar: Option[Expression]
 
@@ -664,7 +664,7 @@ object OptimizedFlexStrat {
       * optimization has to have found a solution before calling this.
       *
       * @return
-      *   The value of this expression
+      *   The value of this expression.
       */
     def getValue: Double =
       expr match {

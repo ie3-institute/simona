@@ -36,19 +36,12 @@ trait OptimizingTestLike extends Assertions {
 
   extension (vars: AssetStepVars) {
 
-    /** Energy value related to the start of the optimization, which is always
-      * set to 0 kWh.
-      *
-      * @return
-      *   The energy value in kWh.
+    /** The state of energy in kWh.
       */
     def energyVal: Double =
       vars.getStateResult.toKilowattHours
 
     /** Power value in kW.
-      *
-      * @return
-      *   The power value in kW.
       */
     def pVal: Double =
       vars.getOperationResult.toKilowatts

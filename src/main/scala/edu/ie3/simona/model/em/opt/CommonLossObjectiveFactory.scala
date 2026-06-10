@@ -103,8 +103,16 @@ abstract class CommonLossObjectiveFactory
             model.add(pAbs >:= p)
             model.add(pAbs >:= -p)
 
+            val adaptedPreviousEnergy = varPower.previousStateEnergy match {
+              // constants are taken from energy boundary values
+              // and need to be converted to the adapted model
+              case constState: Const =>
+                Const(constState.value * conversionFactor)
+              case other => other
+            }
+
             model.add(
-              newState := varPower.previousStateEnergy +
+              newState := adaptedPreviousEnergy +
                 (p - pAbs * Const(1 - etaCommon.toEach)) *
                 Const(sampleTime.toHours)
             )
@@ -363,10 +371,8 @@ object CommonLossObjectiveFactory {
     *   The operation variable, describing the power in kW to get from the
     *   energy state at the start to the state at the end of the interval.
     * @param stateVar
-    *   The state variable, describing the amount of energy in kWh at the end of
-    *   the interval. Generally, the state energy signifies the upwards and
-    *   downwards change of energy, compared to the energy potential (zero kWh)
-    *   at the start of the prediction horizon (the current tick).
+    *   The state variable, describing the state of energy in kWh at the end of
+    *   the interval.
     * @param stepStartTick
     *   The tick at the start of the interval, i.e. the tick at which the
     *   operation of the step starts.
