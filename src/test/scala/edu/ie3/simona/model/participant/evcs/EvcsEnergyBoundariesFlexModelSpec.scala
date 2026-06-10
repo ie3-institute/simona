@@ -16,10 +16,10 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.QuantityUtils.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import squants.Seconds
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.KilowattHours
 
 import scala.collection.immutable.SortedMap
 
@@ -129,22 +129,24 @@ class EvcsEnergyBoundariesFlexModelSpec
             .copyWithDeparture(departureTick)
         )
 
-        val energyLimits = flexModel
+        val boundaries = flexModel
           .determineEvFlexOptions(
             ev,
             currentTick,
             forecastResolution,
             forecastEnd,
           )
-          .energyLimits
 
+        boundaries.currentEnergy shouldBe stored
+
+        val energyLimits = boundaries.energyLimits
         energyLimits should have size 2
         energyLimits(currentTick) shouldBe
-          new ClosedInterval(-stored, ev.eStorage - stored)
+          new ClosedInterval(zeroKWh, ev.eStorage)
         energyLimits(departureTick) shouldBe
           new ClosedInterval(
-            KilowattHours(expectedLowerLimit) - stored,
-            ev.eStorage - stored,
+            KilowattHours(expectedLowerLimit),
+            ev.eStorage,
           )
       }
 
@@ -188,13 +190,13 @@ class EvcsEnergyBoundariesFlexModelSpec
 
       val departureTick = currentTick + 3600
 
+      val ev = EvModelWrapper(
+        ev1.copyWithDeparture(departureTick)
+      )
+
       val flexOptions = createModel().determineFlexOptions(
         state = EvcsState(
-          evs = Seq(
-            EvModelWrapper(
-              ev1.copyWithDeparture(departureTick)
-            )
-          ),
+          evs = Seq(ev),
           tick = currentTick,
         ),
         dataTimeType = CurrentAndForecast(
@@ -206,19 +208,20 @@ class EvcsEnergyBoundariesFlexModelSpec
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries :: Nil) =>
           boundaries shouldBe AssetEnergyBoundaries(
+            currentEnergy = ev.storedEnergy,
             energyLimits = SortedMap(
               currentTick -> new ClosedInterval(
-                KilowattHours(-5),
-                KilowattHours(5),
+                zeroKWh,
+                ev.eStorage,
               ),
               departureTick -> new ClosedInterval(
-                KilowattHours(3),
-                KilowattHours(5),
+                KilowattHours(8),
+                ev.eStorage,
               ),
             ),
             powerLimits = new ClosedInterval(
-              Kilowatts(-5),
-              Kilowatts(5),
+              -ev.pRatedAc,
+              ev.pRatedAc,
             ),
             tickDisconnect = Some(departureTick),
           )

@@ -17,7 +17,7 @@ import edu.ie3.simona.ontology.messages.flex.{
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.DataTimeType.CurrentAndForecast
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import squants.Energy
 import squants.time.Seconds
 
@@ -92,39 +92,40 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
       .map { disconnectTick =>
 
         // energy to charge until departure
-        val regularLowerLimit =
+        val requiredEnergy =
           ev.eStorage * model.departureTargetSoc - ev.storedEnergy
         val timeToDeparture = Seconds(disconnectTick - currentTick)
 
         // required power to reach the regular lower limit
-        val requiredPower = regularLowerLimit / timeToDeparture
+        val requiredPower = requiredEnergy / timeToDeparture
 
         // since reaching the lower limit needs to be feasible,
         // we have to adapt the limit if the regular limit is
         // not reachable with max power
-        val adaptedLowerLimit =
+        val adaptedRequiredEnergy =
           if requiredPower > maxPower then
             // we cannot reach regular lower limit,
             // thus we do the most we can
             maxPower * timeToDeparture
           else
             // we can reach the regular lower limit
-            regularLowerLimit
+            requiredEnergy
 
         SortedMap(
           disconnectTick -> new ClosedInterval(
-            adaptedLowerLimit,
-            ev.eStorage - ev.storedEnergy,
+            ev.storedEnergy + adaptedRequiredEnergy,
+            ev.eStorage,
           )
         )
       }
       .getOrElse(SortedMap.empty[Long, ClosedInterval[Energy]])
 
     AssetEnergyBoundaries(
+      currentEnergy = ev.storedEnergy,
       energyLimits = SortedMap(
         currentTick -> new ClosedInterval(
-          -ev.storedEnergy,
-          ev.eStorage - ev.storedEnergy,
+          zeroKWh,
+          ev.eStorage,
         )
       ) ++ disconnectingLimits,
       powerLimits = ClosedInterval(minPower, maxPower),
