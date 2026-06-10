@@ -6,26 +6,15 @@
 
 package edu.ie3.simona.util
 
-import edu.ie3.datamodel.models.input.{EmInput, MeasurementUnitInput, NodeInput}
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
   Transformer3WInput,
 }
-import edu.ie3.datamodel.models.input.container.{
-  EnergyManagementUnits,
-  GraphicElements,
-  JointGridContainer,
-  RawGridElements,
-  SubGridContainer,
-  SystemParticipants,
-}
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput,
-}
+import edu.ie3.datamodel.models.input.container.*
 import edu.ie3.datamodel.models.input.system.*
+import edu.ie3.datamodel.models.input.{EmInput, MeasurementUnitInput, NodeInput}
 
 import scala.jdk.CollectionConverters.*
 
@@ -45,8 +34,6 @@ object TestGridFactory {
     *   The system participants, default to empty container.
     * @param energyManagementUnits
     *   The energy management units, default to empty container.
-    * @param graphicElements
-    *   The graphic elements, default to empty container.
     * @return
     *   A JointGridContainer for testing purposes.
     */
@@ -56,14 +43,12 @@ object TestGridFactory {
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
       energyManagementUnits: EnergyManagementUnits =
         createEmptyEnergyManagementUnits(),
-      graphicElements: GraphicElements = createEmptyGraphicElements(),
   ): JointGridContainer =
     new JointGridContainer(
       gridName,
       rawGridElements,
       systemParticipants,
       energyManagementUnits,
-      graphicElements,
     )
 
   /** Creates a sub grid container for testing purposes.
@@ -82,8 +67,6 @@ object TestGridFactory {
     *   The system participants, default to empty container.
     * @param energyManagementUnits
     *   The energy management units, default to empty container.
-    * @param graphicElements
-    *   The graphic elements, default to empty container.
     * @return
     *   A SubGridContainer for testing purposes.
     */
@@ -94,7 +77,6 @@ object TestGridFactory {
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
       energyManagementUnits: EnergyManagementUnits =
         createEmptyEnergyManagementUnits(),
-      graphicElements: GraphicElements = createEmptyGraphicElements(),
   ): SubGridContainer =
     new SubGridContainer(
       gridName,
@@ -102,7 +84,6 @@ object TestGridFactory {
       rawGridElements,
       systemParticipants,
       energyManagementUnits,
-      graphicElements,
     )
 
   def createEmptyRawGridElements(): RawGridElements =
@@ -135,9 +116,4 @@ object TestGridFactory {
       Set.empty[EmInput].asJava
     )
 
-  def createEmptyGraphicElements(): GraphicElements =
-    new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava,
-    )
 }
