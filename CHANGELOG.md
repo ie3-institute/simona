@@ -44,6 +44,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added transformer tap change to congestion management [#1378](https://github.com/ie3-institute/simona/issues/1378)
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 - Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
+- Introduced energy boundaries tightening algorithm [#1835](https://github.com/ie3-institute/simona/issues/1835)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
