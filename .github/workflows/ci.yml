@@ -90,17 +90,13 @@ jobs:
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVENCENTRAL_SIGNINGPASS }}
           ORG_GRADLE_PROJECT_mavenCentralUser: ${{ github.actor == 'sebastian-peter' && secrets.MAVENCENTRAL_USER ||
-            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_USER }}
+            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_USER || github.actor == 'staudtMarius' && secrets.MAVENCENTRAL_MARIUS_USER }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ github.actor == 'sebastian-peter' && secrets.MAVENCENTRAL_PASS ||
-            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_PASS }}
+            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_PASS || github.actor == 'staudtMarius' && secrets.MAVENCENTRAL_MARIUS_PASS }}
 
         run: |
           echo "Using MavenCentral Token of GitHub Actor: ${{ github.actor }}"
-          if [ "${GITHUB_REF}" == "refs/heads/main" ]; then
-            currentVersion=$(./gradlew -q currentVersion)
-          else
-            currentVersion=$(./gradlew -q devVersion)
-          fi
+          currentVersion=$(./gradlew -q currentVersion)
 
           echo "currentVersion=$currentVersion"
 
@@ -114,9 +110,9 @@ jobs:
           ORG_GRADLE_PROJECT_signingKey: ${{ secrets.MAVENCENTRAL_SIGNINGKEY }}
           ORG_GRADLE_PROJECT_signingPassword: ${{ secrets.MAVENCENTRAL_SIGNINGPASS }}
           ORG_GRADLE_PROJECT_mavenCentralUser: ${{ github.actor == 'sebastian-peter' && secrets.MAVENCENTRAL_USER ||
-            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_USER }}
+            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_USER || github.actor == 'staudtMarius' && secrets.MAVENCENTRAL_MARIUS_USER }}
           ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ github.actor == 'sebastian-peter' && secrets.MAVENCENTRAL_PASS ||
-            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_PASS }}
+            github.actor == 'danielfeismann' && secrets.MAVENCENTRAL_DANIEL_PASS || github.actor == 'staudtMarius' && secrets.MAVENCENTRAL_MARIUS_PASS }}
 
         run: |
           ./gradlew stagingAtMavenCentralPortal
