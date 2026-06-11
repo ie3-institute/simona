@@ -31,7 +31,7 @@ import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.simona.util.TickUtil.toTick
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
