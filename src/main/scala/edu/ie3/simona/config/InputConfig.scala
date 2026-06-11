@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.config
 
+import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.InputConfig.{
   Grid,
   LoadProfile,
@@ -13,7 +14,6 @@ import edu.ie3.simona.config.InputConfig.{
   Primary,
   Weather,
 }
-import edu.ie3.simona.config.ConfigParams.*
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
 import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}

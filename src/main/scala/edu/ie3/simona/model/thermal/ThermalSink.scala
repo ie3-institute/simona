@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.model.thermal
 
-import java.util.UUID
-
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
+
+import java.util.UUID
 
 /** Thermal sink model.
   *

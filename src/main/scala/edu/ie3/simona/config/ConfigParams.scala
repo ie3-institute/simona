@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.config
 
-import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
 import pureconfig.generic.ProductHint
 import pureconfig.generic.semiauto.deriveConvert
+import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
 
 import scala.deriving.Mirror
 

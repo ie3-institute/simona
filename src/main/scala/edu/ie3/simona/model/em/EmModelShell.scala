@@ -10,11 +10,11 @@ import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.result.system.FlexOptionsResult
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.exceptions.{CriticalFailureException, FlexException}
+import edu.ie3.simona.ontology.messages.flex.*
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexInit,
   IssueFlexControl,
 }
-import edu.ie3.simona.ontology.messages.flex.*
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.DataTimeType
 import squants.Power

@@ -8,8 +8,8 @@ package edu.ie3.simona.service.primary
 
 import edu.ie3.datamodel.io.connectors.SqlConnector
 import edu.ie3.datamodel.io.naming.timeseries.{
-  IndividualTimeSeriesMetaInformation,
   FileIndividualTimeSeriesMetaInformation,
+  IndividualTimeSeriesMetaInformation,
 }
 import edu.ie3.datamodel.io.naming.{
   DatabaseNamingStrategy,

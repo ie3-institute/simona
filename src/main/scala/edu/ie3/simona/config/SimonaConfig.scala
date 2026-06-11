@@ -17,10 +17,10 @@ import edu.ie3.simona.config.SimonaConfig.{
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.util.TimeUtil
+import pureconfig.*
 import pureconfig.error.*
 import pureconfig.generic.*
 import pureconfig.generic.semiauto.deriveConvert
-import pureconfig.*
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}

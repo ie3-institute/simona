@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.model.participant.flex
 
+import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   FixedState,
   OperatingPoint,
 }
-import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,

@@ -8,7 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{ConfigFactory, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import scopt.{OptionParser as scoptOptionParser}
+import scopt.OptionParser as scoptOptionParser
 
 import java.io.File
 import java.nio.file.Paths

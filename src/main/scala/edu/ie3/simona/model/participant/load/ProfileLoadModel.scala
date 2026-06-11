@@ -9,6 +9,7 @@ package edu.ie3.simona.model.participant.load
 import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.models.input.system.LoadInput
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.RuntimeConfig.LoadRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
@@ -38,7 +39,6 @@ import squants.{Dimensionless, Power}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.immutable.SortedMap
-import edu.ie3.datamodel.models.profile.PowerProfileKey
 
 class ProfileLoadModel(
     override val uuid: UUID,
