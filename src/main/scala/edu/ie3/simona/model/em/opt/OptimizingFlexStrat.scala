@@ -474,7 +474,8 @@ object OptimizingFlexStrat {
       */
     def getStateOfEnergyResult: Energy
 
-    /** @return
+    /** Returns a result accuracy check for the asset and time step, if
+      * applicable.
       */
     def getAccuracyCheck: Option[ResultAccuracyCheck]
 
@@ -502,9 +503,10 @@ object OptimizingFlexStrat {
     * containers.
     *
     * @param objective
-    *   The objective, including all soft constraint expressions.
+    *   The objective, including all soft constraint expressions (if
+    *   applicable).
     * @param accuracyChecks
-    *   All soft constraints.
+    *   All result accuracy checks.
     */
   final case class ObjectiveContainer(
       objective: Expression,
