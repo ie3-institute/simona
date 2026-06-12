@@ -108,7 +108,7 @@ final case class OptimizingFlexStrat(
       )
 
     objectiveContainer.accuracyChecks
-      .filter(_.getError > softConstraintThreshold)
+      .filter(_.getError > accuracyWarningThreshold)
       .foreach { constraint =>
         logger.warn(constraint.getWarningMessage)
       }
@@ -161,10 +161,10 @@ final case class OptimizingFlexStrat(
 
 object OptimizingFlexStrat {
 
-  /** Threshold for the error of soft constraints after optimization. Every soft
-    * constraint error should stay below this threshold.
+  /** Threshold for the error of result accuracy checks after optimization.
+    * Every error should stay below this threshold.
     */
-  private val softConstraintThreshold: Double = 1e-3
+  private val accuracyWarningThreshold: Double = 1e-3
 
   /** Constructs the optimization model by creating the required variables and
     * constraints and the objective. Asset symbols and objective are created
@@ -218,9 +218,14 @@ object OptimizingFlexStrat {
       receivedData,
     )
 
+    val allAccuracyChecks =
+      assetSymbols.flatMap(
+        _.results.flatMap(_.values.flatMap(_.getAccuracyCheck))
+      )
+
     (
       assetSymbols,
-      ObjectiveContainer(objective, Iterable.empty), // fixme
+      ObjectiveContainer(objective, allAccuracyChecks),
     )
 
   }
@@ -444,11 +449,13 @@ object OptimizingFlexStrat {
       etaCharge < onePU || etaDischarge < onePU
   }
 
-  /** Class holding symbols (variables or constants) used in optimization for an
-    * asset at a single time step.
+  /** Trait for containers providing symbols (variables or constants) used in
+    * optimization for an asset at a single time step.
     */
   trait AssetStepSymbols {
 
+    /** Returns the symbol for the asset state of energy in kWh.
+      */
     def getStateSymbol: Expression
 
     /** Returns the resulting operating power.
@@ -466,6 +473,10 @@ object OptimizingFlexStrat {
       * might be thrown.
       */
     def getStateOfEnergyResult: Energy
+
+    /** @return
+      */
+    def getAccuracyCheck: Option[ResultAccuracyCheck]
 
   }
 

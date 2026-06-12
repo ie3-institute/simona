@@ -149,12 +149,30 @@ object SignedEnergyVariableObjectiveFactory
       .getOrElse(Zero)
   }
 
+  /** Trait for container that provides symbols for a specific asset and
+    * optimization time step, to be used by
+    * [[SignedEnergyVariableObjectiveFactory]].
+    */
   trait SignedEnergyStepSymbols extends AssetStepSymbols {
 
+    /** Get all variations of the terms (consisting of signed energy variable
+      * and coefficient) to be used within cross products in the objective.
+      * @return
+      */
     def getObjectiveVariations: Seq[Expression]
+
+    // Unfortunately, it'd be not trivial to provide a check for this model.
+    override def getAccuracyCheck: Option[ResultAccuracyCheck] = None
 
   }
 
+  /** Container that provides symbols for a specific asset and for an
+    * optimization time step in which energy change is fixed, to be used by
+    * [[SignedEnergyVariableObjectiveFactory]].
+    *
+    * @param assetParams
+    *   Parameters for the asset at the specific time step.
+    */
   private final case class FixedSignedEnergyStepSymbols(
       assetParams: FixedPowerStepParameters
   ) extends SignedEnergyStepSymbols {
@@ -173,26 +191,19 @@ object SignedEnergyVariableObjectiveFactory
 
   }
 
-  /** Container holding the relevant variables for a specific asset and
-    * optimization time step. Soft constraints are not used.
+  /** Container that provides symbols for a specific asset and for an
+    * optimization time step in which energy change is variable, to be used by
+    * [[SignedEnergyVariableObjectiveFactory]].
     *
+    * @param assetParams
+    *   Parameters for the asset at the specific time step.
     * @param energyChange
     *   The operation variable, describing the energy change in kWh to get from
     *   the energy state at the start to the state at the end of the time step
     *   interval.
-    * @param state
+    * @param stepEndState
     *   The state variable, describing the amount of energy in kWh at the end of
     *   the time step interval.
-    * @param stepStartTick
-    *   The tick at the start of the time step interval, i.e. the tick at which
-    *   the operation of the step starts.
-    * @param stepEndTick
-    *   The tick at the end of the time step interval, i.e. the tick at which
-    *   the operation of the step ends (and a next step might start).
-    * @param etaCharge
-    *   The charging efficiency of the asset.
-    * @param etaDischarge
-    *   The discharging efficiency of the asset.
     */
   private final case class VariableSignedEnergyStepSymbols(
       assetParams: VariablePowerStepParameters,
@@ -204,9 +215,7 @@ object SignedEnergyVariableObjectiveFactory
 
     override def getObjectiveVariations: Seq[Expression] =
       if isInefficient then
-        // Using energy change variables to preserve
-        // linearity of the problem. Convex, because
-        // etaDischarge < 1/etaCharge.
+        // Convex, because etaDischarge < 1/etaCharge.
         Seq(
           Const(1d / assetParams.etaCharge.toEach) * energyChange,
           Const(assetParams.etaDischarge.toEach) * energyChange,
@@ -218,6 +227,7 @@ object SignedEnergyVariableObjectiveFactory
 
     override def getOperatingPowerResult: Power = {
 
+      // power on storage side
       val storagePower =
         KilowattHours(energyChange.getValue) / assetParams.sampleTime
 

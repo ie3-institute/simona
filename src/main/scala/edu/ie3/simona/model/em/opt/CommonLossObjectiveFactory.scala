@@ -153,7 +153,7 @@ abstract class CommonLossObjectiveFactory
       assetSymbols: Iterable[CommonLossAssetStepSymbols]
   ): Expression =
     assetSymbols
-      .map(_.getOperationSymbol)
+      .map(_.getOperationPowerSymbol)
       .reduceOption[Expression](_ + _)
       .getOrElse(Zero)
 
@@ -231,7 +231,7 @@ object CommonLossObjectiveFactory {
         .minOption
         .map { lowestEta =>
           // we have to be at least a bit above the penalties of all soft constraints
-          1d - lowestEta.toEach + ResultAccuracyCheck.epsilon * 2
+          1d - lowestEta.toEach + penaltyEpsilon * 2
         }
         .getOrElse(0d)
 
@@ -329,7 +329,7 @@ object CommonLossObjectiveFactory {
         )
 
       // Whether at least one selling price is negative. Neg.
-      // selling price is a good indicator for a neg. buying
+      // selling price is a requirement for a neg. buying
       // price as well (selling price < buying price).
       val negPriceExists = priceSeries.exists { case (_, priceData) =>
         priceData.priceSell < zeroEurPerKWh
@@ -368,7 +368,9 @@ object CommonLossObjectiveFactory {
             s"cost_$stepStartTick",
           )
           if negPriceExists then {
-            // add soft constraint only when prices are negative
+            // Add soft constraint only when prices are negative.
+            // For positive prices, the optimum is always to not
+            // exaggerate losses.
             epigraphVar + tickAssetSymbols
               .flatMap(_.objectiveAddition)
               .reduceOption[Expression](_ + _)
@@ -384,16 +386,33 @@ object CommonLossObjectiveFactory {
   /** Small number to add to the constraint penalty, in order for the penalty to
     * be slightly larger than the absolute value.
     */
-  val epsilon: Double = 1e-6
+  private val penaltyEpsilon: Double = 1e-6
 
+  /** Trait for container that provides symbols for a specific asset and
+    * optimization time step, to be used by [[CommonLossObjectiveFactory]].
+    */
   trait CommonLossAssetStepSymbols extends AssetStepSymbols {
 
-    def getOperationSymbol: Expression
-
+    /** An additional expression that can be (but is not required to be) added
+      * to the objective for the given asset and time step.
+      */
     lazy val objectiveAddition: Option[Expression]
+
+    /** Returns the operation power symbol in kW (variable or constant) for the
+      * given asset and time step.
+      */
+    def getOperationPowerSymbol: Expression
 
   }
 
+  /** Container that provides symbols for a specific asset and for an
+    * optimization time step in which power is fixed, to be used by
+    * [[CommonLossObjectiveFactory]]. Soft constraints (objective addition) are
+    * not used.
+    *
+    * @param assetParams
+    *   Parameters for the asset at the specific time step.
+    */
   private final case class FixedCommonLossAssetStepSymbols(
       assetParams: FixedPowerStepParameters
   ) extends CommonLossAssetStepSymbols {
@@ -402,7 +421,7 @@ object CommonLossObjectiveFactory {
 
     private lazy val power = assetParams.energyChange / assetParams.sampleTime
 
-    override def getOperationSymbol: Expression = Const(power.toKilowatts)
+    override def getOperationPowerSymbol: Expression = Const(power.toKilowatts)
 
     override def getStateSymbol: Expression = Const(
       assetParams.stepEndEnergy.toKilowattHours
@@ -412,44 +431,91 @@ object CommonLossObjectiveFactory {
 
     override def getStateOfEnergyResult: Energy = assetParams.stepEndEnergy
 
+    override def getAccuracyCheck: Option[ResultAccuracyCheck] = None
+
   }
 
-  /** Container holding the relevant variables and potentially a soft constraint
-    * for a specific asset and optimization time step.
+  /** Container that provides symbols for a specific asset and for an
+    * optimization time step in which power is variable, to be used by
+    * [[CommonLossObjectiveFactory]]. A soft constraint via objective addition
+    * can potentially be used.
     *
+    * @param assetParams
+    *   Parameters for the asset at the specific time step.
     * @param power
     *   The operation variable, describing the power in kW to get from the
     *   energy state at the start to the state at the end of the interval.
-    * @param state
+    * @param powerAbs
+    *   Optionally, the approximated absolute value of the [[power]] variable,
+    *   in kW.
+    * @param stepEndState
     *   The state variable, describing the state of energy in kWh at the end of
     *   the time step interval.
-    * @param softConstraint
-    *   Optionally a soft constraint to be added to the objective.
+    * @param etaCommon
+    *   The common efficiency eta for charging and discharging.
     * @param energyConversionFactor
     *   Since the model adapts energy values, this is the conversion factor that
-    *   allows deriving proper energy values for use within the simulation.
+    *   allows deriving the actual energy values.
     */
   private final case class VariableCommonLossAssetStepSymbols(
       assetParams: VariablePowerStepParameters,
       power: MPVar,
       powerAbs: Option[MPVar],
-      state: MPVar | Const,
+      stepEndState: MPVar | Const,
       etaCommon: Dimensionless,
       energyConversionFactor: Double = 1d,
   ) extends CommonLossAssetStepSymbols {
 
     lazy val objectiveAddition: Option[Expression] = powerAbs.map { pAbs =>
-      pAbs * Const(1 - etaCommon.toEach + epsilon)
+      pAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
     }
 
-    override def getOperationSymbol: Expression = power
+    override def getOperationPowerSymbol: Expression = power
 
-    override def getStateSymbol: Expression = state
+    override def getStateSymbol: Expression = stepEndState
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
 
     override def getStateOfEnergyResult: Energy =
-      KilowattHours(state.getValue / energyConversionFactor)
+      KilowattHours(stepEndState.getValue / energyConversionFactor)
+
+    override def getAccuracyCheck: Option[ResultAccuracyCheck] =
+      powerAbs.map(PowerAbsVariableAccuracyCheck(power, _))
+
+  }
+
+  /** Accuracy check for an absolute value of a free variable.
+    *
+    * @param power
+    *   The power variable that can be assigned a positive or negative number.
+    * @param powerAbs
+    *   The power variable that is supposed to be set to the absolute value of
+    *   [[power]].
+    */
+  private final case class PowerAbsVariableAccuracyCheck(
+      power: MPFloatVar,
+      powerAbs: MPFloatVar,
+  ) extends ResultAccuracyCheck {
+
+    override def getError: Double = {
+      val (value, absoluteValue) = getVals
+      math.abs(math.abs(value) - absoluteValue)
+    }
+
+    override def getWarningMessage: String = {
+      val (value, absoluteValue) = getVals
+      s"Approximated absolute power value $absoluteValue kW" +
+        s"and correct absolute power value ${math.abs(value)} kW are $getError kW apart."
+    }
+
+    private def getVals: (Double, Double) =
+      power.value
+        .zip(powerAbs.value)
+        .getOrElse(
+          throw new CriticalFailureException(
+            "Solution are expected to be determined at this point!"
+          )
+        )
 
   }
 
