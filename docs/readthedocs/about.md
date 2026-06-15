@@ -33,7 +33,7 @@ SIMONA can be applied to a range of research and development tasks related to el
   Generation of grid utilisation time series for future scenarios. These results can be used to analyse hosting capacity, evaluate grid reinforcement measures, and assess the impact of new technologies.
 
 - **Grid Operation and Congestion Analysis:**  
-  Investigation of operational challenges in distribution grids with high shares of distributed energy resources. Possible mitigation measures such as coordinated control strategies or transformer tap changes are   described in the {doc}`Functionality` section.
+  Investigation of operational challenges in distribution grids with high shares of distributed energy resources. Possible mitigation measures such as coordinated control strategies or transformer tap changes are   described in the {doc}`Functionality <functionality>` section.
 
 - **Energy Management and Flexibility Utilisation:**  
   Evaluation of energy management strategies and the coordinated utilisation of flexibility from distributed energy resources such as batteries, controllable loads, and distributed generation.
