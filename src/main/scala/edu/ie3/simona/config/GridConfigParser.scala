@@ -10,8 +10,8 @@ import edu.ie3.datamodel.models.voltagelevels.{
   GermanVoltageLevelUtils,
   VoltageLevel,
 }
+import edu.ie3.simona.config.SimonaConfig.GridConfig
 import edu.ie3.simona.config.SimonaConfig.{
-  GridConfig,
   RefSystemConfig,
   VoltLvlConfig,
   VoltageLimitsConfig,

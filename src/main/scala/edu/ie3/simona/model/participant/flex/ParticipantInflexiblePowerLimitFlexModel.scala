@@ -6,12 +6,12 @@
 
 package edu.ie3.simona.model.participant.flex
 
-import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
   OperationChangeIndicator,
 }
+import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   PowerLimitFlexOptions,

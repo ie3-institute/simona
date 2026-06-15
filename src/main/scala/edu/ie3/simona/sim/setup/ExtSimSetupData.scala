@@ -55,24 +55,24 @@ final case class ExtSimSetupData(
   )(using log: Logger): ExtSimSetupData = (connection, ref) match {
     case (
           primaryConnection: ExtPrimaryDataConnection,
-          serviceRef: ActorRef[?],
+          serviceRef: ActorRef[ServiceMessage],
         ) =>
       update(primaryConnection, serviceRef)
     case (
           _: ExtEmDataConnection,
-          serviceRef: ActorRef[?],
+          serviceRef: ActorRef[ExtEmDataService.Message],
         ) =>
       copy(emDataService = Some(serviceRef))
     case (
           _: ExtEvDataConnection,
-          serviceRef: ActorRef[?],
+          serviceRef: ActorRef[ExtEvDataService.Message],
         ) =>
       copy(evDataService = Some(serviceRef))
-    case (_: ExtResultListener, serviceRef: ActorRef[?]) =>
+    case (_: ExtResultListener, serviceRef: ActorRef[ResultListener.Message]) =>
       copy(resultListeners = resultListeners ++ Seq(serviceRef))
     case (
           _: ExtResultDataConnection,
-          serviceRef: ActorRef[?],
+          serviceRef: ActorRef[ExtResultProvider.Message],
         ) =>
       copy(resultProviders = resultProviders ++ Seq(serviceRef))
     case (con, ref) =>

@@ -6,11 +6,11 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.util.scala.quantities.ReactivePower
 import org.apache.pekko.actor.typed.ActorRef

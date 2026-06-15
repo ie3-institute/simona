@@ -14,10 +14,9 @@ import edu.ie3.datamodel.models.voltagelevels.{
 }
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import edu.ie3.util.quantities.QuantityUtil
+import javax.measure.quantity.ElectricPotential
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
-
-import javax.measure.quantity.ElectricPotential
 
 /** Parses voltage level elements
   */

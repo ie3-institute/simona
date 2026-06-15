@@ -21,8 +21,8 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 import edu.ie3.simona.model.participant.ParticipantModelShell.ResultsContainer
 import edu.ie3.simona.model.participant.flex.ParticipantFlexModelShell
 import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
-import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.ontology.messages.flex.{FlexOptions, FlexType}
+import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.IssueFlexControl
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.{Data, DataTimeType}
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION

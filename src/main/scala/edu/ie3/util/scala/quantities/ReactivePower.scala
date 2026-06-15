@@ -6,9 +6,9 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.*
 import squants.energy.*
 import squants.time.{Hours, Time, TimeIntegral}
+import squants.*
 
 import scala.util.Try
 

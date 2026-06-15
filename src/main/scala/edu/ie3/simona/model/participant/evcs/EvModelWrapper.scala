@@ -14,8 +14,8 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import squants.energy.{Energy, KilowattHours, Power}
-import squants.time.{Seconds, Time}
+import squants.energy.{Power, Energy, KilowattHours}
+import squants.time.{Time, Seconds}
 
 import java.util.UUID
 

@@ -8,9 +8,9 @@ package edu.ie3.simona.model.thermal
 
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import squants.Power
+import scala.reflect.Selectable.reflectiveSelectable
 
 import java.security.InvalidParameterException
-import scala.reflect.Selectable.reflectiveSelectable
 
 /** Trait to provide a feed-in strategy for handling thermal infeed (qDot).
   */

@@ -6,7 +6,14 @@
 
 package edu.ie3.util.scala.io
 
-import com.sksamuel.avro4s.*
+import com.sksamuel.avro4s.{
+  AvroSchema,
+  Decoder,
+  Encoder,
+  FromRecord,
+  SchemaFor,
+  ToRecord,
+}
 import io.confluent.kafka.streams.serdes.avro.{
   GenericAvroDeserializer,
   GenericAvroSerializer,

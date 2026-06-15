@@ -36,9 +36,9 @@ import edu.ie3.simona.config.OutputConfig.{
   SimpleOutputConfig,
   ThermalOutputConfigs,
 }
+import edu.ie3.simona.config.{ConfigFailFast, RuntimeConfig}
 import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.getOrThrow
-import edu.ie3.simona.config.{ConfigFailFast, RuntimeConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient

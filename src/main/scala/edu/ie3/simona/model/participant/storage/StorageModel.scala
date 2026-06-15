@@ -18,12 +18,12 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.model.participant.storage.StorageModel.{
   RefTargetSocParams,
   StorageState,
 }
+import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.model.participant.{ChargingHelper, ParticipantModel}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData.{

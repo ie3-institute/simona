@@ -19,13 +19,13 @@ import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.agent.grid.powerflow.SweepValueStore
 import edu.ie3.simona.agent.grid.powerflow.SweepValueStore.SweepValueStoreData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.model.grid.Transformer3wModel.yij
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
+import edu.ie3.simona.model.grid.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.slf4j.Logger

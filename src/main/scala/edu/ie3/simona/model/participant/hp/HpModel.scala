@@ -14,15 +14,15 @@ import edu.ie3.datamodel.models.result.system.{
   HpResult,
   SystemParticipantResult,
 }
-import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
   OperatingPoint,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
-import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.model.participant.hp.HpModel.{HpOperatingPoint, HpState}
+import edu.ie3.simona.model.participant.ParticipantModel
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.model.thermal.ThermalGrid
 import edu.ie3.simona.model.thermal.ThermalGrid.{
   ThermalDemandWrapper,
