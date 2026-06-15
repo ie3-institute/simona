@@ -291,7 +291,7 @@ case class EmServiceCore(
       log.debug(s"$receiver <- $flexRequest")
 
       receiver match {
-        case ref: ActorRef[?] =>
+        case ref: ActorRef[FlexRequest] =>
           if tick == INIT_SIM_TICK then {
             ref ! flexRequest
 
