@@ -20,6 +20,13 @@ import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power}
 
+/** Implementation for storage optimization that is quite common in literature.
+  * Charging and discharging each are modeled with their own variable. Multiple
+  * additional constraints are possible: The relaxed model allows for
+  * simultaneous charging and discharging; the complementarity constraint
+  * involving a binary variable delivers exact results, but makes the problem
+  * MILP.
+  */
 abstract class SplitPowerVarsObjectiveFactory
     extends PowerVariableObjectiveFactory {
 
@@ -137,14 +144,35 @@ abstract class SplitPowerVarsObjectiveFactory
 
 object SplitPowerVarsObjectiveFactory {
 
+  /** Enumeration that allows specification of additional constraints, which
+    * will be added by [[SplitPowerVarsObjectiveFactory.createAssetSymbols]].
+    */
   enum SplitPowerVarsAdditionalConstraints:
-    case RelaxedConstraints, BinaryConstraint, NoAdditions
+    case
+      /** Tighter boundaries that exclude some, but not all configurations with
+        * simultaneous charging and discharging.
+        */
+      RelaxedConstraints,
 
+      /** Constraints that use a binary variable to produce exact results.
+        */
+      BinaryConstraint,
+
+      /** No additional constraints.
+        */
+      NoAdditions
+
+  /** Creates an objective that simply minimizes the absolute value of the sum
+    * of power by using an epigraph constraint.
+    */
   final case class MinAbsPowerObjectiveFactory(
       override val additionalConstraints: SplitPowerVarsAdditionalConstraints
   ) extends SplitPowerVarsObjectiveFactory
       with MinAbsPowerObjective
 
+  /** Trait for container that provides symbols for a specific asset and
+    * optimization time step, to be used by [[SplitPowerVarsObjectiveFactory]].
+    */
   private trait SplitPowerAssetStepSymbols extends PowerVarAssetStepSymbols {
 
     override lazy val objectiveAddition: Option[Expression] = None
@@ -153,8 +181,8 @@ object SplitPowerVarsObjectiveFactory {
 
   /** Container that provides symbols for a specific asset and for an
     * optimization time step in which power is fixed, to be used by
-    * [[CommonLossObjectiveFactory]]. Soft constraints (objective addition) are
-    * not used.
+    * [[SplitPowerVarsObjectiveFactory]]. Soft constraints (objective addition)
+    * are not used.
     *
     * @param assetParams
     *   Parameters for the asset at the specific time step.
@@ -164,6 +192,20 @@ object SplitPowerVarsObjectiveFactory {
   ) extends SplitPowerAssetStepSymbols
       with FixedPowerVarAssetStepSymbols
 
+  /** Container that provides symbols for a specific asset and for an
+    * optimization time step in which power is variable, to be used by
+    * [[SplitPowerVarsObjectiveFactory]]. A soft constraint via objective
+    * addition can potentially be used.
+    *
+    * @param assetParams
+    *   Parameters for the asset at the specific time step.
+    * @param power
+    *   The operation variable, describing the power in kW to get from the
+    *   energy state at the star t to the state at the end of the interval.
+    * @param stepEndState
+    *   The state variable, describing the state of energy in kWh at the end of
+    *   the time step interval.
+    */
   private final case class EfficientSplitPowerAssetStepSymbols(
       assetParams: VariablePowerStepParameters,
       power: MPVar,
