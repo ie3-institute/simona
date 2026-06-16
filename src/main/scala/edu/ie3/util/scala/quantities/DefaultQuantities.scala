@@ -24,6 +24,8 @@ object DefaultQuantities {
   val zeroKWh: Energy = KilowattHours(0d)
   val zeroMWh: Energy = MegawattHours(0d)
 
+  val zeroEurPerKWh: EnergyPrice = EuroPerKilowattHour(0d)
+
   val zeroPU: Dimensionless = Each(0d)
   val onePU: Dimensionless = Each(1d)
 

@@ -35,7 +35,7 @@ class CommonLossObjectiveFactorySpec
   given Energy = WattHours(1e-9)
   private val constraintTolerance = 1e-3
 
-  "An optimized flex strat" when {
+  "An optimizing flex strat" when {
 
     "provided with a flex energy model to adapt" should {
 
@@ -136,7 +136,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -206,7 +206,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -277,7 +277,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -362,7 +362,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -448,7 +448,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -544,7 +544,7 @@ class CommonLossObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = hour,
           ticks = ticks,
@@ -650,7 +650,7 @@ class CommonLossObjectiveFactorySpec
           bat2UUID -> evcsFlex,
         )
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -724,7 +724,7 @@ class CommonLossObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptionsScenario1,
           sampleTime = halfHour,
           ticks = ticks,
@@ -797,7 +797,7 @@ class CommonLossObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptionsScenario1,
           sampleTime = halfHour,
           ticks = ticks,
@@ -906,17 +906,12 @@ class CommonLossObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val priceData =
-          (Seq.fill(2)((0.1d, 0.3d)) ++
-            Seq.fill(6)((-0.02d, 0.2d)) ++
-            Seq.fill(4)((0.1d, 0.3d))).toPriceData
-
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptionsScenario1,
           sampleTime = halfHour,
           ticks = ticks,
           target = zeroKW,
-          receivedData = Seq(priceData),
+          receivedData = Seq(priceDataScenario1),
           objectiveFactory = PriceObjectiveFactory,
         )
 
@@ -1041,7 +1036,7 @@ class CommonLossObjectiveFactorySpec
         // adapted eta: ~0.781
         val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
 
-        val (assetVars, objectiveContainer) = OptimizedFlexStrat.buildModel(
+        val (assetVars, objectiveContainer) = OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
@@ -1134,7 +1129,7 @@ class CommonLossObjectiveFactorySpec
           Seq.fill(2)((0.05d, 0.15d))).toPriceData
 
       val (assetVars, objectiveContainer) =
-        OptimizedFlexStrat.buildModel(
+        OptimizingFlexStrat.buildModel(
           flexOptions = flexOptions,
           sampleTime = halfHour,
           ticks = ticks,
