@@ -385,8 +385,7 @@ object CommonLossObjectiveFactory {
   ) extends CommonLossAssetStepSymbols {
 
     override lazy val objectiveAddition: Option[Expression] = powerAbs.map {
-      pAbs =>
-        pAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
+      pAbs => pAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
     }
 
     override def getOperationPowerSymbol: Expression = power

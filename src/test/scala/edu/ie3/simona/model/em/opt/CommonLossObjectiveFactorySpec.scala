@@ -472,6 +472,12 @@ class CommonLossObjectiveFactorySpec
           optimization would overestimate the losses of discharging
           in the first half in order allow for more charging in the
           second half.
+
+          The optimal solution accepts a higher discharging power in
+          the first half in order to charge more in the second half.
+          Here, we do not achieve optimal results, because the soft
+          constraint on pAbs pushes down p as well, so it prefers
+          a lower total amount of power.
          */
 
         val batRes = assetSymbols.res(batUUID)

@@ -402,6 +402,12 @@ class SplitPowerVarsObjectiveFactorySpec
           optimization would overestimate the losses of discharging
           in the first half in order allow for more charging in the
           second half.
+
+          The optimal solution accepts a higher discharging power in
+          the first half in order to charge more in the second half,
+          because a higher total charging/discharging power means
+          more losses that help covering more the feed-in in the
+          second half.
          */
 
         val batRes = assetSymbols.res(batUUID)
@@ -413,13 +419,13 @@ class SplitPowerVarsObjectiveFactorySpec
             }
           }
 
-          // discharging 0.5 kWh plus 0.125 kWh losses
-          batRes(0).pVal should approximate(-1d)
-          batRes(0).energyVal should approximate(5.375d)
+          // discharging 1.1 kWh plus 1.375 kWh losses
+          batRes(0).pVal should approximate(-2.2d)
+          batRes(0).energyVal should approximate(4.625d)
 
           // discharging 0.5 kWh plus 0.125 kWh losses
           batRes(1).pVal should approximate(-1d)
-          batRes(1).energyVal should approximate(4.75d)
+          batRes(1).energyVal should approximate(4d)
 
           // possibly charging
           batRes(2).pVal should be >= 0d
@@ -429,8 +435,8 @@ class SplitPowerVarsObjectiveFactorySpec
           batRes(3).pVal should be >= 0d
           batRes(3).energyVal should approximate(12d)
 
-          // we should've charged with 14.5 kW plus 3.625 kW losses in total
-          batRes(2).pVal + batRes(3).pVal should approximate(18.125d)
+          // we should've charged with 16 kW plus 4 kW losses in total
+          batRes(2).pVal + batRes(3).pVal should approximate(20d)
 
         } withClue buildDebugString(assetSymbols)
 
