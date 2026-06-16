@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common
 
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
   AssetStepVars,
   AssetVarContainer,
 }
@@ -36,15 +36,15 @@ trait OptimizingTestLike extends Assertions {
 
   extension (vars: AssetStepVars) {
 
-    /** The state of energy in kWh.
+    /** The state of energy in kWh, if applicable (NaN else).
       */
     def energyVal: Double =
-      vars.getStateResult.toKilowattHours
+      vars.getStateOfEnergyResult.map(_.toKilowattHours).getOrElse(Double.NaN)
 
     /** Power value in kW.
       */
     def pVal: Double =
-      vars.getOperationResult.toKilowatts
+      vars.getOperatingPowerResult.toKilowatts
 
   }
 
@@ -72,8 +72,8 @@ trait OptimizingTestLike extends Assertions {
               .map { sortedVars =>
                 s"\n\t\t\tTrajectory: ${sortedVars
                     .map { case (_, vars) =>
-                      vars.getOperationResult.in(Kilowatts).rounded(6).toString +
-                        vars.stateVar.map(_ => s" ( -> ${vars.getStateResult.in(KilowattHours).rounded(6).toString})").getOrElse("")
+                      vars.getOperatingPowerResult.in(Kilowatts).rounded(6).toString +
+                        vars.getStateOfEnergyResult.map(stateRes => s" ( -> ${stateRes.in(KilowattHours).rounded(6).toString})").getOrElse("")
                     }
                     .mkString(", ")}"
               }
