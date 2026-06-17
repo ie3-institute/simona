@@ -21,6 +21,9 @@ import squants.{Energy, Power}
 
 import java.util.UUID
 
+/** Trait for objective factories that rely on power variables to describe the
+  * energy change between time steps.
+  */
 trait PowerVariableObjectiveFactory
     extends ObjectiveFactory[PowerVarAssetStepSymbols] {
 
@@ -96,7 +99,10 @@ object PowerVariableObjectiveFactory {
 
   }
 
-  /** todo
+  /** Trait that needs to be extended by all [[AssetStepSymbols]] that a
+    * [[PowerVariableObjectiveFactory]] should handle. The operation power needs
+    * to be returned as an expression and optionally, an addition to the
+    * objective can be given.
     */
   trait PowerVarAssetStepSymbols extends AssetStepSymbols {
 
@@ -112,6 +118,8 @@ object PowerVariableObjectiveFactory {
 
   }
 
+  /** Trait that provides basic functionality for time steps with fixed power.
+    */
   trait FixedPowerVarAssetStepSymbols extends PowerVarAssetStepSymbols {
 
     val assetParams: FixedPowerStepParameters
