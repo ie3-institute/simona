@@ -43,6 +43,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `GridAgentCoordinator` [#1617](https://github.com/ie3-institute/simona/issues/1617)
 - Added transformer tap change to congestion management [#1378](https://github.com/ie3-institute/simona/issues/1378)
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
+- Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
+- Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -102,6 +104,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Remove duplication of Irradiance and make use of the squants version [#1829](https://github.com/ie3-institute/simona/issues/1829)
 - Using additional input parameters for individual runtime configuration [#1784](https://github.com/ie3-institute/simona/issues/1784)
 - Simplify conversion of flex options and setpoints between SIMONA and its API [#1785](https://github.com/ie3-institute/simona/issues/1785)
+- `CommonLossObjectiveFactory.PriceObjectiveFactory`: Applying soft constraint only when necessary [#1848](https://github.com/ie3-institute/simona/issues/1848)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
