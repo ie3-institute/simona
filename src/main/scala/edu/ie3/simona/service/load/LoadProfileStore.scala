@@ -89,11 +89,9 @@ final case class LoadProfileStore(
     } else {
       val currentTime = startTime.plusSeconds(tick)
 
-      profileToSource.view
-        .flatMap { case (_, source) =>
-          source.getNextTimeKey(currentTime).toScala.map(_.toTick)
-        }
-        .minOption(using Ordering.Long)
+      profileToSource.view.flatMap { case (_, source) =>
+        source.getNextTimeKey(currentTime).toScala.map(_.toTick)
+      }.minOption
     }
   }
 
