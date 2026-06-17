@@ -24,7 +24,7 @@ import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,

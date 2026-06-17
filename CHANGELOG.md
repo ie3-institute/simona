@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Using additional input parameters for individual runtime configuration [#1784](https://github.com/ie3-institute/simona/issues/1784)
 - Simplify conversion of flex options and setpoints between SIMONA and its API [#1785](https://github.com/ie3-institute/simona/issues/1785)
 - `CommonLossObjectiveFactory.PriceObjectiveFactory`: Applying soft constraint only when necessary [#1848](https://github.com/ie3-institute/simona/issues/1848)
+- Replaced implicit classes with scala 3 extension methods [#1833](https://github.com/ie3-institute/simona/issues/1833)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -141,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Documentation of `PvModel` [#1776](https://github.com/ie3-institute/simona/issues/1776)
 - Fixed `ParticipantAgent.isCalculationRequired` to include `changesAtNextActivation` [#1820](https://github.com/ie3-institute/simona/issues/1820)
 - Fixed initialization problems when using `ExtEmDataService` [#1780](https://github.com/ie3-institute/simona/issues/1780)
+- Fixed handling of disconnecting tick of energy boundaries flex options [#1821](https://github.com/ie3-institute/simona/issues/1821)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
