@@ -172,6 +172,7 @@ object SplitPowerVarsObjectiveFactory {
 
   /** Trait for container that provides symbols for a specific asset and
     * optimization time step, to be used by [[SplitPowerVarsObjectiveFactory]].
+    * Soft constraints (objective addition) are not used.
     */
   private trait SplitPowerAssetStepSymbols extends PowerVarAssetStepSymbols {
 
@@ -181,8 +182,7 @@ object SplitPowerVarsObjectiveFactory {
 
   /** Container that provides symbols for a specific asset and for an
     * optimization time step in which power is fixed, to be used by
-    * [[SplitPowerVarsObjectiveFactory]]. Soft constraints (objective addition)
-    * are not used.
+    * [[SplitPowerVarsObjectiveFactory]].
     *
     * @param assetParams
     *   Parameters for the asset at the specific time step.
@@ -193,15 +193,14 @@ object SplitPowerVarsObjectiveFactory {
       with FixedPowerVarAssetStepSymbols
 
   /** Container that provides symbols for a specific asset and for an
-    * optimization time step in which power is variable, to be used by
-    * [[SplitPowerVarsObjectiveFactory]]. A soft constraint via objective
-    * addition can potentially be used.
+    * optimization time step in which power is variable and efficiency is 1, to
+    * be used by [[SplitPowerVarsObjectiveFactory]].
     *
     * @param assetParams
     *   Parameters for the asset at the specific time step.
     * @param power
     *   The operation variable, describing the power in kW to get from the
-    *   energy state at the star t to the state at the end of the interval.
+    *   energy state at the start to the state at the end of the interval.
     * @param stepEndState
     *   The state variable, describing the state of energy in kWh at the end of
     *   the time step interval.
@@ -225,6 +224,24 @@ object SplitPowerVarsObjectiveFactory {
 
   }
 
+  /** Container that provides symbols for a specific asset and for an
+    * optimization time step in which power is variable and efficiency is below
+    * 1, to be used by [[SplitPowerVarsObjectiveFactory]].
+    *
+    * @param assetParams
+    *   Parameters for the asset at the specific time step.
+    * @param powerCharge
+    *   The charging power variable, describing the power in kW to get from the
+    *   energy state at the start to the state at the end of the interval when
+    *   charging.
+    * @param powerDischarge
+    *   The discharging power variable, describing the power in kW to get from
+    *   the energy state at the start to the state at the end of the interval
+    *   when discharging.
+    * @param stepEndState
+    *   The state variable, describing the state of energy in kWh at the end of
+    *   the time step interval.
+    */
   private final case class InefficientSplitPowerAssetStepSymbols(
       assetParams: VariablePowerStepParameters,
       powerCharge: MPVar,
@@ -249,7 +266,7 @@ object SplitPowerVarsObjectiveFactory {
 
   }
 
-  /** Accuracy check for an absolute value of a free variable. todo
+  /** Accuracy check that detects simultaneous charging and discharging.
     *
     * @param powerCharge
     *   The charging power (positive).
