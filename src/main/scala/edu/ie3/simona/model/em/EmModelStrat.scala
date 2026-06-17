@@ -13,7 +13,7 @@ import edu.ie3.simona.model.em.opt.{
   OptimizingFlexStrat,
 }
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
-  AssetStepVars,
+  AssetStepSymbols,
   ObjectiveFactory,
 }
 import edu.ie3.simona.ontology.messages.flex.{
@@ -103,7 +103,7 @@ object EmModelStrat {
     // todo a lot of these parameters should be configurable -> issue #1725
 
     val objectiveFunction
-        : PartialFunction[String, ObjectiveFactory[? <: AssetStepVars]] = {
+        : PartialFunction[String, ObjectiveFactory[? <: AssetStepSymbols]] = {
       case "OPT_MIN_ABS_POWER" =>
         CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory
       case "OPT_LIN_QUAD_POWER" =>

@@ -23,7 +23,7 @@ import edu.ie3.simona.service.{
   ServiceType,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
-import optimus.algebra.{Const, Expression, Zero}
+import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
@@ -46,13 +46,12 @@ import scala.collection.immutable.SortedMap
   *   is this amount of time away from the current point in simulation time.
   *   Should be a multiple of [[sampleTime]].
   * @param objectiveFactory
-  *   The factory creating asset variables and the optimization objective to
-  *   use.
+  *   The factory creating asset symbols and the optimization objective to use.
   */
 final case class OptimizingFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
-    objectiveFactory: ObjectiveFactory[? <: AssetStepVars],
+    objectiveFactory: ObjectiveFactory[? <: AssetStepSymbols],
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
 
   private val logger: Logger = LoggerFactory.getLogger(
@@ -89,7 +88,7 @@ final case class OptimizingFlexStrat(
     val flexOptionsById =
       flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo }
 
-    val (assetVars, objectiveContainer) =
+    val (allAssetSymbols, objectiveContainer) =
       buildModel(
         flexOptionsById,
         sampleTime,
@@ -108,17 +107,17 @@ final case class OptimizingFlexStrat(
         s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
       )
 
-    objectiveContainer.softConstraints
-      .filter(_.getError > softConstraintThreshold)
+    objectiveContainer.accuracyChecks
+      .filter(_.getError > accuracyWarningThreshold)
       .foreach { constraint =>
         logger.warn(constraint.getWarningMessage)
       }
 
     // we're only interested in the solutions for the current time step
     val flexOptionsMap = flexOptionsById.toMap
-    val assetCtrl = assetVars.map {
-      case AssetVarContainer(assetUuid, assetVars) =>
-        val setPoint = assetVars.map {
+    val assetCtrl = allAssetSymbols.map {
+      case AssetSymbolContainer(assetUuid, assetSymbols) =>
+        val setPoint = assetSymbols.map {
           // Taking only the first result for set points
           _.headOption
             .getOrElse(
@@ -162,13 +161,13 @@ final case class OptimizingFlexStrat(
 
 object OptimizingFlexStrat {
 
-  /** Threshold for the error of soft constraints after optimization. Every soft
-    * constraint error should stay below this threshold.
+  /** Threshold for the error of result accuracy checks after optimization.
+    * Every error should stay below this threshold.
     */
-  private val softConstraintThreshold: Double = 1e-3
+  private val accuracyWarningThreshold: Double = 1e-3
 
   /** Constructs the optimization model by creating the required variables and
-    * constraints and the objective. Asset variables and objective are created
+    * constraints and the objective. Asset symbols and objective are created
     * using the objective factory.
     *
     * @param flexOptions
@@ -185,16 +184,16 @@ object OptimizingFlexStrat {
     * @param receivedData
     *   The secondary data received by the EM agent. Empty if none was received.
     * @param objectiveFactory
-    *   The factory creating asset variables and the optimization objective to
+    *   The factory creating asset symbols and the optimization objective to
     *   use.
     * @param model
     *   The optimization model to add variables and constraints to.
     * @tparam AV
-    *   The type of asset variables that the objective factory returns.
+    *   The type of asset symbols that the objective factory returns.
     * @return
-    *   The created asset variable containers and the objective container.
+    *   The created asset symbols containers and the objective container.
     */
-  def buildModel[AV <: AssetStepVars](
+  def buildModel[AV <: AssetStepSymbols](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       sampleTime: Time,
       ticks: Seq[Long],
@@ -203,9 +202,9 @@ object OptimizingFlexStrat {
       objectiveFactory: ObjectiveFactory[AV],
   )(using
       model: MPModel
-  ): (Iterable[AssetVarContainer[AV]], ObjectiveContainer) = {
+  ): (Iterable[AssetSymbolContainer[AV]], ObjectiveContainer) = {
 
-    val assetVars = addAssetConstraints(
+    val assetSymbols = addAssetConstraints(
       flexOptions,
       sampleTime,
       ticks,
@@ -214,23 +213,19 @@ object OptimizingFlexStrat {
 
     val objective = objectiveFactory.build(
       flexOptions,
-      assetVars,
+      assetSymbols,
       target,
       receivedData,
     )
 
-    val allConstraints =
-      assetVars.flatMap(_.results.flatMap(_.values.flatMap(_.softConstraint)))
-
-    // combining soft constraints, to be added to objective
-    val constraintsExpression = allConstraints
-      .map(_.getExpression)
-      .reduceOption(_ + _)
-      .getOrElse(Zero)
+    val allAccuracyChecks =
+      assetSymbols.flatMap(
+        _.results.flatMap(_.values.flatMap(_.getAccuracyCheck))
+      )
 
     (
-      assetVars,
-      ObjectiveContainer(objective + constraintsExpression, allConstraints),
+      assetSymbols,
+      ObjectiveContainer(objective, allAccuracyChecks),
     )
 
   }
@@ -239,7 +234,7 @@ object OptimizingFlexStrat {
     * time. States and operating points are linked according to the time steps.
     *
     * @param flexOptions
-    *   The [[EnergyBoundariesFlexOptions]] to create asset variables from.
+    *   The [[EnergyBoundariesFlexOptions]] to create asset symbols from.
     * @param sampleTime
     *   The amount of time between the steps.
     * @param ticks
@@ -247,23 +242,25 @@ object OptimizingFlexStrat {
     *   steps to consider in the optimization. The ticks should all be exactly
     *   the sample time duration (in seconds) apart from each other.
     * @param objectiveFactory
-    *   The factory that creates asset variables.
+    *   The factory that creates asset symbols.
     * @param model
     *   The optimization model to add variables and constraints to.
     * @return
     *   Containers that holds all results, including state and operation
     *   variables.
     */
-  private def addAssetConstraints[AV <: AssetStepVars](
+  private def addAssetConstraints[AV <: AssetStepSymbols](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       sampleTime: Time,
       ticks: Seq[Long],
       objectiveFactory: ObjectiveFactory[AV],
-  )(using model: MPModel): Iterable[AssetVarContainer[AV]] = {
+  )(using model: MPModel): Iterable[AssetSymbolContainer[AV]] = {
     flexOptions.map { case (assetUUID, fo) =>
-      val assetVars = fo.energyBoundaries
+      val allAssetSymbols = fo.energyBoundaries
         .map { assetBoundaries =>
-          assetBoundaries.tickDisconnect
+          val startState = Const(assetBoundaries.currentEnergy.toKilowattHours)
+
+          val (assetSymbols, _) = assetBoundaries.tickDisconnect
             .map { tickDisconnect =>
               val firstTick = ticks.headOption.getOrElse(
                 throw new CriticalFailureException("Ticks are empty!")
@@ -283,26 +280,27 @@ object OptimizingFlexStrat {
             }
             .getOrElse(ticks)
             .sliding(2)
-            .foldLeft[SortedMap[Long, AV]](SortedMap.empty) {
-              case (previousResults, Seq(stepStartTick, stepEndTick)) =>
-                val previousState = previousResults.lastOption.flatMap {
-                  case (_, res) => res.state
-                }
-
-                val assetStep = createAssetParameters(
+            .foldLeft[(SortedMap[Long, AV], Expression)](
+              (SortedMap.empty, startState)
+            ) {
+              case (
+                    (previousResults, previousState),
+                    Seq(stepStartTick, stepEndTick),
+                  ) =>
+                val assetParams = createAssetParameters(
                   assetBoundaries,
-                  stepEndTick,
-                  previousState,
-                )
-
-                val res = objectiveFactory.createAssetVars(
-                  assetStep,
                   stepStartTick,
                   stepEndTick,
                   sampleTime,
+                  previousState,
                 )
 
-                previousResults.updated(stepStartTick, res)
+                val vars = objectiveFactory.createAssetSymbols(assetParams)
+
+                (
+                  previousResults.updated(stepStartTick, vars),
+                  vars.getStateSymbol,
+                )
 
               case _ =>
                 // assets constraints need to be created at least for two time steps
@@ -311,9 +309,11 @@ object OptimizingFlexStrat {
                   s"Cannot create asset constraints for less than two time steps (ticks: ${ticks.size})"
                 )
             }
+
+          assetSymbols
         }
 
-      AssetVarContainer(assetUUID, assetVars)
+      AssetSymbolContainer(assetUUID, allAssetSymbols)
     }
   }
 
@@ -324,15 +324,17 @@ object OptimizingFlexStrat {
     *   The asset energy boundaries to use.
     * @param stepEndTick
     *   The step ending tick.
-    * @param maybePreviousState
-    *   The previous state variable, if applicable.
+    * @param previousState
+    *   The previous state symbol.
     * @return
     *   The results for this asset and time step.
     */
   private def createAssetParameters(
       energyBoundaries: AssetEnergyBoundaries,
+      stepStartTick: Long,
       stepEndTick: Long,
-      maybePreviousState: Option[Expression],
+      sampleTime: Time,
+      previousState: Expression,
   ): AssetStepParameters = {
 
     // we are interested in the energy limits at the end of the step interval,
@@ -354,39 +356,36 @@ object OptimizingFlexStrat {
     then {
       // there is no flexibility at all, thus we don't need any state to keep track of
 
-      val previousEnergy = energyLimitsStart
+      val stepStartEnergy = energyLimitsStart
         // we try to use the last energy value, if available
         .map(_.getUpper)
         // ... or this is the initial step, thus we start with initial energy
         .getOrElse(energyBoundaries.currentEnergy)
-      val currentEnergy = energyLimitsEnd.getUpper
+      val stepEndEnergy = energyLimitsEnd.getUpper
 
-      val energyChange = currentEnergy - previousEnergy
+      val energyChange = stepEndEnergy - stepStartEnergy
 
-      FixedPowerStepParameters(energyChange = energyChange)
+      FixedPowerStepParameters(
+        energyChange = energyChange,
+        stepEndEnergy = stepEndEnergy,
+        stepStartTick = stepStartTick,
+        stepEndTick = stepEndTick,
+        sampleTime = sampleTime,
+      )
     } else {
       // we do have some flexibility at this point in time, model it
 
-      // determining a previous state
-      val previousEnergy = maybePreviousState.getOrElse {
-
-        // we have been given no former state as a parameter. Either...
-        energyLimitsStart
-          // ... there was no flexibility in the last step, thus we use the last energy value
-          .filter(limits => limits.getLower == limits.getUpper)
-          .map(limits => Const(limits.getUpper.toKilowattHours))
-          // ... or this is the initial step, thus we start with initial energy
-          .getOrElse(Const(energyBoundaries.currentEnergy.toKilowattHours))
-      }
-
       VariablePowerStepParameters(
-        previousStateEnergy = previousEnergy,
+        previousStateEnergy = previousState,
         pMin = energyBoundaries.powerLimits.getLower,
         pMax = energyBoundaries.powerLimits.getUpper,
         eMin = energyLimitsEnd.getLower,
         eMax = energyLimitsEnd.getUpper,
         etaCharge = energyBoundaries.etaCharge,
         etaDischarge = energyBoundaries.etaDischarge,
+        stepStartTick = stepStartTick,
+        stepEndTick = stepEndTick,
+        sampleTime = sampleTime,
       )
     }
 
@@ -394,9 +393,22 @@ object OptimizingFlexStrat {
 
   /** Object that holds parameters for the optimization of an asset at some time
     * step. Can be created from [[EnergyBoundariesFlexOptions]] and be used to
-    * create [[AssetStepVars]] depending on the objective factory.
+    * create [[AssetStepSymbols]] depending on the objective factory.
     */
-  abstract class AssetStepParameters
+  abstract class AssetStepParameters {
+
+    /** The tick at the start of the time step interval, i.e. the tick at which
+      * the operation of the step starts.
+      */
+    val stepStartTick: Long
+
+    /** The tick at the end of the time step interval, i.e. the tick at which
+      * the operation of the step ends (and a next step might start).
+      */
+    val stepEndTick: Long
+
+    val sampleTime: Time
+  }
 
   /** Holds parameters for an asset that is not providing flexibility at the
     * time step, but is requiring a fixed amount of energy to be added or
@@ -405,9 +417,15 @@ object OptimizingFlexStrat {
     *
     * @param energyChange
     *   The amount of energy change required at this time step.
+    * @param stepEndEnergy
+    *   The state of energy at the end of this time step.
     */
   final case class FixedPowerStepParameters(
-      energyChange: Energy
+      energyChange: Energy,
+      stepEndEnergy: Energy,
+      override val stepStartTick: Long,
+      override val stepEndTick: Long,
+      override val sampleTime: Time,
   ) extends AssetStepParameters
 
   /** Holds parameters for an asset that is providing some flexibility at the
@@ -437,34 +455,22 @@ object OptimizingFlexStrat {
       eMax: Energy,
       etaCharge: Dimensionless,
       etaDischarge: Dimensionless,
+      override val stepStartTick: Long,
+      override val stepEndTick: Long,
+      override val sampleTime: Time,
   ) extends AssetStepParameters {
     def isInefficient: Boolean =
       etaCharge < onePU || etaDischarge < onePU
   }
 
-  /** Class holding variables used in optimization for an asset at a single time
-    * step.
+  /** Trait for containers providing symbols (variables or constants) used in
+    * optimization for an asset at a single time step.
     */
-  abstract class AssetStepVars {
+  trait AssetStepSymbols {
 
-    /** The state variable, describing the state of energy in kWh at the end of
-      * the time step interval.
+    /** Returns the symbol for the asset state of energy in kWh.
       */
-    val state: Option[Expression]
-
-    /** The tick at the start of the time step interval, i.e. the tick at which
-      * the operation of the step starts.
-      */
-    val stepStartTick: Long
-
-    /** The tick at the end of the time step interval, i.e. the tick at which
-      * the operation of the step ends (and a next step might start).
-      */
-    val stepEndTick: Long
-
-    /** Optionally, a soft constraint to be added to the objective.
-      */
-    val softConstraint: Option[SoftConstraint] = None
+    def getStateSymbol: Expression
 
     /** Returns the resulting operating power.
       *
@@ -474,29 +480,34 @@ object OptimizingFlexStrat {
       */
     def getOperatingPowerResult: Power
 
-    /** If applicable, returns the result of [[state]] as an energy.
+    /** Returns the resulting state of energy.
       *
       * This method should only be called after optimization has successfully
       * completed. Otherwise, results might not be available and an exception
       * might be thrown.
       */
-    def getStateOfEnergyResult: Option[Energy]
+    def getStateOfEnergyResult: Energy
+
+    /** Returns a result accuracy check for the asset and time step, if
+      * applicable.
+      */
+    def getAccuracyCheck: Option[ResultAccuracyCheck]
 
   }
 
   /** Container holding all optimization variables and soft constraints (as
-    * [[AssetStepVars]]) for one or more assets referenced by a single UUID.
+    * [[AssetStepSymbols]]) for one or more assets referenced by a single UUID.
     *
     * @param assetUuid
     *   The UUID of the assets.
     * @param results
-    *   All [[AssetStepVars]] of the assets, including state and operation
+    *   All [[AssetStepSymbols]] of the assets, including state and operation
     *   variables. The step variables are referenced by stepStartTick within the
     *   sorted map. The sequence contains one or more variable maps, similar to
     *   how [[EnergyBoundariesFlexOptions]] can contain several asset
     *   boundaries.
     */
-  final case class AssetVarContainer[AV <: AssetStepVars](
+  final case class AssetSymbolContainer[AV <: AssetStepSymbols](
       assetUuid: UUID,
       results: Seq[SortedMap[Long, AV]],
   )
@@ -506,59 +517,50 @@ object OptimizingFlexStrat {
     * containers.
     *
     * @param objective
-    *   The objective, including all soft constraint expressions.
-    * @param softConstraints
-    *   All soft constraints.
+    *   The objective, including all soft constraint expressions (if
+    *   applicable).
+    * @param accuracyChecks
+    *   All result accuracy checks.
     */
   final case class ObjectiveContainer(
       objective: Expression,
-      softConstraints: Iterable[SoftConstraint],
+      accuracyChecks: Iterable[ResultAccuracyCheck],
   )
 
   /** Trait to be implemented by factories of power objectives.
     *
     * @tparam AV
-    *   The type of [[AssetStepVars]] that the objective factory produces and
+    *   The type of [[AssetStepSymbols]] that the objective factory produces and
     *   uses.
     */
-  trait ObjectiveFactory[AV <: AssetStepVars] {
+  trait ObjectiveFactory[AV <: AssetStepSymbols] {
 
     /** @return
       *   All secondary services required by the optimization model.
       */
     def getRequiredSecondaryServices: Iterable[ServiceType]
 
-    /** Creates asset variables of type [[AV]] from given
-      * [[AssetStepParameters]] according to the requirements of the objective
-      * factory.
+    /** Creates asset symbols of type [[AV]] from given [[AssetStepParameters]]
+      * according to the requirements of the objective factory.
       *
       * @param assetParams
-      *   The asset parameters to use for creating asset variables.
-      * @param stepStartTick
-      *   The tick at the start of the interval.
-      * @param stepEndTick
-      *   The tick at the end of the interval.
-      * @param sampleTime
-      *   The amount of time between start and end of the interval.
+      *   The asset parameters to use for creating asset symbols.
       * @param model
-      *   The optimization model to add variables and constraints to.
+      *   The optimization model to add symbols and constraints to.
       * @return
-      *   The asset variables for the given asset and time step.
+      *   The asset symbols for the given asset and time step.
       */
-    def createAssetVars(
-        assetParams: AssetStepParameters,
-        stepStartTick: Long,
-        stepEndTick: Long,
-        sampleTime: Time,
-    )(using model: MPModel): AV
+    def createAssetSymbols(assetParams: AssetStepParameters)(using
+        model: MPModel
+    ): AV
 
-    /** Builds an objective to minimize given the asset variables and an
-      * objective factory.
+    /** Builds an objective to minimize given the asset symbols and an objective
+      * factory.
       *
       * @param flexOptions
       *   The flex options that connected assets provided.
-      * @param assetVars
-      *   The asset vars to optimize for.
+      * @param assetSymbols
+      *   The asset symbols to optimize for.
       * @param target
       *   The target power for each time step.
       * @param receivedData
@@ -570,7 +572,7 @@ object OptimizingFlexStrat {
       */
     def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetVars: Iterable[AssetVarContainer[AV]],
+        assetSymbols: Iterable[AssetSymbolContainer[AV]],
         target: Power,
         receivedData: Seq[SecondaryData],
     )(using model: MPModel): Expression
@@ -603,27 +605,27 @@ object OptimizingFlexStrat {
           )
         )
 
-    /** Re-orders the [[AssetStepVars]] inside given [[AssetVarContainer]]s to
-      * be grouped by their by tick.
+    /** Re-orders the [[AssetStepSymbols]] inside given
+      * [[AssetSymbolContainer]]s to be grouped by their by tick.
       *
-      * @param assetVars
-      *   The [[AssetVarContainer]]s to be reordered.
+      * @param assetSymbols
+      *   The [[AssetSymbolContainer]]s to be reordered.
       * @return
-      *   The [[AssetStepVars]] ordered by tick.
+      *   The [[AssetStepSymbols]] ordered by tick.
       */
-    protected def sortVarsByTick(
-        assetVars: Iterable[AssetVarContainer[AV]]
+    protected def sortSymbolsByTick(
+        assetSymbols: Iterable[AssetSymbolContainer[AV]]
     ): SortedMap[Long, Iterable[AV]] = {
-      // asset vars should all have the same ticks,
+      // asset symbols should all have the same ticks,
       // since they should have all been created with the same ticks
-      val ticks = assetVars.headOption
+      val ticks = assetSymbols.headOption
         .flatMap(_.results.headOption.map(_.keys.toSeq))
         .getOrElse(Seq.empty)
 
-      // sort all asset vars by tick
+      // sort all asset symbols by tick
       ticks
         .map { stepStartTick =>
-          stepStartTick -> assetVars.flatMap {
+          stepStartTick -> assetSymbols.flatMap {
             _.results.flatMap(_.get(stepStartTick))
           }
         }
