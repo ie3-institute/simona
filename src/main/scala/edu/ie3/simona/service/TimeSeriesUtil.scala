@@ -8,7 +8,7 @@ package edu.ie3.simona.service
 
 import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.io.source.TimeSeriesSource
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simona.util.TickUtil.toTick
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.slf4j.Logger
 
