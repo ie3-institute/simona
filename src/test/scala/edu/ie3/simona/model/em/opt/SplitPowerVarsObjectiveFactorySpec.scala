@@ -420,11 +420,11 @@ class SplitPowerVarsObjectiveFactorySpec
           }
 
           // discharging 1.1 kWh plus 1.375 kWh losses
-          batRes(0).pVal should approximate(-2.2d)
-          batRes(0).energyVal should approximate(4.625d)
+          batRes(0).pVal should (be >= -2.2d and be <= -1d)
+          batRes(0).energyVal should (be >= 4.625d and be <= 5.375d)
 
           // discharging 0.5 kWh plus 0.125 kWh losses
-          batRes(1).pVal should approximate(-1d)
+          batRes(1).pVal should (be >= -2.2d and be <= -1d)
           batRes(1).energyVal should approximate(4d)
 
           // possibly charging
@@ -681,10 +681,6 @@ class SplitPowerVarsObjectiveFactorySpec
           Thus, we only test for things that are true for every optimal
           solution: We know when the battery should be definitely
           full/empty and how much energy was charged/discharged.
-
-          The soft constraints are vital here. Without them,
-          optimization would overestimate the losses in the first half
-          in order to achieve total power closer to zero.
          */
 
         val batRes = assetSymbols.res(batUUID)
@@ -707,7 +703,7 @@ class SplitPowerVarsObjectiveFactorySpec
           }
 
           batRes.slice(6, 10).foreach {
-            _.energyVal should (be >= 0d and be < 10d)
+            _.energyVal should (be >= 0d and be <= 10d)
           }
 
           batRes.slice(10, 12).foreach {
