@@ -16,7 +16,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import squants.Each
-import squants.energy.{KilowattHours, Kilowatts}
+import squants.energy.{Energy, KilowattHours, Kilowatts, WattHours}
 
 import scala.collection.immutable.SortedMap
 
@@ -27,8 +27,9 @@ class SplitPowerVarsObjectiveFactorySpec
 
   val objectiveFactory = MinAbsPowerObjectiveFactory(BinaryConstraint)
 
+  // tolerances
   given Double = 1e-6
-  private val constraintTolerance = 1e-3
+  val stateEnergyTolerance: Energy = WattHours(1e-3)
 
   "An optimizing flex strat" when {
 
@@ -89,14 +90,10 @@ class SplitPowerVarsObjectiveFactorySpec
         Battery should be able to fully cover the additional power
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
@@ -160,14 +157,10 @@ class SplitPowerVarsObjectiveFactorySpec
           up to its maximum power
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
@@ -234,14 +227,10 @@ class SplitPowerVarsObjectiveFactorySpec
           full/empty and how much energy was charged/discharged.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // possibly charging
           batRes(0).pVal should be >= 0d
@@ -315,14 +304,10 @@ class SplitPowerVarsObjectiveFactorySpec
           full/empty and how much energy was charged/discharged.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // possibly charging
           batRes(0).pVal should be >= 0d
@@ -402,14 +387,10 @@ class SplitPowerVarsObjectiveFactorySpec
           second half.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 1.1 kWh plus 1.375 kWh losses
           batRes(0).pVal should (be >= -2.2d and be <= -1d)
@@ -492,14 +473,10 @@ class SplitPowerVarsObjectiveFactorySpec
           No losses should be subtracted.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 5 kWh
           batRes(0).pVal should approximate(-5)
@@ -599,18 +576,14 @@ class SplitPowerVarsObjectiveFactorySpec
           balance out the additional power.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-        batRes.size shouldBe 4
-
-        val evcsRes = assetSymbols.res(bat2UUID)
-        evcsRes.size shouldBe 2
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
+          batRes.size shouldBe 4
+
+          val evcsRes = assetSymbols.res(bat2UUID)
+          evcsRes.size shouldBe 2
 
           // EV needs to take the 4 kW to reach its target
           evcsRes(0).pVal should approximate(4)
@@ -642,78 +615,74 @@ class SplitPowerVarsObjectiveFactorySpec
 
       }
 
-    }
+      "provided with energy boundary flex options and an objective factory" should {
 
-    "provided with energy boundary flex options and an objective factory" should {
+        given ticks: Seq[Long] = ticksScenario1
 
-      given ticks: Seq[Long] = ticksScenario1
+        "compensate fixed powers when using linear objective" in {
 
-      "compensate fixed powers when using linear objective" in {
+          given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
+          val (assetSymbols, objectiveContainer) =
+            OptimizingFlexStrat.buildModel(
+              flexOptions = flexOptionsScenario1,
+              sampleTime = halfHour,
+              ticks = ticks,
+              target = zeroKW,
+              receivedData = Seq.empty,
+              objectiveFactory = objectiveFactory,
+            )
 
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptionsScenario1,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
-          objectiveFactory = objectiveFactory,
-        )
+          model.minimize(objectiveContainer.objective)
+          model.start(timeLimit = 10000)
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+          model.getStatus shouldBe SolutionStatus.OPTIMAL
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
-
-        /*
+          /*
           EXPECTED RESULTS
           Since excess power costs the same at all points in time and
           at all magnitudes, there are many optimal solutions.
           Thus, we only test for things that are true for every optimal
           solution: We know when the battery should be definitely
           full/empty and how much energy was charged/discharged.
-         */
+           */
 
-        val batRes = assetSymbols.res(batUUID)
+          {
+            assetSymbols.checkModelStateError(using stateEnergyTolerance)
 
-        {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
+            val batRes = assetSymbols.res(batUUID)
+            batRes should have size 12
+
+            batRes.slice(0, 4).foreach {
+              _.energyVal should (be >= 0d and be < 10d)
             }
-          }
 
-          batRes should have size 12
+            batRes.slice(4, 6).foreach {
+              _.energyVal should approximate(10d)
+            }
 
-          batRes.slice(0, 4).foreach {
-            _.energyVal should (be >= 0d and be < 10d)
-          }
+            batRes.slice(6, 10).foreach {
+              _.energyVal should (be >= 0d and be <= 10d)
+            }
 
-          batRes.slice(4, 6).foreach {
-            _.energyVal should approximate(10d)
-          }
+            batRes.slice(10, 12).foreach {
+              _.energyVal should approximate(0d)
+            }
 
-          batRes.slice(6, 10).foreach {
-            _.energyVal should (be >= 0d and be <= 10d)
-          }
+            // we should've charged with 20 kW plus 5 kW losses in total
+            val inputCharged = batRes.slice(0, 6).map(_.pVal).sum
+            inputCharged should approximate(25)
 
-          batRes.slice(10, 12).foreach {
-            _.energyVal should approximate(0d)
-          }
+            // we should've discharged with 20 kW minus 4 kW losses in total
+            val outputDischarged =
+              batRes.slice(6, 12).map(_.pVal).sum
+            outputDischarged should approximate(-16d)
 
-          // we should've charged with 20 kW plus 5 kW losses in total
-          val inputCharged = batRes.slice(0, 6).map(_.pVal).sum
-          inputCharged should approximate(25)
+          } withClue buildDebugString(assetSymbols)
 
-          // we should've discharged with 20 kW minus 4 kW losses in total
-          val outputDischarged =
-            batRes.slice(6, 12).map(_.pVal).sum
-          outputDischarged should approximate(-16d)
+          model.release()
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
+        }
 
       }
 

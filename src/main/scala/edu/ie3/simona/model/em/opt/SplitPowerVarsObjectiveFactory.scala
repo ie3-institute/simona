@@ -49,7 +49,7 @@ abstract class SplitPowerVarsObjectiveFactory
         val sampleHours = varPower.sampleTime.toHours
 
         // modeling the new state (stored energy)
-        val newState: MPVar | Const =
+        val newState: MPSymbol =
           if eMin == eMax then Const(eMax)
           else
             MPFloatVar(
@@ -114,6 +114,7 @@ abstract class SplitPowerVarsObjectiveFactory
             varPower,
             pCharge,
             pDischarge,
+            varPower.previousStateEnergy,
             newState,
           )
 
@@ -184,11 +185,11 @@ object SplitPowerVarsObjectiveFactory {
     * optimization time step in which power is fixed, to be used by
     * [[SplitPowerVarsObjectiveFactory]].
     *
-    * @param assetParams
+    * @param parameters
     *   Parameters for the asset at the specific time step.
     */
   private final case class FixedSplitPowerAssetStepSymbols(
-      override val assetParams: FixedPowerStepParameters
+      override val parameters: FixedPowerStepParameters
   ) extends SplitPowerAssetStepSymbols
       with FixedPowerVarAssetStepSymbols
 
@@ -196,7 +197,7 @@ object SplitPowerVarsObjectiveFactory {
     * optimization time step in which power is variable and efficiency is 1, to
     * be used by [[SplitPowerVarsObjectiveFactory]].
     *
-    * @param assetParams
+    * @param parameters
     *   Parameters for the asset at the specific time step.
     * @param power
     *   The operation variable, describing the power in kW to get from the
@@ -206,21 +207,20 @@ object SplitPowerVarsObjectiveFactory {
     *   the time step interval.
     */
   private final case class EfficientSplitPowerAssetStepSymbols(
-      assetParams: VariablePowerStepParameters,
+      override val parameters: VariablePowerStepParameters,
       power: MPVar,
-      stepEndState: MPVar | Const,
-  ) extends SplitPowerAssetStepSymbols {
+      stepEndState: MPSymbol,
+  ) extends SplitPowerAssetStepSymbols
+      with VariableAssetStepSymbols {
 
     override def getOperationPowerSymbol: Expression = power
 
-    override def getStateSymbol: Expression = stepEndState
+    override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
 
-    override def getStateOfEnergyResult: Energy =
+    override def getStepEndEnergyResult: Energy =
       KilowattHours(stepEndState.getValue)
-
-    override def getAccuracyCheck: Option[ResultAccuracyCheck] = None
 
   }
 
@@ -228,7 +228,7 @@ object SplitPowerVarsObjectiveFactory {
     * optimization time step in which power is variable and efficiency is below
     * 1, to be used by [[SplitPowerVarsObjectiveFactory]].
     *
-    * @param assetParams
+    * @param parameters
     *   Parameters for the asset at the specific time step.
     * @param powerCharge
     *   The charging power variable, describing the power in kW to get from the
@@ -238,52 +238,35 @@ object SplitPowerVarsObjectiveFactory {
     *   The discharging power variable, describing the power in kW to get from
     *   the energy state at the start to the state at the end of the interval
     *   when discharging.
+    * @param stepStartState
     * @param stepEndState
     *   The state variable, describing the state of energy in kWh at the end of
     *   the time step interval.
     */
   private final case class InefficientSplitPowerAssetStepSymbols(
-      assetParams: VariablePowerStepParameters,
+      override val parameters: VariablePowerStepParameters,
       powerCharge: MPVar,
       powerDischarge: MPVar,
-      stepEndState: MPVar | Const,
-  ) extends SplitPowerAssetStepSymbols {
+      stepStartState: MPSymbol,
+      stepEndState: MPSymbol,
+  ) extends SplitPowerAssetStepSymbols
+      with VariableAssetStepSymbols
+      with RelativeStateErrorHelper {
 
     override def getOperationPowerSymbol: Expression =
       powerCharge - powerDischarge
 
-    override def getStateSymbol: Expression = stepEndState
+    override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getOperatingPowerResult: Power = Kilowatts(
       powerCharge.getValue - powerDischarge.getValue
     )
 
-    override def getStateOfEnergyResult: Energy =
+    override def getStepStartEnergyResult: Energy =
+      KilowattHours(stepStartState.getValue)
+
+    override def getStepEndEnergyResult: Energy =
       KilowattHours(stepEndState.getValue)
-
-    override def getAccuracyCheck: Option[ResultAccuracyCheck] =
-      Some(SplitPowerVariablesAccuracyCheck(powerCharge, powerDischarge))
-
-  }
-
-  /** Accuracy check that detects simultaneous charging and discharging.
-    *
-    * @param powerCharge
-    *   The charging power (positive).
-    * @param powerDischarge
-    *   The discharging power (positive).
-    */
-  private final case class SplitPowerVariablesAccuracyCheck(
-      powerCharge: MPVar,
-      powerDischarge: MPVar,
-  ) extends ResultAccuracyCheck {
-
-    override def getError: Double =
-      math.abs(math.min(powerCharge.getValue, powerDischarge.getValue))
-
-    override def getWarningMessage: String =
-      "Asset is charging and discharging at the same time: " +
-        s"${powerCharge.getValue} kW charging, ${powerDischarge.getValue} kW discharging."
 
   }
 

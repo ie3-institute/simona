@@ -63,7 +63,7 @@ object SignedEnergyVariableObjectiveFactory
         )
 
         // modeling the new state (stored energy)
-        val newEnergy: MPVar | Const =
+        val newEnergy: MPSymbol =
           if varPower.eMin == varPower.eMax then
             Const(varPower.eMax.toKilowattHours)
           else
@@ -161,33 +161,30 @@ object SignedEnergyVariableObjectiveFactory
       */
     def getObjectiveVariations: Seq[Expression]
 
-    // Unfortunately, it'd be not trivial to provide a check for this model.
-    override def getAccuracyCheck: Option[ResultAccuracyCheck] = None
-
   }
 
   /** Container that provides symbols for a specific asset and for an
     * optimization time step in which energy change is fixed, to be used by
     * [[SignedEnergyVariableObjectiveFactory]].
     *
-    * @param assetParams
+    * @param parameters
     *   Parameters for the asset at the specific time step.
     */
   private final case class FixedSignedEnergyStepSymbols(
-      assetParams: FixedPowerStepParameters
+      override val parameters: FixedPowerStepParameters
   ) extends SignedEnergyStepSymbols {
 
     override def getObjectiveVariations: Seq[Expression] =
-      Seq(Const(assetParams.energyChange.toKilowattHours))
+      Seq(Const(parameters.energyChange.toKilowattHours))
 
-    override def getStateSymbol: Expression = Const(
-      assetParams.stepEndEnergy.toKilowattHours
+    override def getStepEndStateSymbol: MPSymbol = Const(
+      parameters.stepEndEnergy.toKilowattHours
     )
 
     override def getOperatingPowerResult: Power =
-      assetParams.energyChange / assetParams.sampleTime
+      parameters.energyChange / parameters.sampleTime
 
-    override def getStateOfEnergyResult: Energy = assetParams.stepEndEnergy
+    override def getStepEndEnergyResult: Energy = parameters.stepEndEnergy
 
   }
 
@@ -195,7 +192,7 @@ object SignedEnergyVariableObjectiveFactory
     * optimization time step in which energy change is variable, to be used by
     * [[SignedEnergyVariableObjectiveFactory]].
     *
-    * @param assetParams
+    * @param parameters
     *   Parameters for the asset at the specific time step.
     * @param energyChange
     *   The operation variable, describing the energy change in kWh to get from
@@ -206,40 +203,40 @@ object SignedEnergyVariableObjectiveFactory
     *   the time step interval.
     */
   private final case class VariableSignedEnergyStepSymbols(
-      assetParams: VariablePowerStepParameters,
+      parameters: VariablePowerStepParameters,
       energyChange: MPVar,
-      stepEndState: MPVar | Const,
+      stepEndState: MPSymbol,
   ) extends SignedEnergyStepSymbols {
 
-    override def getStateSymbol: Expression = stepEndState
+    override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getObjectiveVariations: Seq[Expression] =
       if isInefficient then
         // Convex, because etaDischarge < 1/etaCharge.
         Seq(
-          Const(1d / assetParams.etaCharge.toEach) * energyChange,
-          Const(assetParams.etaDischarge.toEach) * energyChange,
+          Const(1d / parameters.etaCharge.toEach) * energyChange,
+          Const(parameters.etaDischarge.toEach) * energyChange,
         )
       else Seq(energyChange)
 
     private def isInefficient: Boolean =
-      assetParams.etaCharge < onePU || assetParams.etaDischarge < onePU
+      parameters.etaCharge < onePU || parameters.etaDischarge < onePU
 
     override def getOperatingPowerResult: Power = {
 
       // power on storage side
       val storagePower =
-        KilowattHours(energyChange.getValue) / assetParams.sampleTime
+        KilowattHours(energyChange.getValue) / parameters.sampleTime
 
       val factor =
-        if storagePower < zeroKW then assetParams.etaDischarge.toEach
-        else 1d / assetParams.etaCharge.toEach
+        if storagePower < zeroKW then parameters.etaDischarge.toEach
+        else 1d / parameters.etaCharge.toEach
 
       // outside power
       storagePower * factor
     }
 
-    override def getStateOfEnergyResult: Energy =
+    override def getStepEndEnergyResult: Energy =
       KilowattHours(stepEndState.getValue)
 
   }

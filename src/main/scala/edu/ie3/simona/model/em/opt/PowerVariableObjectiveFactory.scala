@@ -10,6 +10,7 @@ import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
   AssetStepSymbols,
   AssetSymbolContainer,
   FixedPowerStepParameters,
+  MPSymbol,
   ObjectiveFactory,
 }
 import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.PowerVarAssetStepSymbols
@@ -122,23 +123,20 @@ object PowerVariableObjectiveFactory {
     */
   trait FixedPowerVarAssetStepSymbols extends PowerVarAssetStepSymbols {
 
-    val assetParams: FixedPowerStepParameters
+    override val parameters: FixedPowerStepParameters
 
     override lazy val objectiveAddition: Option[Expression] = None
 
-    private lazy val power = assetParams.energyChange / assetParams.sampleTime
+    private lazy val power = parameters.energyChange / parameters.sampleTime
 
     override def getOperationPowerSymbol: Expression = Const(power.toKilowatts)
 
-    override def getStateSymbol: Expression = Const(
-      assetParams.stepEndEnergy.toKilowattHours
-    )
+    override def getStepEndStateSymbol: MPSymbol =
+      Const(parameters.stepEndEnergy.toKilowattHours)
 
     override def getOperatingPowerResult: Power = power
 
-    override def getStateOfEnergyResult: Energy = assetParams.stepEndEnergy
-
-    override def getAccuracyCheck: Option[ResultAccuracyCheck] = None
+    override def getStepEndEnergyResult: Energy = parameters.stepEndEnergy
 
   }
 

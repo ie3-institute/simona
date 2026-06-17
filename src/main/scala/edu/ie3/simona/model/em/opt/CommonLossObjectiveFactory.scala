@@ -65,7 +65,7 @@ abstract class CommonLossObjectiveFactory
         val conversionFactor = calculateConversionFactor(etaCh, etaCommon)
 
         // modeling the new state (stored energy)
-        val newState: MPVar | Const =
+        val newState: MPSymbol =
           if varPower.eMin == varPower.eMax then
             Const(varPower.eMax.toKilowattHours * conversionFactor)
           else
@@ -75,25 +75,25 @@ abstract class CommonLossObjectiveFactory
               upperBound = varPower.eMax.toKilowattHours * conversionFactor,
             )
 
-        val pAbsVar =
-          if varPower.isInefficient then {
-            // there are charging/discharging losses, thus use the full model
+        if varPower.isInefficient then {
+          // there are charging/discharging losses, thus use the full model
 
-            // approximation of the absolute value of p,
-            // kept as close as possible to the actual absolute value
-            // by using a soft constraint
-            val pAbsMax = varPower.pMax.max(-varPower.pMin)
+          // approximation of the absolute value of p,
+          // kept as close as possible to the actual absolute value
+          // by using a soft constraint
+          val pAbsMax = varPower.pMax.max(-varPower.pMin)
 
-            val pAbs = MPFloatVar(
-              symbol = s"pAbs_${varPower.stepStartTick}",
-              lowerBound = 0,
-              upperBound = pAbsMax.toKilowatts,
-            )
+          val pAbs = MPFloatVar(
+            symbol = s"pAbs_${varPower.stepStartTick}",
+            lowerBound = 0,
+            upperBound = pAbsMax.toKilowatts,
+          )
 
-            model.add(pAbs >:= p)
-            model.add(pAbs >:= -p)
+          model.add(pAbs >:= p)
+          model.add(pAbs >:= -p)
 
-            val adaptedPreviousEnergy = varPower.previousStateEnergy match {
+          val adaptedPreviousEnergy: MPSymbol =
+            varPower.previousStateEnergy match {
               // constants are taken from energy boundary values
               // and need to be converted to the adapted model
               case constState: Const =>
@@ -101,32 +101,36 @@ abstract class CommonLossObjectiveFactory
               case other => other
             }
 
-            model.add(
-              newState := adaptedPreviousEnergy +
-                (p - pAbs * Const(1 - etaCommon.toEach)) *
-                Const(varPower.sampleTime.toHours)
+          model.add(
+            newState := adaptedPreviousEnergy +
+              (p - pAbs * Const(1 - etaCommon.toEach)) *
+              Const(varPower.sampleTime.toHours)
+          )
+          InefficientCommonLossAssetStepSymbols(
+            varPower,
+            p,
+            pAbs,
+            adaptedPreviousEnergy,
+            newState,
+            etaCommon,
+            conversionFactor,
+          )
+        } else {
+          // there are no charging/discharging losses, we can keep it simple
+
+          model.add(
+            newState := varPower.previousStateEnergy + p * Const(
+              varPower.sampleTime.toHours
             )
+          )
 
-            Some(pAbs)
-          } else {
-            // there are no charging/discharging losses, we can keep it simple
+          EfficientCommonLossAssetStepSymbols(
+            varPower,
+            p,
+            newState,
+          )
+        }
 
-            model.add(
-              newState := varPower.previousStateEnergy + p * Const(
-                varPower.sampleTime.toHours
-              )
-            )
-            None
-          }
-
-        VariableCommonLossAssetStepSymbols(
-          varPower,
-          p,
-          pAbsVar,
-          newState,
-          etaCommon,
-          conversionFactor,
-        )
     }
 
 }
@@ -345,11 +349,11 @@ object CommonLossObjectiveFactory {
     * [[CommonLossObjectiveFactory]]. Soft constraints (objective addition) are
     * not used.
     *
-    * @param assetParams
+    * @param parameters
     *   Parameters for the asset at the specific time step.
     */
   private final case class FixedCommonLossAssetStepSymbols(
-      override val assetParams: FixedPowerStepParameters
+      override val parameters: FixedPowerStepParameters
   ) extends CommonLossAssetStepSymbols
       with FixedPowerVarAssetStepSymbols
 
@@ -358,14 +362,50 @@ object CommonLossObjectiveFactory {
     * [[CommonLossObjectiveFactory]]. A soft constraint via objective addition
     * can potentially be used.
     *
-    * @param assetParams
+    * @param parameters
+    *   Parameters for the asset at the specific time step.
+    * @param power
+    *   The operation variable, describing the power in kW to get from the
+    *   energy state at the start to the state at the end of the interval.
+    *
+    * \@param
+    * @param stepEndState
+    *   The state variable, describing the state of energy in kWh at the end of
+    *   the time step interval.
+    */
+  private final case class EfficientCommonLossAssetStepSymbols(
+      override val parameters: VariablePowerStepParameters,
+      power: MPVar,
+      stepEndState: MPSymbol,
+  ) extends CommonLossAssetStepSymbols
+      with VariableAssetStepSymbols {
+
+    override lazy val objectiveAddition: Option[Expression] = None
+
+    override def getOperationPowerSymbol: Expression = power
+
+    override def getStepEndStateSymbol: MPSymbol = stepEndState
+
+    override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
+
+    override def getStepEndEnergyResult: Energy =
+      KilowattHours(stepEndState.getValue)
+
+  }
+
+  /** Container that provides symbols for a specific asset and for an
+    * optimization time step in which power is variable, to be used by
+    * [[CommonLossObjectiveFactory]]. A soft constraint via objective addition
+    * can potentially be used.
+    *
+    * @param parameters
     *   Parameters for the asset at the specific time step.
     * @param power
     *   The operation variable, describing the power in kW to get from the
     *   energy state at the start to the state at the end of the interval.
     * @param powerAbs
-    *   Optionally, the approximated absolute value of the [[power]] variable,
-    *   in kW.
+    *   The approximated absolute value of the [[power]] variable, in kW.
+    * @param stepStartState
     * @param stepEndState
     *   The state variable, describing the state of energy in kWh at the end of
     *   the time step interval.
@@ -375,52 +415,33 @@ object CommonLossObjectiveFactory {
     *   Since the model adapts energy values, this is the conversion factor that
     *   allows deriving the actual energy values.
     */
-  private final case class VariableCommonLossAssetStepSymbols(
-      assetParams: VariablePowerStepParameters,
+  private final case class InefficientCommonLossAssetStepSymbols(
+      override val parameters: VariablePowerStepParameters,
       power: MPVar,
-      powerAbs: Option[MPVar],
-      stepEndState: MPVar | Const,
+      powerAbs: MPVar,
+      stepStartState: MPSymbol,
+      stepEndState: MPSymbol,
       etaCommon: Dimensionless,
       energyConversionFactor: Double = 1d,
-  ) extends CommonLossAssetStepSymbols {
+  ) extends CommonLossAssetStepSymbols
+      with VariableAssetStepSymbols
+      with RelativeStateErrorHelper {
 
-    override lazy val objectiveAddition: Option[Expression] = powerAbs.map {
-      pAbs => pAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
-    }
+    override lazy val objectiveAddition: Option[Expression] = Some(
+      powerAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
+    )
 
     override def getOperationPowerSymbol: Expression = power
 
-    override def getStateSymbol: Expression = stepEndState
+    override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
 
-    override def getStateOfEnergyResult: Energy =
+    override def getStepStartEnergyResult: Energy =
+      KilowattHours(stepStartState.getValue / energyConversionFactor)
+
+    override def getStepEndEnergyResult: Energy =
       KilowattHours(stepEndState.getValue / energyConversionFactor)
-
-    override def getAccuracyCheck: Option[ResultAccuracyCheck] =
-      powerAbs.map(PowerAbsVariableAccuracyCheck(power, _))
-
-  }
-
-  /** Accuracy check for an absolute value of a free variable.
-    *
-    * @param power
-    *   The power variable that can be assigned a positive or negative number.
-    * @param powerAbs
-    *   The power variable that is supposed to be set to the absolute value of
-    *   [[power]].
-    */
-  private final case class PowerAbsVariableAccuracyCheck(
-      power: MPVar,
-      powerAbs: MPVar,
-  ) extends ResultAccuracyCheck {
-
-    override def getError: Double =
-      math.abs(math.abs(power.getValue) - powerAbs.getValue)
-
-    override def getWarningMessage: String =
-      s"Approximated absolute power value ${powerAbs.getValue} kW" +
-        s"and correct absolute power value ${math.abs(power.getValue)} kW are $getError kW apart."
 
   }
 

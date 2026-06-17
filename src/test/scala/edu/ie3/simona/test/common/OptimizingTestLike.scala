@@ -16,7 +16,7 @@ import edu.ie3.simona.service.Data.SecondaryData.{
 }
 import edu.ie3.util.scala.quantities.EuroPerKilowattHour
 import org.scalatest.Assertions
-import squants.Power
+import squants.{Energy, Power}
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
@@ -39,7 +39,7 @@ trait OptimizingTestLike extends Assertions {
     /** The state of energy in kWh, if applicable (NaN else).
       */
     def energyVal: Double =
-      vars.getStateOfEnergyResult.toKilowattHours
+      vars.getStepEndEnergyResult.toKilowattHours
 
     /** Power value in kW.
       */
@@ -61,6 +61,14 @@ trait OptimizingTestLike extends Assertions {
       .values
       .toIndexedSeq
 
+    def checkModelStateError(using tolerance: Energy): Unit =
+      containers.flatMap(_.getStateCalcErrors).foreach { error =>
+        assert(
+          error < tolerance,
+          s"Model state calculation error $error is higher than allowed ($tolerance).",
+        )
+      }
+
   }
 
   def buildDebugString(
@@ -75,7 +83,7 @@ trait OptimizingTestLike extends Assertions {
                 s"\n\t\t\tTrajectory: ${sortedVars
                     .map { case (_, vars) =>
                       vars.getOperatingPowerResult.in(Kilowatts).rounded(6).toString +
-                        s" ( -> ${vars.getStateOfEnergyResult.in(KilowattHours).rounded(6).toString})"
+                        s" ( -> ${vars.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
                     }
                     .mkString(", ")}"
               }

@@ -33,7 +33,7 @@ class CommonLossObjectiveFactorySpec
   // Testing tolerances
   given Double = 1e-6
   given Energy = WattHours(1e-9)
-  private val constraintTolerance = 1e-3
+  val stateEnergyTolerance: Energy = WattHours(1e-3)
 
   "An optimizing flex strat" when {
 
@@ -159,14 +159,10 @@ class CommonLossObjectiveFactorySpec
           Battery should be able to fully cover the additional power
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
@@ -230,14 +226,10 @@ class CommonLossObjectiveFactorySpec
           up to its maximum power
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
@@ -308,14 +300,10 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // possibly charging
           batRes(0).pVal should be >= 0d
@@ -393,14 +381,10 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // possibly charging
           batRes(0).pVal should be >= 0d
@@ -433,7 +417,7 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power exceeding energy storage capacity when discharging first" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
+        given model: MPModel = MPModel(SolverLib.Gurobi)
 
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
@@ -463,6 +447,7 @@ class CommonLossObjectiveFactorySpec
 
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
+        model.release()
 
         model.getStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -480,14 +465,10 @@ class CommonLossObjectiveFactorySpec
           a lower total amount of power.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 0.5 kWh plus 0.125 kWh losses
           batRes(0).pVal should approximate(-1d)
@@ -570,14 +551,10 @@ class CommonLossObjectiveFactorySpec
           No losses should be subtracted.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // discharging 5 kWh
           batRes(0).pVal should approximate(-5)
@@ -677,18 +654,14 @@ class CommonLossObjectiveFactorySpec
           balance out the additional power.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-        batRes.size shouldBe 4
-
-        val evcsRes = assetSymbols.res(bat2UUID)
-        evcsRes.size shouldBe 2
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
+          batRes.size shouldBe 4
+
+          val evcsRes = assetSymbols.res(bat2UUID)
+          evcsRes.size shouldBe 2
 
           // EV needs to take the 4 kW to reach its target
           evcsRes(0).pVal should approximate(4)
@@ -757,15 +730,10 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
 
+          val batRes = assetSymbols.res(batUUID)
           batRes should have size 12
 
           batRes.slice(0, 4).foreach {
@@ -836,14 +804,10 @@ class CommonLossObjectiveFactorySpec
           in order to achieve total power closer to zero.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // 0 kW to compensate
           batRes(0).pVal should approximate(0d)
@@ -938,14 +902,10 @@ class CommonLossObjectiveFactorySpec
           prices are high, the battery is used instead.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // 0 kW to compensate
           batRes(0).pVal should approximate(0d)
@@ -1065,14 +1025,10 @@ class CommonLossObjectiveFactorySpec
           loss factor.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
-          objectiveContainer.accuracyChecks.foreach { constraint =>
-            withClue(constraint.getWarningMessage) {
-              constraint.getError should be < constraintTolerance
-            }
-          }
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = assetSymbols.res(batUUID)
 
           // 0 kW, since result is pushed down by soft constraint
           batRes(0).pVal should approximate(0d)
@@ -1084,92 +1040,87 @@ class CommonLossObjectiveFactorySpec
 
       }
     }
-  }
 
-  "provided with energy boundary flex options including two batteries" should {
+    "provided with energy boundary flex options including two batteries" should {
 
-    // half hour resolution
-    given ticks: Seq[Long] = ticksScenario1
+      // half hour resolution
+      given ticks: Seq[Long] = ticksScenario1
 
-    val constFlex = EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries(
-        Seq(4, 4, 4, 14, -1, -4, -1, -14, -9.625, -2, 14, 0).toPowerMap
-      )
-    )
-
-    // high storage capacity, low power
-    val bat1Flex = EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries(
-        eStorage = KilowattHours(10),
-        currentEnergy = KilowattHours(10),
-        pMax = Kilowatts(4),
-        etaCharge = Each(0.8),
-        etaDischarge = Each(0.8),
-        currentTick = 0L,
-      )
-    )
-
-    // low storage capacity, high power
-    val bat2Flex = EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries(
-        eStorage = KilowattHours(6.25),
-        currentEnergy = KilowattHours(6.25),
-        pMax = Kilowatts(10),
-        etaCharge = Each(0.8),
-        etaDischarge = Each(0.8),
-        currentTick = 0L,
-      )
-    )
-
-    val flexOptions = Map(
-      loadUUID -> constFlex,
-      batUUID -> bat1Flex,
-      bat2UUID -> bat2Flex,
-    )
-
-    "minimize peaks when using price-based objective" in {
-
-      given model: MPModel = MPModel(SolverLib.oJSolver)
-
-      val priceData =
-        (Seq.fill(4)((0.1d, 0.2d)) ++
-          Seq.fill(6)((-0.2d, -0.1)) ++
-          Seq.fill(2)((0.05d, 0.15d))).toPriceData
-
-      val (assetSymbols, objectiveContainer) =
-        OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq(priceData),
-          objectiveFactory = PriceObjectiveFactory,
+      val constFlex = EnergyBoundariesFlexOptions(
+        AssetEnergyBoundaries(
+          Seq(4, 4, 4, 14, -1, -4, -1, -14, -9.625, -2, 14, 0).toPowerMap
         )
+      )
 
-      model.minimize(objectiveContainer.objective)
-      model.start(timeLimit = 10000)
+      // high storage capacity, low power
+      val bat1Flex = EnergyBoundariesFlexOptions(
+        AssetEnergyBoundaries(
+          eStorage = KilowattHours(10),
+          currentEnergy = KilowattHours(10),
+          pMax = Kilowatts(4),
+          etaCharge = Each(0.8),
+          etaDischarge = Each(0.8),
+          currentTick = 0L,
+        )
+      )
 
-      model.getStatus shouldBe SolutionStatus.OPTIMAL
+      // low storage capacity, high power
+      val bat2Flex = EnergyBoundariesFlexOptions(
+        AssetEnergyBoundaries(
+          eStorage = KilowattHours(6.25),
+          currentEnergy = KilowattHours(6.25),
+          pMax = Kilowatts(10),
+          etaCharge = Each(0.8),
+          etaDischarge = Each(0.8),
+          currentTick = 0L,
+        )
+      )
 
-      /*
+      val flexOptions = Map(
+        loadUUID -> constFlex,
+        batUUID -> bat1Flex,
+        bat2UUID -> bat2Flex,
+      )
+
+      "minimize peaks when using price-based objective" in {
+
+        given model: MPModel = MPModel(SolverLib.oJSolver)
+
+        val priceData =
+          (Seq.fill(4)((0.1d, 0.2d)) ++
+            Seq.fill(6)((-0.2d, -0.1)) ++
+            Seq.fill(2)((0.05d, 0.15d))).toPriceData
+
+        val (assetSymbols, objectiveContainer) =
+          OptimizingFlexStrat.buildModel(
+            flexOptions = flexOptions,
+            sampleTime = halfHour,
+            ticks = ticks,
+            target = zeroKW,
+            receivedData = Seq(priceData),
+            objectiveFactory = PriceObjectiveFactory,
+          )
+
+        model.minimize(objectiveContainer.objective)
+        model.start(timeLimit = 10000)
+
+        model.getStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
         EXPECTED RESULTS
         There are three phases that provide different incentives to the
         battery optimization. The constant load/feed-in is modeled in a
         way that allows only for one optimal solution. See detailed
         explanations below.
-       */
+         */
 
-      val bat1Res = assetSymbols.res(batUUID)
-      val bat2Res = assetSymbols.res(bat2UUID)
+        {
+          assetSymbols.checkModelStateError(using stateEnergyTolerance)
 
-      {
-        objectiveContainer.accuracyChecks.foreach { constraint =>
-          withClue(constraint.getWarningMessage) {
-            constraint.getError should be < constraintTolerance
-          }
-        }
+          val bat1Res = assetSymbols.res(batUUID)
+          val bat2Res = assetSymbols.res(bat2UUID)
 
-        /*
+          /*
           First period (steps 0-3):
           Prices are positive, so there is an overall incentive to sell energy.
           However, we have loads that exactly drain the batteries to zero at
@@ -1178,28 +1129,28 @@ class CommonLossObjectiveFactorySpec
           batteries to be discharging with maximum power.
           Thus, the second battery (high power, low storage capacity) needs to
           be spared to cover the high load and cannot contribute beforehand.
-         */
-        bat1Res(0).pVal should approximate(-4d)
-        bat1Res(0).energyVal should approximate(7.5d)
-        bat2Res(0).pVal should approximate(0d)
-        bat2Res(0).energyVal should approximate(6.25d)
+           */
+          bat1Res(0).pVal should approximate(-4d)
+          bat1Res(0).energyVal should approximate(7.5d)
+          bat2Res(0).pVal should approximate(0d)
+          bat2Res(0).energyVal should approximate(6.25d)
 
-        bat1Res(1).pVal should approximate(-4d)
-        bat1Res(1).energyVal should approximate(5d)
-        bat2Res(1).pVal should approximate(0d)
-        bat2Res(1).energyVal should approximate(6.25d)
+          bat1Res(1).pVal should approximate(-4d)
+          bat1Res(1).energyVal should approximate(5d)
+          bat2Res(1).pVal should approximate(0d)
+          bat2Res(1).energyVal should approximate(6.25d)
 
-        bat1Res(2).pVal should approximate(-4d)
-        bat1Res(2).energyVal should approximate(2.5d)
-        bat2Res(2).pVal should approximate(0d)
-        bat2Res(2).energyVal should approximate(6.25d)
+          bat1Res(2).pVal should approximate(-4d)
+          bat1Res(2).energyVal should approximate(2.5d)
+          bat2Res(2).pVal should approximate(0d)
+          bat2Res(2).energyVal should approximate(6.25d)
 
-        bat1Res(3).pVal should approximate(-4d)
-        bat1Res(3).energyVal should approximate(0d)
-        bat2Res(3).pVal should approximate(-10d)
-        bat2Res(3).energyVal should approximate(0d)
+          bat1Res(3).pVal should approximate(-4d)
+          bat1Res(3).energyVal should approximate(0d)
+          bat2Res(3).pVal should approximate(-10d)
+          bat2Res(3).energyVal should approximate(0d)
 
-        /*
+          /*
           Second period (steps 4-9):
           Prices are negative, so there is an overall incentive to buy energy.
           There is also some feed-in that fluctuates. Overall, the battery is
@@ -1207,56 +1158,58 @@ class CommonLossObjectiveFactorySpec
           During tick 7 and 8, there is a high feed-in that requires both
           batteries to charge. The second battery can only be used in these
           two steps, thus can't be used at other times during this period.
-         */
-        bat1Res(4).pVal should approximate(4d)
-        bat1Res(4).energyVal should approximate(1.6d)
-        bat2Res(4).pVal should approximate(0d)
-        bat2Res(4).energyVal should approximate(0d)
+           */
+          bat1Res(4).pVal should approximate(4d)
+          bat1Res(4).energyVal should approximate(1.6d)
+          bat2Res(4).pVal should approximate(0d)
+          bat2Res(4).energyVal should approximate(0d)
 
-        bat1Res(5).pVal should approximate(4d)
-        bat1Res(5).energyVal should approximate(3.2d)
-        bat2Res(5).pVal should approximate(0d)
-        bat2Res(5).energyVal should approximate(0d)
+          bat1Res(5).pVal should approximate(4d)
+          bat1Res(5).energyVal should approximate(3.2d)
+          bat2Res(5).pVal should approximate(0d)
+          bat2Res(5).energyVal should approximate(0d)
 
-        bat1Res(6).pVal should approximate(4d)
-        bat1Res(6).energyVal should approximate(4.8d)
-        bat2Res(6).pVal should approximate(0d)
-        bat2Res(6).energyVal should approximate(0d)
+          bat1Res(6).pVal should approximate(4d)
+          bat1Res(6).energyVal should approximate(4.8d)
+          bat2Res(6).pVal should approximate(0d)
+          bat2Res(6).energyVal should approximate(0d)
 
-        bat1Res(7).pVal should approximate(4d)
-        bat1Res(7).energyVal should approximate(6.4d)
-        bat2Res(7).pVal should approximate(10d)
-        bat2Res(7).energyVal should approximate(4d)
+          bat1Res(7).pVal should approximate(4d)
+          bat1Res(7).energyVal should approximate(6.4d)
+          bat2Res(7).pVal should approximate(10d)
+          bat2Res(7).energyVal should approximate(4d)
 
-        bat1Res(8).pVal should approximate(4d)
-        bat1Res(8).energyVal should approximate(8d)
-        bat2Res(8).pVal should approximate(5.625d)
-        bat2Res(8).energyVal should approximate(6.25d)
+          bat1Res(8).pVal should approximate(4d)
+          bat1Res(8).energyVal should approximate(8d)
+          bat2Res(8).pVal should approximate(5.625d)
+          bat2Res(8).energyVal should approximate(6.25d)
 
-        bat1Res(9).pVal should approximate(4d)
-        bat1Res(9).energyVal should approximate(9.6d)
-        bat2Res(9).pVal should approximate(0d)
-        bat2Res(9).energyVal should approximate(6.25d)
+          bat1Res(9).pVal should approximate(4d)
+          bat1Res(9).energyVal should approximate(9.6d)
+          bat2Res(9).pVal should approximate(0d)
+          bat2Res(9).energyVal should approximate(6.25d)
 
-        /*
+          /*
           Third period (steps 10-11):
           Prices are positive again, so we generally want to sell again.
           Period 10 has a high load again that uses the full storage
           capacity of battery 2 (similar to end of phase 1).
-         */
-        bat1Res(10).pVal should approximate(-4d)
-        bat1Res(10).energyVal should approximate(7.1d)
-        bat2Res(10).pVal should approximate(-10d)
-        bat2Res(10).energyVal should approximate(0d)
+           */
+          bat1Res(10).pVal should approximate(-4d)
+          bat1Res(10).energyVal should approximate(7.1d)
+          bat2Res(10).pVal should approximate(-10d)
+          bat2Res(10).energyVal should approximate(0d)
 
-        bat1Res(11).pVal should approximate(-4d)
-        bat1Res(11).energyVal should approximate(4.6d)
-        bat2Res(11).pVal should approximate(0d)
-        bat2Res(11).energyVal should approximate(0d)
+          bat1Res(11).pVal should approximate(-4d)
+          bat1Res(11).energyVal should approximate(4.6d)
+          bat2Res(11).pVal should approximate(0d)
+          bat2Res(11).energyVal should approximate(0d)
 
-      } withClue buildDebugString(assetSymbols)
+        } withClue buildDebugString(assetSymbols)
 
-      model.release()
+        model.release()
+
+      }
 
     }
 

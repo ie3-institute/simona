@@ -22,13 +22,15 @@ import edu.ie3.simona.service.{
   ServiceRegistrationData,
   ServiceType,
 }
-import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.{Logger, LoggerFactory}
+import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
+import squants.energy.WattHours
 import squants.{Dimensionless, Energy, Power, Time}
 
 import java.util.UUID
@@ -77,7 +79,7 @@ final case class OptimizingFlexStrat(
       receivedData: Seq[SecondaryData],
   ): Iterable[(UUID, Power)] = {
 
-    given model: MPModel = MPModel(SolverLib.oJSolver)
+    given model: MPModel = MPModel(SolverLib.Gurobi)
 
     val sampleTicks = sampleTime.toSeconds.toLong
     val lastPredictedTick = currentTick + predictionHorizon.toSeconds.toLong
@@ -101,55 +103,56 @@ final case class OptimizingFlexStrat(
     model.minimize(objectiveContainer.objective)
 
     model.start()
+    model.release()
 
     if model.getStatus != SolutionStatus.OPTIMAL then
       throw new CriticalFailureException(
         s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
       )
 
-    objectiveContainer.accuracyChecks
-      .filter(_.getError > accuracyWarningThreshold)
-      .foreach { constraint =>
-        logger.warn(constraint.getWarningMessage)
-      }
+    val errors = allAssetSymbols
+      .flatMap(_.getStateCalcErrors)
+      .filter(_ > accuracyWarningThreshold)
+
+    if errors.nonEmpty then {
+      val meanError = errors.sum / errors.size
+      logger.warn(
+        s"${errors.size} of all asset steps were inaccurate, with a mean error of $meanError"
+      )
+    }
 
     // we're only interested in the solutions for the current time step
     val flexOptionsMap = flexOptionsById.toMap
-    val assetCtrl = allAssetSymbols.map {
-      case AssetSymbolContainer(assetUuid, assetSymbols) =>
-        val setPoint = assetSymbols.map {
-          // Taking only the first result for set points
-          _.headOption
-            .getOrElse(
-              throw new CriticalFailureException(
-                s"Empty results for asset $assetUuid"
-              )
-            ) match {
-            case (_, res) =>
-              // Operating point of first result
-              res.getOperatingPowerResult
-          }
+    allAssetSymbols.map { case AssetSymbolContainer(assetUuid, assetSymbols) =>
+      val setPoint = assetSymbols.map {
+        // Taking only the first result for set points
+        _.headOption
+          .getOrElse(
+            throw new CriticalFailureException(
+              s"Empty results for asset $assetUuid"
+            )
+          ) match {
+          case (_, res) =>
+            // Operating point of first result
+            res.getOperatingPowerResult
         }
-          // Add up solutions for all asset assigned to the same UUID
-          .sum
+      }
+        // Add up solutions for all asset assigned to the same UUID
+        .sum
 
-        // make sure that set point is within allowed power.
-        // floating point rounding errors might move it slightly outside the interval.
-        val flex = flexOptionsMap.getOrElse(
-          assetUuid,
-          throw new CriticalFailureException(
-            s"Flex options not found for $assetUuid"
-          ),
-        )
-        val adaptedSetPoint =
-          setPoint.max(flex.powerLimits.getLower).min(flex.powerLimits.getUpper)
+      // make sure that set point is within allowed power.
+      // floating point rounding errors might move it slightly outside the interval.
+      val flex = flexOptionsMap.getOrElse(
+        assetUuid,
+        throw new CriticalFailureException(
+          s"Flex options not found for $assetUuid"
+        ),
+      )
+      val adaptedSetPoint =
+        setPoint.max(flex.powerLimits.getLower).min(flex.powerLimits.getUpper)
 
-        assetUuid -> adaptedSetPoint
+      assetUuid -> adaptedSetPoint
     }
-
-    model.release()
-
-    assetCtrl
   }
 
   override def adaptFlexOptions(
@@ -161,10 +164,56 @@ final case class OptimizingFlexStrat(
 
 object OptimizingFlexStrat {
 
+  type MPSymbol = MPVar | Const
+
   /** Threshold for the error of result accuracy checks after optimization.
-    * Every error should stay below this threshold.
+    * Every error should stay below this threshold. todo
     */
-  private val accuracyWarningThreshold: Double = 1e-3
+  private val accuracyWarningThreshold: Energy = WattHours(10)
+
+  final case class OptimizationParams(
+      objectiveFactory: ObjectiveFactory[? <: AssetStepSymbols],
+      flexOptionsById: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+      receivedData: Seq[SecondaryData],
+      target: Power,
+      sampleTime: Time,
+      predictionHorizon: Time,
+      currentTick: Long,
+      solverLib: SolverLib,
+      tightenBoundaries: Boolean,
+  )
+
+  def optimize(params: OptimizationParams) = {
+    given model: MPModel = MPModel(params.solverLib)
+
+    val sampleTicks = params.sampleTime.toSeconds.toLong
+    val lastPredictedTick =
+      params.currentTick + params.predictionHorizon.toSeconds.toLong
+
+    val ticks =
+      Range.Long.inclusive(params.currentTick, lastPredictedTick, sampleTicks)
+
+    val (allAssetSymbols, objectiveContainer) =
+      buildModel(
+        params.flexOptionsById,
+        params.sampleTime,
+        ticks,
+        params.target,
+        params.receivedData,
+        params.objectiveFactory,
+      )
+
+    model.minimize(objectiveContainer.objective)
+
+    model.start()
+    model.release()
+
+    if model.getStatus != SolutionStatus.OPTIMAL then
+      throw new CriticalFailureException(
+        s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
+      )
+
+  }
 
   /** Constructs the optimization model by creating the required variables and
     * constraints and the objective. Asset symbols and objective are created
@@ -218,14 +267,9 @@ object OptimizingFlexStrat {
       receivedData,
     )
 
-    val allAccuracyChecks =
-      assetSymbols.flatMap(
-        _.results.flatMap(_.values.flatMap(_.getAccuracyCheck))
-      )
-
     (
       assetSymbols,
-      ObjectiveContainer(objective, allAccuracyChecks),
+      ObjectiveContainer(objective),
     )
 
   }
@@ -280,7 +324,7 @@ object OptimizingFlexStrat {
             }
             .getOrElse(ticks)
             .sliding(2)
-            .foldLeft[(SortedMap[Long, AV], Expression)](
+            .foldLeft[(SortedMap[Long, AV], MPSymbol)](
               (SortedMap.empty, startState)
             ) {
               case (
@@ -299,7 +343,7 @@ object OptimizingFlexStrat {
 
                 (
                   previousResults.updated(stepStartTick, vars),
-                  vars.getStateSymbol,
+                  vars.getStepEndStateSymbol,
                 )
 
               case _ =>
@@ -334,7 +378,7 @@ object OptimizingFlexStrat {
       stepStartTick: Long,
       stepEndTick: Long,
       sampleTime: Time,
-      previousState: Expression,
+      previousState: MPSymbol,
   ): AssetStepParameters = {
 
     // we are interested in the energy limits at the end of the step interval,
@@ -448,7 +492,7 @@ object OptimizingFlexStrat {
     *   The discharging efficiency.
     */
   final case class VariablePowerStepParameters(
-      previousStateEnergy: Expression,
+      previousStateEnergy: MPSymbol,
       pMin: Power,
       pMax: Power,
       eMin: Energy,
@@ -468,9 +512,12 @@ object OptimizingFlexStrat {
     */
   trait AssetStepSymbols {
 
-    /** Returns the symbol for the asset state of energy in kWh.
+    val parameters: AssetStepParameters
+
+    /** Returns the symbol for the asset state of energy at the end of the time
+      * step in kWh.
       */
-    def getStateSymbol: Expression
+    def getStepEndStateSymbol: MPSymbol
 
     /** Returns the resulting operating power.
       *
@@ -486,13 +533,41 @@ object OptimizingFlexStrat {
       * completed. Otherwise, results might not be available and an exception
       * might be thrown.
       */
-    def getStateOfEnergyResult: Energy
+    def getStepEndEnergyResult: Energy
 
-    /** Returns a result accuracy check for the asset and time step, if
-      * applicable.
+    /** todo
       */
-    def getAccuracyCheck: Option[ResultAccuracyCheck]
+    def getStateCalcError: Energy = zeroKWh
 
+  }
+
+  trait VariableAssetStepSymbols extends AssetStepSymbols {
+
+    override val parameters: VariablePowerStepParameters
+
+  }
+
+  /** todo
+    */
+  trait RelativeStateErrorHelper {
+    this: VariableAssetStepSymbols =>
+
+    def getStepStartEnergyResult: Energy
+
+    override def getStateCalcError: Energy = {
+      val sampleTime = parameters.sampleTime
+
+      val power = getOperatingPowerResult
+      val startEnergy = getStepStartEnergyResult
+      val endEnergy = getStepEndEnergyResult
+
+      val factor =
+        if power > zeroKW then parameters.etaCharge.toEach
+        else 1d / parameters.etaDischarge.toEach
+
+      val correctEndEnergy = startEnergy + power * sampleTime * factor
+      (correctEndEnergy - endEnergy).abs
+    }
   }
 
   /** Container holding all optimization variables and soft constraints (as
@@ -510,7 +585,14 @@ object OptimizingFlexStrat {
   final case class AssetSymbolContainer[AV <: AssetStepSymbols](
       assetUuid: UUID,
       results: Seq[SortedMap[Long, AV]],
-  )
+  ) {
+
+    def getStateCalcErrors: Seq[Energy] =
+      results.flatten.map { case (_, assetSymbols) =>
+        assetSymbols.getStateCalcError
+      }
+
+  }
 
   /** Container holding the complete objective to minimize (which already
     * includes the soft constraint expressions) and relevant soft constraint
@@ -519,12 +601,9 @@ object OptimizingFlexStrat {
     * @param objective
     *   The objective, including all soft constraint expressions (if
     *   applicable).
-    * @param accuracyChecks
-    *   All result accuracy checks.
     */
   final case class ObjectiveContainer(
-      objective: Expression,
-      accuracyChecks: Iterable[ResultAccuracyCheck],
+      objective: Expression
   )
 
   /** Trait to be implemented by factories of power objectives.
@@ -676,7 +755,7 @@ object OptimizingFlexStrat {
 
   }
 
-  extension (expr: MPVar | Const) {
+  extension (expr: MPSymbol) {
 
     /** Returns the set value for given variable or constant. For variables,
       * optimization has to have found a solution before calling this.

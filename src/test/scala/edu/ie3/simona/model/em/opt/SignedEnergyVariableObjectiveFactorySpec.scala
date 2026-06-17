@@ -43,9 +43,6 @@ class SignedEnergyVariableObjectiveFactorySpec
             objectiveFactory = SignedEnergyVariableObjectiveFactory,
           )
 
-        // factory should not produce soft constraints
-        objectiveContainer.accuracyChecks should be(empty)
-
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
 
@@ -63,9 +60,9 @@ class SignedEnergyVariableObjectiveFactorySpec
           prices are high, the battery is used instead.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
+          val batRes = assetSymbols.res(batUUID)
+
           // 0 kW to compensate
           batRes(0).pVal should approximate(0d)
           batRes(0).energyVal should approximate(0d)
@@ -172,9 +169,6 @@ class SignedEnergyVariableObjectiveFactorySpec
             objectiveFactory = SignedEnergyVariableObjectiveFactory,
           )
 
-        // factory should not produce soft constraints
-        objectiveContainer.accuracyChecks should be(empty)
-
         model.minimize(objectiveContainer.objective)
         model.start(timeLimit = 10000)
 
@@ -185,9 +179,9 @@ class SignedEnergyVariableObjectiveFactorySpec
           The price-based objective works as expected with low prices.
          */
 
-        val batRes = assetSymbols.res(batUUID)
-
         {
+          val batRes = assetSymbols.res(batUUID)
+
           // should work properly: selling as much as possible
           batRes(0).pVal should approximate(-10d)
           batRes(0).energyVal should approximate(13.75d)
