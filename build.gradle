@@ -25,6 +25,7 @@ ext {
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
+  optimusVersion = '3.4.5'
 
   junitVersion = '6.1.0'
   testContainerVersion = '0.44.1'
@@ -164,8 +165,9 @@ dependencies {
   implementation 'org.influxdb:influxdb-java:2.25'
 
   // optimization
-  implementation "com.github.vagmcs:optimus_${scalaVersion}:3.4.5"
-  implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:3.4.5"
+  implementation "com.github.vagmcs:optimus_${scalaVersion}:${optimusVersion}"
+  implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:${optimusVersion}"
+  implementation "com.github.vagmcs:optimus-solver-gurobi_${scalaVersion}:${optimusVersion}"
 }
 
 tasks.withType(JavaCompile).configureEach {
