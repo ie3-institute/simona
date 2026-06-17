@@ -232,10 +232,6 @@ class SplitPowerVarsObjectiveFactorySpec
           Thus, we only test for things that are true for every optimal
           solution: We know when the battery should be definitely
           full/empty and how much energy was charged/discharged.
-
-          The soft constraints are vital here. Without them,
-          optimization would overestimate the losses in the first half
-          in order to achieve total power closer to zero.
          */
 
         val batRes = assetSymbols.res(batUUID)
@@ -317,10 +313,6 @@ class SplitPowerVarsObjectiveFactorySpec
           Thus, we only test for things that are true for every optimal
           solution: We know when the battery should be definitely
           full/empty and how much energy was charged/discharged.
-
-          The soft constraints are vital here. Without them,
-          optimization would overestimate the losses in the first half
-          in order to achieve total power closer to zero.
          */
 
         val batRes = assetSymbols.res(batUUID)
