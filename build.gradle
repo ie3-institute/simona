@@ -175,8 +175,8 @@ tasks.withType(JavaCompile).configureEach {
 jar {
   manifest {
     attributes(
-        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
-        )
+    'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
+    )
   }
 }
 
