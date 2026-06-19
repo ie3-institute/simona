@@ -82,8 +82,9 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
       ) shouldBe new EnergyBoundariesFlexOptionsResult(
         defaultSimulationStart,
         uuid,
-        -0.005.asMegaWattHour,
         0.005.asMegaWattHour,
+        0.0.asMegaWattHour,
+        0.01.asMegaWattHour,
         -0.005.asMegaWatt,
         0.005.asMegaWatt,
       )

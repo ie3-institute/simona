@@ -3,7 +3,7 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.6.0' // code format
+  id 'com.diffplug.spotless' version '8.7.0' // code format
   id "com.github.ben-manes.versions" version '0.54.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -78,7 +78,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:9.0.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.1.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -91,7 +91,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.14.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.15.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -175,8 +175,8 @@ tasks.withType(JavaCompile).configureEach {
 jar {
   manifest {
     attributes(
-        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
-        )
+    'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
+    )
   }
 }
 
