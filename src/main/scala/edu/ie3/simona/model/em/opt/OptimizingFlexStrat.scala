@@ -79,80 +79,40 @@ final case class OptimizingFlexStrat(
       receivedData: Seq[SecondaryData],
   ): Iterable[(UUID, Power)] = {
 
-    given model: MPModel = MPModel(SolverLib.Gurobi)
-
-    val sampleTicks = sampleTime.toSeconds.toLong
-    val lastPredictedTick = currentTick + predictionHorizon.toSeconds.toLong
-
-    val ticks =
-      Range.Long.inclusive(currentTick, lastPredictedTick, sampleTicks)
-
     val flexOptionsById =
       flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo }
 
-    val (allAssetSymbols, objectiveContainer) =
-      buildModel(
-        flexOptionsById,
-        sampleTime,
-        ticks,
-        target,
-        receivedData,
-        objectiveFactory,
-      )
+    val optimizationParams = OptimizationParams(
+      flexOptionsById = flexOptionsById,
+      receivedData = receivedData,
+      target = target,
+      sampleTime = sampleTime,
+      predictionHorizon = predictionHorizon,
+      currentTick = currentTick,
+      objectiveFactory = objectiveFactory,
+      solverLib = SolverLib.oJSolver,
+      tightenBoundaries = true,
+    )
 
-    model.minimize(objectiveContainer.objective)
+    val result = optimize(optimizationParams)
 
-    model.start()
-    model.release()
-
-    if model.getStatus != SolutionStatus.OPTIMAL then
+    if result.solutionStatus != SolutionStatus.OPTIMAL then
       throw new CriticalFailureException(
-        s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
+        s"Optimization ended with unexpected status ${result.solutionStatus}, ${SolutionStatus.OPTIMAL} was expected."
       )
 
-    val errors = allAssetSymbols
+    val errors = result.assetSymbols
       .flatMap(_.getStateCalcErrors)
       .filter(_ > accuracyWarningThreshold)
 
     if errors.nonEmpty then {
       val meanError = errors.sum / errors.size
       logger.warn(
-        s"${errors.size} of all asset steps were inaccurate, with a mean error of $meanError"
+        s"${errors.size} of all state of energy calculation steps were inaccurate, with a mean error of $meanError"
       )
     }
 
-    // we're only interested in the solutions for the current time step
-    val flexOptionsMap = flexOptionsById.toMap
-    allAssetSymbols.map { case AssetSymbolContainer(assetUuid, assetSymbols) =>
-      val setPoint = assetSymbols.map {
-        // Taking only the first result for set points
-        _.headOption
-          .getOrElse(
-            throw new CriticalFailureException(
-              s"Empty results for asset $assetUuid"
-            )
-          ) match {
-          case (_, res) =>
-            // Operating point of first result
-            res.getOperatingPowerResult
-        }
-      }
-        // Add up solutions for all asset assigned to the same UUID
-        .sum
-
-      // make sure that set point is within allowed power.
-      // floating point rounding errors might move it slightly outside the interval.
-      val flex = flexOptionsMap.getOrElse(
-        assetUuid,
-        throw new CriticalFailureException(
-          s"Flex options not found for $assetUuid"
-        ),
-      )
-      val adaptedSetPoint =
-        setPoint.max(flex.powerLimits.getLower).min(flex.powerLimits.getUpper)
-
-      assetUuid -> adaptedSetPoint
-    }
+    extractSetPoints(flexOptionsById, result)
   }
 
   override def adaptFlexOptions(
@@ -172,18 +132,24 @@ object OptimizingFlexStrat {
   private val accuracyWarningThreshold: Energy = WattHours(10)
 
   final case class OptimizationParams(
-      objectiveFactory: ObjectiveFactory[? <: AssetStepSymbols],
       flexOptionsById: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       receivedData: Seq[SecondaryData],
       target: Power,
       sampleTime: Time,
       predictionHorizon: Time,
       currentTick: Long,
+      objectiveFactory: ObjectiveFactory[? <: AssetStepSymbols],
       solverLib: SolverLib,
       tightenBoundaries: Boolean,
   )
 
-  def optimize(params: OptimizationParams) = {
+  final case class OptimizationResult(
+      assetSymbols: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]],
+      solutionStatus: SolutionStatus,
+      objectiveValue: Option[Double],
+  )
+
+  def optimize(params: OptimizationParams): OptimizationResult = {
     given model: MPModel = MPModel(params.solverLib)
 
     val sampleTicks = params.sampleTime.toSeconds.toLong
@@ -208,11 +174,53 @@ object OptimizingFlexStrat {
     model.start()
     model.release()
 
-    if model.getStatus != SolutionStatus.OPTIMAL then
-      throw new CriticalFailureException(
-        s"Optimization ended with unexpected status ${model.getStatus}, ${SolutionStatus.OPTIMAL} was expected."
-      )
+    OptimizationResult(
+      assetSymbols = allAssetSymbols,
+      solutionStatus = model.getStatus,
+      objectiveValue = Option.when(model.getStatus == SolutionStatus.OPTIMAL)(
+        model.objectiveValue
+      ),
+    )
 
+  }
+
+  def extractSetPoints(
+      flexOptionsById: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+      result: OptimizationResult,
+  ): Iterable[(UUID, Power)] = {
+    // we're only interested in the solutions for the current time step
+    val flexOptionsMap = flexOptionsById.toMap
+    result.assetSymbols.map {
+      case AssetSymbolContainer(assetUuid, assetSymbols) =>
+        val setPoint = assetSymbols.map {
+          // Taking only the first result for set points
+          _.headOption
+            .getOrElse(
+              throw new CriticalFailureException(
+                s"Empty results for asset $assetUuid"
+              )
+            ) match {
+            case (_, res) =>
+              // Operating point of first result
+              res.getOperatingPowerResult
+          }
+        }
+          // Add up solutions for all asset assigned to the same UUID
+          .sum
+
+        // Make sure that set point is within allowed power.
+        // Floating point rounding errors might move it slightly outside the interval.
+        val flex = flexOptionsMap.getOrElse(
+          assetUuid,
+          throw new CriticalFailureException(
+            s"Flex options not found for $assetUuid"
+          ),
+        )
+        val adaptedSetPoint =
+          setPoint.max(flex.powerLimits.getLower).min(flex.powerLimits.getUpper)
+
+        assetUuid -> adaptedSetPoint
+    }
   }
 
   /** Constructs the optimization model by creating the required variables and
