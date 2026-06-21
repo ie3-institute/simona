@@ -136,7 +136,7 @@ class SignedEnergyVariableObjectiveFactorySpec
 
         val loadFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(1, 0).toPowerMap
+            Seq(1, 0).toPowerMap(oneHalfHour)
           )
         )
 
@@ -157,7 +157,7 @@ class SignedEnergyVariableObjectiveFactorySpec
           batUUID -> batFlex,
         )
 
-        val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData
+        val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData(oneHalfHour)
 
         val (assetSymbols, objectiveContainer) =
           OptimizingFlexStrat.buildModel(

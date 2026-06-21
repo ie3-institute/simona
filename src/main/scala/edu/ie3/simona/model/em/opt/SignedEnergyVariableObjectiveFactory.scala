@@ -86,7 +86,7 @@ object SignedEnergyVariableObjectiveFactory
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       assetSymbols: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
       target: Power,
-      receivedData: Seq[SecondaryData],
+      receivedData: Iterable[SecondaryData],
   )(using model: MPModel): Expression = {
 
     val priceSeries = extractPriceSeries(receivedData)

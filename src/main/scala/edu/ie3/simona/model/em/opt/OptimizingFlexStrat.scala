@@ -86,9 +86,11 @@ final case class OptimizingFlexStrat(
       flexOptionsById = flexOptionsById,
       receivedData = receivedData,
       target = target,
-      sampleTime = sampleTime,
-      predictionHorizon = predictionHorizon,
-      currentTick = currentTick,
+      timeParams = TimeParams(
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
+        currentTick = currentTick,
+      ),
       objectiveFactory = objectiveFactory,
       solverLib = SolverLib.oJSolver,
       tightenBoundaries = true,
@@ -133,15 +135,29 @@ object OptimizingFlexStrat {
 
   final case class OptimizationParams(
       flexOptionsById: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      receivedData: Seq[SecondaryData],
-      target: Power,
-      sampleTime: Time,
-      predictionHorizon: Time,
-      currentTick: Long,
+      receivedData: Iterable[SecondaryData] = Iterable.empty,
+      target: Power = zeroKW,
+      timeParams: TimeParams,
       objectiveFactory: ObjectiveFactory[? <: AssetStepSymbols],
       solverLib: SolverLib,
       tightenBoundaries: Boolean,
   )
+
+  final case class TimeParams(
+      sampleTime: Time,
+      predictionHorizon: Time,
+      currentTick: Long,
+  ) {
+
+    lazy val ticks: Seq[Long] = {
+      val sampleTicks = sampleTime.toSeconds.toLong
+      val lastPredictedTick =
+        currentTick + predictionHorizon.toSeconds.toLong
+
+      Range.Long.inclusive(currentTick, lastPredictedTick, sampleTicks)
+    }
+
+  }
 
   final case class OptimizationResult(
       assetSymbols: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]],
@@ -152,17 +168,12 @@ object OptimizingFlexStrat {
   def optimize(params: OptimizationParams): OptimizationResult = {
     given model: MPModel = MPModel(params.solverLib)
 
-    val sampleTicks = params.sampleTime.toSeconds.toLong
-    val lastPredictedTick =
-      params.currentTick + params.predictionHorizon.toSeconds.toLong
-
-    val ticks =
-      Range.Long.inclusive(params.currentTick, lastPredictedTick, sampleTicks)
+    val ticks = params.timeParams.ticks
 
     val (allAssetSymbols, objectiveContainer) =
       buildModel(
         params.flexOptionsById,
-        params.sampleTime,
+        params.timeParams.sampleTime,
         ticks,
         params.target,
         params.receivedData,
@@ -171,7 +182,7 @@ object OptimizingFlexStrat {
 
     model.minimize(objectiveContainer.objective)
 
-    model.start()
+    model.start(timeLimit = 10000)
     model.release()
 
     OptimizationResult(
@@ -255,7 +266,7 @@ object OptimizingFlexStrat {
       sampleTime: Time,
       ticks: Seq[Long],
       target: Power,
-      receivedData: Seq[SecondaryData],
+      receivedData: Iterable[SecondaryData],
       objectiveFactory: ObjectiveFactory[AV],
   )(using
       model: MPModel
@@ -661,7 +672,7 @@ object OptimizingFlexStrat {
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetSymbols: Iterable[AssetSymbolContainer[AV]],
         target: Power,
-        receivedData: Seq[SecondaryData],
+        receivedData: Iterable[SecondaryData],
     )(using model: MPModel): Expression
 
     /** Extracts a price series map (if available) from the given received
@@ -673,7 +684,7 @@ object OptimizingFlexStrat {
       *   A map from tick to price data.
       */
     protected def extractPriceSeries(
-        receivedData: Seq[SecondaryData]
+        receivedData: Iterable[SecondaryData]
     ): SortedMap[Long, ProsumerPrice] =
       receivedData
         .collectFirst { case SecondarySeriesData(series) =>

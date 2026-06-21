@@ -12,12 +12,12 @@ import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
   PriceObjectiveFactory,
 }
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactorySpec.*
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import org.scalatest.OptionValues
 import squants.energy.{Energy, KilowattHours, Kilowatts, WattHours}
@@ -104,11 +104,8 @@ class CommonLossObjectiveFactorySpec
 
     "provided with simple battery flex options with losses" should {
 
-      given ticks: Seq[Long] =
-        Range.Long.inclusive(0, 4 * halfHourTicks, halfHourTicks)
-
       // low efficiency for simplicity of the test
-      val batFlex = EnergyBoundariesFlexOptions(
+      val batteryHalfFull = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           eStorage = KilowattHours(12),
           currentEnergy = KilowattHours(6),
@@ -121,38 +118,28 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power within maximum battery power" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
-        val constFlex = EnergyBoundariesFlexOptions(
+        val fixedLowAddPower = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(5, -10, 10, -2).toPowerMap
+            Seq(5, -10, 10, -2).toPowerMap(fourHalfHours)
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> constFlex,
-          batUUID -> batFlex,
-        )
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsLowAddPower = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedLowAddPower,
+            batUUID -> batteryHalfFull,
+          ),
+          timeParams = fourHalfHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        assetSymbols.toSeq should have size 2
-        assetSymbols.foreach(_.results should have size 1)
-        assetSymbols.foreach(_.results.foreach(_ should have size 4))
+        val results = OptimizingFlexStrat.optimize(paramsLowAddPower)
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
-
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -160,9 +147,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
@@ -180,45 +172,33 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(1.425)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "balance out additional power exceeding maximum battery power" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
-        val constFlex = EnergyBoundariesFlexOptions(
+        val fixedHighAddPower = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(5, -60, 110, -2).toPowerMap
+            Seq(5, -60, 110, -2).toPowerMap(fourHalfHours)
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> constFlex,
-          batUUID -> batFlex,
-        )
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsHighAddPower = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedHighAddPower,
+            batUUID -> batteryHalfFull,
+          ),
+          timeParams = fourHalfHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        assetSymbols.toSeq should have size 2
-        assetSymbols.foreach(_.results should have size 1)
-        assetSymbols.foreach(_.results.foreach(_ should have size 4))
+        val results = OptimizingFlexStrat.optimize(paramsHighAddPower)
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
-
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -227,9 +207,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // discharging 2.5 kWh plus 0.6125 kWh losses
           batRes(0).pVal should approximate(-5)
@@ -247,45 +232,33 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(1.425)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "balance out additional power exceeding energy storage capacity" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
-        val constFlex = EnergyBoundariesFlexOptions(
+        val fixedHighAddEnergy = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-10, -10, 10, 10).toPowerMap
+            Seq(-10, -10, 10, 10).toPowerMap(fourHalfHours)
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> constFlex,
-          batUUID -> batFlex,
-        )
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsHighAddEnergy = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedHighAddEnergy,
+            batUUID -> batteryHalfFull,
+          ),
+          timeParams = fourHalfHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        assetSymbols.toSeq should have size 2
-        assetSymbols.foreach(_.results should have size 1)
-        assetSymbols.foreach(_.results.foreach(_ should have size 4))
+        val results = OptimizingFlexStrat.optimize(paramsHighAddEnergy)
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
-
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -301,9 +274,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // possibly charging
           batRes(0).pVal should be >= 0d
@@ -327,46 +305,34 @@ class CommonLossObjectiveFactorySpec
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "balance out additional power exceeding maximum battery power and energy storage capacity" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
-        val constFlex = EnergyBoundariesFlexOptions(
+        val fixedHighAddPowerAndEnergy = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-10, -50, 20, 30).toPowerMap
+            Seq(-10, -50, 20, 30).toPowerMap(fourHalfHours)
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> constFlex,
-          batUUID -> batFlex,
-        )
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsHighAddPowerAndEnergy = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedHighAddPowerAndEnergy,
+            batUUID -> batteryHalfFull,
+          ),
+          timeParams = fourHalfHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        assetSymbols.toSeq should have size 2
-        assetSymbols.foreach(_.results should have size 1)
-        assetSymbols.foreach(_.results.foreach(_ should have size 4))
+        val results =
+          OptimizingFlexStrat.optimize(paramsHighAddPowerAndEnergy)
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
-
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -382,9 +348,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // possibly charging
           batRes(0).pVal should be >= 0d
@@ -409,47 +380,33 @@ class CommonLossObjectiveFactorySpec
           // we should've discharged with 24 kW minus 4.8 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(-19.2d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "balance out additional power exceeding energy storage capacity when discharging first" in {
 
-        given model: MPModel = MPModel(SolverLib.Gurobi)
-
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
-        val constFlex = EnergyBoundariesFlexOptions(
+        val fixedDischargeFirst = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(1, 1, -10, -10).toPowerMap
+            Seq(1, 1, -10, -10).toPowerMap(fourHalfHours)
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> constFlex,
-          batUUID -> batFlex,
-        )
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsDischargeFirst = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedDischargeFirst,
+            batUUID -> batteryHalfFull,
+          ),
+          timeParams = fourHalfHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        assetSymbols.toSeq should have size 2
-        assetSymbols.foreach(_.results should have size 1)
-        assetSymbols.foreach(_.results.foreach(_ should have size 4))
+        val results = OptimizingFlexStrat.optimize(paramsDischargeFirst)
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
-        model.release()
-
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -466,9 +423,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // discharging 0.5 kWh plus 0.125 kWh losses
           batRes(0).pVal should approximate(-1d)
@@ -489,21 +451,15 @@ class CommonLossObjectiveFactorySpec
           // we should've charged with 14.5 kW plus 3.625 kW losses in total
           batRes(2).pVal + batRes(3).pVal should approximate(18.125d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
     }
 
     "provided with battery flex options without losses" should {
 
-      given ticks: Seq[Long] =
-        Range.Long.inclusive(0, 4 * hourTicks, hourTicks)
-
       // no losses, thus efficiency = 1
-      val batFlex = EnergyBoundariesFlexOptions(
+      val batteryNoLoss = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           eStorage = KilowattHours(24),
           currentEnergy = KilowattHours(12),
@@ -516,34 +472,28 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power within maximum battery power" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
-        val constFlex = EnergyBoundariesFlexOptions(
+        val fixedLowAddPower = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(5, -10, 10, -2).toPowerMap
+            Seq(5, -10, 10, -2).toPowerMap(fourHours)
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> constFlex,
-          batUUID -> batFlex,
-        )
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = hour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsNoLoss = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedLowAddPower,
+            batUUID -> batteryNoLoss,
+          ),
+          timeParams = fourHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+        val results = OptimizingFlexStrat.optimize(paramsNoLoss)
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -552,9 +502,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // discharging 5 kWh
           batRes(0).pVal should approximate(-5)
@@ -572,20 +527,15 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(2)
           batRes(3).energyVal should approximate(9)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
+        } withClue buildDebugString(results.assetSymbols)
       }
 
     }
 
     "provided with energy boundary flex options that partly disconnect early" should {
 
-      given ticks: Seq[Long] =
-        Range.Long.inclusive(0, 4 * halfHourTicks, halfHourTicks)
-
       // low efficiency for simplicity of the test
-      val batFlex = EnergyBoundariesFlexOptions(
+      val batteryAlmostHalfFull = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           eStorage = KilowattHours(12),
           currentEnergy = KilowattHours(5),
@@ -595,7 +545,7 @@ class CommonLossObjectiveFactorySpec
           currentTick = 0L,
         )
       )
-      val evcsFlex = EnergyBoundariesFlexOptions(
+      val evHalfFull = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           currentEnergy = KilowattHours(5d),
           energyLimits = SortedMap(
@@ -617,35 +567,29 @@ class CommonLossObjectiveFactorySpec
 
       "consider the restrictions of disconnecting the asset" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
         // power sequence to be balanced out by battery
         // positive values are loads, negative values are feed-ins
-        val constFlex = EnergyBoundariesFlexOptions(
+        val fixedAlternating = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-4, -4, 8, -8).toPowerMap
+            Seq(-4, -4, 8, -8).toPowerMap(fourHalfHours)
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> constFlex,
-          batUUID -> batFlex,
-          bat2UUID -> evcsFlex,
-        )
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsEvcsDisconnect = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedAlternating,
+            batUUID -> batteryAlmostHalfFull,
+            bat2UUID -> evHalfFull,
+          ),
+          timeParams = fourHalfHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+        val results = OptimizingFlexStrat.optimize(paramsEvcsDisconnect)
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -655,12 +599,12 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
 
-          val batRes = assetSymbols.res(batUUID)
+          val batRes = results.assetSymbols.res(batUUID)
           batRes.size shouldBe 4
 
-          val evcsRes = assetSymbols.res(bat2UUID)
+          val evcsRes = results.assetSymbols.res(bat2UUID)
           evcsRes.size shouldBe 2
 
           // EV needs to take the 4 kW to reach its target
@@ -687,35 +631,26 @@ class CommonLossObjectiveFactorySpec
           batRes(3).pVal should approximate(8)
           batRes(3).energyVal should approximate(3.2)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
     }
 
     "provided with energy boundary flex options and an objective factory" should {
 
-      given ticks: Seq[Long] = ticksScenario1
-
       "compensate fixed powers when using linear objective" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptionsScenario1,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsMinAbsPower = OptimizationParams(
+          flexOptionsById = flexOptionsScenario1,
+          timeParams = twelveHalfHours,
           objectiveFactory = MinAbsPowerObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+        val results = OptimizingFlexStrat.optimize(paramsMinAbsPower)
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -731,9 +666,9 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
 
-          val batRes = assetSymbols.res(batUUID)
+          val batRes = results.assetSymbols.res(batUUID)
           batRes should have size 12
 
           batRes.slice(0, 4).foreach {
@@ -761,33 +696,26 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "minimize peaks when using quadratic objective" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptionsScenario1,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq.empty,
+        val paramsLinQuadPower = OptimizationParams(
+          flexOptionsById = flexOptionsScenario1,
+          timeParams = twelveHalfHours,
           objectiveFactory = LinearizedQuadraticPowerObjectiveFactory(
             // absolute total power is 22 kW,
             // thus pick segment count for 2 kW per segment
             segmentCount = 11
           ),
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+        val results = OptimizingFlexStrat.optimize(paramsLinQuadPower)
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -805,9 +733,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 3,
+            expectedTimeSteps = 12,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // 0 kW to compensate
           batRes(0).pVal should approximate(0d)
@@ -866,29 +799,23 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "minimize peaks when using price-based objective" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptionsScenario1,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
+        val paramsPriceObjective = OptimizationParams(
+          flexOptionsById = flexOptionsScenario1,
           receivedData = Seq(priceDataScenario1),
+          timeParams = twelveHalfHours,
           objectiveFactory = PriceObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+        val results = OptimizingFlexStrat.optimize(paramsPriceObjective)
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -903,9 +830,14 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 3,
+            expectedTimeSteps = 12,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // 0 kW to compensate
           batRes(0).pVal should approximate(0d)
@@ -964,29 +896,16 @@ class CommonLossObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "not produce too small powers by impact of soft constraints" in {
 
-        given ticks: Seq[Long] = Seq(0L, halfHourTicks)
-
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
-        val loadFlex = EnergyBoundariesFlexOptions(
-          AssetEnergyBoundaries(
-            Seq(1, 0).toPowerMap
-          )
-        )
-
         // low efficiency for simplicity of the test
-        val batFlex = EnergyBoundariesFlexOptions(
+        val batteryHalfFull = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            eStorage = KilowattHours(20),
-            currentEnergy = KilowattHours(20),
+            eStorage = KilowattHours(12),
+            currentEnergy = KilowattHours(6),
             pMax = Kilowatts(10),
             etaCharge = Each(0.8),
             etaDischarge = Each(0.8),
@@ -994,29 +913,26 @@ class CommonLossObjectiveFactorySpec
           )
         )
 
-        val flexOptions = Map(
-          loadUUID -> loadFlex,
-          batUUID -> batFlex,
-        )
-
         // to produce the wrong results here, we need two things:
         // 1. transformed prices with absolute values below (1 - eta), with adapted eta here: ~0.781
         // 2. a negative price somewhere
-        val priceData = Seq((0.1d, 0.21d), (-0.1d, 1d)).toPriceData
+        val priceDataSoftConstraintsTest =
+          Seq((0.1d, 0.21d), (-0.1d, 1d)).toPriceData(oneHalfHour)
 
-        val (assetSymbols, objectiveContainer) = OptimizingFlexStrat.buildModel(
-          flexOptions = flexOptions,
-          sampleTime = halfHour,
-          ticks = ticks,
-          target = zeroKW,
-          receivedData = Seq(priceData),
+        val paramsSoftConstraintsTest = OptimizationParams(
+          flexOptionsById = Map(
+            batUUID -> batteryHalfFull
+          ),
+          receivedData = Seq(priceDataSoftConstraintsTest),
+          timeParams = oneHalfHour,
           objectiveFactory = PriceObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
         )
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+        val results = OptimizingFlexStrat.optimize(paramsSoftConstraintsTest)
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -1026,34 +942,35 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 1,
+            expectedTimeSteps = 1,
+          )
 
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // 0 kW, since result is pushed down by soft constraint
           batRes(0).pVal should approximate(0d)
-          batRes(0).energyVal should approximate(20d)
+          batRes(0).energyVal should approximate(6d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
     }
 
     "provided with energy boundary flex options including two batteries" should {
 
-      // half hour resolution
-      given ticks: Seq[Long] = ticksScenario1
-
-      val constFlex = EnergyBoundariesFlexOptions(
+      val fixedForTwoBatteries = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
-          Seq(4, 4, 4, 14, -1, -4, -1, -14, -9.625, -2, 14, 0).toPowerMap
+          Seq(4, 4, 4, 14, -1, -4, -1, -14, -9.625, -2, 14, 0).toPowerMap(
+            twelveHalfHours
+          )
         )
       )
 
       // high storage capacity, low power
-      val bat1Flex = EnergyBoundariesFlexOptions(
+      val batteryHighCap = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           eStorage = KilowattHours(10),
           currentEnergy = KilowattHours(10),
@@ -1065,7 +982,7 @@ class CommonLossObjectiveFactorySpec
       )
 
       // low storage capacity, high power
-      val bat2Flex = EnergyBoundariesFlexOptions(
+      val batteryLowCap = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           eStorage = KilowattHours(6.25),
           currentEnergy = KilowattHours(6.25),
@@ -1076,35 +993,29 @@ class CommonLossObjectiveFactorySpec
         )
       )
 
-      val flexOptions = Map(
-        loadUUID -> constFlex,
-        batUUID -> bat1Flex,
-        bat2UUID -> bat2Flex,
-      )
-
       "minimize peaks when using price-based objective" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
-        val priceData =
+        val priceDataTwoBatteries =
           (Seq.fill(4)((0.1d, 0.2d)) ++
             Seq.fill(6)((-0.2d, -0.1)) ++
-            Seq.fill(2)((0.05d, 0.15d))).toPriceData
+            Seq.fill(2)((0.05d, 0.15d))).toPriceData(twelveHalfHours)
 
-        val (assetSymbols, objectiveContainer) =
-          OptimizingFlexStrat.buildModel(
-            flexOptions = flexOptions,
-            sampleTime = halfHour,
-            ticks = ticks,
-            target = zeroKW,
-            receivedData = Seq(priceData),
-            objectiveFactory = PriceObjectiveFactory,
-          )
+        val paramsTwoBatteries = OptimizationParams(
+          flexOptionsById = Map(
+            loadUUID -> fixedForTwoBatteries,
+            batUUID -> batteryHighCap,
+            bat2UUID -> batteryLowCap,
+          ),
+          receivedData = Seq(priceDataTwoBatteries),
+          timeParams = twelveHalfHours,
+          objectiveFactory = PriceObjectiveFactory,
+          solverLib = SolverLib.oJSolver,
+          tightenBoundaries = true,
+        )
 
-        model.minimize(objectiveContainer.objective)
-        model.start(timeLimit = 10000)
+        val results = OptimizingFlexStrat.optimize(paramsTwoBatteries)
 
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
         EXPECTED RESULTS
@@ -1115,10 +1026,15 @@ class CommonLossObjectiveFactorySpec
          */
 
         {
-          assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 3,
+            expectedTimeSteps = 12,
+          )
 
-          val bat1Res = assetSymbols.res(batUUID)
-          val bat2Res = assetSymbols.res(bat2UUID)
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val bat1Res = results.assetSymbols.res(batUUID)
+          val bat2Res = results.assetSymbols.res(bat2UUID)
 
           /*
           First period (steps 0-3):
@@ -1205,10 +1121,7 @@ class CommonLossObjectiveFactorySpec
           bat2Res(11).pVal should approximate(0d)
           bat2Res(11).energyVal should approximate(0d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
     }

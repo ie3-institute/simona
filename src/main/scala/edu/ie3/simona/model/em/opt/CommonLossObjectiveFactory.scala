@@ -170,7 +170,7 @@ object CommonLossObjectiveFactory {
           AssetSymbolContainer[PowerVarAssetStepSymbols]
         ],
         target: Power,
-        receivedData: Seq[Data.SecondaryData],
+        receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
 
       val lowerLimit = flexOptions
@@ -261,7 +261,7 @@ object CommonLossObjectiveFactory {
           AssetSymbolContainer[PowerVarAssetStepSymbols]
         ],
         target: Power,
-        receivedData: Seq[Data.SecondaryData],
+        receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
 
       val priceSeries = extractPriceSeries(receivedData)

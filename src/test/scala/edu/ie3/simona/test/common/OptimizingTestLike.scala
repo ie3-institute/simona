@@ -9,29 +9,31 @@ package edu.ie3.simona.test.common
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
   AssetStepSymbols,
   AssetSymbolContainer,
+  TimeParams,
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
 }
 import edu.ie3.util.scala.quantities.EuroPerKilowattHour
-import org.scalatest.Assertions
-import squants.{Energy, Power}
+import org.scalatest.matchers.should.Matchers
+import squants.{Energy, Power, Time}
 import squants.energy.{KilowattHours, Kilowatts}
 
 import java.util.UUID
 import scala.collection.immutable.SortedMap
 
-trait OptimizingTestLike extends Assertions {
+trait OptimizingTestLike extends Matchers {
 
-  extension [A](seq: Seq[A])(using num: Numeric[A], ticks: Seq[Long])
-    def toPowerMap: SortedMap[Long, Power] =
-      SortedMap.from(ticks.zip(seq.map(Kilowatts.apply)))
+  extension [A](seq: Seq[A])(using num: Numeric[A])
+    def toPowerMap(timeParams: TimeParams): SortedMap[Long, Power] =
+      SortedMap.from(timeParams.ticks.zip(seq.map(Kilowatts.apply)))
 
   extension (seq: Seq[(Double, Double)])
-    def toPriceData(using ticks: Seq[Long]): SecondarySeriesData =
-      SecondarySeriesData(SortedMap.from(ticks.zip(seq.map { case (sell, buy) =>
-        ProsumerPrice(EuroPerKilowattHour(sell), EuroPerKilowattHour(buy))
+    def toPriceData(timeParams: TimeParams): SecondarySeriesData =
+      SecondarySeriesData(SortedMap.from(timeParams.ticks.zip(seq.map {
+        case (sell, buy) =>
+          ProsumerPrice(EuroPerKilowattHour(sell), EuroPerKilowattHour(buy))
       })))
 
   extension (vars: AssetStepSymbols) {
@@ -48,18 +50,21 @@ trait OptimizingTestLike extends Assertions {
 
   }
 
-  extension [AV <: AssetStepSymbols](
-      containers: Iterable[AssetSymbolContainer[AV]]
+  // todo extension on results
+  extension (
+      containers: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]]
   ) {
 
-    def vars(uuid: UUID): AssetSymbolContainer[AV] = containers
-      .find(_.assetUuid == uuid)
-      .getOrElse(fail(s"No asset symbols for battery ($uuid) found."))
+    def vars(uuid: UUID): AssetSymbolContainer[? <: AssetStepSymbols] =
+      containers
+        .find(_.assetUuid == uuid)
+        .getOrElse(fail(s"No asset symbols for battery ($uuid) found."))
 
-    def res(uuid: UUID): IndexedSeq[AV] = vars(uuid).results.headOption
-      .getOrElse(fail(s"Empty results for battery ($uuid)."))
-      .values
-      .toIndexedSeq
+    def res(uuid: UUID): IndexedSeq[? <: AssetStepSymbols] =
+      vars(uuid).results.headOption
+        .getOrElse(fail(s"Empty results for battery ($uuid)."))
+        .values
+        .toIndexedSeq
 
     def checkModelStateError(using tolerance: Energy): Unit =
       containers.flatMap(_.getStateCalcErrors).foreach { error =>
@@ -68,6 +73,14 @@ trait OptimizingTestLike extends Assertions {
           s"Model state calculation error $error is higher than allowed ($tolerance).",
         )
       }
+
+    def checkStructure(expectedAssets: Int, expectedTimeSteps: Int): Unit = {
+      containers.toSeq should have size expectedAssets
+      containers.foreach(_.results should have size 1)
+      containers.foreach(
+        _.results.foreach(_ should have size expectedTimeSteps)
+      )
+    }
 
   }
 

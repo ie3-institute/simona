@@ -79,7 +79,7 @@ object PowerVariableObjectiveFactory {
           AssetSymbolContainer[PowerVarAssetStepSymbols]
         ],
         target: Power,
-        receivedData: Seq[Data.SecondaryData],
+        receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
       sortSymbolsByTick(assetSymbols)
         // create objective expression for every time step

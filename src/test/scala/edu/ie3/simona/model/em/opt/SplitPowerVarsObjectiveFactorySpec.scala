@@ -58,7 +58,7 @@ class SplitPowerVarsObjectiveFactorySpec
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(5, -10, 10, -2).toPowerMap
+            Seq(5, -10, 10, -2).toPowerMap(fourHalfHours)
           )
         )
 
@@ -124,7 +124,7 @@ class SplitPowerVarsObjectiveFactorySpec
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(5, -60, 110, -2).toPowerMap
+            Seq(5, -60, 110, -2).toPowerMap(fourHalfHours)
           )
         )
 
@@ -191,7 +191,7 @@ class SplitPowerVarsObjectiveFactorySpec
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-10, -10, 10, 10).toPowerMap
+            Seq(-10, -10, 10, 10).toPowerMap(fourHalfHours)
           )
         )
 
@@ -268,7 +268,7 @@ class SplitPowerVarsObjectiveFactorySpec
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-10, -50, 20, 30).toPowerMap
+            Seq(-10, -50, 20, 30).toPowerMap(fourHalfHours)
           )
         )
 
@@ -346,7 +346,7 @@ class SplitPowerVarsObjectiveFactorySpec
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(1, 1, -10, -10).toPowerMap
+            Seq(1, 1, -10, -10).toPowerMap(fourHalfHours)
           )
         )
 
@@ -444,7 +444,7 @@ class SplitPowerVarsObjectiveFactorySpec
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(5, -10, 10, -2).toPowerMap
+            Seq(5, -10, 10, -2).toPowerMap(fourHalfHours)
           )
         )
 
@@ -545,7 +545,7 @@ class SplitPowerVarsObjectiveFactorySpec
         // positive values are loads, negative values are feed-ins
         val constFlex = EnergyBoundariesFlexOptions(
           AssetEnergyBoundaries(
-            Seq(-4, -4, 8, -8).toPowerMap
+            Seq(-4, -4, 8, -8).toPowerMap(fourHalfHours)
           )
         )
 

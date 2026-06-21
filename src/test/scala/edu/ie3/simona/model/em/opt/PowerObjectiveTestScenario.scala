@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.em.opt
 
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.TimeParams
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.service.Data.SecondaryData.SecondarySeriesData
@@ -31,21 +32,46 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
   protected val hour: Time = Hours(1)
   protected val hourTicks: Long = hour.toSeconds.toLong
 
+  protected val oneHalfHour: TimeParams = TimeParams(
+    sampleTime = halfHour,
+    predictionHorizon = halfHour,
+    currentTick = 0L,
+  )
+
+  protected val fourHalfHours: TimeParams = TimeParams(
+    sampleTime = halfHour,
+    predictionHorizon = halfHour * 4,
+    currentTick = 0L,
+  )
+
+  protected val twelveHalfHours: TimeParams = TimeParams(
+    sampleTime = halfHour,
+    predictionHorizon = halfHour * 12,
+    currentTick = 0L,
+  )
+
+  protected val fourHours: TimeParams = TimeParams(
+    sampleTime = hour,
+    predictionHorizon = hour * 4,
+    currentTick = 0L,
+  )
+
   /* SCENARIO 1 */
 
+  // fixme deprecated
   protected given ticksScenario1: Seq[Long] =
     Range.Long.inclusive(0, 12 * halfHourTicks, halfHourTicks)
 
   protected val priceDataScenario1: SecondarySeriesData =
     (Seq.fill(2)((0.1d, 0.3d)) ++
       Seq.fill(6)((-0.02d, 0.2d)) ++
-      Seq.fill(4)((0.1d, 0.3d))).toPriceData
+      Seq.fill(4)((0.1d, 0.3d))).toPriceData(twelveHalfHours)
 
   // 16.5 kWh of feed-in in total, more than battery can store
   protected val pvFlexScenario1: EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
-        Seq(0, -6, -8, -7, -12, 0, 0, 0, 0, 0, 0, 0).toPowerMap
+        Seq(0, -6, -8, -7, -12, 0, 0, 0, 0, 0, 0, 0).toPowerMap(twelveHalfHours)
       )
     )
 
@@ -53,7 +79,7 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
   protected val loadFlexScenario1: EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
-        Seq(0, 0, 0, 0, 0, 0, 8, 12, 4, 7, 5, 0).toPowerMap
+        Seq(0, 0, 0, 0, 0, 0, 8, 12, 4, 7, 5, 0).toPowerMap(twelveHalfHours)
       )
     )
 
