@@ -11,9 +11,11 @@ import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.{
   FixedPowerVarAssetStepSymbols,
   MinAbsPowerObjective,
   PowerVarAssetStepSymbols,
+  PriceObjective,
 }
 import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.*
 import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
+import edu.ie3.simona.service.ServiceType
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}
@@ -170,6 +172,11 @@ object SplitPowerVarsObjectiveFactory {
       override val additionalConstraints: SplitPowerVarsAdditionalConstraints
   ) extends SplitPowerVarsObjectiveFactory
       with MinAbsPowerObjective
+
+  final case class PriceObjectiveFactory(
+      override val additionalConstraints: SplitPowerVarsAdditionalConstraints
+  ) extends SplitPowerVarsObjectiveFactory
+      with PriceObjective
 
   /** Trait for container that provides symbols for a specific asset and
     * optimization time step, to be used by [[SplitPowerVarsObjectiveFactory]].

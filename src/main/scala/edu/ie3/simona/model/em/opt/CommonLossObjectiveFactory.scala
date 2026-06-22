@@ -6,18 +6,18 @@
 
 package edu.ie3.simona.model.em.opt
 
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.*
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
 import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.{
   FixedPowerVarAssetStepSymbols,
   MinAbsPowerObjective,
   PowerVarAssetStepSymbols,
+  PriceObjective,
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
+import edu.ie3.simona.service.Data.SecondaryData.ProsumerPrice
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroEurPerKWh, zeroKW}
-import edu.ie3.util.scala.quantities.EnergyPrice
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
@@ -25,6 +25,7 @@ import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Dimensionless, Each, Energy, Power}
 
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
 /** Produces asset symbols and an optimization objective that uses a single
   * power variable and a common loss term for both charging and discharging.
@@ -242,96 +243,30 @@ object CommonLossObjectiveFactory {
 
   }
 
-  /** Creates an objective based on the current and projected price of energy
-    * for the prediction horizon.
-    *
-    * Since we assume that the buying price is always higher than the selling
-    * price, we can use an epigraph to derive a linear objective.
-    */
   object PriceObjectiveFactory
       extends CommonLossObjectiveFactory
-      with PowerVariableObjectiveFactory {
+      with PriceObjective {
 
-    override def getRequiredSecondaryServices: Iterable[ServiceType] =
-      Iterable(ServiceType.PriceService)
-
-    override def build(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
-        target: Power,
-        receivedData: Iterable[Data.SecondaryData],
-    )(using model: MPModel): Expression = {
-
-      val priceSeries = extractPriceSeries(receivedData)
-
-      val maxPrice = priceSeries
+    override def transformPrices(
+        priceSeries: SortedMap[Long, ProsumerPrice]
+    ): SortedMap[Long, ProsumerPrice] =
+      priceSeries
         .maxByOption { case (_, priceData) =>
           priceData.priceBuy
         }
         .map { case (_, priceData) =>
           priceData.priceBuy.toEuroPerKilowattHour
         }
-        .getOrElse(
-          throw new CriticalFailureException(
-            s"No prices were given with secondary data $receivedData"
-          )
-        )
-
-      // Whether at least one selling price is negative. Neg.
-      // selling price is a requirement for a neg. buying
-      // price as well (selling price < buying price).
-      val negPriceExists = priceSeries.exists { case (_, priceData) =>
-        priceData.priceSell < zeroEurPerKWh
-      }
-
-      val transformFunc = (price: EnergyPrice) =>
-        price.toEuroPerKilowattHour / maxPrice
-
-      sortSymbolsByTick(assetSymbols)
-        // create objective expression for every time step
-        .map { case (stepStartTick, tickAssetSymbols) =>
-          val totalPower = createPowerSum(tickAssetSymbols)
-
-          val priceData = priceSeries
-            .maxBefore(stepStartTick + 1)
-            .map { case (_, priceData) => priceData }
-            .getOrElse(
-              throw new CriticalFailureException(
-                s"No price data was given for tick $stepStartTick!"
-              )
+        .map { maxPrice =>
+          priceSeries.map { case (tick, priceData) =>
+            tick -> ProsumerPrice(
+              priceData.priceSell / maxPrice,
+              priceData.priceBuy / maxPrice,
             )
-
-          // extract prices in EUR / kWh
-          val priceSell = transformFunc(priceData.priceSell)
-          val priceBuy = transformFunc(priceData.priceBuy)
-
-          if priceSell > priceBuy then
-            throw new CriticalFailureException(
-              s"Selling price $priceSell is higher than buying price $priceBuy. " +
-                "Objective factory does not know how to handle this."
-            )
-
-          // convex, since priceSell < priceBuy
-          val epigraphVar = createEpigraphVar(
-            Seq(Const(priceSell) * totalPower, Const(priceBuy) * totalPower),
-            s"cost_$stepStartTick",
-          )
-          if negPriceExists then {
-            // Add soft constraint only when prices are negative.
-            // For positive prices, the optimum is always to not
-            // exaggerate losses.
-            epigraphVar + tickAssetSymbols
-              .flatMap(_.objectiveAddition)
-              .reduceOption[Expression](_ + _)
-              .getOrElse(Zero)
-          } else epigraphVar
+          }
         }
-        // combine expressions of all time steps
-        .reduceOption[Expression](_ + _)
-        .getOrElse(Zero)
-    }
+        .getOrElse(priceSeries)
+
   }
 
   /** Small number to add to the constraint penalty, in order for the penalty to
@@ -367,8 +302,6 @@ object CommonLossObjectiveFactory {
     * @param power
     *   The operation variable, describing the power in kW to get from the
     *   energy state at the start to the state at the end of the interval.
-    *
-    * \@param
     * @param stepEndState
     *   The state variable, describing the state of energy in kWh at the end of
     *   the time step interval.

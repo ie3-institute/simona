@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.em.opt
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
   AssetStepSymbols,
   AssetSymbolContainer,
@@ -15,12 +16,15 @@ import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
 }
 import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.PowerVarAssetStepSymbols
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
+import edu.ie3.simona.service.Data.SecondaryData.ProsumerPrice
 import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroEurPerKWh
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import squants.{Energy, Power}
 
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
 /** Trait for objective factories that rely on power variables to describe the
   * energy change between time steps.
@@ -97,6 +101,87 @@ object PowerVariableObjectiveFactory {
         .reduceOption[Expression](_ + _)
         .getOrElse(Zero)
     }
+
+  }
+
+  /** Creates an objective based on the current and projected price of energy
+    * for the prediction horizon.
+    *
+    * Since we assume that the buying price is always higher than the selling
+    * price, we can use an epigraph to derive a linear objective.
+    */
+  trait PriceObjective extends PowerVariableObjectiveFactory {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable(ServiceType.PriceService)
+
+    override def build(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
+        ],
+        target: Power,
+        receivedData: Iterable[Data.SecondaryData],
+    )(using model: MPModel): Expression = {
+
+      val priceSeries = extractPriceSeries(receivedData)
+
+      // Whether at least one selling price is negative. Neg.
+      // selling price is a requirement for a neg. buying
+      // price as well (selling price < buying price).
+      val negPriceExists = priceSeries.exists { case (_, priceData) =>
+        priceData.priceSell < zeroEurPerKWh
+      }
+
+      val adaptedPriceSeries = transformPrices(priceSeries)
+
+      sortSymbolsByTick(assetSymbols)
+        // create objective expression for every time step
+        .map { case (stepStartTick, tickAssetSymbols) =>
+          val totalPower = createPowerSum(tickAssetSymbols)
+
+          val priceData = adaptedPriceSeries
+            .maxBefore(stepStartTick + 1)
+            .map { case (_, priceData) => priceData }
+            .getOrElse(
+              throw new CriticalFailureException(
+                s"No price data was given for tick $stepStartTick!"
+              )
+            )
+
+          // extract prices in EUR / kWh
+          val priceSell = priceData.priceSell.toEuroPerKilowattHour
+          val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
+
+          if priceSell > priceBuy then
+            throw new CriticalFailureException(
+              s"Selling price $priceSell is higher than buying price $priceBuy. " +
+                "Objective factory does not know how to handle this."
+            )
+
+          // convex, since priceSell < priceBuy
+          val epigraphVar = createEpigraphVar(
+            Seq(Const(priceSell) * totalPower, Const(priceBuy) * totalPower),
+            s"cost_$stepStartTick",
+          )
+          if negPriceExists then {
+            // Add soft constraint only when prices are negative.
+            // For positive prices, the optimum is always to not
+            // exaggerate losses.
+            epigraphVar + tickAssetSymbols
+              .flatMap(_.objectiveAddition)
+              .reduceOption[Expression](_ + _)
+              .getOrElse(Zero)
+          } else epigraphVar
+        }
+        // combine expressions of all time steps
+        .reduceOption[Expression](_ + _)
+        .getOrElse(Zero)
+    }
+
+    def transformPrices(
+        priceSeries: SortedMap[Long, ProsumerPrice]
+    ): SortedMap[Long, ProsumerPrice] = priceSeries
 
   }
 
