@@ -15,7 +15,6 @@ import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.{
 }
 import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.*
 import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
-import edu.ie3.simona.service.ServiceType
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}

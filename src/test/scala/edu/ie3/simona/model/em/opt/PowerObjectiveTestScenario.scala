@@ -6,16 +6,28 @@
 
 package edu.ie3.simona.model.em.opt
 
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.TimeParams
+import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
+  LinearizedQuadraticPowerObjectiveFactory,
+  MinAbsPowerObjectiveFactory,
+  PriceObjectiveFactory,
+}
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
+  OptimizationParams,
+  TimeParams,
+}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.service.Data.SecondaryData.SecondarySeriesData
 import edu.ie3.simona.test.common.OptimizingTestLike
+import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKWh}
+import optimus.optimization.enums.SolverLib
 import squants.Each
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.time.{Hours, Time}
 
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
 trait PowerObjectiveTestScenario extends OptimizingTestLike {
 
@@ -56,9 +68,189 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
     currentTick = 0L,
   )
 
-  /* SCENARIO 1 */
+  /* BASIC FUNCTIONALITY TEST */
+  // low efficiencies (e.g. 0.8) might not be realistic,
+  // but simplify the testing
 
-  // fixme deprecated
+  private val batteryHalfFull: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(12),
+        currentEnergy = KilowattHours(6),
+        pMax = Kilowatts(10),
+        etaCharge = Each(0.8),
+        etaDischarge = Each(0.8),
+        currentTick = 0L,
+      )
+    )
+
+  // power sequence to be balanced out by battery
+  // positive values are loads, negative values are feed-ins
+  private val fixedLowAddPower: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(5, -10, 10, -2).toPowerMap(fourHalfHours)
+      )
+    )
+
+  protected val paramsLowAddPower: OptimizationParams = OptimizationParams(
+    flexOptionsById = Map(
+      loadUUID -> fixedLowAddPower,
+      batUUID -> batteryHalfFull,
+    ),
+    timeParams = fourHalfHours,
+    objectiveFactory = MinAbsPowerObjectiveFactory,
+    solverLib = SolverLib.oJSolver,
+    tightenBoundaries = true,
+  )
+
+  // power sequence to be balanced out by battery
+  // positive values are loads, negative values are feed-ins
+  private val fixedHighAddPower: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(5, -60, 110, -2).toPowerMap(fourHalfHours)
+      )
+    )
+
+  protected val paramsHighAddPower: OptimizationParams =
+    paramsLowAddPower.copy(
+      flexOptionsById = Map(
+        loadUUID -> fixedHighAddPower,
+        batUUID -> batteryHalfFull,
+      )
+    )
+
+  // power sequence to be balanced out by battery
+  // positive values are loads, negative values are feed-ins
+  private val fixedHighAddEnergy: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(-10, -10, 10, 10).toPowerMap(fourHalfHours)
+      )
+    )
+
+  protected val paramsHighAddEnergy: OptimizationParams =
+    paramsLowAddPower.copy(
+      flexOptionsById = Map(
+        loadUUID -> fixedHighAddEnergy,
+        batUUID -> batteryHalfFull,
+      )
+    )
+
+  // power sequence to be balanced out by battery
+  // positive values are loads, negative values are feed-ins
+  private val fixedHighAddPowerAndEnergy: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(-10, -50, 20, 30).toPowerMap(fourHalfHours)
+      )
+    )
+
+  protected val paramsHighAddPowerAndEnergy: OptimizationParams =
+    paramsLowAddPower.copy(
+      flexOptionsById = Map(
+        loadUUID -> fixedHighAddPowerAndEnergy,
+        batUUID -> batteryHalfFull,
+      )
+    )
+
+  // power sequence to be balanced out by battery
+  // positive values are loads, negative values are feed-ins
+  private val fixedDischargeFirst: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(1, 1, -10, -10).toPowerMap(fourHalfHours)
+      )
+    )
+
+  val paramsDischargeFirst: OptimizationParams =
+    paramsLowAddPower.copy(
+      flexOptionsById = Map(
+        loadUUID -> fixedDischargeFirst,
+        batUUID -> batteryHalfFull,
+      )
+    )
+
+  /* MODEL WITH NO LOSS */
+
+  // no losses, thus efficiency = 1
+  private val batteryNoLoss: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(12),
+        currentEnergy = KilowattHours(6),
+        pMax = Kilowatts(10),
+        etaCharge = onePU,
+        etaDischarge = onePU,
+        currentTick = 0L,
+      )
+    )
+
+  protected val paramsNoLoss: OptimizationParams =
+    paramsLowAddPower.copy(
+      flexOptionsById = Map(
+        loadUUID -> fixedLowAddPower,
+        batUUID -> batteryNoLoss,
+      )
+    )
+
+  /* TESTING DISCONNECTING ASSET */
+
+  private val batteryAlmostHalfFull: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(12),
+        currentEnergy = KilowattHours(5),
+        pMax = Kilowatts(10),
+        etaCharge = Each(0.8),
+        etaDischarge = Each(0.8),
+        currentTick = 0L,
+      )
+    )
+
+  private val evHalfFull: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        currentEnergy = KilowattHours(5d),
+        energyLimits = SortedMap(
+          // half full in the beginning
+          0L -> new ClosedInterval(
+            zeroKWh,
+            KilowattHours(10d),
+          ),
+          // we need to be 90% full when disconnecting
+          3600L -> new ClosedInterval(
+            KilowattHours(9d),
+            KilowattHours(10d),
+          ),
+        ),
+        powerLimits = ClosedInterval(Kilowatts(-11d), Kilowatts(11)),
+        tickDisconnect = Some(3600L),
+      )
+    )
+
+  // power sequence to be balanced out by battery
+  // positive values are loads, negative values are feed-ins
+  private val fixedAlternating: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(-4, -4, 8, -8).toPowerMap(fourHalfHours)
+      )
+    )
+
+  protected val paramsEvcsDisconnect: OptimizationParams =
+    paramsLowAddPower.copy(
+      flexOptionsById = Map(
+        loadUUID -> fixedAlternating,
+        batUUID -> batteryAlmostHalfFull,
+        bat2UUID -> evHalfFull,
+      )
+    )
+
+  /* OBJECTIVE TESTS */
+
+  // fixme deprecated, rename below
   protected given ticksScenario1: Seq[Long] =
     Range.Long.inclusive(0, 12 * halfHourTicks, halfHourTicks)
 
@@ -101,6 +293,104 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
       pvUUID -> pvFlexScenario1,
       loadUUID -> loadFlexScenario1,
       batUUID -> batFlexScenario1,
+    )
+
+  protected val paramsMinAbsPowerTest: OptimizationParams =
+    OptimizationParams(
+      flexOptionsById = flexOptionsScenario1,
+      timeParams = twelveHalfHours,
+      objectiveFactory = MinAbsPowerObjectiveFactory,
+      solverLib = SolverLib.oJSolver,
+      tightenBoundaries = true,
+    )
+
+  protected val paramsLinQuadPowerTest: OptimizationParams =
+    paramsMinAbsPowerTest.copy(
+      objectiveFactory = LinearizedQuadraticPowerObjectiveFactory(
+        // absolute total power is 22 kW,
+        // thus pick segment count for 2 kW per segment
+        segmentCount = 11
+      )
+    )
+
+  protected val paramsPriceObjectiveTest: OptimizationParams =
+    paramsMinAbsPowerTest.copy(
+      flexOptionsById = flexOptionsScenario1,
+      receivedData = Seq(priceDataScenario1),
+      objectiveFactory = PriceObjectiveFactory,
+      solverLib = SolverLib.oJSolver,
+      tightenBoundaries = true,
+    )
+
+  /* SOFT CONSTRAINTS TEST */
+
+  // to produce the wrong results here, we need two things:
+  // 1. transformed prices with absolute values below (1 - eta), with adapted eta here: ~0.781
+  // 2. a negative price somewhere
+  private val priceDataSoftConstraintsTest: SecondarySeriesData =
+    Seq((0.1d, 0.21d), (-0.1d, 1d)).toPriceData(oneHalfHour)
+
+  val paramsSoftConstraintsTest = OptimizationParams(
+    flexOptionsById = Map(
+      batUUID -> batteryHalfFull
+    ),
+    receivedData = Seq(priceDataSoftConstraintsTest),
+    timeParams = oneHalfHour,
+    objectiveFactory = PriceObjectiveFactory,
+    solverLib = SolverLib.oJSolver,
+    tightenBoundaries = true,
+  )
+
+  /* TWO BATTERIES */
+
+  private val fixedForTwoBatteries: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(4, 4, 4, 14, -1, -4, -1, -14, -9.625, -2, 14, 0).toPowerMap(
+          twelveHalfHours
+        )
+      )
+    )
+
+  // high storage capacity, low power
+  private val batteryHighCap: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(10),
+        currentEnergy = KilowattHours(10),
+        pMax = Kilowatts(4),
+        etaCharge = Each(0.8),
+        etaDischarge = Each(0.8),
+        currentTick = 0L,
+      )
+    )
+
+  // low storage capacity, high power
+  private val batteryLowCap: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(6.25),
+        currentEnergy = KilowattHours(6.25),
+        pMax = Kilowatts(10),
+        etaCharge = Each(0.8),
+        etaDischarge = Each(0.8),
+        currentTick = 0L,
+      )
+    )
+
+  private val priceDataTwoBatteries: SecondarySeriesData =
+    (Seq.fill(4)((0.1d, 0.2d)) ++
+      Seq.fill(6)((-0.2d, -0.1)) ++
+      Seq.fill(2)((0.05d, 0.15d))).toPriceData(twelveHalfHours)
+
+  protected val paramsTwoBatteries: OptimizationParams =
+    paramsPriceObjectiveTest.copy(
+      flexOptionsById = Map(
+        loadUUID -> fixedForTwoBatteries,
+        batUUID -> batteryHighCap,
+        bat2UUID -> batteryLowCap,
+      ),
+      receivedData = Seq(priceDataTwoBatteries),
     )
 
 }

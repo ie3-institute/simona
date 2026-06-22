@@ -23,7 +23,7 @@ import edu.ie3.simona.service.{
   ServiceType,
 }
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
-import optimus.algebra.{Const, Expression}
+import optimus.algebra.*
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.{MPFloatVar, MPVar}
@@ -170,7 +170,7 @@ object OptimizingFlexStrat {
 
     val ticks = params.timeParams.ticks
 
-    val (allAssetSymbols, objectiveContainer) =
+    val (allAssetSymbols, objective) =
       buildModel(
         params.flexOptionsById,
         params.timeParams.sampleTime,
@@ -180,17 +180,25 @@ object OptimizingFlexStrat {
         params.objectiveFactory,
       )
 
-    model.minimize(objectiveContainer.objective)
+    model.minimize(objective)
 
     model.start(timeLimit = 10000)
     model.release()
 
+    val actualObjectiveValue =
+      Option.when(model.getStatus == SolutionStatus.OPTIMAL)(
+        params.objectiveFactory.getComparableObjectiveValue(
+          params.flexOptionsById,
+          allAssetSymbols,
+          params.target,
+          params.receivedData,
+        )
+      )
+
     OptimizationResult(
       assetSymbols = allAssetSymbols,
       solutionStatus = model.getStatus,
-      objectiveValue = Option.when(model.getStatus == SolutionStatus.OPTIMAL)(
-        model.objectiveValue
-      ),
+      objectiveValue = actualObjectiveValue,
     )
 
   }
@@ -259,7 +267,7 @@ object OptimizingFlexStrat {
     * @tparam AV
     *   The type of asset symbols that the objective factory returns.
     * @return
-    *   The created asset symbols containers and the objective container.
+    *   The created asset symbols containers and the objective expression.
     */
   def buildModel[AV <: AssetStepSymbols](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
@@ -270,7 +278,7 @@ object OptimizingFlexStrat {
       objectiveFactory: ObjectiveFactory[AV],
   )(using
       model: MPModel
-  ): (Iterable[AssetSymbolContainer[AV]], ObjectiveContainer) = {
+  ): (Iterable[AssetSymbolContainer[AV]], Expression) = {
 
     val assetSymbols = addAssetConstraints(
       flexOptions,
@@ -286,11 +294,7 @@ object OptimizingFlexStrat {
       receivedData,
     )
 
-    (
-      assetSymbols,
-      ObjectiveContainer(objective),
-    )
-
+    (assetSymbols, objective)
   }
 
   /** Creates and adds constraints for the given flex options for given sample
@@ -613,18 +617,6 @@ object OptimizingFlexStrat {
 
   }
 
-  /** Container holding the complete objective to minimize (which already
-    * includes the soft constraint expressions) and relevant soft constraint
-    * containers.
-    *
-    * @param objective
-    *   The objective, including all soft constraint expressions (if
-    *   applicable).
-    */
-  final case class ObjectiveContainer(
-      objective: Expression
-  )
-
   /** Trait to be implemented by factories of power objectives.
     *
     * @tparam AV
@@ -674,6 +666,14 @@ object OptimizingFlexStrat {
         target: Power,
         receivedData: Iterable[SecondaryData],
     )(using model: MPModel): Expression
+
+    // todo scaladoc
+    def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[AssetSymbolContainer[AV]],
+        target: Power,
+        receivedData: Iterable[SecondaryData],
+    ): Double
 
     /** Extracts a price series map (if available) from the given received
       * secondary data. If no price series is available, an exception is thrown.
@@ -774,7 +774,7 @@ object OptimizingFlexStrat {
 
   }
 
-  extension (expr: MPSymbol) {
+  extension (expr: Expression) {
 
     /** Returns the set value for given variable or constant. For variables,
       * optimization has to have found a solution before calling this.
@@ -791,7 +791,22 @@ object OptimizingFlexStrat {
               s"No result present for variable $variable"
             )
           )
+        case Term(scalar, vars) =>
+          val scalarVal = scalar.value
+          val varVals = vars.map(_.getValue)
+
+          varVals.product * scalarVal
+        case ConstProduct(scalar, expr) =>
+          scalar.value * expr.getValue
+        case Product(a, b) =>
+          a.getValue * b.getValue
+        case Plus(a, b) =>
+          a.getValue + b.getValue
+        case Minus(a, b) =>
+          a.getValue - b.getValue
+
       }
+
   }
 
 }

@@ -21,6 +21,7 @@ import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroEurPerKWh
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
+import squants.energy.PowerConversions.PowerNumeric
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -102,6 +103,21 @@ object PowerVariableObjectiveFactory {
         .getOrElse(Zero)
     }
 
+    override def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
+        ],
+        target: Power,
+        receivedData: Iterable[Data.SecondaryData],
+    ): Double =
+      sortSymbolsByTick(assetSymbols).map { case (_, tickAssetSymbols) =>
+        val powerSum =
+          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+
+        math.abs(powerSum)
+      }.sum
+
   }
 
   /** Creates an objective based on the current and projected price of energy
@@ -177,6 +193,38 @@ object PowerVariableObjectiveFactory {
         // combine expressions of all time steps
         .reduceOption[Expression](_ + _)
         .getOrElse(Zero)
+    }
+
+    override def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
+        ],
+        target: Power,
+        receivedData: Iterable[Data.SecondaryData],
+    ): Double = {
+
+      val priceSeries = extractPriceSeries(receivedData)
+
+      sortSymbolsByTick(assetSymbols).map { (stepStartTick, tickAssetSymbols) =>
+        val priceData = priceSeries
+          .maxBefore(stepStartTick + 1)
+          .map { case (_, priceData) => priceData }
+          .getOrElse(
+            throw new CriticalFailureException(
+              s"No price data was given for tick $stepStartTick!"
+            )
+          )
+
+        val priceSell = priceData.priceSell.toEuroPerKilowattHour
+        val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
+
+        val powerSum =
+          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+
+        math.max(powerSum * priceSell, powerSum * priceBuy)
+      }.sum
+
     }
 
     def transformPrices(

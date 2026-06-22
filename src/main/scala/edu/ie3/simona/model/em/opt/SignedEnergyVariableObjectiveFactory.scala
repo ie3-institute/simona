@@ -23,6 +23,7 @@ import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.KilowattHours
+import squants.energy.PowerConversions.PowerNumeric
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -147,6 +148,39 @@ object SignedEnergyVariableObjectiveFactory
       // combine expressions of all time steps
       .reduceOption[Expression](_ + _)
       .getOrElse(Zero)
+  }
+
+  // todo duplicate
+  override def getComparableObjectiveValue(
+      flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+      assetSymbols: Iterable[
+        AssetSymbolContainer[SignedEnergyStepSymbols]
+      ],
+      target: Power,
+      receivedData: Iterable[SecondaryData],
+  ): Double = {
+
+    val priceSeries = extractPriceSeries(receivedData)
+
+    sortSymbolsByTick(assetSymbols).map { (stepStartTick, tickAssetSymbols) =>
+      val priceData = priceSeries
+        .maxBefore(stepStartTick + 1)
+        .map { case (_, priceData) => priceData }
+        .getOrElse(
+          throw new CriticalFailureException(
+            s"No price data was given for tick $stepStartTick!"
+          )
+        )
+
+      val priceSell = priceData.priceSell.toEuroPerKilowattHour
+      val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
+
+      val powerSum =
+        tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+
+      math.max(powerSum * priceSell, powerSum * priceBuy)
+    }.sum
+
   }
 
   /** Trait for container that provides symbols for a specific asset and

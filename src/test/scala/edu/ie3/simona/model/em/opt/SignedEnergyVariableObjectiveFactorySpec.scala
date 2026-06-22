@@ -33,7 +33,7 @@ class SignedEnergyVariableObjectiveFactorySpec
 
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
-        val (assetSymbols, objectiveContainer) =
+        val (assetSymbols, objective) =
           OptimizingFlexStrat.buildModel(
             flexOptions = flexOptionsScenario1,
             sampleTime = halfHour,
@@ -43,7 +43,7 @@ class SignedEnergyVariableObjectiveFactorySpec
             objectiveFactory = SignedEnergyVariableObjectiveFactory,
           )
 
-        model.minimize(objectiveContainer.objective)
+        model.minimize(objective)
         model.start(timeLimit = 10000)
 
         model.getStatus shouldBe SolutionStatus.OPTIMAL
@@ -159,7 +159,7 @@ class SignedEnergyVariableObjectiveFactorySpec
 
         val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData(oneHalfHour)
 
-        val (assetSymbols, objectiveContainer) =
+        val (assetSymbols, objective) =
           OptimizingFlexStrat.buildModel(
             flexOptions = flexOptions,
             sampleTime = halfHour,
@@ -169,7 +169,7 @@ class SignedEnergyVariableObjectiveFactorySpec
             objectiveFactory = SignedEnergyVariableObjectiveFactory,
           )
 
-        model.minimize(objectiveContainer.objective)
+        model.minimize(objective)
         model.start(timeLimit = 10000)
 
         model.getStatus shouldBe SolutionStatus.OPTIMAL

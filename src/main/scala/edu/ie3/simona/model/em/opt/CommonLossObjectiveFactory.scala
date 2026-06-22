@@ -241,6 +241,16 @@ object CommonLossObjectiveFactory {
         .getOrElse(Zero)
     }
 
+    // todo
+    override def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
+        ],
+        target: Power,
+        receivedData: Iterable[Data.SecondaryData],
+    ): Double = ???
+
   }
 
   object PriceObjectiveFactory
