@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.test.common
 
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.TimeParams
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
-  TimeParams,
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
@@ -17,8 +17,8 @@ import edu.ie3.simona.service.Data.SecondaryData.{
 }
 import edu.ie3.util.scala.quantities.EuroPerKilowattHour
 import org.scalatest.matchers.should.Matchers
-import squants.{Energy, Power, Time}
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.{Energy, Power}
 
 import java.util.UUID
 import scala.collection.immutable.SortedMap

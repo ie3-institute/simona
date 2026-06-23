@@ -4,10 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em.opt
+package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
-import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.{
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization
+import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
+import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.{
   MinAbsPowerObjectiveFactory,
   PriceObjectiveFactory,
 }
@@ -32,7 +33,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "balance out additional power within maximum battery power" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsLowAddPower.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -76,7 +77,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "balance out additional power exceeding maximum battery power" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsHighAddPower.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -121,7 +122,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "balance out additional power exceeding energy storage capacity" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsHighAddEnergy.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -175,7 +176,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "balance out additional power exceeding maximum battery power and energy storage capacity" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsHighAddPowerAndEnergy.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -230,7 +231,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "balance out additional power exceeding energy storage capacity when discharging first" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsDischargeFirst.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -290,7 +291,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "balance out additional power within maximum battery power" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsNoLoss.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -339,7 +340,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "consider the restrictions of disconnecting the asset" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsEvcsDisconnect.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -396,7 +397,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "compensate fixed powers when using linear objective" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsMinAbsPowerTest.copy(objectiveFactory =
             MinAbsPowerObjectiveFactory(constraint)
           )
@@ -451,7 +452,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "minimize peaks when using price-based objective" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsPriceObjectiveTest.copy(objectiveFactory =
             PriceObjectiveFactory(constraint)
           )
@@ -545,7 +546,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "not be impacted by soft constraints, since there are none" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsSoftConstraintsTest.copy(objectiveFactory =
             PriceObjectiveFactory(constraint)
           )
@@ -582,7 +583,7 @@ class SplitPowerVarsObjectiveFactorySpec
 
       "minimize peaks when using price-based objective" in {
 
-        val results = OptimizingFlexStrat.optimize(
+        val results = FlexibilityOptimization.optimize(
           paramsTwoBatteries.copy(objectiveFactory =
             PriceObjectiveFactory(constraint),
             // solverLib = Gurobi

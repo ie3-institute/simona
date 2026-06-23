@@ -4,9 +4,11 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em.opt
+package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactorySpec.*
+import CommonLossObjectiveFactorySpec.*
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.enums.SolutionStatus
@@ -95,7 +97,7 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power within maximum battery power" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsLowAddPower)
+        val results = FlexibilityOptimization.optimize(paramsLowAddPower)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -135,7 +137,7 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power exceeding maximum battery power" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsHighAddPower)
+        val results = FlexibilityOptimization.optimize(paramsHighAddPower)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -176,7 +178,7 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power exceeding energy storage capacity" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsHighAddEnergy)
+        val results = FlexibilityOptimization.optimize(paramsHighAddEnergy)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -231,7 +233,7 @@ class CommonLossObjectiveFactorySpec
       "balance out additional power exceeding maximum battery power and energy storage capacity" in {
 
         val results =
-          OptimizingFlexStrat.optimize(paramsHighAddPowerAndEnergy)
+          FlexibilityOptimization.optimize(paramsHighAddPowerAndEnergy)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -286,7 +288,7 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power exceeding energy storage capacity when discharging first" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsDischargeFirst)
+        val results = FlexibilityOptimization.optimize(paramsDischargeFirst)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -342,7 +344,7 @@ class CommonLossObjectiveFactorySpec
 
       "balance out additional power within maximum battery power" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsNoLoss)
+        val results = FlexibilityOptimization.optimize(paramsNoLoss)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -387,7 +389,7 @@ class CommonLossObjectiveFactorySpec
 
       "consider the restrictions of disconnecting the asset" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsEvcsDisconnect)
+        val results = FlexibilityOptimization.optimize(paramsEvcsDisconnect)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -440,7 +442,7 @@ class CommonLossObjectiveFactorySpec
 
       "compensate fixed powers when using linear objective" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsMinAbsPowerTest)
+        val results = FlexibilityOptimization.optimize(paramsMinAbsPowerTest)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -493,7 +495,7 @@ class CommonLossObjectiveFactorySpec
 
       "minimize peaks when using quadratic objective" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsLinQuadPowerTest)
+        val results = FlexibilityOptimization.optimize(paramsLinQuadPowerTest)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -584,7 +586,7 @@ class CommonLossObjectiveFactorySpec
 
       "minimize peaks when using price-based objective" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsPriceObjectiveTest)
+        val results = FlexibilityOptimization.optimize(paramsPriceObjectiveTest)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -672,7 +674,8 @@ class CommonLossObjectiveFactorySpec
 
       "not produce too small powers by impact of soft constraints" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsSoftConstraintsTest)
+        val results =
+          FlexibilityOptimization.optimize(paramsSoftConstraintsTest)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
@@ -705,7 +708,7 @@ class CommonLossObjectiveFactorySpec
 
       "minimize peaks when using price-based objective" in {
 
-        val results = OptimizingFlexStrat.optimize(paramsTwoBatteries)
+        val results = FlexibilityOptimization.optimize(paramsTwoBatteries)
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 

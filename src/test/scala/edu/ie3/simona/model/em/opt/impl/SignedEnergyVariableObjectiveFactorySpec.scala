@@ -4,8 +4,10 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em.opt
+package edu.ie3.simona.model.em.opt.impl
 
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization
+import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
@@ -34,7 +36,7 @@ class SignedEnergyVariableObjectiveFactorySpec
         given model: MPModel = MPModel(SolverLib.oJSolver)
 
         val (assetSymbols, objective) =
-          OptimizingFlexStrat.buildModel(
+          FlexibilityOptimization.buildModel(
             flexOptions = flexOptionsScenario1,
             sampleTime = halfHour,
             ticks = ticks,
@@ -160,7 +162,7 @@ class SignedEnergyVariableObjectiveFactorySpec
         val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData(oneHalfHour)
 
         val (assetSymbols, objective) =
-          OptimizingFlexStrat.buildModel(
+          FlexibilityOptimization.buildModel(
             flexOptions = flexOptions,
             sampleTime = halfHour,
             ticks = ticks,

@@ -4,17 +4,18 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em.opt
+package edu.ie3.simona.model.em.opt.impl
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
-  AssetStepSymbols,
-  AssetSymbolContainer,
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   FixedPowerStepParameters,
   MPSymbol,
-  ObjectiveFactory,
 }
-import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.PowerVarAssetStepSymbols
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
+  AssetStepSymbols,
+  AssetSymbolContainer,
+}
+import edu.ie3.simona.model.em.opt.impl.PowerVariableObjectiveFactory.PowerVarAssetStepSymbols
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData.ProsumerPrice
 import edu.ie3.simona.service.{Data, ServiceType}

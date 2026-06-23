@@ -4,16 +4,16 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em.opt
+package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.{
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
+  OptimizationParams,
+  TimeParams,
+}
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.{
   LinearizedQuadraticPowerObjectiveFactory,
   MinAbsPowerObjectiveFactory,
   PriceObjectiveFactory,
-}
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
-  OptimizationParams,
-  TimeParams,
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries

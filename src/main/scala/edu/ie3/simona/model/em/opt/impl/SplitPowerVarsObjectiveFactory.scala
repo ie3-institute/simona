@@ -4,17 +4,21 @@
  * Research group Distribution grid planning and operation
  */
 
-package edu.ie3.simona.model.em.opt
+package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
-import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.{
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
+  RelativeStateErrorHelper,
+  VariableAssetStepSymbols,
+}
+import edu.ie3.simona.model.em.opt.impl.PowerVariableObjectiveFactory.{
   FixedPowerVarAssetStepSymbols,
   MinAbsPowerObjective,
   PowerVarAssetStepSymbols,
   PriceObjective,
 }
-import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.*
-import edu.ie3.simona.model.em.opt.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
+import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.*
+import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}

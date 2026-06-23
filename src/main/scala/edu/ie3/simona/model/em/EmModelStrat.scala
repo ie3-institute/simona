@@ -8,12 +8,10 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
-import edu.ie3.simona.model.em.opt.{
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
+import edu.ie3.simona.model.em.opt.impl.{
   CommonLossObjectiveFactory,
-  OptimizingFlexStrat,
-}
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
-  AssetStepSymbols,
   ObjectiveFactory,
 }
 import edu.ie3.simona.ontology.messages.flex.{
