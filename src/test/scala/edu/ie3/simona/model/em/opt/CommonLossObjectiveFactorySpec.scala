@@ -763,9 +763,13 @@ class CommonLossObjectiveFactorySpec
           Prices are negative, so there is an overall incentive to buy energy.
           There is also some feed-in that fluctuates. Overall, the battery is
           filled with both feed-in and bought energy.
-          During tick 7 and 8, there is a high feed-in that requires both
+          During step 7 and 8, there is a high feed-in that requires both
           batteries to charge. The second battery can only be used in these
           two steps, thus can't be used at other times during this period.
+
+          The optimal solution would charge and discharge the second battery
+          in order to waste more energy. But, since the soft constraint on
+          absolute power is used here, power is pushed to zero.
            */
           bat1Res(4).pVal should approximate(4d)
           bat1Res(4).energyVal should approximate(1.6d)

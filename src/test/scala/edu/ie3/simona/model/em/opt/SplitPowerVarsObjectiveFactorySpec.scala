@@ -648,20 +648,20 @@ class SplitPowerVarsObjectiveFactorySpec
           During tick 7 and 8, there is a high feed-in that requires both
           batteries to charge. The second battery can only be used in these
           two steps, thus can't be used at other times during this period.
+
+          From steps 4-6, battery two is charging and discharging in order to
+          waste energy, because prices are negative here.
            */
           bat1Res(4).pVal should approximate(4d)
           bat1Res(4).energyVal should approximate(1.6d)
-          bat2Res(4).pVal should approximate(0d)
-          bat2Res(4).energyVal should approximate(0d)
+          bat2Res(4).energyVal should be >= 0d
 
           bat1Res(5).pVal should approximate(4d)
           bat1Res(5).energyVal should approximate(3.2d)
-          bat2Res(5).pVal should approximate(0d)
-          bat2Res(5).energyVal should approximate(0d)
+          bat2Res(5).energyVal should be >= 0d
 
           bat1Res(6).pVal should approximate(4d)
           bat1Res(6).energyVal should approximate(4.8d)
-          bat2Res(6).pVal should approximate(0d)
           bat2Res(6).energyVal should approximate(0d)
 
           bat1Res(7).pVal should approximate(4d)
