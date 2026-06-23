@@ -8,7 +8,10 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat
+import edu.ie3.simona.model.em.opt.{
+  ComparativeOptimizingFlexStrat,
+  OptimizingFlexStrat,
+}
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
 import edu.ie3.simona.model.em.opt.impl.{
   CommonLossObjectiveFactory,
@@ -100,23 +103,35 @@ object EmModelStrat {
       : PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
     // todo a lot of these parameters should be configurable -> issue #1725
 
-    val objectiveFunction
-        : PartialFunction[String, ObjectiveFactory[? <: AssetStepSymbols]] = {
-      case "OPT_MIN_ABS_POWER" =>
-        CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory
-      case "OPT_LIN_QUAD_POWER" =>
+    case "OPT_MIN_ABS_POWER" =>
+      singleOpt(CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory)
+    case "OPT_LIN_QUAD_POWER" =>
+      singleOpt(
         CommonLossObjectiveFactory
           .LinearizedQuadraticPowerObjectiveFactory(segmentCount = 10)
-      case "OPT_PRICE" => CommonLossObjectiveFactory.PriceObjectiveFactory
-    }
-
-    objectiveFunction.andThen(objectiveFactory =>
-      new OptimizingFlexStrat(
+      )
+    case "OPT_PRICE" =>
+      singleOpt(CommonLossObjectiveFactory.PriceObjectiveFactory)
+    case "COMP_MINABS" =>
+      ComparativeOptimizingFlexStrat.createMinAbsComp(
         sampleTime = Hours(1),
         predictionHorizon = Hours(12),
-        objectiveFactory,
       )
-    )
+    case "COMP_PRICE" =>
+      ComparativeOptimizingFlexStrat.createPriceObjComp(
+        sampleTime = Hours(1),
+        predictionHorizon = Hours(24),
+      )
+
   }
+
+  private def singleOpt(
+      objectiveFactory: ObjectiveFactory[? <: AssetStepSymbols]
+  ): OptimizingFlexStrat =
+    new OptimizingFlexStrat(
+      sampleTime = Hours(1),
+      predictionHorizon = Hours(12),
+      objectiveFactory,
+    )
 
 }

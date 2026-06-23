@@ -12,8 +12,6 @@ import edu.ie3.simona.model.em.EmModelStrat
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   OptimizationParams,
   TimeParams,
-  extractSetPoints,
-  optimize,
 }
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.accuracyWarningThreshold
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory
@@ -53,7 +51,7 @@ final case class OptimizingFlexStrat(
     s"${classOf[OptimizingFlexStrat].getSimpleName}(${objectiveFactory.getClass.getSimpleName})"
   )
 
-  override def getServiceRegistrationData: ServiceRegistrationData = {
+  override def getServiceRegistrationData: ServiceRegistrationData =
     ServiceRegistrationData(
       objectiveFactory.getRequiredSecondaryServices,
       DataTimeType.CurrentAndForecast(
@@ -61,7 +59,6 @@ final case class OptimizingFlexStrat(
         forecastResolution = sampleTime,
       ),
     )
-  }
 
   /** The power target might not be considered by all types of objectives.
     */
@@ -89,7 +86,7 @@ final case class OptimizingFlexStrat(
       tightenBoundaries = true,
     )
 
-    val result = optimize(optimizationParams)
+    val result = FlexibilityOptimization.optimize(optimizationParams)
 
     if result.solutionStatus != SolutionStatus.OPTIMAL then
       throw new CriticalFailureException(
@@ -107,7 +104,7 @@ final case class OptimizingFlexStrat(
       )
     }
 
-    extractSetPoints(flexOptionsById, result)
+    FlexibilityOptimization.extractSetPoints(flexOptionsById, result)
   }
 
   override def adaptFlexOptions(
