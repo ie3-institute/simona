@@ -13,7 +13,7 @@ import edu.ie3.datamodel.models.input.connector.LineInput
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.{Dimensionless, Each, ElectricCurrent}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
@@ -150,8 +150,8 @@ case object LineModel extends LazyLogging {
 
     val lineType = lineInput.getType
     val (r, x, g, b) = (
-      refSystem.rInPu(lineType.getR.toSquants),
-      refSystem.xInPu(lineType.getX.toSquants),
+      refSystem.rInPu(lineType.getR.toResistance),
+      refSystem.xInPu(lineType.getX.toResistance),
       refSystem.gInPu(lineType.getG.toSquants),
       refSystem.bInPu(lineType.getB.toSquants),
     )

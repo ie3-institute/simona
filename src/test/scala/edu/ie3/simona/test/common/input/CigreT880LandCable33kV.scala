@@ -6,13 +6,10 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.simona.model.grid.ampacity.{
-  CableMaterial,
-  CableSetup,
-  Layer,
-  ScreenLayer,
-}
+import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
+import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.simona.util.Coordinate3D
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
@@ -36,8 +33,8 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(0),
       Millimeters(18.4),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       Some(SquareMeters(0.00024)),
     )
   }
@@ -49,8 +46,8 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(18.4),
       Millimeters(19.4),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
@@ -62,8 +59,8 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(19.4),
       Millimeters(34.8),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
@@ -75,8 +72,8 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(34.8),
       Millimeters(35.8),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
@@ -88,19 +85,19 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(35.8),
       Millimeters(36.8),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
 
   protected val screen: ScreenLayer = {
     ScreenLayer(
-      CableMaterial.Copper,
+      CableMaterial.COPPER,
       Millimeters(36.8),
       Millimeters(38.6),
-      CableSetup.materialProps(CableMaterial.Copper)._1,
-      CableSetup.materialProps(CableMaterial.Copper)._2,
+      CableMaterial.COPPER.getThermalProperties.resistivity().toSquants,
+      CableMaterial.COPPER.getThermalProperties.capacitance().toSquants,
       Some(SquareMeters(35.62566069e-6)),
       56,
       Millimeters(0.9),
@@ -116,8 +113,8 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(38.6),
       Millimeters(39.2),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
@@ -129,8 +126,8 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(39.2),
       Millimeters(43.6),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
@@ -142,8 +139,8 @@ object CigreT880LandCable33kV {
       mat,
       Millimeters(43.6),
       Millimeters(44.0),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }

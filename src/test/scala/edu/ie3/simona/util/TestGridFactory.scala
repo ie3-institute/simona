@@ -34,6 +34,8 @@ object TestGridFactory {
     *   The system participants, default to empty container.
     * @param energyManagementUnits
     *   The energy management units, default to empty container.
+    * @param rawGridTypes
+    *   The raw grid type elements, default to empty container.
     * @return
     *   A JointGridContainer for testing purposes.
     */
@@ -43,12 +45,14 @@ object TestGridFactory {
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
       energyManagementUnits: EnergyManagementUnits =
         createEmptyEnergyManagementUnits(),
+      rawGridTypes: RawGridTypes = createEmptyRawGridTypes(),
   ): JointGridContainer =
     new JointGridContainer(
       gridName,
       rawGridElements,
       systemParticipants,
       energyManagementUnits,
+      rawGridTypes,
     )
 
   /** Creates a sub grid container for testing purposes.
@@ -67,6 +71,8 @@ object TestGridFactory {
     *   The system participants, default to empty container.
     * @param energyManagementUnits
     *   The energy management units, default to empty container.
+    * @param rawGridTypes
+    *   The raw grid type elements, default to empty container.
     * @return
     *   A SubGridContainer for testing purposes.
     */
@@ -77,6 +83,7 @@ object TestGridFactory {
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
       energyManagementUnits: EnergyManagementUnits =
         createEmptyEnergyManagementUnits(),
+      rawGridTypes: RawGridTypes = createEmptyRawGridTypes(),
   ): SubGridContainer =
     new SubGridContainer(
       gridName,
@@ -84,6 +91,7 @@ object TestGridFactory {
       rawGridElements,
       systemParticipants,
       energyManagementUnits,
+      rawGridTypes,
     )
 
   def createEmptyRawGridElements(): RawGridElements =
@@ -115,5 +123,9 @@ object TestGridFactory {
     new EnergyManagementUnits(
       Set.empty[EmInput].asJava
     )
+
+  def createEmptyRawGridTypes(): RawGridTypes = {
+    new RawGridTypes(Set.empty[RawGridTypes].asJava)
+  }
 
 }

@@ -8,24 +8,18 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toApparent,
-  toSquants,
-}
-import edu.ie3.util.scala.quantities.{
-  EuroPerKilowattHour,
-  Kilovoltamperes,
-  KilowattHoursPerKelvinCubicMeters,
-}
+import edu.ie3.util.scala.quantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.*
 import squants.energy.{Energy, KilowattHours, Kilowatts}
-import squants.space.{CubicMeters, SquareMeters}
+import squants.space.{CubicMeters, Meters, Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Temperature}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
 
+import java.util.Optional
 import javax.measure.quantity.*
 
 class QuantityConversionUtilsSpec extends UnitSpec {
@@ -111,10 +105,12 @@ class QuantityConversionUtilsSpec extends UnitSpec {
     }
 
     "properly convert specific resistance quantities" in {
-      implicit val length: ComparableQuantity[Length] =
+      given length: ComparableQuantity[Length] =
         Quantities.getQuantity(2.5, KILOMETRE)
       val specResistance = Quantities.getQuantity(0.2, OHM_PER_KILOMETRE)
-      specResistance.toSquants shouldBe Ohms(0.5)
+      specResistance.toResistance shouldBe Ohms(0.5)
+      specResistance.toResistancePerLength shouldBe OhmsPerKilometer(2.5)
+
     }
 
     "properly convert electrical conductance quantities" in {
@@ -130,6 +126,19 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       specConductance.toSquants shouldBe Siemens(0.5)
     }
 
+    "properly convert length quantities from different units" in {
+      val length = Quantities.getQuantity(500.0, MILLIMETRE)
+      length.toSquants shouldBe Millimeters(500.0)
+
+      val length2 = Quantities.getQuantity(0.1, METRE)
+      length2.toSquants shouldBe Meters(0.1)
+    }
+
+    "properly convert option of length quantities from different units" in {
+      val length = Optional.of(Quantities.getQuantity(500.0, MILLIMETRE))
+      length.toSquants shouldBe Some(Millimeters(500.0))
+    }
+
     "properly convert area quantities from different units" in {
       val area = Quantities.getQuantity(500.0, SQUARE_METRE)
       area.toSquants shouldBe SquareMeters(500.0)
@@ -137,6 +146,34 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       val areaKm2 =
         Quantities.getQuantity(0.01, KILOMETRE.pow(2).asType(classOf[Area]))
       areaKm2.toSquants shouldBe SquareMeters(10000.0)
+    }
+
+    "properly convert option of an area quantities from different units" in {
+      val area = Optional.of(Quantities.getQuantity(500.0, SQUARE_METRE))
+      area.toSquants shouldBe Some(SquareMeters(500.0))
+    }
+
+    "properly convert energy price quantities from different units" in {
+      val price = Quantities.getQuantity(50.0, EURO_PER_KILOWATTHOUR)
+      price.toSquants shouldBe EuroPerKilowattHour(50.0)
+    }
+
+    "properly convert electric capacitance quantities from different units" in {
+      val capacitance = Quantities.getQuantity(0.05, FARAD)
+      capacitance.toSquants shouldBe Farads(0.05)
+    }
+
+    "properly convert thermal resistivity quantities from different units" in {
+      val thermalRes = Quantities.getQuantity(0.05, KELVIN_METRE_PER_WATT)
+      thermalRes.toSquants shouldBe KelvinMetersPerWatt(0.05)
+    }
+
+    "properly convert thermal capacitance quantities from different units" in {
+      val thermalCapa =
+        Quantities.getQuantity(2.0, JOULE_PER_CUBIC_METRE_KELVIN)
+      thermalCapa.toSquants shouldBe JoulesPerMeterKelvin(
+        2.0
+      ) // FIXME JoulesPerMeter or CubicMeter
     }
 
     "properly convert angle quantities from different units" in {

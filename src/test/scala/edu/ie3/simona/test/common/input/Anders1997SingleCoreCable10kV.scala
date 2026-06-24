@@ -6,13 +6,10 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.simona.model.grid.ampacity.{
-  CableMaterial,
-  CableSetup,
-  Layer,
-  ScreenLayer,
-}
+import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
+import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.simona.util.Coordinate3D
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.{
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
@@ -36,8 +33,8 @@ object Anders1997SingleCoreCable10kV {
       mat,
       Millimeters(0),
       Millimeters(20.5),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       Some(SquareMeters(0.00024)),
     )
   }
@@ -49,8 +46,8 @@ object Anders1997SingleCoreCable10kV {
       mat,
       Millimeters(20.5),
       Millimeters(21.7),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
@@ -62,8 +59,8 @@ object Anders1997SingleCoreCable10kV {
       mat,
       Millimeters(21.7),
       Millimeters(28.5),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
@@ -75,24 +72,24 @@ object Anders1997SingleCoreCable10kV {
       mat,
       Millimeters(28.5),
       Millimeters(30.1),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }
 
   protected val screen: ScreenLayer = {
     ScreenLayer(
-      CableMaterial.Copper,
+      CableMaterial.COPPER,
       Millimeters(30.1),
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
-      CableSetup.materialProps(CableMaterial.Copper)._1,
-      CableSetup.materialProps(CableMaterial.Copper)._2,
+      CableMaterial.COPPER.getThermalProperties.resistivity().toSquants,
+      CableMaterial.COPPER.getThermalProperties.capacitance().toSquants,
       None,
       76,
       Millimeters(0.65),
       None,
-      CableSetup.materialElectricalResistivity(CableMaterial.Copper),
+      CableMaterial.COPPER.getElectricalResistivity().toSquants,
     )
   }
 
@@ -103,8 +100,8 @@ object Anders1997SingleCoreCable10kV {
       mat,
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
       Millimeters(35.8),
-      CableSetup.materialProps(mat)._1,
-      CableSetup.materialProps(mat)._2,
+      mat.getThermalProperties.resistivity().toSquants,
+      mat.getThermalProperties.capacitance().toSquants,
       None,
     )
   }

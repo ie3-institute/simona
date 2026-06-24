@@ -10,6 +10,14 @@ import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
+import edu.ie3.datamodel.models.input.connector.`type`.{
+  CableMaterial,
+  CableTypeInput,
+  ConductorInput as JConductorInput,
+  LayerInput as JLayerInput,
+  ScreenLayerInput as JScreenLayerInput,
+}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -23,31 +31,27 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC,
 }
 import edu.ie3.simona.model.grid.ampacity.{
-  CableMaterial,
   CableSetup,
   Layer,
   LineSegmentThermalModel,
   ScreenLayer,
 }
 import edu.ie3.simona.util.{CollectionUtils, Coordinate3D}
-import edu.ie3.util.scala.quantities.{
-  JoulesPerMeterKelvin,
-  KelvinMetersPerWatt,
-  OhmsPerMeter,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 import play.api.libs.json.*
 import squants.Meters
-import squants.electro.{Kilovolts, Nanofarads, OhmMeters}
-import squants.space.{Millimeters, SquareMeters}
+import squants.space.Millimeters
 import squants.thermal.Celsius
-import squants.time.Hertz
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
@@ -531,179 +535,116 @@ object GridModel {
       nodeInput => NodeModel(nodeInput, startDate, endDate)
     }
 
-    // / lines
+    // lines and cableTypes
     val lines: Set[LineModel] =
       subGridContainer.getRawGrid.getLines.asScala.map { lineInput =>
         getConnectedNodes(lineInput, nodes)
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
+    val cableTypeMap: Map[UUID, CableTypeInput] =
+      subGridContainer.getRawGridTypes.getCableTypes.asScala
+        .map(ct => ct.getUuid -> ct)
+        .toMap
+
+    // 2. Dynamische Generierung der thermischen Segmente
     val thermalLineSegments: Set[LineSegmentThermalModel] =
-      subGridContainer.getRawGrid.getLines.asScala
-        .flatMap { lineInput =>
-          val jsonStringLineInput = lineInputToJson(lineInput)
-          val json = Json.parse(jsonStringLineInput)
-          // FIXME DF Move this into some thermalLineSegment Builder Class that reads from csv input
-          val conductor: Layer = {
-            val mat = CableMaterial.fromString("Copper")
-            Layer(
-              "conductor",
-              mat,
-              Millimeters(0),
-              Millimeters(18.4),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              Some(SquareMeters(0.00024)),
-            )
-          }
-
-          val conductorScreen: Layer = {
-            val mat = CableMaterial.fromString("semicondscreen")
-            Layer(
-              "conductorScreen",
-              mat,
-              Millimeters(18.4),
-              Millimeters(19.4),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              None,
-            )
-          }
-
-          val insulation: Layer = {
-            val mat = CableMaterial.fromString("XLPE")
-            Layer(
-              "insulation",
-              mat,
-              Millimeters(19.4),
-              Millimeters(34.8),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              None,
-            )
-          }
-
-          val insulationScreen: Layer = {
-            val mat = CableMaterial.fromString("semicondscreen")
-            Layer(
-              "insulationScreen",
-              mat,
-              Millimeters(34.8),
-              Millimeters(35.8),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              None,
-            )
-          }
-
-          val screenTape: Layer = {
-            val mat = CableMaterial.fromString("copperwoventape")
-            Layer(
-              "screenTape",
-              mat,
-              Millimeters(35.8),
-              Millimeters(36.8),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              None,
-            )
-          }
-
-          val screen: ScreenLayer = {
-            ScreenLayer(
-              CableMaterial.Copper,
-              Millimeters(36.8),
-              Millimeters(38.6),
-              CableSetup.materialProps(CableMaterial.Copper)._1,
-              CableSetup.materialProps(CableMaterial.Copper)._2,
-              Some(SquareMeters(35.62566069e-6)),
-              56,
-              Millimeters(0.9),
-              Some(Millimeters(240)),
-              OhmMeters(1.7241e-8),
-            )
-          }
-
-          val jackTape: Layer = {
-            val mat = CableMaterial.fromString("copperwoventape")
-            Layer(
-              "jackTape",
-              mat,
-              Millimeters(38.6),
-              Millimeters(39.2),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              None,
-            )
-          }
-
-          val jack: Layer = {
-            val mat = CableMaterial.fromString("XLPE")
-            Layer(
-              "jack",
-              mat,
-              Millimeters(39.2),
-              Millimeters(43.6),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              None,
-            )
-          }
-
-          val outerCover: Layer = {
-            val mat = CableMaterial.fromString("semicondscreen")
-            Layer(
-              "outerCover",
-              mat,
-              Millimeters(43.6),
-              Millimeters(44.0),
-              CableSetup.materialProps(mat)._1,
-              CableSetup.materialProps(mat)._2,
-              None,
-            )
-          }
-
-          val cable: CableSetup = new CableSetup(
-            UUID.fromString("b8152c3f-d12f-4857-9746-a30aef6aee08"),
-            "CigreT880_33kVLandCable",
-            Coordinate3D(0.0, 0.0, -1.0),
-            Coordinate3D(1.0, 0.0, -1.0),
-            conductor,
-            List(conductorScreen, insulation, insulationScreen, screenTape),
-            Some(screen),
-            List.empty[Layer],
-            List.empty[Layer],
-            List(jackTape, jack, outerCover),
-            "trefoil-touching",
-            Meters(1),
-            Meters(0.044),
-            KelvinMetersPerWatt(1.0),
-            JoulesPerMeterKelvin(1.0), // FIXME check this
-            Celsius(90),
-            Kilovolts(33),
-            Hertz(50),
-            OhmsPerMeter(0.0754e-3),
-            1.0,
-            1.0,
-            Nanofarads(0.237683304),
-            0.004,
-            0.0435122656,
-            0.0,
-          )
-
-          val coordinates =
-            (json \ "coordinates").as[JsArray].value.map { coord =>
-              (coord(0).as[Double], coord(1).as[Double])
+      subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
+        // Prüfen, ob die Leitung überhaupt einen Kabeltyp referenziert
+        Option(lineInput.getType).toSeq.flatMap { lineType =>
+          // Über die Typ-UUID den erweiterten CableTypeInput aus unserer Map auflösen
+          cableTypeMap.get(lineType.getUuid).toSeq.flatMap { cableTypeInput =>
+            // Geometrische Stützpunkte aus dem GeoJSON extrahieren
+            val jsonStringLineInput = lineInputToJson(lineInput)
+            val json = Json.parse(jsonStringLineInput)
+            val coordinates: Seq[(Double, Double)] = {
+              (json \ "coordinates")
+                .as[JsArray]
+                .value
+                .map(coord => (coord(0).as[Double], coord(1).as[Double]))
+                .toSeq
             }
 
-          if coordinates.size >= 2 then {
-            Some(
-              coordinates
-                .sliding(2)
-                .collect { case Seq(start, end) =>
+            val conductor: Layer = mapConductor(cableTypeInput.getConductor)
+            val isolation: List[Layer] =
+              cableTypeInput.getIsolation.asScala.map(mapLayer).toList
+            val screen: Option[ScreenLayer] =
+              cableTypeInput.getScreen.toScala.map(mapScreen)
+            val filler: List[Layer] = Option(cableTypeInput.getFiller)
+              .map(_.asScala.map(mapLayer).toList)
+              .getOrElse(List.empty)
+            val armor: List[Layer] = Option(cableTypeInput.getArmor)
+              .map(_.asScala.map(mapLayer).toList)
+              .getOrElse(List.empty)
+            val jack: List[Layer] =
+              cableTypeInput.getJack.asScala.map(mapLayer).toList
+
+            val cable: CableSetup = CableSetup(
+              cableTypeInput.getUuid,
+              cableTypeInput.getId,
+              Coordinate3D(
+                0.0,
+                0.0,
+                -1.0,
+              ), // TODO: Später ggf. aus Routen-Profilen speisen
+              Coordinate3D(1.0, 0.0, -1.0),
+              conductor,
+              isolation,
+              screen,
+              filler,
+              armor,
+              jack,
+              "trefoil-touching",
+              Meters(1),
+              cableTypeInput.getJack.asScala.lastOption
+                .map(_.outerDiameter().toSquants)
+                .getOrElse(
+                  throw new NoSuchElementException("No jack available")
+                ),
+              KelvinMetersPerWatt(1), // FIXME
+              JoulesPerMeterKelvin(1), // FIXME
+              cableTypeInput.getLimitTemperature.toSquants,
+              lineType.getvRated().toSquants,
+              cableTypeInput.getFrequency.toSquants,
+              lineType.getR.toResistancePerLength,
+              cableTypeInput.getSkinEffectCoefficient,
+              cableTypeInput.getProximityEffectCoefficient,
+              cableTypeInput.getElectricalCapacitance.toSquants,
+              cableTypeInput.getTanDelta,
+              cableTypeInput.getCirculatingLossFactor,
+              cableTypeInput.getEddyCurrentLossFactor,
+            )
+
+            val segments =
+              if coordinates.size >= 2 then
+                coordinates
+                  .sliding(2)
+                  .collect { case IndexedSeq(start, end) =>
+                    LineSegmentThermalModel(
+                      UUID.randomUUID(),
+                      s"LineTher_${lineInput.getId}_${start}_${end}",
+                      lineInput.getUuid,
+                      cable,
+                      KelvinMetersPerWatt(1),
+                      KelvinMetersPerWatt(1),
+                      KelvinMetersPerWatt(1),
+                      KelvinMetersPerWatt(1),
+                      JoulesPerMeterKelvin(1),
+                      JoulesPerMeterKelvin(1),
+                      JoulesPerMeterKelvin(1),
+                      JoulesPerMeterKelvin(1),
+                      JoulesPerMeterKelvin(1),
+                      Celsius(
+                        cableTypeInput.getLimitTemperature.getValue.doubleValue
+                      ),
+                    )
+                  }
+                  .toSet
+              else
+                Set(
                   LineSegmentThermalModel(
                     UUID.randomUUID(),
-                    lineInput.getId + "_" + start.toString + "_" + end.toString,
+                    s"LineTher_${lineInput.getId}",
                     lineInput.getUuid,
                     cable,
                     KelvinMetersPerWatt(1),
@@ -715,19 +656,208 @@ object GridModel {
                     JoulesPerMeterKelvin(1),
                     JoulesPerMeterKelvin(1),
                     JoulesPerMeterKelvin(1),
-                    Celsius(90),
+                    Celsius(
+                      cableTypeInput.getLimitTemperature.getValue.doubleValue
+                    ),
                   )
-                }
-                .toSet
-            )
-          } else {
-            None
+                )
+          segments
           }
         }
-        .flatten
-        .toSet
+      }.toSet
 
-    // / transformers
+    /*
+val thermalLineSegments: Set[LineSegmentThermalModel] =
+  subGridContainer.getRawGrid.getLines.asScala
+    .flatMap { lineInput =>
+      val jsonStringLineInput = lineInputToJson(lineInput)
+      val json = Json.parse(jsonStringLineInput)
+      // FIXME DF Move this into some thermalLineSegment Builder Class that reads from csv input
+      val conductor: Layer = {
+        val mat = CableMaterial.fromString("Copper")
+        Layer(
+          "conductor",
+          mat,
+          Millimeters(0),
+          Millimeters(18.4),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          Some(SquareMeters(0.00024)),
+        )
+      }
+
+      val conductorScreen: Layer = {
+        val mat = CableMaterial.fromString("semicondscreen")
+        Layer(
+          "conductorScreen",
+          mat,
+          Millimeters(18.4),
+          Millimeters(19.4),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          None,
+        )
+      }
+
+      val insulation: Layer = {
+        val mat = CableMaterial.fromString("XLPE")
+        Layer(
+          "insulation",
+          mat,
+          Millimeters(19.4),
+          Millimeters(34.8),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          None,
+        )
+      }
+
+      val insulationScreen: Layer = {
+        val mat = CableMaterial.fromString("semicondscreen")
+        Layer(
+          "insulationScreen",
+          mat,
+          Millimeters(34.8),
+          Millimeters(35.8),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          None,
+        )
+      }
+
+      val screenTape: Layer = {
+        val mat = CableMaterial.fromString("copperwoventape")
+        Layer(
+          "screenTape",
+          mat,
+          Millimeters(35.8),
+          Millimeters(36.8),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          None,
+        )
+      }
+
+      val screen: ScreenLayer = {
+        ScreenLayer(
+          CableMaterial.Copper,
+          Millimeters(36.8),
+          Millimeters(38.6),
+          CableSetup.materialProps(CableMaterial.Copper)._1,
+          CableSetup.materialProps(CableMaterial.Copper)._2,
+          Some(SquareMeters(35.62566069e-6)),
+          56,
+          Millimeters(0.9),
+          Some(Millimeters(240)),
+          OhmMeters(1.7241e-8),
+        )
+      }
+
+      val jackTape: Layer = {
+        val mat = CableMaterial.fromString("copperwoventape")
+        Layer(
+          "jackTape",
+          mat,
+          Millimeters(38.6),
+          Millimeters(39.2),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          None,
+        )
+      }
+
+      val jack: Layer = {
+        val mat = CableMaterial.fromString("XLPE")
+        Layer(
+          "jack",
+          mat,
+          Millimeters(39.2),
+          Millimeters(43.6),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          None,
+        )
+      }
+
+      val outerCover: Layer = {
+        val mat = CableMaterial.fromString("semicondscreen")
+        Layer(
+          "outerCover",
+          mat,
+          Millimeters(43.6),
+          Millimeters(44.0),
+          CableSetup.materialProps(mat)._1,
+          CableSetup.materialProps(mat)._2,
+          None,
+        )
+      }
+
+      val cable: CableSetup = new CableSetup(
+        UUID.fromString("b8152c3f-d12f-4857-9746-a30aef6aee08"),
+        "CigreT880_33kVLandCable",
+        Coordinate3D(0.0, 0.0, -1.0),
+        Coordinate3D(1.0, 0.0, -1.0),
+        conductor,
+        List(conductorScreen, insulation, insulationScreen, screenTape),
+        Some(screen),
+        List.empty[Layer],
+        List.empty[Layer],
+        List(jackTape, jack, outerCover),
+        "trefoil-touching",
+        Meters(1),
+        Meters(0.044),
+        KelvinMetersPerWatt(1.0),
+        JoulesPerMeterKelvin(1.0), // FIXME check this
+        Celsius(90),
+        Kilovolts(33),
+        Hertz(50),
+        OhmsPerMeter(0.0754e-3),
+        1.0,
+        1.0,
+        Nanofarads(0.237683304),
+        0.004,
+        0.0435122656,
+        0.0,
+      )
+
+      val coordinates =
+        (json \ "coordinates").as[JsArray].value.map { coord =>
+          (coord(0).as[Double], coord(1).as[Double])
+        }
+
+      if coordinates.size >= 2 then {
+        Some(
+          coordinates
+            .sliding(2)
+            .collect { case Seq(start, end) =>
+              LineSegmentThermalModel(
+                UUID.randomUUID(),
+                lineInput.getId + "_" + start.toString + "_" + end.toString,
+                lineInput.getUuid,
+                cable,
+                KelvinMetersPerWatt(1),
+                KelvinMetersPerWatt(1),
+                KelvinMetersPerWatt(1),
+                KelvinMetersPerWatt(1),
+                JoulesPerMeterKelvin(1),
+                JoulesPerMeterKelvin(1),
+                JoulesPerMeterKelvin(1),
+                JoulesPerMeterKelvin(1),
+                JoulesPerMeterKelvin(1),
+                Celsius(90),
+              )
+            }
+            .toSet
+        )
+      } else {
+        None
+      }
+    }
+    .flatten
+    .toSet
+
+     */
+// / transformers
     val transformers: Set[TransformerModel] =
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
@@ -746,7 +876,7 @@ object GridModel {
           }
       }.toSet
 
-    // / transformers3w
+// / transformers3w
     val transformer3ws: Set[Transformer3wModel] =
       subGridContainer.getRawGrid.getTransformer3Ws.asScala.map {
         transformer3wInput =>
@@ -775,14 +905,14 @@ object GridModel {
     val relevantNodes =
       nodes.filterNot(node => nodesToNeglect.contains(node.uuid))
 
-    // / switches
+// / switches
     val switches: Set[SwitchModel] =
       subGridContainer.getRawGrid.getSwitches.asScala.map { switchInput =>
         getConnectedNodes(switchInput, nodes)
         SwitchModel(switchInput, startDate, endDate)
       }.toSet
 
-    // build
+// build
     val gridComponents =
       GridComponents(
         relevantNodes,
@@ -817,12 +947,12 @@ object GridModel {
       * transformerControlGroups
       */
 
-    // validate
+// validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
     validateControlGroups(subGridContainer, simonaConfig.control)
 
-    // return
+// return
     gridModel
   }
 
@@ -838,6 +968,48 @@ object GridModel {
     s"""{"type": "LineString", "coordinates": [$coordinatesJson]}"""
   }
 
+  private def mapConductor(jc: JConductorInput): Layer = {
+    val mat = CableMaterial.fromString(jc.material().toString)
+    Layer(
+      jc.name(),
+      mat,
+      Millimeters(0.0),
+      jc.diameter().toSquants,
+      jc.thermalResistivity().toSquants,
+      jc.thermalCapacitance().toSquants,
+      jc.area().toSquants,
+    )
+  }
+
+  private def mapLayer(jl: JLayerInput): Layer = {
+    val mat = CableMaterial.fromString(jl.material().toString)
+    Layer(
+      jl.name(),
+      mat,
+      jl.innerDiameter().toSquants,
+      jl.outerDiameter().toSquants,
+      jl.thermalResistivity().toSquants,
+      jl.thermalCapacitance().toSquants,
+      jl.area().toSquants,
+    )
+  }
+
+  private def mapScreen(js: JScreenLayerInput): ScreenLayer = {
+    val mat = CableMaterial.fromString(js.material().toString)
+    ScreenLayer(
+      mat,
+      js.innerDiameter().toSquants,
+      js.outerDiameter().toSquants,
+      js.thermalResistivity().toSquants,
+      js.thermalCapacitance().toSquants,
+      js.area().toSquants,
+      js.wiresNumber,
+      js.wireDiameter.toSquants,
+      js.lengthOfLay().toSquants,
+      js.electricalResistivity.toSquants,
+    )
+  }
+
   /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to
     * account for changes on switches (open / close) It is highly recommended (=
     * mandatory) to call this method every time a node admittance matrix is
@@ -851,8 +1023,8 @@ object GridModel {
     val switches = gridModel.gridComponents.switches
     val nodes = gridModel.gridComponents.nodes.distinct
 
-    // map for each node that is directly connected to a switch,
-    // to all nodes that are directly connected via switch
+// map for each node that is directly connected to a switch,
+// to all nodes that are directly connected via switch
     val nodeConnections: Map[UUID, Set[UUID]] =
       switches.filter(_.isClosed).foldLeft(Map.empty[UUID, Set[UUID]]) {
         (acc, switch) =>
@@ -867,13 +1039,13 @@ object GridModel {
             )
       }
 
-    // create sets of nodes to be fused together and assign common indices
+// create sets of nodes to be fused together and assign common indices
     val switchConnectedNodes =
       findConnectedNodes(nodeConnections).zipWithIndex.flatMap {
         case (nodes, idx) => nodes.map(_ -> idx)
       }.toMap
 
-    // also account for all missing nodes (not connected to a switch)
+// also account for all missing nodes (not connected to a switch)
     val offset = switchConnectedNodes.values.maxOption.map(_ + 1).getOrElse(0)
     val (updatedNodeToUuidMap, _) = nodes
       .filter(_.isInOperation)

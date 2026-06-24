@@ -8,19 +8,13 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.LineModel
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
-import edu.ie3.simona.util.TickUtil.TickLong
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.util.Coordinate
-import edu.ie3.util.scala.quantities.{
-  JoulesPerMeterKelvin,
-  KelvinMetersPerWatt,
-  ThermalCapacitance,
-  ThermalResistivity,
-  WattHoursPerSquareMeter,
-}
+import edu.ie3.simona.util.TickUtil.toDateTime
+import edu.ie3.util.scala.quantities.*
 import squants.motion.MetersPerSecond
 import squants.radio.WattsPerSquareMeter
 import squants.space.{Length, Meters}

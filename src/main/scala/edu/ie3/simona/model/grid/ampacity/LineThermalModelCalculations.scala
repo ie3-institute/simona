@@ -8,10 +8,13 @@ package edu.ie3.simona.model.grid.ampacity
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
-import edu.ie3.util.scala.quantities.SquantsUtils.RichResistivity
-import edu.ie3.util.scala.quantities.SquantsUtils.RichCapacitance
+import edu.ie3.util.scala.quantities.SquantsUtils.{
+  RichCapacitance,
+  RichResistivity,
+}
 import edu.ie3.util.scala.quantities.{
   ElectricalResistancePerLength,
   JoulesPerMeterKelvin,
@@ -253,10 +256,7 @@ object LineThermalModelCalculations extends LazyLogging {
             )
 
         // ac resistance of screen wires at operating temp
-        r0Screen * (1 + CableSetup
-          .materialElectricalResistivityTemperatureCoefficient(
-            layer.material
-          ) * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
+        r0Screen * (1 + layer.material.getElectricalResistivityTemperatureCoefficient * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
       case None =>
         throw new IllegalArgumentException(
           "Screen layer expected but not found."
@@ -821,9 +821,8 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val acResistance = calcAcResistance(
       cableSetup.electricResistance,
-      CableSetup.materialElectricalResistivityTemperatureCoefficient(
-        cableSetup.conductor.material
-      ),
+      cableSetup.conductor.material
+        .getElectricalResistivityTemperatureCoefficient(),
       cableSetup,
     )
 
