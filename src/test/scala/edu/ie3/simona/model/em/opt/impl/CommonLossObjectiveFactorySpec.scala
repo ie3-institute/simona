@@ -26,7 +26,7 @@ class CommonLossObjectiveFactorySpec
   given Energy = WattHours(1e-9)
   val stateEnergyTolerance: Energy = WattHours(1e-3)
 
-  "An optimizing flex strat" when {
+  "A common loss objective factory" when {
 
     "provided with a flex energy model to adapt" should {
 

@@ -7,15 +7,11 @@
 package edu.ie3.simona.model.em.opt.impl
 
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization
-import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory
-import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
-import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
+import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory.PriceObjectiveFactory
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import optimus.optimization.MPModel
-import optimus.optimization.enums.{SolutionStatus, SolverLib}
-import squants.Each
-import squants.energy.{KilowattHours, Kilowatts}
+import optimus.optimization.enums.SolutionStatus
+import squants.energy.Energy
 
 class SignedEnergyVariableObjectiveFactorySpec
     extends UnitSpec
@@ -25,30 +21,22 @@ class SignedEnergyVariableObjectiveFactorySpec
   // Testing tolerances
   given Double = 1e-6
 
-  "An optimizing flex strat" when {
+  // state results should be exact
+  val stateEnergyTolerance: Energy = zeroKWh
 
-    "provided with a SignedEnergyVariableObjectiveFactory" should {
+  "A signed energy variable objective factory" when {
 
-      given ticks: Seq[Long] = ticksScenario1
+    "provided with energy boundary flex options and an objective factory" should {
 
       "minimize peaks when using price-based objective" in {
 
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
-        val (assetSymbols, objective) =
-          FlexibilityOptimization.buildModel(
-            flexOptions = flexOptionsScenario1,
-            sampleTime = halfHour,
-            ticks = ticks,
-            target = zeroKW,
-            receivedData = Seq(priceDataScenario1),
-            objectiveFactory = SignedEnergyVariableObjectiveFactory,
+        val results = FlexibilityOptimization.optimize(
+          paramsPriceObjectiveTest.copy(objectiveFactory =
+            PriceObjectiveFactory
           )
+        )
 
-        model.minimize(objective)
-        model.start(timeLimit = 10000)
-
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -63,7 +51,16 @@ class SignedEnergyVariableObjectiveFactorySpec
          */
 
         {
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 3,
+            expectedTimeSteps = 12,
+          )
+
+          results.assetSymbols.checkModelStateError(using
+            stateEnergyTolerance
+          )
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // 0 kW to compensate
           batRes(0).pVal should approximate(0d)
@@ -124,57 +121,18 @@ class SignedEnergyVariableObjectiveFactorySpec
             batRes.slice(6, 12).map(_.pVal).sum
           outputDischarged should approximate(-16d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
-
+        } withClue buildDebugString(results.assetSymbols)
       }
 
       "not produce too small powers by impact of soft constraints" in {
 
-        given ticks: Seq[Long] = Seq(0L, halfHourTicks)
-
-        given model: MPModel = MPModel(SolverLib.oJSolver)
-
-        val loadFlex = EnergyBoundariesFlexOptions(
-          AssetEnergyBoundaries(
-            Seq(1, 0).toPowerMap(oneHalfHour)
+        val results = FlexibilityOptimization.optimize(
+          paramsSoftConstraintsTest.copy(objectiveFactory =
+            PriceObjectiveFactory
           )
         )
 
-        // low efficiency for simplicity of the test
-        val batFlex = EnergyBoundariesFlexOptions(
-          AssetEnergyBoundaries(
-            eStorage = KilowattHours(20),
-            currentEnergy = KilowattHours(20),
-            pMax = Kilowatts(10),
-            etaCharge = Each(0.8),
-            etaDischarge = Each(0.8),
-            currentTick = 0L,
-          )
-        )
-
-        val flexOptions = Map(
-          loadUUID -> loadFlex,
-          batUUID -> batFlex,
-        )
-
-        val priceData = Seq((0.1d, 0.21d), (0.1d, 1d)).toPriceData(oneHalfHour)
-
-        val (assetSymbols, objective) =
-          FlexibilityOptimization.buildModel(
-            flexOptions = flexOptions,
-            sampleTime = halfHour,
-            ticks = ticks,
-            target = zeroKW,
-            receivedData = Seq(priceData),
-            objectiveFactory = SignedEnergyVariableObjectiveFactory,
-          )
-
-        model.minimize(objective)
-        model.start(timeLimit = 10000)
-
-        model.getStatus shouldBe SolutionStatus.OPTIMAL
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
 
         /*
           EXPECTED RESULTS
@@ -182,18 +140,23 @@ class SignedEnergyVariableObjectiveFactorySpec
          */
 
         {
-          val batRes = assetSymbols.res(batUUID)
+          results.assetSymbols.checkStructure(
+            expectedAssets = 1,
+            expectedTimeSteps = 1,
+          )
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
 
           // should work properly: selling as much as possible
-          batRes(0).pVal should approximate(-10d)
-          batRes(0).energyVal should approximate(13.75d)
+          // (-9.6 kW), since there are no soft constraints
+          batRes(0).pVal should approximate(-9.6d)
+          batRes(0).energyVal should approximate(0d)
 
-        } withClue buildDebugString(assetSymbols)
-
-        model.release()
+        } withClue buildDebugString(results.assetSymbols)
 
       }
     }
   }
-
 }
