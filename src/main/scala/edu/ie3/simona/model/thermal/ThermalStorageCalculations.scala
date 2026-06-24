@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.util.scala.quantities.SpecificHeatCapacity
-import edu.ie3.util.scala.quantities.SquantsUtils.RichEnergy
+import edu.ie3.util.scala.quantities.SquantsUtils.calcVolume
 import squants.space.Volume
 import squants.{Energy, Temperature}
 

@@ -105,6 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Using additional input parameters for individual runtime configuration [#1784](https://github.com/ie3-institute/simona/issues/1784)
 - Simplify conversion of flex options and setpoints between SIMONA and its API [#1785](https://github.com/ie3-institute/simona/issues/1785)
 - `CommonLossObjectiveFactory.PriceObjectiveFactory`: Applying soft constraint only when necessary [#1848](https://github.com/ie3-institute/simona/issues/1848)
+- Replaced implicit classes with scala 3 extension methods [#1833](https://github.com/ie3-institute/simona/issues/1833)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

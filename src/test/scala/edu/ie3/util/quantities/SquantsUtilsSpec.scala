@@ -6,13 +6,7 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.util.scala.quantities.SquantsUtils.{
-  RichCapacitance,
-  RichElectricPotential,
-  RichEnergy,
-  RichIrradiance,
-  RichThermalCapacity,
-}
+import edu.ie3.util.scala.quantities.SquantsUtils.*
 import edu.ie3.util.scala.quantities.{
   KilowattHoursPerCubicMeter,
   WattHoursPerSquareMeter,

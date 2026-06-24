@@ -3,7 +3,7 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.6.0' // code format
+  id 'com.diffplug.spotless' version '8.7.0' // code format
   id "com.github.ben-manes.versions" version '0.54.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -100,7 +100,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.34"
+  implementation "ch.qos.logback:logback-classic:1.5.35"
 
   /* testing */
   // scalatest & junit
@@ -178,8 +178,8 @@ tasks.withType(JavaCompile).configureEach {
 jar {
   manifest {
     attributes(
-        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
-        )
+    'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
+    )
   }
 }
 
