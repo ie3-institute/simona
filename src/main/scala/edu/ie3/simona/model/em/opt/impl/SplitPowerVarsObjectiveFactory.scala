@@ -15,7 +15,6 @@ import edu.ie3.simona.model.em.opt.impl.PowerVariableObjectiveFactory.{
   FixedPowerVarAssetStepSymbols,
   MinAbsPowerObjective,
   PowerVarAssetStepSymbols,
-  PriceObjective,
 }
 import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.*
 import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
@@ -179,7 +178,7 @@ object SplitPowerVarsObjectiveFactory {
   final case class PriceObjectiveFactory(
       override val additionalConstraints: SplitPowerVarsAdditionalConstraints
   ) extends SplitPowerVarsObjectiveFactory
-      with PriceObjective
+      with PowerVariableObjectiveFactory.PriceObjective
 
   /** Trait for container that provides symbols for a specific asset and
     * optimization time step, to be used by [[SplitPowerVarsObjectiveFactory]].

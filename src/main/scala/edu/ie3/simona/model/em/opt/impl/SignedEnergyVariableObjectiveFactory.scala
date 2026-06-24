@@ -6,13 +6,16 @@
 
 package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
 }
-import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory.SignedEnergyStepSymbols
+import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory.{
+  FixedSignedEnergyStepSymbols,
+  SignedEnergyStepSymbols,
+  VariableSignedEnergyStepSymbols,
+}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.Data.SecondaryData.ProsumerPrice
@@ -27,7 +30,6 @@ import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.KilowattHours
-import squants.energy.PowerConversions.PowerNumeric
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -38,14 +40,11 @@ import scala.collection.SortedSet
   * the objective in terms of energy change between states instead of power.
   * This makes the problem convex, but only for positive prices.
   */
-object SignedEnergyVariableObjectiveFactory
+abstract class SignedEnergyVariableObjectiveFactory
     extends ObjectiveFactory[SignedEnergyStepSymbols] {
 
   override def getRequiredSecondaryServices: Iterable[ServiceType] =
     Iterable(ServiceType.PriceService)
-
-  private val log: Logger =
-    LoggerFactory.getLogger(SignedEnergyVariableObjectiveFactory.getClass)
 
   override def createAssetSymbols(
       assetParams: AssetStepParameters
@@ -87,103 +86,109 @@ object SignedEnergyVariableObjectiveFactory
         )
     }
 
-  override def build(
-      flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      assetSymbols: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
-      target: Power,
-      receivedData: Iterable[SecondaryData],
-  )(using model: MPModel): Expression = {
-
-    val priceSeries = extractPriceSeries(receivedData)
-
-    val negPrices = priceSeries
-      .filter { case (_, ProsumerPrice(priceSell, _)) =>
-        // only check selling price, since it must be smaller than buying price
-        priceSell < zeroEurPerKWh
-      }
-      .map { case (tick, _) =>
-        tick
-      }
-      .to(SortedSet)
-
-    if negPrices.nonEmpty then
-      log.warn(
-        s"Negative prices were provided for tick(s): ${negPrices.mkString(", ")}. " +
-          "Results might deviate from optimal solution."
-      )
-
-    sortSymbolsByTick(assetSymbols)
-      // create objective expression for every time step
-      .map { (stepStartTick, tickAssetSymbols) =>
-        val segments = tickAssetSymbols.foldLeft(Seq[Expression](Zero)) {
-          case (previousSegments, assetSymbolsAdd) =>
-            assetSymbolsAdd.getObjectiveVariations.flatMap { term =>
-              previousSegments.map(_ + term)
-            }
+  protected def createSegments(
+      tickAssetSymbols: Iterable[SignedEnergyStepSymbols]
+  ): Seq[Expression] = {
+    tickAssetSymbols.foldLeft(Seq[Expression](Zero)) {
+      case (previousSegments, assetSymbolsAdd) =>
+        assetSymbolsAdd.getObjectiveVariations.flatMap { term =>
+          previousSegments.map(_ + term)
         }
-
-        val priceData = priceSeries
-          .maxBefore(stepStartTick + 1)
-          .map { case (_, priceData) => priceData }
-          .getOrElse(
-            throw new CriticalFailureException("No price data was given!")
-          )
-
-        // extract prices in EUR / kWh
-        val priceSell = priceData.priceSell.toEuroPerKilowattHour
-        val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
-
-        if priceSell > priceBuy then
-          throw new CriticalFailureException(
-            s"Selling price $priceSell is higher than buying price $priceBuy. " +
-              "Objective factory does not know how to handle this."
-          )
-
-        // convex, since priceSell < priceBuy
-        val costSegments = Seq(priceSell, priceBuy).flatMap { price =>
-          segments.map(Const(price) * _)
-        }
-
-        createEpigraphVar(
-          costSegments,
-          s"epigraph_$stepStartTick",
-        )
-      }
-      // combine expressions of all time steps
-      .reduceOption[Expression](_ + _)
-      .getOrElse(Zero)
+    }
   }
 
-  // todo duplicate
-  override def getComparableObjectiveValue(
-      flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      assetSymbols: Iterable[
-        AssetSymbolContainer[SignedEnergyStepSymbols]
-      ],
-      target: Power,
-      receivedData: Iterable[SecondaryData],
-  ): Double = {
+}
 
-    val priceSeries = extractPriceSeries(receivedData)
+object SignedEnergyVariableObjectiveFactory {
 
-    sortSymbolsByTick(assetSymbols).map { (stepStartTick, tickAssetSymbols) =>
-      val priceData = priceSeries
-        .maxBefore(stepStartTick + 1)
-        .map { case (_, priceData) => priceData }
-        .getOrElse(
-          throw new CriticalFailureException(
-            s"No price data was given for tick $stepStartTick!"
+  object MinAbsPowerObjectiveFactory
+      extends SignedEnergyVariableObjectiveFactory
+      with ObjectiveFactory.MinAbsPowerObjective[SignedEnergyStepSymbols] {
+
+    override def build(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
+        target: Power,
+        receivedData: Iterable[SecondaryData],
+    )(using model: MPModel): Expression =
+      sortSymbolsByTick(assetSymbols)
+        // create objective expression for every time step
+        .map { (stepStartTick, tickAssetSymbols) =>
+          val segments = createSegments(tickAssetSymbols)
+
+          // not necessarily convex
+          val absSegments = Seq(1d, -1d).flatMap { factor =>
+            segments.map(Const(factor) * _)
+          }
+
+          createEpigraphVar(
+            absSegments,
+            s"epigraph_$stepStartTick",
           )
+        }
+        // combine expressions of all time steps
+        .reduceOption[Expression](_ + _)
+        .getOrElse(Zero)
+
+  }
+
+  object PriceObjectiveFactory
+      extends SignedEnergyVariableObjectiveFactory
+      with ObjectiveFactory.PriceObjective[SignedEnergyStepSymbols] {
+
+    private val log: Logger =
+      LoggerFactory.getLogger(PriceObjectiveFactory.getClass)
+
+    override def build(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
+        target: Power,
+        receivedData: Iterable[SecondaryData],
+    )(using model: MPModel): Expression = {
+
+      val priceSeries = extractPriceSeries(receivedData)
+
+      val negPrices = priceSeries
+        .filter { case (_, ProsumerPrice(priceSell, _)) =>
+          // only check selling price, since it must be smaller than buying price
+          priceSell < zeroEurPerKWh
+        }
+        .map { case (tick, _) =>
+          tick
+        }
+        .to(SortedSet)
+
+      if negPrices.nonEmpty then
+        log.warn(
+          s"Negative prices were provided for tick(s): ${negPrices.mkString(", ")}. " +
+            "Results might deviate from optimal solution."
         )
 
-      val priceSell = priceData.priceSell.toEuroPerKilowattHour
-      val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
+      sortSymbolsByTick(assetSymbols)
+        // create objective expression for every time step
+        .map { (stepStartTick, tickAssetSymbols) =>
+          val segments = createSegments(tickAssetSymbols)
 
-      val powerSum =
-        tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+          val priceData = getAndCheckPriceData(priceSeries, stepStartTick)
 
-      math.max(powerSum * priceSell, powerSum * priceBuy)
-    }.sum
+          // extract prices in EUR / kWh
+          val priceSell = priceData.priceSell.toEuroPerKilowattHour
+          val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
+
+          // convex, since priceSell < priceBuy
+          val costSegments = Seq(priceSell, priceBuy).flatMap { price =>
+            segments.map(Const(price) * _)
+          }
+
+          createEpigraphVar(
+            costSegments,
+            s"epigraph_$stepStartTick",
+          )
+        }
+        // combine expressions of all time steps
+        .reduceOption[Expression](_ + _)
+        .getOrElse(Zero)
+    }
 
   }
 

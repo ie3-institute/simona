@@ -27,6 +27,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import optimus.algebra.Expression
 import optimus.optimization.MPModel
 import optimus.optimization.model.MPFloatVar
+import squants.energy.PowerConversions.PowerNumeric
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -118,6 +119,28 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
         )
       )
 
+  protected def getAndCheckPriceData(
+      priceSeries: SortedMap[Long, ProsumerPrice],
+      tick: Long,
+  ): ProsumerPrice = {
+    val priceData = priceSeries
+      .maxBefore(tick + 1)
+      .map { case (_, priceData) => priceData }
+      .getOrElse(
+        throw new CriticalFailureException(
+          s"No price data was given for tick $tick!"
+        )
+      )
+
+    if priceData.priceSell > priceData.priceBuy then
+      throw new CriticalFailureException(
+        s"Selling price ${priceData.priceSell} is higher than buying price ${priceData.priceBuy}. " +
+          "Objective factory does not know how to handle this."
+      )
+
+    priceData
+  }
+
   /** Re-orders the [[AssetStepSymbols]] inside given [[AssetSymbolContainer]]s
     * to be grouped by their by tick.
     *
@@ -190,6 +213,55 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
 }
 
 object ObjectiveFactory {
+
+  trait MinAbsPowerObjective[AV <: AssetStepSymbols]
+      extends ObjectiveFactory[AV] {
+
+    override def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[AV]
+        ],
+        target: Power,
+        receivedData: Iterable[SecondaryData],
+    ): Double =
+      sortSymbolsByTick(assetSymbols).map { case (_, tickAssetSymbols) =>
+        val powerSum =
+          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+
+        math.abs(powerSum)
+      }.sum
+
+  }
+
+  trait PriceObjective[AV <: AssetStepSymbols] extends ObjectiveFactory[AV] {
+
+    override def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[AV]
+        ],
+        target: Power,
+        receivedData: Iterable[SecondaryData],
+    ): Double = {
+
+      val priceSeries = extractPriceSeries(receivedData)
+
+      sortSymbolsByTick(assetSymbols).map { (stepStartTick, tickAssetSymbols) =>
+        val priceData = getAndCheckPriceData(priceSeries, stepStartTick)
+
+        val priceSell = priceData.priceSell.toEuroPerKilowattHour
+        val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
+
+        val powerSum =
+          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+
+        math.max(powerSum * priceSell, powerSum * priceBuy)
+      }.sum
+
+    }
+
+  }
 
   /** Trait for containers providing symbols (variables or constants) used in
     * optimization for an asset at a single time step.

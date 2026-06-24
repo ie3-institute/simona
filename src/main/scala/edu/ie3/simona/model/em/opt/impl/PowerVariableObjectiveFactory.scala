@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   FixedPowerStepParameters,
   MPSymbol,
@@ -22,7 +21,6 @@ import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroEurPerKWh
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
-import squants.energy.PowerConversions.PowerNumeric
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -74,7 +72,9 @@ object PowerVariableObjectiveFactory {
   /** Creates an objective that simply minimizes the absolute value of the sum
     * of power by using an epigraph constraint.
     */
-  trait MinAbsPowerObjective extends PowerVariableObjectiveFactory {
+  trait MinAbsPowerObjective
+      extends PowerVariableObjectiveFactory
+      with ObjectiveFactory.MinAbsPowerObjective[PowerVarAssetStepSymbols] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
@@ -104,21 +104,6 @@ object PowerVariableObjectiveFactory {
         .getOrElse(Zero)
     }
 
-    override def getComparableObjectiveValue(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
-        target: Power,
-        receivedData: Iterable[Data.SecondaryData],
-    ): Double =
-      sortSymbolsByTick(assetSymbols).map { case (_, tickAssetSymbols) =>
-        val powerSum =
-          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
-
-        math.abs(powerSum)
-      }.sum
-
   }
 
   /** Creates an objective based on the current and projected price of energy
@@ -127,7 +112,9 @@ object PowerVariableObjectiveFactory {
     * Since we assume that the buying price is always higher than the selling
     * price, we can use an epigraph to derive a linear objective.
     */
-  trait PriceObjective extends PowerVariableObjectiveFactory {
+  trait PriceObjective
+      extends PowerVariableObjectiveFactory
+      with ObjectiveFactory.PriceObjective[PowerVarAssetStepSymbols] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable(ServiceType.PriceService)
@@ -157,24 +144,12 @@ object PowerVariableObjectiveFactory {
         .map { case (stepStartTick, tickAssetSymbols) =>
           val totalPower = createPowerSum(tickAssetSymbols)
 
-          val priceData = adaptedPriceSeries
-            .maxBefore(stepStartTick + 1)
-            .map { case (_, priceData) => priceData }
-            .getOrElse(
-              throw new CriticalFailureException(
-                s"No price data was given for tick $stepStartTick!"
-              )
-            )
+          val priceData =
+            getAndCheckPriceData(adaptedPriceSeries, stepStartTick)
 
           // extract prices in EUR / kWh
           val priceSell = priceData.priceSell.toEuroPerKilowattHour
           val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
-
-          if priceSell > priceBuy then
-            throw new CriticalFailureException(
-              s"Selling price $priceSell is higher than buying price $priceBuy. " +
-                "Objective factory does not know how to handle this."
-            )
 
           // convex, since priceSell < priceBuy
           val epigraphVar = createEpigraphVar(
@@ -194,38 +169,6 @@ object PowerVariableObjectiveFactory {
         // combine expressions of all time steps
         .reduceOption[Expression](_ + _)
         .getOrElse(Zero)
-    }
-
-    override def getComparableObjectiveValue(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
-        target: Power,
-        receivedData: Iterable[Data.SecondaryData],
-    ): Double = {
-
-      val priceSeries = extractPriceSeries(receivedData)
-
-      sortSymbolsByTick(assetSymbols).map { (stepStartTick, tickAssetSymbols) =>
-        val priceData = priceSeries
-          .maxBefore(stepStartTick + 1)
-          .map { case (_, priceData) => priceData }
-          .getOrElse(
-            throw new CriticalFailureException(
-              s"No price data was given for tick $stepStartTick!"
-            )
-          )
-
-        val priceSell = priceData.priceSell.toEuroPerKilowattHour
-        val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
-
-        val powerSum =
-          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
-
-        math.max(powerSum * priceSell, powerSum * priceBuy)
-      }.sum
-
     }
 
     def transformPrices(
