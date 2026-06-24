@@ -50,7 +50,7 @@ trait OptimizingTestLike extends Matchers {
 
   }
 
-  // todo extension on results
+  // todo extension on results?
   extension (
       containers: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]]
   ) {
@@ -66,13 +66,42 @@ trait OptimizingTestLike extends Matchers {
         .values
         .toIndexedSeq
 
-    def checkModelStateError(using tolerance: Energy): Unit =
-      containers.flatMap(_.getStateCalcErrors).foreach { error =>
-        assert(
-          error < tolerance,
-          s"Model state calculation error $error is higher than allowed ($tolerance).",
-        )
+    def checkModelStateError(using tolerance: Energy): Unit = {
+      val allErrors = containers.flatMap { container =>
+        val containerErrors = container.results.flatMap { assetSymbolsSeq =>
+          val errors = assetSymbolsSeq
+            .map { case (_, assetSymbols) =>
+              s"${assetSymbols.parameters.stepStartTick} -> ${assetSymbols.parameters.stepEndTick}"
+                -> assetSymbols.getStateCalcError
+            }
+            .filter { case (_, error) =>
+              error > tolerance
+            }
+
+          Option.when(errors.nonEmpty)(errors)
+        }
+
+        if containerErrors.nonEmpty then
+          Some(
+            s"\n\t\t${container.assetUuid}:" + containerErrors
+              .map { errors =>
+                s"\n\t\t\tState errors: ${errors
+                    .map { case (tickRange, error) =>
+                      s"$tickRange: ${error.in(KilowattHours).rounded(6).toString}"
+                    }
+                    .mkString(", ")}"
+              }
+              .mkString("")
+          )
+        else None
       }
+
+      if allErrors.nonEmpty then
+        fail(
+          s"Model state errors higher than allowed tolerance $tolerance \n\tDEBUGGING state errors:" + allErrors
+            .mkString("")
+        )
+    }
 
     def checkStructure(expectedAssets: Int, expectedTimeSteps: Int): Unit = {
       containers.toSeq should have size expectedAssets
@@ -90,13 +119,13 @@ trait OptimizingTestLike extends Matchers {
     s"\n\tDEBUGGING asset symbols:" +
       containers
         .map { container =>
-          s"\n\t\t ${container.assetUuid}:" +
+          s"\n\t\t${container.assetUuid}:" +
             container.results
               .map { sortedVars =>
                 s"\n\t\t\tTrajectory: ${sortedVars
                     .map { case (_, vars) =>
                       vars.getOperatingPowerResult.in(Kilowatts).rounded(6).toString +
-                        s" ( -> ${vars.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
+                        s" (-> ${vars.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
                     }
                     .mkString(", ")}"
               }
