@@ -144,7 +144,8 @@ object ExtSimSetup {
     val containEvcs =
       !grid.getSystemParticipants.getEvcs.isEmpty
 
-    if containEvcs && finalSetupData.evDataService.isEmpty then
+    if extLinks.nonEmpty && containEvcs && finalSetupData.evDataService.isEmpty
+    then
       val errorMsg =
         "There are EVCs in the grid, but no external EV data connection is provided. Please provide an external EV data connection to control the EVCs."
 
