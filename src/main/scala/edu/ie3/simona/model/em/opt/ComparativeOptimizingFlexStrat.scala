@@ -13,9 +13,11 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   OptimizationParams,
   TimeParams,
 }
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant
 import edu.ie3.simona.model.em.opt.impl.{
   CommonLossObjectiveFactory,
   ObjectiveFactory,
+  SignedEnergyVariableObjectiveFactory,
   SplitPowerVarsObjectiveFactory,
 }
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
@@ -26,11 +28,11 @@ import edu.ie3.simona.service.{DataTimeType, ServiceRegistrationData}
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.EnergyConversions.EnergyNumeric
-import squants.energy.WattHours
 import squants.{Power, Time}
 
 import scala.util.Random
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 
 final case class ComparativeOptimizingFlexStrat(
     sampleTime: Time,
@@ -39,7 +41,7 @@ final case class ComparativeOptimizingFlexStrat(
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
 
   private val allReferenceIds: Set[String] =
-    Set("OPT_SPM_BIN_MINABS", "OPT_SPM_BIN_PRICE")
+    Set("OPT_SPM_BIN_MINABS", "OPT_SPM_BIN_PRICE", "OPT_SPM_BIN_PS")
 
   private val logger: Logger = LoggerFactory.getLogger(
     s"${classOf[ComparativeOptimizingFlexStrat].getSimpleName}"
@@ -106,7 +108,7 @@ final case class ComparativeOptimizingFlexStrat(
       )
     )
 
-    results.foreach { case (id, result) =>
+    results.to(SortedMap).foreach { case (id, result) =>
       if result.solutionStatus != SolutionStatus.OPTIMAL then
         logger.warn(s"$id: Optimization ended with ${result.solutionStatus}")
       else {
@@ -122,10 +124,16 @@ final case class ComparativeOptimizingFlexStrat(
           .flatMap(_.getStateCalcErrors)
           .sum
 
-        if objValueRelError > 1e-9 || stateCalcError > WattHours(1e-6) then
-          logger.warn(
-            s"$id: Objective error $objValueRelError compared to $referenceId, state calc error $stateCalcError"
-          )
+        val totalTime =
+          (result.timeMeasurements.variables + result.timeMeasurements.objectiveFunction + result.timeMeasurements.constraints + result.timeMeasurements.solution).toDouble / 1000000d
+
+        if id.equals("OPT_CLM_SC_PS") && objValueRelError > 0.5 then
+          logger.warn("!")
+
+        // if objValueRelError > 1e-9 || stateCalcError > WattHours(1e-6) then
+        logger.warn(
+          s"$id: Objective error $objValueRelError compared to $referenceId, state calc error $stateCalcError, total time: $totalTime ms"
+        )
       }
     }
 
@@ -144,6 +152,30 @@ final case class ComparativeOptimizingFlexStrat(
 
 object ComparativeOptimizingFlexStrat {
 
+  def createPeakShavingComp(
+                        sampleTime: Time,
+                        predictionHorizon: Time,
+                      ): ComparativeOptimizingFlexStrat = {
+    ComparativeOptimizingFlexStrat(
+      sampleTime = sampleTime,
+      predictionHorizon = predictionHorizon,
+      objectiveFactories = Seq(
+        "OPT_CLM_SC_PS" -> CommonLossObjectiveFactory
+          .PeakShavingObjectiveFactory(variant =
+            CommonLossVariant.SoftConstraints
+          ),
+        "OPT_CLM_NSC_PS" -> CommonLossObjectiveFactory
+          .PeakShavingObjectiveFactory(variant =
+            CommonLossVariant.NoSoftConstraints
+          ),
+        "OPT_SPM_REL_PS" -> SplitPowerVarsObjectiveFactory
+          .PeakShavingObjectiveFactory(RelaxedConstraints),
+        "OPT_SPM_BIN_PS" -> SplitPowerVarsObjectiveFactory
+          .PeakShavingObjectiveFactory(BinaryConstraint),
+      ),
+    )
+  }
+  
   def createMinAbsComp(
       sampleTime: Time,
       predictionHorizon: Time,
@@ -152,7 +184,14 @@ object ComparativeOptimizingFlexStrat {
       sampleTime = sampleTime,
       predictionHorizon = predictionHorizon,
       objectiveFactories = Seq(
-        "OPT_CLM_MINABS" -> CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory,
+        "OPT_CLM_SC_MINABS" -> CommonLossObjectiveFactory
+          .MinAbsPowerObjectiveFactory(variant =
+            CommonLossVariant.SoftConstraints
+          ),
+        "OPT_CLM_NSC_MINABS" -> CommonLossObjectiveFactory
+          .MinAbsPowerObjectiveFactory(variant =
+            CommonLossVariant.NoSoftConstraints
+          ),
         "OPT_SPM_REL_MINABS" -> SplitPowerVarsObjectiveFactory
           .MinAbsPowerObjectiveFactory(RelaxedConstraints),
         "OPT_SPM_BIN_MINABS" -> SplitPowerVarsObjectiveFactory
@@ -169,8 +208,11 @@ object ComparativeOptimizingFlexStrat {
       sampleTime = sampleTime,
       predictionHorizon = predictionHorizon,
       objectiveFactories = Seq(
-        "OPT_CLM_PRICE" -> CommonLossObjectiveFactory.PriceObjectiveFactory,
-        "OPT_SEC_PRICE" -> CommonLossObjectiveFactory.PriceObjectiveFactory,
+        "OPT_CLM_SC_PRICE" -> CommonLossObjectiveFactory
+          .PriceObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
+        "OPT_CLM_NSC_PRICE" -> CommonLossObjectiveFactory
+          .PriceObjectiveFactory(variant = CommonLossVariant.NoSoftConstraints),
+        "OPT_SEC_PRICE" -> SignedEnergyVariableObjectiveFactory.PriceObjectiveFactory,
         "OPT_SPM_REL_PRICE" -> SplitPowerVarsObjectiveFactory
           .PriceObjectiveFactory(RelaxedConstraints),
         "OPT_SPM_BIN_PRICE" -> SplitPowerVarsObjectiveFactory

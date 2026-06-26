@@ -11,6 +11,7 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   TimeParams,
 }
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.{
+  CommonLossVariant,
   LinearizedQuadraticPowerObjectiveFactory,
   MinAbsPowerObjectiveFactory,
   PriceObjectiveFactory,
@@ -99,7 +100,8 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
       batUUID -> batteryHalfFull,
     ),
     timeParams = fourHalfHours,
-    objectiveFactory = MinAbsPowerObjectiveFactory,
+    objectiveFactory =
+      MinAbsPowerObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
     solverLib = SolverLib.oJSolver,
     tightenBoundaries = true,
   )
@@ -299,7 +301,9 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
     OptimizationParams(
       flexOptionsById = flexOptionsScenario1,
       timeParams = twelveHalfHours,
-      objectiveFactory = MinAbsPowerObjectiveFactory,
+      objectiveFactory = MinAbsPowerObjectiveFactory(variant =
+        CommonLossVariant.SoftConstraints
+      ),
       solverLib = SolverLib.oJSolver,
       tightenBoundaries = true,
     )
@@ -307,9 +311,10 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
   protected val paramsLinQuadPowerTest: OptimizationParams =
     paramsMinAbsPowerTest.copy(
       objectiveFactory = LinearizedQuadraticPowerObjectiveFactory(
+        variant = CommonLossVariant.SoftConstraints,
         // absolute total power is 22 kW,
         // thus pick segment count for 2 kW per segment
-        segmentCount = 11
+        segmentCount = 11,
       )
     )
 
@@ -317,7 +322,8 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
     paramsMinAbsPowerTest.copy(
       flexOptionsById = flexOptionsScenario1,
       receivedData = Seq(priceDataScenario1),
-      objectiveFactory = PriceObjectiveFactory,
+      objectiveFactory =
+        PriceObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
       solverLib = SolverLib.oJSolver,
       tightenBoundaries = true,
     )
@@ -336,7 +342,8 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
     ),
     receivedData = Seq(priceDataSoftConstraintsTest),
     timeParams = oneHalfHour,
-    objectiveFactory = PriceObjectiveFactory,
+    objectiveFactory =
+      PriceObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
     solverLib = SolverLib.oJSolver,
     tightenBoundaries = true,
   )

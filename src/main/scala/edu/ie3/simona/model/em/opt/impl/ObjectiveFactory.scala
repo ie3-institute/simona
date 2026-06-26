@@ -214,6 +214,27 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
 
 object ObjectiveFactory {
 
+  trait PeakShavingObjective[AV <: AssetStepSymbols]
+      extends ObjectiveFactory[AV] {
+
+    override def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[AV]
+        ],
+        target: Power,
+        receivedData: Iterable[SecondaryData],
+    ): Double =
+      sortSymbolsByTick(assetSymbols)
+        .map { case (_, tickAssetSymbols) =>
+          tickAssetSymbols.map(_.getOperatingPowerResult).sum
+        }
+        .max
+        .abs
+        .toKilowatts
+
+  }
+
   trait MinAbsPowerObjective[AV <: AssetStepSymbols]
       extends ObjectiveFactory[AV] {
 

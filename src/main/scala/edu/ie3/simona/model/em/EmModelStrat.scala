@@ -8,14 +8,20 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant
 import edu.ie3.simona.model.em.opt.{
   ComparativeOptimizingFlexStrat,
   OptimizingFlexStrat,
 }
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
+import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.{
+  BinaryConstraint,
+  RelaxedConstraints,
+}
 import edu.ie3.simona.model.em.opt.impl.{
   CommonLossObjectiveFactory,
   ObjectiveFactory,
+  SplitPowerVarsObjectiveFactory,
 }
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
@@ -103,15 +109,41 @@ object EmModelStrat {
       : PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
     // todo a lot of these parameters should be configurable -> issue #1725
 
-    case "OPT_MIN_ABS_POWER" =>
-      singleOpt(CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory)
+    case "OPT_CLM_MINABS" =>
+      singleOpt(
+        CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory(variant =
+          CommonLossVariant.SoftConstraints
+        )
+      )
+    case "OPT_SPM_REL_MINABS" =>
+      singleOpt(
+        SplitPowerVarsObjectiveFactory
+          .MinAbsPowerObjectiveFactory(RelaxedConstraints)
+      )
+    case "OPT_SPM_BIN_MINABS" =>
+      singleOpt(
+        SplitPowerVarsObjectiveFactory
+          .MinAbsPowerObjectiveFactory(BinaryConstraint)
+      )
     case "OPT_LIN_QUAD_POWER" =>
       singleOpt(
         CommonLossObjectiveFactory
-          .LinearizedQuadraticPowerObjectiveFactory(segmentCount = 10)
+          .LinearizedQuadraticPowerObjectiveFactory(
+            variant = CommonLossVariant.SoftConstraints,
+            segmentCount = 10,
+          )
       )
-    case "OPT_PRICE" =>
-      singleOpt(CommonLossObjectiveFactory.PriceObjectiveFactory)
+    case "OPT_CLM_PRICE" =>
+      singleOpt(
+        CommonLossObjectiveFactory.PriceObjectiveFactory(variant =
+          CommonLossVariant.SoftConstraints
+        )
+      )
+    case "COMP_PS" =>
+      ComparativeOptimizingFlexStrat.createPeakShavingComp(
+        sampleTime = Hours(1),
+        predictionHorizon = Hours(12),
+      )
     case "COMP_MINABS" =>
       ComparativeOptimizingFlexStrat.createMinAbsComp(
         sampleTime = Hours(1),
@@ -120,7 +152,7 @@ object EmModelStrat {
     case "COMP_PRICE" =>
       ComparativeOptimizingFlexStrat.createPriceObjComp(
         sampleTime = Hours(1),
-        predictionHorizon = Hours(24),
+        predictionHorizon = Hours(12),
       )
 
   }
@@ -130,7 +162,7 @@ object EmModelStrat {
   ): OptimizingFlexStrat =
     new OptimizingFlexStrat(
       sampleTime = Hours(1),
-      predictionHorizon = Hours(12),
+      predictionHorizon = Hours(24),
       objectiveFactory,
     )
 

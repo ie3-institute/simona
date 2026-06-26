@@ -8,6 +8,7 @@ package edu.ie3.simona.model.em.opt.impl
 
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.*
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant.SoftConstraints
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetSymbolContainer,
   RelativeStateErrorHelper,
@@ -16,6 +17,7 @@ import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
 import edu.ie3.simona.model.em.opt.impl.PowerVariableObjectiveFactory.{
   FixedPowerVarAssetStepSymbols,
   MinAbsPowerObjective,
+  PeakShavingObjective,
   PowerVarAssetStepSymbols,
   PriceObjective,
 }
@@ -46,6 +48,8 @@ import scala.collection.immutable.SortedMap
   */
 abstract class CommonLossObjectiveFactory
     extends PowerVariableObjectiveFactory {
+
+  val variant: CommonLossVariant
 
   override def createAssetSymbols(
       assetParams: AssetStepParameters
@@ -120,6 +124,7 @@ abstract class CommonLossObjectiveFactory
             newState,
             etaCommon,
             conversionFactor,
+            variant == SoftConstraints,
           )
         } else {
           // there are no charging/discharging losses, we can keep it simple
@@ -143,11 +148,31 @@ abstract class CommonLossObjectiveFactory
 
 object CommonLossObjectiveFactory {
 
+  /** Enumeration that allows specification of variants of
+    * [[CommonLossObjectiveFactory]] objectives.
+    */
+  enum CommonLossVariant:
+    case
+      /** Use soft constraints to restrict excess loss caused by inaccurate
+        * pAbs. Soft constraint can slightly worsen solution quality.
+        */
+      SoftConstraints,
+
+      /** Using no soft constraints.
+        */
+      NoSoftConstraints
+
+  final case class PeakShavingObjectiveFactory(
+      override val variant: CommonLossVariant
+  ) extends CommonLossObjectiveFactory
+      with PeakShavingObjective
+
   /** Creates an objective that simply minimizes the absolute value of the sum
     * of power by using an epigraph constraint.
     */
-  object MinAbsPowerObjectiveFactory
-      extends CommonLossObjectiveFactory
+  final case class MinAbsPowerObjectiveFactory(
+      override val variant: CommonLossVariant
+  ) extends CommonLossObjectiveFactory
       with MinAbsPowerObjective
 
   /** Creates an objective that uses a piecewise-linear (over-)approximation of
@@ -162,8 +187,9 @@ object CommonLossObjectiveFactory {
     *   of segments improves the accuracy of the approximation, but might impact
     *   efficiency.
     */
-  class LinearizedQuadraticPowerObjectiveFactory(
-      segmentCount: Int
+  final case class LinearizedQuadraticPowerObjectiveFactory(
+      override val variant: CommonLossVariant,
+      segmentCount: Int,
   ) extends CommonLossObjectiveFactory
       with PowerVariableObjectiveFactory {
 
@@ -258,8 +284,9 @@ object CommonLossObjectiveFactory {
 
   }
 
-  object PriceObjectiveFactory
-      extends CommonLossObjectiveFactory
+  final case class PriceObjectiveFactory(
+      override val variant: CommonLossVariant
+  ) extends CommonLossObjectiveFactory
       with PriceObjective {
 
     override def transformPrices(
@@ -370,14 +397,16 @@ object CommonLossObjectiveFactory {
       stepStartState: MPSymbol,
       stepEndState: MPSymbol,
       etaCommon: Dimensionless,
-      energyConversionFactor: Double = 1d,
+      energyConversionFactor: Double,
+      useSoftConstraint: Boolean,
   ) extends CommonLossAssetStepSymbols
       with VariableAssetStepSymbols
       with RelativeStateErrorHelper {
 
-    override lazy val objectiveAddition: Option[Expression] = Some(
-      powerAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
-    )
+    override lazy val objectiveAddition: Option[Expression] =
+      Option.when(useSoftConstraint)(
+        powerAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
+      )
 
     override def getOperationPowerSymbol: Expression = power
 

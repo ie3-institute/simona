@@ -14,6 +14,7 @@ import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
 import edu.ie3.simona.model.em.opt.impl.PowerVariableObjectiveFactory.{
   FixedPowerVarAssetStepSymbols,
   MinAbsPowerObjective,
+  PeakShavingObjective,
   PowerVarAssetStepSymbols,
 }
 import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.*
@@ -166,6 +167,11 @@ object SplitPowerVarsObjectiveFactory {
       /** No additional constraints.
         */
       NoAdditions
+
+  final case class PeakShavingObjectiveFactory(
+      override val additionalConstraints: SplitPowerVarsAdditionalConstraints
+  ) extends SplitPowerVarsObjectiveFactory
+      with PeakShavingObjective
 
   /** Creates an objective that simply minimizes the absolute value of the sum
     * of power by using an epigraph constraint.

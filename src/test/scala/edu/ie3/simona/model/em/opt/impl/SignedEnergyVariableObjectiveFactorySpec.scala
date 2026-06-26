@@ -7,7 +7,13 @@
 package edu.ie3.simona.model.em.opt.impl
 
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization
-import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory.PriceObjectiveFactory
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.OptimizationParams
+import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory.{
+  MinAbsPowerObjectiveFactory,
+  PriceObjectiveFactory,
+}
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
+import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.enums.SolutionStatus
@@ -25,6 +31,102 @@ class SignedEnergyVariableObjectiveFactorySpec
   val stateEnergyTolerance: Energy = zeroKWh
 
   "A signed energy variable objective factory" when {
+
+    "provided with simple battery flex options with losses" should {
+
+      "balance out additional power within maximum battery power" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsLowAddPower.copy(objectiveFactory = MinAbsPowerObjectiveFactory)
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        /*
+        EXPECTED RESULTS
+
+        Non-optimal results, because objective cannot be modeled
+        perfectly with this objective factory.
+         */
+
+        {
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
+
+          batRes(0).pVal should approximate(-3.902439)
+          batRes(0).energyVal should approximate(3.560976)
+
+          batRes(1).pVal should approximate(10)
+          batRes(1).energyVal should approximate(7.560976)
+
+          batRes(2).pVal should approximate(-7.804878)
+          batRes(2).energyVal should approximate(2.682927)
+
+          batRes(3).pVal should approximate(2.439024)
+          batRes(3).energyVal should approximate(3.658537)
+
+        } withClue buildDebugString(results.assetSymbols)
+      }
+
+      "produce exact results when provided with positive fixed power" in {
+
+        // power sequence to be balanced out by battery
+        // positive values are loads, negative values are feed-ins
+        val fixedPosOnly: EnergyBoundariesFlexOptions =
+          EnergyBoundariesFlexOptions(
+            AssetEnergyBoundaries(
+              Seq(1, 2, 1, 0).toPowerMap(fourHalfHours)
+            )
+          )
+
+        val paramsPosOnly: OptimizationParams = paramsLowAddPower.copy(
+          flexOptionsById = paramsLowAddPower.flexOptionsById.toMap.updated(
+            loadUUID,
+            fixedPosOnly,
+          )
+        )
+
+        val results = FlexibilityOptimization.optimize(
+          paramsPosOnly.copy(objectiveFactory = MinAbsPowerObjectiveFactory)
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        {
+          results.assetSymbols.checkStructure(
+            expectedAssets = 2,
+            expectedTimeSteps = 4,
+          )
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+          val batRes = results.assetSymbols.res(batUUID)
+
+          // discharging 2.5 kWh plus 0.6125 kWh losses
+          batRes(0).pVal should approximate(-5)
+          batRes(0).energyVal should approximate(2.875)
+
+          // charging 5 kWh minus 1 kWh losses
+          batRes(1).pVal should approximate(10)
+          batRes(1).energyVal should approximate(6.875)
+
+          // discharging 5 kWh plus 1.25 kWh losses
+          batRes(2).pVal should approximate(-10)
+          batRes(2).energyVal should approximate(0.625)
+
+          // charging 1 kWh minus 0.2 kWh losses
+          batRes(3).pVal should approximate(2)
+          batRes(3).energyVal should approximate(1.425)
+
+        } withClue buildDebugString(results.assetSymbols)
+      }
+    }
 
     "provided with energy boundary flex options and an objective factory" should {
 

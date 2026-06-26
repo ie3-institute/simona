@@ -69,6 +69,48 @@ trait PowerVariableObjectiveFactory
 
 object PowerVariableObjectiveFactory {
 
+  /** Creates an objective that simply minimizes the maximum absolute power of
+    * all time steps by using an epigraph constraint.
+    */
+  trait PeakShavingObjective
+      extends PowerVariableObjectiveFactory
+      with ObjectiveFactory.PeakShavingObjective[PowerVarAssetStepSymbols] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def build(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
+        ],
+        target: Power,
+        receivedData: Iterable[Data.SecondaryData],
+    )(using model: MPModel): Expression = {
+      val sortedByTick = sortSymbolsByTick(assetSymbols)
+
+      val allVariants = sortedByTick.toSeq
+        // create objective expression for every time step
+        .flatMap { case (_, tickAssetSymbols) =>
+          val powerSum = createPowerSum(tickAssetSymbols)
+
+          Seq(powerSum, -powerSum)
+        }
+
+      val epigraphVar = createEpigraphVar(allVariants, "max_abs_epigraph")
+
+      val softConstraints = sortedByTick
+        .flatMap { case (_, tickAssetSymbols) =>
+          tickAssetSymbols.flatMap(_.objectiveAddition)
+        }
+        .reduceOption[Expression](_ + _)
+        .getOrElse(Zero)
+
+      epigraphVar + softConstraints
+    }
+
+  }
+
   /** Creates an objective that simply minimizes the absolute value of the sum
     * of power by using an epigraph constraint.
     */

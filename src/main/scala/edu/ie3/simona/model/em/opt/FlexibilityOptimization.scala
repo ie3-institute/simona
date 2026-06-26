@@ -17,9 +17,11 @@ import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEn
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW}
 import optimus.algebra.*
+import optimus.common.Measure.TimeMeasurements
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.MPVar
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.energy.PowerConversions.PowerNumeric
 import squants.{Dimensionless, Energy, Power, Time}
 
@@ -60,7 +62,27 @@ object FlexibilityOptimization {
       assetSymbols: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]],
       solutionStatus: SolutionStatus,
       objectiveValue: Option[Double],
-  )
+      timeMeasurements: TimeMeasurements,
+      model: MPModel,
+  ) {
+    def varsolutions = {
+      assetSymbols
+        .map { container =>
+          s"\n\t\t${container.assetUuid}:" +
+            container.results
+              .map { sortedVars =>
+                s"\n\t\t\tTrajectory: ${sortedVars
+                    .map { case (_, vars) =>
+                      vars.getOperatingPowerResult.in(Kilowatts).rounded(6).toString +
+                        s" (-> ${vars.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
+                    }
+                    .mkString(", ")}"
+              }
+              .mkString("")
+        }
+        .mkString("")
+    }
+  }
 
   def optimize(params: OptimizationParams): OptimizationResult = {
     given model: MPModel = MPModel(params.solverLib)
@@ -92,10 +114,14 @@ object FlexibilityOptimization {
         )
       )
 
+    val timeMeasurements = model.getTimeMeasurements
+
     OptimizationResult(
       assetSymbols = allAssetSymbols,
       solutionStatus = model.getStatus,
       objectiveValue = actualObjectiveValue,
+      timeMeasurements = timeMeasurements,
+      model = model,
     )
 
   }
@@ -169,7 +195,7 @@ object FlexibilityOptimization {
     * @return
     *   The created asset symbols containers and the objective expression.
     */
-  def buildModel[AV <: AssetStepSymbols](
+  private def buildModel[AV <: AssetStepSymbols](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       sampleTime: Time,
       ticks: Seq[Long],

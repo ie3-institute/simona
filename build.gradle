@@ -25,7 +25,7 @@ ext {
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
-  optimusVersion = '3.4.5'
+  optimusVersion = '3.4.6-SNAPSHOT'
 
   junitVersion = '6.1.0'
   testContainerVersion = '0.44.1'
@@ -66,6 +66,7 @@ configurations {
 }
 
 repositories {
+  mavenLocal() // maven repository on this machine
   mavenCentral() // searches in Sonatype's central repository
   maven { url = 'https://packages.confluent.io/maven' } // confluent repo (kafka)
 }
@@ -168,6 +169,9 @@ dependencies {
   implementation "com.github.vagmcs:optimus_${scalaVersion}:${optimusVersion}"
   implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:${optimusVersion}"
   implementation "com.github.vagmcs:optimus-solver-gurobi_${scalaVersion}:${optimusVersion}"
+  //implementation files("libs/optimus_3.jar")
+  //implementation files("libs/optimus-solver-oj_3.jar")
+  //implementation files("libs/optimus-solver-gurobi_3.jar")
 }
 
 tasks.withType(JavaCompile).configureEach {
