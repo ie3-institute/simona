@@ -15,6 +15,7 @@ import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.{
   GridComponents,
+  addElementsToAdmittanceMatrix,
   updateUuidToIndexMap,
 }
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
@@ -63,9 +64,9 @@ class GridSpec
       lines.foreach(_.enable())
 
       // method call
-      val buildAssetAdmittanceMatrix: PrivateMethod[DenseMatrix[Complex]] =
+      val addElementsToAdmittanceMatrix: PrivateMethod[DenseMatrix[Complex]] =
         PrivateMethod[DenseMatrix[Complex]](
-          Symbol("buildAssetAdmittanceMatrix")
+          Symbol("addElementsToAdmittanceMatrix")
         )
 
       val getLinesAdmittanceMethod
@@ -84,16 +85,20 @@ class GridSpec
           )
 
       // result of method call
-      val actualResult: DenseMatrix[Complex] =
-        GridModel invokePrivate buildAssetAdmittanceMatrix(
-          nodeUuidToIndexMap,
-          lines,
-          getLinesAdmittance,
-        )
+      val matrixDimension: Int = nodeUuidToIndexMap.values.toSeq.distinct.size
+      val admittanceMatrix: DenseMatrix[Complex] =
+        DenseMatrix.zeros[Complex](matrixDimension, matrixDimension)
 
-      _printAdmittanceMatrixOnMismatch(actualResult, lineAdmittanceMatrix)
+      GridModel invokePrivate addElementsToAdmittanceMatrix(
+        admittanceMatrix,
+        nodeUuidToIndexMap,
+        lines,
+        getLinesAdmittance,
+      )
 
-      actualResult shouldBe lineAdmittanceMatrix
+      _printAdmittanceMatrixOnMismatch(admittanceMatrix, lineAdmittanceMatrix)
+
+      admittanceMatrix shouldBe lineAdmittanceMatrix
 
     }
 
