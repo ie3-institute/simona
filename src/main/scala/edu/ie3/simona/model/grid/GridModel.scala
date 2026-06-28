@@ -46,7 +46,6 @@ import play.api.libs.json.*
 import squants.Meters
 import squants.space.Millimeters
 import squants.thermal.Celsius
-import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -661,7 +660,7 @@ object GridModel {
                     ),
                   )
                 )
-          segments
+            segments
           }
         }
       }.toSet
