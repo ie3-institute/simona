@@ -109,7 +109,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
         Quantities.getQuantity(2.5, KILOMETRE)
       val specResistance = Quantities.getQuantity(0.2, OHM_PER_KILOMETRE)
       specResistance.toResistance shouldBe Ohms(0.5)
-      specResistance.toResistancePerLength shouldBe OhmsPerKilometer(2.5)
+      specResistance.toResistancePerLength shouldBe OhmsPerKilometer(0.2)
 
     }
 
