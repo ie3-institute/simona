@@ -31,7 +31,6 @@ class EvcsPowerLimitFlexModelSpec
 
   // Testing tolerances
   given Energy = KilowattHours(1e-10)
-
   given Power = Kilowatts(1e-10)
 
   "An EVCS PowerLimitFlexModel" should {
@@ -535,4 +534,5 @@ class EvcsPowerLimitFlexModelSpec
     }
 
   }
+
 }
