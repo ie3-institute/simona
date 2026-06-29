@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.numerics.pow
+import scala.math.pow
 import com.typesafe.scalalogging.LazyLogging
 import squants.Each
 

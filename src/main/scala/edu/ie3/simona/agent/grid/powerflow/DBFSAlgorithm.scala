@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import breeze.linalg.DenseVector
-import breeze.math.Complex
+import edu.ie3.powerflow.math.DenseVector
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.powerflow.model.FailureCause.CalculationFailed
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -819,7 +819,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             val allowedDeviation =
               gridAgentBaseData.powerFlowParams.maxSweepPowerDeviation
 
-            (previousSweepNodePower - currentSweepNodePower).toScalaVector
+            (previousSweepNodePower - currentSweepNodePower).toArray
               .find(complex => {
                 Math.abs(complex.real) >= allowedDeviation |
                   Math.abs(complex.imag) >= allowedDeviation
@@ -839,7 +839,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                 ctx.log.debug(
                   "Final deviation: {}",
-                  (previousSweepNodePower - currentSweepNodePower).toScalaVector,
+                  (previousSweepNodePower - currentSweepNodePower).toArray,
                 )
 
                 // go back to SimulateGrid and trigger a finish

@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import breeze.linalg.DenseMatrix
-import breeze.math.Complex
+import edu.ie3.powerflow.math.DenseMatrix
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -638,7 +638,7 @@ trait PowerFlowSupport {
     gridModel.gridComponents.transformers3w.isEmpty match {
       case true if gridModel.gridComponents.nodes.size == 1 =>
         val nodeData = operationPoint.map(StateData(_))
-        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix(0d, 0d))
+        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix.filled(0, 0, 0d))
 
       case true =>
         log.warn(

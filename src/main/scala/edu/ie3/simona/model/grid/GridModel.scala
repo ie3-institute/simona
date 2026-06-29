@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.linalg.DenseMatrix
-import breeze.math.Complex
+import edu.ie3.powerflow.math.DenseMatrix
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
@@ -180,7 +180,7 @@ object GridModel {
   ): DenseMatrix[Complex] = {
     val matrixDimension = nodeUuidToIndexMap.values.toSeq.distinct.size
     val admittanceMatrix =
-      DenseMatrix.zeros[Complex](matrixDimension, matrixDimension)
+      DenseMatrix.filled(matrixDimension, matrixDimension, Complex.zero)
 
     /*
     Nodes that are connected via a [closed] switch map to the same idx as we fuse them during the power flow.
@@ -205,7 +205,7 @@ object GridModel {
       getTransformer3wAdmittance,
     )
 
-    val illegalState = admittanceMatrix.data.exists { e =>
+    val illegalState = admittanceMatrix.exists { e =>
       e.real.isNaN || e.imag.isNaN || !e.real.isFinite || !e.imag.isFinite
     }
 
