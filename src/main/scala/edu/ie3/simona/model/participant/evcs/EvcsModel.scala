@@ -275,7 +275,7 @@ class EvcsModel private (
 
     if evs.isEmpty then return (evs.map(_ -> zeroKW), setPower)
 
-    val tolerance = evs.map(calcPowerTolerance).min
+    val tolerance = evs.map(calcPowerTolerance).max
 
     if setPower.~=(zeroKW)(using tolerance) then {
       // No power left. Rest is not charging
