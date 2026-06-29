@@ -10,15 +10,15 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.QuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.energy.{Kilojoules, Kilowatts, WattHours, Watts}
-import squants.{Energy, Power}
+import squants.{Energy, Power, UnitOfMeasure}
 
 import scala.util.{Failure, Success}
 
 class QuantityUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
-  implicit val powerTolerance: Power = Watts(1e-3)
-  implicit val energyTolerance: Energy = WattHours(1e-6)
-  private val unit = Kilowatts
-  private val integrationUnit = Kilojoules
+  private given powerTolerance: Power = Watts(1e-3)
+  private given energyTolerance: Energy = WattHours(1e-6)
+  private given unit: UnitOfMeasure[Power] = Kilowatts
+  private given integrationUnit: UnitOfMeasure[Energy] = Kilojoules
   private val values = Map(
     2L -> unit(5d),
     4L -> unit(15d),

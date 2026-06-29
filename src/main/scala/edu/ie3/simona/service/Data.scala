@@ -11,13 +11,9 @@ import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{
-  EnergyPrice,
-  Irradiance,
-  Kilovars,
-  ReactivePower,
-}
+import edu.ie3.util.scala.quantities.{EnergyPrice, Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
+import squants.radio.Irradiance
 import squants.{Temperature, Velocity}
 
 import scala.collection.immutable.SortedMap
@@ -236,7 +232,7 @@ object Data {
       }
     }
 
-    implicit class RichValue(private val value: Value) {
+    extension (value: Value) {
       def toPrimaryData: Try[PrimaryData] =
         value match {
           case hs: HeatAndSValue =>

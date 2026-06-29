@@ -11,8 +11,10 @@ import edu.ie3.datamodel.io.naming.FileNamingStrategy
 import edu.ie3.datamodel.io.naming.timeseries.FileIndividualTimeSeriesMetaInformation
 import edu.ie3.datamodel.io.source.TimeSeriesMappingSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesMappingSource
-import edu.ie3.datamodel.models.value.SValue
+import edu.ie3.datamodel.models.value.{PValue, SValue, Value}
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
+import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.config.ConfigParams.{
   CouchbaseParams,
   TimeStampedCsvParams,
@@ -29,13 +31,20 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   RegistrationFailedMessage,
   WorkerRegistrationMessage,
 }
-import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
+import edu.ie3.simona.ontology.messages.{
+  Activation,
+  SchedulerMessage,
+  ServiceMessage,
+}
+import edu.ie3.simona.scheduler.ScheduleLock
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy.{
   InitPrimaryServiceProxyStateData,
   PrimaryServiceStateData,
   SourceRef,
 }
 import edu.ie3.simona.service.primary.PrimaryServiceWorker.CsvInitPrimaryServiceStateData
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
@@ -59,6 +68,7 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.nio.file.{Path, Paths}
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 import scala.language.implicitConversions
 import scala.util.{Failure, Success}
 
@@ -69,7 +79,8 @@ class PrimaryServiceProxySpec
     with TableDrivenPropertyChecks
     with PartialFunctionValues
     with TimeSeriesTestData
-    with TestResourceHelper {
+    with TestResourceHelper
+    with TestSpawnerTyped {
   // this works both on Windows and Unix systems
   val baseDirectoryPath: Path = getResourcePath("_it")
   val csvSep = ";"
@@ -124,10 +135,22 @@ class PrimaryServiceProxySpec
     m
   }
 
+  private val extEntityId =
+    UUID.fromString("07bbe1aa-1f39-4dfb-b41b-339dec816ec4")
+
+  private val valueMap: Map[UUID, Class[? <: Value]] = Map(
+    extEntityId -> classOf[PValue]
+  )
+
+  private val extPrimaryDataConnection = new ExtPrimaryDataConnection(
+    valueMap.asJava
+  )
+
   val initStateData: InitPrimaryServiceProxyStateData =
     InitPrimaryServiceProxyStateData(
       validPrimaryConfig,
       simulationStart,
+      Seq.empty,
     )
   val proxy: ActorRef[PrimaryServiceProxy.Message] =
     testKit.spawn(PrimaryServiceProxy(scheduler.ref, initStateData))
@@ -144,6 +167,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         maliciousConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(emptyStateData) =>
           emptyStateData.modelToTimeSeries shouldBe Map.empty
@@ -167,6 +191,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         maliciousConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(_) =>
           fail("Building state data with missing config should fail")
@@ -180,6 +205,7 @@ class PrimaryServiceProxySpec
       PrimaryServiceProxy.prepareStateData(
         validPrimaryConfig,
         simulationStart,
+        Seq.empty,
       ) match {
         case Success(
               PrimaryServiceStateData(
@@ -187,6 +213,7 @@ class PrimaryServiceProxySpec
                 timeSeriesToSourceRef,
                 simulationStart,
                 primaryConfig,
+                _,
               )
             ) =>
           modelToTimeSeries shouldBe Map(
@@ -224,6 +251,47 @@ class PrimaryServiceProxySpec
           )
       }
     }
+
+    "build proxy correctly when there is an external simulation" in {
+      val serviceKey =
+        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
+      val extSimAdapter =
+        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
+      val validExtPrimaryDataService = spawn(
+        ExtPrimaryServiceWorker(
+          scheduler.ref,
+          InitExtPrimaryData(extPrimaryDataConnection),
+          serviceKey,
+        )
+      )
+      extPrimaryDataConnection.setActorRefs(
+        validExtPrimaryDataService,
+        extSimAdapter.ref,
+      )
+
+      PrimaryServiceProxy.prepareStateData(
+        validPrimaryConfig,
+        simulationStart,
+        Seq((extPrimaryDataConnection, validExtPrimaryDataService)),
+      ) match {
+        case Success(
+              PrimaryServiceStateData(
+                _,
+                _,
+                _,
+                _,
+                extSubscribersToService,
+              )
+            ) =>
+          extSubscribersToService shouldBe Map(
+            extEntityId -> validExtPrimaryDataService
+          )
+      }
+    }
+
   }
 
   "Sending initialization information to an uninitialized actor" should {
@@ -340,6 +408,41 @@ class PrimaryServiceProxySpec
       )(using scheduler.ref, context)
 
     }
+
+    "forwarding the registration to correct ext worker" in {
+      val extWorker1 = TestProbe[ServiceMessage]("extWorker1")
+      val extWorker2 = TestProbe[ServiceMessage]("extWorker2")
+
+      val participant1 = TestProbe[ParticipantAgent.Message]("Participant1").ref
+      val participant2 = TestProbe[ParticipantAgent.Message]("Participant2").ref
+
+      val extEntityUuid1 = UUID.randomUUID()
+      val extEntityUuid2 = UUID.randomUUID()
+
+      val stateData = PrimaryServiceStateData(
+        Map.empty,
+        Map.empty,
+        simulationStart,
+        validPrimaryConfig,
+        Map(extEntityUuid1 -> extWorker1.ref, extEntityUuid2 -> extWorker2.ref),
+      )
+
+      val behavior = BehaviorTestKit(PrimaryServiceProxy.onMessage(stateData))
+
+      behavior.run(
+        PrimaryServiceRegistrationMessage(participant1, extEntityUuid1)
+      )
+      extWorker1.expectMessage(
+        PrimaryServiceRegistrationMessage(participant1, extEntityUuid1)
+      )
+
+      behavior.run(
+        PrimaryServiceRegistrationMessage(participant2, extEntityUuid2)
+      )
+      extWorker2.expectMessage(
+        PrimaryServiceRegistrationMessage(participant2, extEntityUuid2)
+      )
+    }
   }
 
   private val dummyWorker =
@@ -371,6 +474,7 @@ class PrimaryServiceProxySpec
               timeSeriesToSourceRef,
               simulationStart,
               primaryConfig,
+              _,
             ) =>
           modelToTimeSeries shouldBe proxyStateData.modelToTimeSeries
           timeSeriesToSourceRef shouldBe Map(

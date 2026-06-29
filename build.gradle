@@ -3,13 +3,13 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.5.1' // code format
+  id 'com.diffplug.spotless' version '8.7.0' // code format
   id "com.github.ben-manes.versions" version '0.54.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '9.4.1' // fat jar
-  id "org.sonarqube" version "7.3.0.8198" // sonarqube
-  id "org.scoverage" version "8.1" // scala code coverage scoverage
+  id 'com.gradleup.shadow' version '9.4.3' // fat jar
+  id "org.sonarqube" version "7.3.1.8318" // sonarqube
+  id "org.scoverage" version "9.0" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
   id "application"
@@ -26,7 +26,7 @@ ext {
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
 
-  junitVersion = '6.1.0'
+  junitVersion = '6.1.1'
   testContainerVersion = '0.44.1'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -72,13 +72,13 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.1.0') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.2') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:9.0.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.1.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -91,7 +91,7 @@ dependencies {
     exclude group: 'edu.ie3'
   }
 
-  implementation('com.github.ie3-institute:simonaAPI:0.14.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.15.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -100,7 +100,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.32"
+  implementation "ch.qos.logback:logback-classic:1.5.37"
 
   /* testing */
   // scalatest & junit
@@ -134,7 +134,7 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.8'
+  implementation 'com.typesafe:config:1.4.9'
   implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
@@ -175,8 +175,8 @@ tasks.withType(JavaCompile).configureEach {
 jar {
   manifest {
     attributes(
-        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
-        )
+    'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
+    )
   }
 }
 

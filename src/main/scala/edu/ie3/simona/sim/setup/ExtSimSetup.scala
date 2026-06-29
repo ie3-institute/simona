@@ -21,6 +21,8 @@ import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.ev.ExtEvDataService.InitExtEvData
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker.InitExtPrimaryData
 import edu.ie3.simona.service.results.ResultServiceProxy.AddListener
 import edu.ie3.simona.service.results.{ExtResultProvider, ResultServiceProxy}
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
@@ -36,7 +38,7 @@ import scala.util.{Failure, Success, Try}
 
 object ExtSimSetup {
 
-  private val log: Logger = LoggerFactory.getLogger(ExtSimSetup.getClass)
+  private given log: Logger = LoggerFactory.getLogger(ExtSimSetup.getClass)
 
   /** Method to set up all external simulations defined via the given
     * [[ExtLinkInterface]]s.
@@ -88,7 +90,7 @@ object ExtSimSetup {
 
       // creating the data connection
       val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-      val setUpData = new SetupData(
+      val setupData = new SetupData(
         args,
         config,
         grid,
@@ -98,12 +100,12 @@ object ExtSimSetup {
 
       Try {
         // sets up the external simulation
-        extLink.setup(setUpData)
+        extLink.setup(setupData)
         extLink.getExtSimulation
       }.map { extSimulation =>
         // sets the data connection and the setup data explicitly
         extSimulation.setDataConnection(extSimDataConnection)
-        extSimulation.setSetupData(setUpData)
+        extSimulation.setSetupData(setupData)
 
         // send init data right away, init activation is scheduled
         extSimAdapter ! ExtSimAdapter.Create(
@@ -142,7 +144,7 @@ object ExtSimSetup {
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
-    *   The scheduler of simona.
+    *   The scheduler of SIMONA.
     * @param extSimAdapter
     *   The adapter for the external simulation.
     * @return
@@ -169,6 +171,23 @@ object ExtSimSetup {
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
+          case extPrimaryDataConnection: ExtPrimaryDataConnection =>
+            val serviceRef = context.spawn(
+              ExtPrimaryServiceWorker(
+                scheduler,
+                InitExtPrimaryData(extPrimaryDataConnection),
+                ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+              ),
+              "ExtPrimaryDataService_$index",
+            )
+
+            extPrimaryDataConnection.setActorRefs(
+              serviceRef,
+              extSimAdapter,
+            )
+
+            setupData.update(extPrimaryDataConnection, serviceRef)
+
           case extEmDataConnection: ExtEmDataConnection =>
             if setupData.emDataService.nonEmpty then {
               throw ServiceException(
@@ -185,7 +204,7 @@ object ExtSimSetup {
               val serviceRef = context.spawn(
                 ExtEmDataService(
                   scheduler,
-                  InitExtEmData(extEmDataConnection, startTime),
+                  InitExtEmData(scheduler, extEmDataConnection, startTime),
                   ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
                 ),
                 "ExtEmDataService",
@@ -196,7 +215,7 @@ object ExtSimSetup {
                 extSimAdapter,
               )
 
-              extSimSetupData.update(extEmDataConnection, serviceRef)
+              setupData.update(extEmDataConnection, serviceRef)
             }
 
           case extEvDataConnection: ExtEvDataConnection =>
@@ -220,7 +239,7 @@ object ExtSimSetup {
               extSimAdapter,
             )
 
-            extSimSetupData.update(extEvDataConnection, serviceRef)
+            setupData.update(extEvDataConnection, serviceRef)
 
           case extResultDataConnection: ExtResultDataConnection =>
             val extResultProvider = context.spawn(
@@ -237,7 +256,7 @@ object ExtSimSetup {
               extSimAdapter,
             )
 
-            extSimSetupData.update(extResultDataConnection, extResultProvider)
+            setupData.update(extResultDataConnection, extResultProvider)
 
           case extResultListener: ExtResultListener =>
             val extResultEventListener = context.spawn(
@@ -248,7 +267,7 @@ object ExtSimSetup {
             // add the external listener to the proxy
             resultProxy ! AddListener(extResultEventListener)
 
-            extSimSetupData.update(extResultListener, extResultEventListener)
+            setupData.update(extResultListener, extResultEventListener)
 
           case otherConnection =>
             log.warn(

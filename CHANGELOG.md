@@ -42,6 +42,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added secondary data provision handling in EmAgent [#1652](https://github.com/ie3-institute/simona/issues/1652)
 - Added `GridAgentCoordinator` [#1617](https://github.com/ie3-institute/simona/issues/1617)
 - Added transformer tap change to congestion management [#1378](https://github.com/ie3-institute/simona/issues/1378)
+- Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
+- Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
+- Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
 - Implement energy dependent power tolerance for EVCS [#1698](https://github.com/ie3-institute/simona/issues/1698)
 
 ### Changed
@@ -98,6 +101,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapting to changes in simonaAPI version `0.14.0` [#1773](https://github.com/ie3-institute/simona/issues/1773)
 - Simplify handling of results [#1752](https://github.com/ie3-institute/simona/issues/1752)
 - Cleaned out unused files in exceptions [#1308](https://github.com/ie3-institute/simona/issues/1308)
+- Reintroduced `greclipse` for groovy formating [#1805](https://github.com/ie3-institute/simona/issues/1805)
+- Remove duplication of Irradiance and make use of the squants version [#1829](https://github.com/ie3-institute/simona/issues/1829)
+- Using additional input parameters for individual runtime configuration [#1784](https://github.com/ie3-institute/simona/issues/1784)
+- Simplify conversion of flex options and setpoints between SIMONA and its API [#1785](https://github.com/ie3-institute/simona/issues/1785)
+- `CommonLossObjectiveFactory.PriceObjectiveFactory`: Applying soft constraint only when necessary [#1848](https://github.com/ie3-institute/simona/issues/1848)
+- Replaced implicit classes with scala 3 extension methods [#1833](https://github.com/ie3-institute/simona/issues/1833)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -128,10 +137,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed EVCS `OperationChangeIndiactor` in edge cases [#1762](https://github.com/ie3-institute/simona/issues/1762)
 - Fixed `AbstractEnergyBoundariesFlexModel` next tick determination [#1769](https://github.com/ie3-institute/simona/issues/1769)
 - Fixed energy limit handling in `OptimizedFlexStrat` [#1772](https://github.com/ie3-institute/simona/issues/1772)
-- Fix unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
+- Fixed unreliable ThermalGridIT/EmAgentIT [#1757](https://github.com/ie3-institute/simona/issues/1757)
 - Cleaned imports [#1791](https://github.com/ie3-institute/simona/issues/1791)
 - Fixed hour angle calculation in `PvModel` [#574](https://github.com/ie3-institute/simona/issues/574)
 - Documentation of `PvModel` [#1776](https://github.com/ie3-institute/simona/issues/1776)
+- Fixed `ParticipantAgent.isCalculationRequired` to include `changesAtNextActivation` [#1820](https://github.com/ie3-institute/simona/issues/1820)
+- Fixed initialization problems when using `ExtEmDataService` [#1780](https://github.com/ie3-institute/simona/issues/1780)
+- Fixed handling of disconnecting tick of energy boundaries flex options [#1821](https://github.com/ie3-institute/simona/issues/1821)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

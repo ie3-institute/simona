@@ -36,10 +36,9 @@ import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -47,6 +46,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.scalatestplus.mockito.MockitoSugar
 import squants.Each
 import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.thermal.Celsius
 
 import java.time.ZonedDateTime
@@ -84,8 +84,7 @@ class EmAgentIT
   )
 
   private val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
-    uuids = List("default"),
-    aggregateFlex = "SELF_OPT",
+    aggregateFlex = "SELF_OPT"
   )
 
   private given quantityTolerance: Double = 1e-10d
@@ -282,11 +281,9 @@ class EmAgentIT
           Some(14400),
         )
 
-        resultServiceProxy.receiveMessages(4) should contain allOf (
+        resultServiceProxy.receiveMessages(3) should contain allOf (
           // we receive a message, since new data arrived
           ExpectResult(pvInput.getUuid, 7200, true),
-          // expect no result, since we are still waiting for a new set point
-          NoResult(storageInput.getUuid, 7200),
           // we expect results, since we received new set points
           ExpectResult(pvInput.getUuid, 7200),
           ExpectResult(storageInput.getUuid, 7200)

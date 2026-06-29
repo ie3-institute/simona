@@ -17,6 +17,7 @@ import edu.ie3.simona.config.RuntimeConfig.{
   HpRuntimeConfig,
   PvRuntimeConfig,
 }
+import squants.radio.WattsPerSquareMeter
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.*
 import edu.ie3.simona.event.notifier.NotifierConfig
@@ -45,10 +46,9 @@ import edu.ie3.simona.test.common.input.{
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
-import edu.ie3.util.scala.quantities.WattsPerSquareMeter
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,

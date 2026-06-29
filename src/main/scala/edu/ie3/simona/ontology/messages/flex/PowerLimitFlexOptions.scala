@@ -51,7 +51,6 @@ final case class PowerLimitFlexOptions(
       min + rhs.min,
       max + rhs.max,
     )
-
 }
 
 object PowerLimitFlexOptions extends FlexOptionsExtra[PowerLimitFlexOptions] {
