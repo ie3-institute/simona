@@ -53,7 +53,7 @@ import edu.ie3.simona.service.results.ResultServiceProxy.{
   NoResult,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.*

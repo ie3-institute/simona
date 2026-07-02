@@ -15,18 +15,18 @@ import squants.time.Hours
 import squants.{Dimensionless, Each, Time}
 
 object SquantsUtils {
-  implicit class RichEnergy(energy: Energy) {
+  extension (energy: Energy) {
     def calcVolume(that: EnergyDensity): Volume = CubicMeters(
       energy.toKilowattHours / that.toKilowattHoursPerCubicMeter
     )
   }
-  implicit class RichPower(power: squants.Power) {
+  extension (power: squants.Power) {
     def /(that: ReactivePower): Dimensionless = Each(
       power.toWatts / that.toVars
     )
   }
 
-  implicit class RichElectricPotential(
+  extension (
       electricPotential: ElectricPotential
   ) {
     def multiplyWithDimensionless(
@@ -37,16 +37,16 @@ object SquantsUtils {
 
   }
 
-  implicit class RichThermalCapacity(
+  extension (
       thermalCapacity: ThermalCapacity
   ) {
     def toWattHoursPerKelvin: Double =
-      this.thermalCapacity.toJoulesPerKelvin / 3600
+      thermalCapacity.toJoulesPerKelvin / 3600
     def toWattSecondsPerKelvin: Double =
-      this.thermalCapacity.toJoulesPerKelvin // Joule == Ws
+      thermalCapacity.toJoulesPerKelvin // Joule == Ws
   }
 
-  implicit class RichIrradiance(
+  extension (
       irradiance: Irradiance
   ) {
     def *(that: Time): Irradiation = WattHoursPerSquareMeter(
