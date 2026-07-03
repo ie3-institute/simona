@@ -13,8 +13,8 @@ tasks.register('stagingAtMavenCentralPortal') {
     // Request API for repo key
     def repositoryString = providers.exec {
       commandLine 'curl',
-          '-u', "${username}:${password}",
-          'https://ossrh-staging-api.central.sonatype.com/manual/search/repositories'
+      '-u', "${username}:${password}",
+      'https://ossrh-staging-api.central.sonatype.com/manual/search/repositories'
     }.getStandardOutput().getAsText().get()
 
     def repositoryGroovy = new groovy.json.JsonSlurper().parseText(repositoryString)
