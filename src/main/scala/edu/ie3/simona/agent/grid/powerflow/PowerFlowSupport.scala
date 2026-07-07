@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.powerflow.math.DenseMatrix
-import edu.ie3.powerflow.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
+import edu.ie3.powerflow.libraries.UMFPACK
+import edu.ie3.powerflow.math.{Complex, DenseMatrix, SparseSolver}
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
@@ -18,7 +18,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.ProvidedPowerResponse
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
 
@@ -30,6 +29,8 @@ import scala.util.{Failure, Success, Try}
   * [[edu.ie3.powerflow]]
   */
 trait PowerFlowSupport {
+
+  private val sparseSolver: Option[SparseSolver] = UMFPACK.get
 
   /** Composes the current operation point needed by
     * [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]]
@@ -541,7 +542,7 @@ trait PowerFlowSupport {
 
         // / execute
         val powerFlow =
-          NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix)
+          NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix, sparseSolver)
 
         Try {
           powerFlow.calculate(
@@ -638,7 +639,7 @@ trait PowerFlowSupport {
     gridModel.gridComponents.transformers3w.isEmpty match {
       case true if gridModel.gridComponents.nodes.size == 1 =>
         val nodeData = operationPoint.map(StateData(_))
-        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix.filled(0, 0, 0d))
+        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix.empty(0, 0))
 
       case true =>
         log.warn(
