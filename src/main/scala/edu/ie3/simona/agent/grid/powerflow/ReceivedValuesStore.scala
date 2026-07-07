@@ -6,16 +6,20 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
+import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
+  ExchangePower,
+  ExchangeVoltage,
+}
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.*
 import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.util.CollectionUtils.emptyOptionMap
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID
+import scala.collection.mutable
 
 /** Value store that contains all data that should be received by the
   * [[GridAgent]] from other agents. The mapping is structured as the uuid of a
@@ -39,50 +43,124 @@ import java.util.UUID
   *   [[GridAgent]] s if any.
   */
 final case class ReceivedValuesStore(
-    nodeToReceivedAssetPower: NodeToReceivedPower,
-    nodeToReceivedGridPower: NodeToReceivedPower,
-    nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage,
+    assetToNode: Map[ActorRef[?], UUID],
+    private val missing: mutable.Set[ActorRef[?]],
+    private val nodeToReceivedAssetPower: NodeToReceivedPower,
+    private val nodeToReceivedGridPower: NodeToReceivedPower,
+    private val nodeToReceivedSlackVoltage: NodeToReceivedSlackVoltage,
+    private val failedPowerFlows: mutable.Set[FailedPowerFlow],
 ) {
 
-  def nodeToReceivedPower: NodeToReceivedPower =
-    nodeToReceivedAssetPower.foldLeft(nodeToReceivedGridPower) {
-      case (results, (node, refMap)) =>
-        results.updated(node, results.getOrElse(node, Map.empty) ++ refMap)
-    }
+  def addGridPower(
+      ref: ActorRef[?],
+      exchangePower: Iterable[ExchangePower],
+  ): Unit = {
+    missing.remove(ref)
 
-  def clearAssetPower: ReceivedValuesStore = {
-    val updatedMap = nodeToReceivedAssetPower.map { case (node, refMap) =>
-      node -> refMap.map { case (ref, _) => ref -> None }
+    exchangePower.foreach { exchangePower =>
+      nodeToReceivedGridPower
+        .getOrElseUpdate(exchangePower.nodeUuid, mutable.Set.empty)
+        .add(exchangePower)
     }
-
-    copy(nodeToReceivedAssetPower = updatedMap)
   }
 
+  def addFailedPowerFlow(failedPowerFlow: FailedPowerFlow): Unit = {
+    missing.remove(failedPowerFlow.sender)
+    failedPowerFlows.add(failedPowerFlow)
+  }
+
+  def addAssetPower(ref: ActorRef[?], response: PowerResponse): Unit = {
+    missing.remove(ref)
+    nodeToReceivedAssetPower
+      .getOrElseUpdate(assetToNode(ref), mutable.Set.empty)
+      .add(response)
+  }
+
+  def addSlackVoltage(
+      sender: GridAgentRef,
+      nodalSlackVoltages: Seq[ExchangeVoltage],
+  ): Unit = {
+    nodalSlackVoltages.foreach { exchangeVoltage =>
+      val node = exchangeVoltage.nodeUuid
+
+      nodeToReceivedSlackVoltage.get(node) match {
+        case Some(None) =>
+          nodeToReceivedSlackVoltage.put(
+            exchangeVoltage.nodeUuid,
+            Some(exchangeVoltage),
+          )
+
+        case Some(Some(_)) =>
+          throw new RuntimeException(
+            s"Already received slack value for node ${exchangeVoltage.nodeUuid}!"
+          )
+        case None =>
+          throw new RuntimeException(
+            s"Received slack value for node ${exchangeVoltage.nodeUuid} from $sender which is not in my slack values nodes list!"
+          )
+      }
+    }
+  }
+
+  def nodeToReceivedPower: Map[UUID, Set[PowerResponse]] = {
+    val keys = nodeToReceivedAssetPower.keySet ++ nodeToReceivedGridPower.keySet
+
+    keys.map { key =>
+      val assetOption =
+        nodeToReceivedAssetPower.getOrElse(key, mutable.Set.empty).toSet
+      val gridOption =
+        nodeToReceivedGridPower.getOrElse(key, mutable.Set.empty).toSet
+
+      key -> (assetOption ++ gridOption)
+    }.toMap
+  }
+
+  def getSlackVoltage(node: UUID): Option[ExchangeVoltage] =
+    nodeToReceivedSlackVoltage.get(node).flatten
+
+  def nodeToSlackVoltage: Map[UUID, Option[ExchangeVoltage]] =
+    nodeToReceivedSlackVoltage.toMap
+
+  def slackVoltages: Seq[ExchangeVoltage] =
+    nodeToReceivedSlackVoltage.values.flatten.toSeq
+
+  def clearAssetPower(): Unit = {
+    nodeToReceivedAssetPower.values.foreach(_.clear())
+    missing.addAll(assetToNode.keySet)
+  }
+
+  def clearSlackVoltages(): Unit = {
+    nodeToReceivedSlackVoltage.keySet.foreach { key =>
+      nodeToReceivedSlackVoltage.put(key, None)
+    }
+  }
+
+  def hasFailedPowerFlow: Boolean = failedPowerFlows.nonEmpty
+
+  def allAssetAndGridPowerValuesReady: Boolean = missing.isEmpty
+
+  def allSlackVoltagesReceived: Boolean =
+    nodeToReceivedSlackVoltage.values.forall(_.isDefined)
+
   def hasAssetPowerChanged: Boolean = nodeToReceivedAssetPower.values.exists(
-    _.values.exists(_.exists(_.isInstanceOf[AssetPowerChangedMessage]))
+    _.exists(_.isInstanceOf[AssetPowerChangedMessage])
   )
+
+  def getExpectedPowerResponses: Set[ActorRef[?]] = missing.toSet
 }
 
 object ReceivedValuesStore {
 
-  type NodeToReceivedPower =
-    Map[UUID, Map[ActorRef[?], Option[PowerResponse]]]
-  type NodeToReceivedSlackVoltage =
-    Map[UUID, Option[ExchangeVoltage]]
+  private type NodeToReceivedPower =
+    mutable.Map[UUID, mutable.Set[PowerResponse]]
+  private type NodeToReceivedSlackVoltage =
+    mutable.Map[UUID, Option[ExchangeVoltage]]
 
-  def empty(gridEnv: GridEnvironment): ReceivedValuesStore = {
-    val nodeToGridRef = gridEnv.inferiorConnections
-      .flatMap { case (ref, nodes) =>
-        nodes.map(node => (node, ref))
-      }
-      .groupMap(_._1)(_._2)
-
-    ReceivedValuesStore(
-      emptyOptionMap(gridEnv.nodeToAssetAgents),
-      emptyOptionMap(nodeToGridRef),
-      emptyOptionMap(gridEnv.superiorNodeUuids),
-    )
-  }
+  def empty(gridEnv: GridEnvironment): ReceivedValuesStore = empty(
+    gridEnv.nodeToAssetAgents,
+    gridEnv.inferiorConnections,
+    gridEnv.superiorNodeUuids,
+  )
 
   /** Get an empty, ready to be used instance of [[ReceivedValuesStore]]
     * containing an `empty` mapping of [[NodeToReceivedPower]] and
@@ -102,30 +180,35 @@ object ReceivedValuesStore {
     */
   def empty(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
-      inferiorSubGridGateToActorRef: Map[SubGridGate, ActorRef[
-        GridAgent.Message
-      ]],
-      superiorGridNodeUuids: Set[UUID],
+      inferiorConnections: MultiMap[GridAgentRef, UUID],
+      superiorNodeUuids: Set[UUID],
   ): ReceivedValuesStore = {
-    val nodeToReceivedAssetPower: NodeToReceivedPower = emptyOptionMap(
-      nodeToAssetAgents
-    )
+    val assetToNode: Map[ActorRef[?], UUID] = nodeToAssetAgents.flatMap {
+      case (node, refs) =>
+        refs.map(ref => ref -> node)
+    }
 
-    /* Add everything, that I expect from my subordinate grid agents. */
-    val nodeToGridRef = inferiorSubGridGateToActorRef
-      .map { case (gate, reference) =>
-        gate.superiorNode.getUuid -> reference
+    val missing = mutable.Set.empty[ActorRef[?]]
+    missing.addAll(assetToNode.keySet)
+    missing.addAll(inferiorConnections.keySet)
+
+    val nodeToGridRef = inferiorConnections
+      .flatMap { case (ref, nodes) =>
+        nodes.map(node => (node, ref))
       }
       .groupMap(_._1)(_._2)
 
-    val nodeToReceivedGridPower: NodeToReceivedPower = emptyOptionMap(
-      nodeToGridRef
-    )
+    val slackVoltageMap: NodeToReceivedSlackVoltage = mutable.Map.from {
+      superiorNodeUuids.map(n => n -> None)
+    }
 
     ReceivedValuesStore(
-      nodeToReceivedAssetPower,
-      nodeToReceivedGridPower,
-      emptyOptionMap(superiorGridNodeUuids),
+      assetToNode,
+      missing,
+      mutable.Map.empty,
+      mutable.Map.empty,
+      slackVoltageMap,
+      mutable.Set.empty,
     )
   }
 
