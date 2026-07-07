@@ -101,9 +101,14 @@ object ConfigUtil {
         identifier: String,
         additionalParameters: java.util.Map[String, String],
     )(implicit tag: ClassTag[T]): T = {
-      val valid =
-        !additionalParameters.isEmpty && additionalParameters.values.asScala
+      val valid = if !additionalParameters.isEmpty then {
+        val keys = additionalParameters.keySet.asScala
+
+        val fieldNames = tag.runtimeClass.getDeclaredFields.map(_.getName).toSet
+
+        keys.exists(fieldNames.contains) && additionalParameters.values.asScala
           .forall(str => !str.isBlank)
+      } else false
 
       if valid then {
         Try {
