@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 - Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
 - Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
+- Added PhD thesis by Thomas Oberließen to documentation [1709](https://github.com/ie3-institute/simona/issues/1709)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
