@@ -61,14 +61,14 @@ object ConfigUtil {
       fallback: T,
   )(using writer: ConfigWriter[T]): T = {
     val validMap = new util.HashMap(map)
-    validMap.entrySet.removeIf(entry => "".equals(entry.getValue))
+    validMap.entrySet.removeIf(_.getValue.isBlank)
 
     val fallbackValues = ConfigSource.fromConfig(
       writer.to(fallback).asInstanceOf[ConfigObject].toConfig
     )
 
     ConfigSource
-      .fromConfig(ConfigFactory.parseMap(map))
+      .fromConfig(ConfigFactory.parseMap(validMap))
       .withFallback(fallbackValues)
       .load[T]
       .getOrThrow
@@ -88,14 +88,9 @@ object ConfigUtil {
         identifier: String,
         additionalParameters: java.util.Map[String, String],
     ): EmRuntimeConfig = {
-      Try {
-        val individualConfig = load(additionalParameters, config)
-        ConfigFailFast.checkBaseRuntimeConfigs(individualConfig, identifier)
-        individualConfig
-      } match {
-        case Success(conf: EmRuntimeConfig) => conf
-        case _                              => config
-      }
+      val finalConfig = load(additionalParameters, config)
+      ConfigFailFast.checkBaseRuntimeConfigs(finalConfig, identifier)
+      finalConfig
     }
   }
 
@@ -122,24 +117,18 @@ object ConfigUtil {
           )
       }
 
-      Try {
-        val individualConfig = load(additionalParameters, defaultConfig)
-        ConfigFailFast.checkBaseRuntimeConfigs(individualConfig, identifier)
+      val finalConfig = load(additionalParameters, defaultConfig)
+      ConfigFailFast.checkBaseRuntimeConfigs(finalConfig, identifier)
 
-        individualConfig match {
-          case load: LoadRuntimeConfig =>
-            ConfigFailFast.checkSpecificLoadModelConfig(load)
-          case storage: StorageRuntimeConfig =>
-            ConfigFailFast.checkStoragesConfig(storage)
-          case _ =>
-        }
-
-        individualConfig
-
-      } match {
-        case Success(conf: T) => conf
-        case _                => defaultConfig
+      finalConfig match {
+        case load: LoadRuntimeConfig =>
+          ConfigFailFast.checkSpecificLoadModelConfig(load)
+        case storage: StorageRuntimeConfig =>
+          ConfigFailFast.checkStoragesConfig(storage)
+        case _ =>
       }
+
+      finalConfig
     }
   }
 
