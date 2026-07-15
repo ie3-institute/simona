@@ -7,4 +7,5 @@ This page gives an overview of the functionalities of *SIMONA*.
 maxdepth: 1
 ---
 functionality/congestionmanagement
+functionality/neuralstateestimation
 ```
