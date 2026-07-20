@@ -3,13 +3,13 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.7.0' // code format
+  id 'com.diffplug.spotless' version '8.8.0' // code format
   id "com.github.ben-manes.versions" version '0.54.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
-  id 'com.gradleup.shadow' version '9.4.2' // fat jar
+  id 'com.gradleup.shadow' version '9.6.0' // fat jar
   id "org.sonarqube" version "7.3.1.8318" // sonarqube
-  id "org.scoverage" version "8.1" // scala code coverage scoverage
+  id "org.scoverage" version "9.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
   id "application"
@@ -26,7 +26,7 @@ ext {
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.2.4'
 
-  junitVersion = '6.1.0'
+  junitVersion = '6.1.2'
   testContainerVersion = '0.44.1'
 
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
@@ -72,7 +72,7 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.1') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.2') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -100,7 +100,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.5.34"
+  implementation "ch.qos.logback:logback-classic:1.5.38"
 
   /* testing */
   // scalatest & junit
