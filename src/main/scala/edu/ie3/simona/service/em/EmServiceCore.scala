@@ -284,7 +284,7 @@ case class EmServiceCore(
       tick: Long,
       responseMsg: ServiceResponseMessage,
   )(using
-      startTime: ZonedDateTime,
+      val startTime: ZonedDateTime,
       log: Logger,
   ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = responseMsg match {
     case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
