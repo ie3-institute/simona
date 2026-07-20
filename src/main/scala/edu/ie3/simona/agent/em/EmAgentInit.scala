@@ -146,7 +146,7 @@ object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
       }
 
     val completionBehavior =
-      (val mf: Unit, expectedServices: Map[ActorRef[ServiceMessage], Long]) =>
+      (mf: Unit, expectedServices: Map[ActorRef[ServiceMessage], Long]) =>
         EmAgent.inactive(
           constantData,
           modelShell,
