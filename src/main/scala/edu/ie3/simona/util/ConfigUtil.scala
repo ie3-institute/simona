@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.util
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{ConfigFactory, ConfigObject}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.connectors.{
   CouchbaseConnector,
@@ -36,14 +36,14 @@ import edu.ie3.simona.config.OutputConfig.{
   SimpleOutputConfig,
   ThermalOutputConfigs,
 }
-import edu.ie3.simona.config.{ConfigFailFast, RuntimeConfig}
 import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.getOrThrow
+import edu.ie3.simona.config.{ConfigFailFast, RuntimeConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException
-import pureconfig.{ConfigConvert, ConfigObjectSource, ConfigSource}
+import pureconfig.{ConfigConvert, ConfigSource, ConfigWriter}
 
 import java.io.File
 import java.util
@@ -56,9 +56,22 @@ import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
-  extension (map: java.util.Map[String, String]) {
-    private def toSrc: ConfigObjectSource =
-      ConfigSource.fromConfig(ConfigFactory.parseMap(map))
+  private def load[T <: BaseRuntimeConfig: ConfigConvert](
+      map: java.util.Map[String, String],
+      fallback: T,
+  )(using writer: ConfigWriter[T]): T = {
+    val validMap = new util.HashMap(map)
+    validMap.entrySet.removeIf(_.getValue.isBlank)
+
+    val fallbackValues = ConfigSource.fromConfig(
+      writer.to(fallback).asInstanceOf[ConfigObject].toConfig
+    )
+
+    ConfigSource
+      .fromConfig(ConfigFactory.parseMap(validMap))
+      .withFallback(fallbackValues)
+      .load[T]
+      .getOrThrow
   }
 
   final case class EmConfigUtil(
@@ -75,14 +88,9 @@ object ConfigUtil {
         identifier: String,
         additionalParameters: java.util.Map[String, String],
     ): EmRuntimeConfig = {
-      Try {
-        val config = additionalParameters.toSrc.load[EmRuntimeConfig].getOrThrow
-        ConfigFailFast.checkBaseRuntimeConfigs(config, identifier)
-        config
-      } match {
-        case Success(conf: EmRuntimeConfig) => conf
-        case _                              => config
-      }
+      val finalConfig = load(additionalParameters, config)
+      ConfigFailFast.checkBaseRuntimeConfigs(finalConfig, identifier)
+      finalConfig
     }
   }
 
@@ -101,44 +109,26 @@ object ConfigUtil {
         identifier: String,
         additionalParameters: java.util.Map[String, String],
     )(implicit tag: ClassTag[T]): T = {
-      val valid =
-        !additionalParameters.isEmpty && additionalParameters.values.asScala
-          .forall(str => !str.isBlank)
-
-      if valid then {
-        Try {
-          val config = additionalParameters.toSrc.load[T].getOrThrow
-          ConfigFailFast.checkBaseRuntimeConfigs(config, identifier)
-
-          config match {
-            case load: LoadRuntimeConfig =>
-              ConfigFailFast.checkSpecificLoadModelConfig(load)
-            case storage: StorageRuntimeConfig =>
-              ConfigFailFast.checkStoragesConfig(storage)
-          }
-
-          config
-
-        } match {
-          case Success(conf: T) => conf
-          case _ =>
-            configs.get(tag.runtimeClass) match {
-              case Some(conf: T) => conf
-              case _ =>
-                throw new RuntimeException(
-                  s"No config found of type ${tag.runtimeClass.getSimpleName}."
-                )
-            }
-        }
-      } else {
-        configs.get(tag.runtimeClass) match {
-          case Some(conf: T) => conf
-          case _ =>
-            throw new RuntimeException(
-              s"No config found of type ${tag.runtimeClass.getSimpleName}."
-            )
-        }
+      val defaultConfig = configs.get(tag.runtimeClass) match {
+        case Some(conf: T) => conf
+        case _ =>
+          throw new RuntimeException(
+            s"No config found of type ${tag.runtimeClass.getSimpleName}."
+          )
       }
+
+      val finalConfig = load(additionalParameters, defaultConfig)
+      ConfigFailFast.checkBaseRuntimeConfigs(finalConfig, identifier)
+
+      finalConfig match {
+        case load: LoadRuntimeConfig =>
+          ConfigFailFast.checkSpecificLoadModelConfig(load)
+        case storage: StorageRuntimeConfig =>
+          ConfigFailFast.checkStoragesConfig(storage)
+        case _ =>
+      }
+
+      finalConfig
     }
   }
 
