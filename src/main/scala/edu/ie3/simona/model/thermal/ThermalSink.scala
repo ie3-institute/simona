@@ -25,10 +25,18 @@ import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
   * @param bus
   *   Thermal bus input
   */
+trait ThermalElement {
+  val uuid: UUID
+  val id: String
+  val operatorInput: OperatorInput
+  val operationTime: OperationTime
+  val bus: ThermalBusInput
+}
+
 abstract class ThermalSink(
-    uuid: UUID,
-    id: String,
-    operatorInput: OperatorInput,
-    operationTime: OperationTime,
-    bus: ThermalBusInput,
-)
+    override val uuid: UUID,
+    override val id: String,
+    override val operatorInput: OperatorInput,
+    override val operationTime: OperationTime,
+    override val bus: ThermalBusInput
+) extends ThermalElement
