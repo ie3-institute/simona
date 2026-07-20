@@ -22,7 +22,6 @@ import edu.ie3.simona.model.participant.load.{
   LoadReferenceType,
 }
 import edu.ie3.simona.service.weather.WeatherSource.WeatherScheme
-import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.simona.util.ConfigUtil.CsvConfigUtil.checkBaseCsvParams
 import edu.ie3.simona.util.ConfigUtil.DatabaseConfigUtil.{
   checkCouchbaseParams,
@@ -37,7 +36,6 @@ import tech.units.indriya.unit.Units
 
 import java.time.ZonedDateTime
 import java.time.format.DateTimeParseException
-import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
 /** Sanity checks for [[SimonaConfig]] that should lead to a fast failure during
