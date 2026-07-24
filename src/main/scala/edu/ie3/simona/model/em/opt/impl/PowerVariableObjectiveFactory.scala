@@ -88,6 +88,7 @@ object PowerVariableObjectiveFactory {
         receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
       val sortedByTick = sortSymbolsByTick(assetSymbols)
+      val stepCount = sortedByTick.size
 
       val allVariants = sortedByTick.toSeq
         // create objective expression for every time step
@@ -106,7 +107,11 @@ object PowerVariableObjectiveFactory {
         .reduceOption[Expression](_ + _)
         .getOrElse(Zero)
 
-      epigraphVar + softConstraints
+      // the epigraph variable expresses the maximum power of all
+      // time steps. to keep proportions relative to the soft
+      // constraints, we multiply the epi variable value by the
+      // step count.
+      Const(stepCount) * epigraphVar + softConstraints
     }
 
   }
