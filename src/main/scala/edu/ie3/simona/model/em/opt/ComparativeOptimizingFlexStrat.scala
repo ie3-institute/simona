@@ -153,9 +153,9 @@ final case class ComparativeOptimizingFlexStrat(
 object ComparativeOptimizingFlexStrat {
 
   def createPeakShavingComp(
-                        sampleTime: Time,
-                        predictionHorizon: Time,
-                      ): ComparativeOptimizingFlexStrat = {
+      sampleTime: Time,
+      predictionHorizon: Time,
+  ): ComparativeOptimizingFlexStrat = {
     ComparativeOptimizingFlexStrat(
       sampleTime = sampleTime,
       predictionHorizon = predictionHorizon,
@@ -175,7 +175,7 @@ object ComparativeOptimizingFlexStrat {
       ),
     )
   }
-  
+
   def createMinAbsComp(
       sampleTime: Time,
       predictionHorizon: Time,
