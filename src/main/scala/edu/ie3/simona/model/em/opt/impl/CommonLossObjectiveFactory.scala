@@ -111,6 +111,12 @@ abstract class CommonLossObjectiveFactory
               case other => other
             }
 
+          val stateMax = varPower.eMax.toKilowattHours * conversionFactor
+          model.add(
+            p <:= (Const(stateMax) - adaptedPreviousEnergy) *
+              Const(1 / (etaCommon.toEach * varPower.sampleTime.toHours))
+          )
+
           model.add(
             newState := adaptedPreviousEnergy +
               (p - pAbs * Const(1 - etaCommon.toEach)) *
