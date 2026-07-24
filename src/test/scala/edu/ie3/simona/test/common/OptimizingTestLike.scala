@@ -72,7 +72,7 @@ trait OptimizingTestLike extends Matchers {
           val errors = assetSymbolsSeq
             .map { case (_, assetSymbols) =>
               s"${assetSymbols.parameters.stepStartTick} -> ${assetSymbols.parameters.stepEndTick}"
-                -> assetSymbols.getStateCalcError
+                -> assetSymbols.getExcessLoss
             }
             .filter { case (_, error) =>
               error > tolerance
@@ -111,6 +111,39 @@ trait OptimizingTestLike extends Matchers {
       )
     }
 
+  }
+
+  extension (
+      container: AssetSymbolContainer[? <: AssetStepSymbols]
+  ) {
+
+    def getEnergyResultsTable: Seq[String] = {
+      val head = "step,e_stored,e_actual_loss,e_excess_loss\n"
+
+      container.results.map { assetSymbolsSeq =>
+        val firstRow = assetSymbolsSeq.headOption
+          .map { case (_, assetSymbols) =>
+            s"0,${assetSymbols.getStepStartEnergyResult.toRoundedKiloWattHours},0,0\n"
+          }
+          .getOrElse("")
+
+        val dataRows = assetSymbolsSeq.zipWithIndex
+          .map { case ((_, assetSymbols), step) =>
+            s"${step + 1},${assetSymbols.getStepEndEnergyResult.toRoundedKiloWattHours},${assetSymbols.getActualLoss.toRoundedKiloWattHours},${assetSymbols.getExcessLoss.toRoundedKiloWattHours}\n"
+          }
+          .mkString("")
+
+        head + firstRow + dataRows
+
+      }
+
+    }
+
+  }
+
+  extension (energy: Energy) {
+    def toRoundedKiloWattHours: Double =
+      energy.in(KilowattHours).rounded(6).toKilowattHours
   }
 
   def buildDebugString(

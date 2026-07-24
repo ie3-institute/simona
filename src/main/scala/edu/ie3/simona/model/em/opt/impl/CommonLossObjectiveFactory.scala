@@ -144,6 +144,7 @@ abstract class CommonLossObjectiveFactory
           EfficientCommonLossAssetStepSymbols(
             varPower,
             p,
+            varPower.previousStateEnergy,
             newState,
           )
         }
@@ -350,6 +351,7 @@ object CommonLossObjectiveFactory {
     * @param power
     *   The operation variable, describing the power in kW to get from the
     *   energy state at the start to the state at the end of the interval.
+    * @param stepStartState
     * @param stepEndState
     *   The state variable, describing the state of energy in kWh at the end of
     *   the time step interval.
@@ -357,6 +359,7 @@ object CommonLossObjectiveFactory {
   private final case class EfficientCommonLossAssetStepSymbols(
       override val parameters: VariablePowerStepParameters,
       power: MPVar,
+      stepStartState: MPSymbol,
       stepEndState: MPSymbol,
   ) extends CommonLossAssetStepSymbols
       with VariableAssetStepSymbols {
@@ -368,6 +371,9 @@ object CommonLossObjectiveFactory {
     override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
+
+    override def getStepStartEnergyResult: Energy =
+      KilowattHours(stepStartState.getValue)
 
     override def getStepEndEnergyResult: Energy =
       KilowattHours(stepEndState.getValue)

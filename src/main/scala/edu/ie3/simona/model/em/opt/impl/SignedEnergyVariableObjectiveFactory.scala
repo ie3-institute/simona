@@ -82,6 +82,7 @@ abstract class SignedEnergyVariableObjectiveFactory
         VariableSignedEnergyStepSymbols(
           varPower,
           energyChange,
+          varPower.previousStateEnergy,
           newEnergy,
         )
     }
@@ -227,6 +228,8 @@ object SignedEnergyVariableObjectiveFactory {
     override def getOperatingPowerResult: Power =
       parameters.energyChange / parameters.sampleTime
 
+    override def getStepStartEnergyResult: Energy = parameters.stepStartEnergy
+
     override def getStepEndEnergyResult: Energy = parameters.stepEndEnergy
 
   }
@@ -248,6 +251,7 @@ object SignedEnergyVariableObjectiveFactory {
   private final case class VariableSignedEnergyStepSymbols(
       parameters: VariablePowerStepParameters,
       energyChange: MPVar,
+      stepStartState: MPSymbol,
       stepEndState: MPSymbol,
   ) extends SignedEnergyStepSymbols {
 
@@ -278,6 +282,9 @@ object SignedEnergyVariableObjectiveFactory {
       // outside power
       storagePower * factor
     }
+
+    override def getStepStartEnergyResult: Energy =
+      KilowattHours(stepStartState.getValue)
 
     override def getStepEndEnergyResult: Energy =
       KilowattHours(stepEndState.getValue)

@@ -361,6 +361,7 @@ object FlexibilityOptimization {
 
       FixedPowerStepParameters(
         energyChange = energyChange,
+        stepStartEnergy = stepStartEnergy,
         stepEndEnergy = stepEndEnergy,
         stepStartTick = stepStartTick,
         stepEndTick = stepEndTick,
@@ -411,11 +412,13 @@ object FlexibilityOptimization {
     *
     * @param energyChange
     *   The amount of energy change required at this time step.
+    * @param stepStartEnergy
     * @param stepEndEnergy
     *   The state of energy at the end of this time step.
     */
   final case class FixedPowerStepParameters(
       energyChange: Energy,
+      stepStartEnergy: Energy,
       stepEndEnergy: Energy,
       override val stepStartTick: Long,
       override val stepEndTick: Long,

@@ -260,6 +260,8 @@ object PowerVariableObjectiveFactory {
 
     override def getOperatingPowerResult: Power = power
 
+    override def getStepStartEnergyResult: Energy = parameters.stepStartEnergy
+
     override def getStepEndEnergyResult: Energy = parameters.stepEndEnergy
 
   }

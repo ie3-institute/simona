@@ -304,6 +304,8 @@ object ObjectiveFactory {
       */
     def getOperatingPowerResult: Power
 
+    def getStepStartEnergyResult: Energy
+
     /** Returns the resulting state of energy.
       *
       * This method should only be called after optimization has successfully
@@ -312,15 +314,30 @@ object ObjectiveFactory {
       */
     def getStepEndEnergyResult: Energy
 
+    /** todo */
+    def getActualLoss: Energy = zeroKWh
+
     /** todo
       */
-    def getStateCalcError: Energy = zeroKWh
+    def getExcessLoss: Energy = zeroKWh
 
   }
 
   trait VariableAssetStepSymbols extends AssetStepSymbols {
 
     override val parameters: VariablePowerStepParameters
+
+    override def getActualLoss: Energy = {
+      val sampleTime = parameters.sampleTime
+
+      val power = getOperatingPowerResult
+
+      val lossFactor =
+        if power > zeroKW then 1d - parameters.etaCharge.toEach
+        else 1d / parameters.etaDischarge.toEach - 1d
+
+      (power * sampleTime * lossFactor).abs
+    }
 
   }
 
@@ -329,9 +346,7 @@ object ObjectiveFactory {
   trait RelativeStateErrorHelper {
     this: VariableAssetStepSymbols =>
 
-    def getStepStartEnergyResult: Energy
-
-    override def getStateCalcError: Energy = {
+    override def getExcessLoss: Energy = {
       val sampleTime = parameters.sampleTime
 
       val power = getOperatingPowerResult
@@ -366,7 +381,7 @@ object ObjectiveFactory {
 
     def getStateCalcErrors: Seq[Energy] =
       results.flatten.map { case (_, assetSymbols) =>
-        assetSymbols.getStateCalcError
+        assetSymbols.getExcessLoss
       }
 
   }
