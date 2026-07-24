@@ -14,6 +14,7 @@ import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.{
   CommonLossVariant,
   LinearizedQuadraticPowerObjectiveFactory,
   MinAbsPowerObjectiveFactory,
+  PeakShavingObjectiveFactory,
   PriceObjectiveFactory,
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
@@ -63,9 +64,33 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
     currentTick = 0L,
   )
 
+  protected val oneHour: TimeParams = TimeParams(
+    sampleTime = hour,
+    predictionHorizon = hour,
+    currentTick = 0L,
+  )
+
+  protected val twoHoursOneStep: TimeParams = TimeParams(
+    sampleTime = hour * 2,
+    predictionHorizon = hour * 2,
+    currentTick = 0L,
+  )
+
+  protected val threeHours: TimeParams = TimeParams(
+    sampleTime = hour,
+    predictionHorizon = hour * 3,
+    currentTick = 0L,
+  )
+
   protected val fourHours: TimeParams = TimeParams(
     sampleTime = hour,
     predictionHorizon = hour * 4,
+    currentTick = 0L,
+  )
+
+  protected val eightHours: TimeParams = TimeParams(
+    sampleTime = hour,
+    predictionHorizon = hour * 8,
     currentTick = 0L,
   )
 
@@ -173,6 +198,83 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
         batUUID -> batteryHalfFull,
       )
     )
+
+  /* DEMONSTRATIVE EXAMPLES */
+
+  private val batteryDemoExample1: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        eStorage = KilowattHours(10),
+        currentEnergy = KilowattHours(0),
+        pMax = Kilowatts(10),
+        etaCharge = Each(0.8),
+        etaDischarge = Each(0.8),
+        currentTick = 0L,
+      )
+    )
+
+  private val fixedDischargeOneStep: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(-10, 0).toPowerMap(twoHoursOneStep)
+      )
+    )
+
+  protected val paramsExcessLossOneStep: OptimizationParams =
+    OptimizationParams(
+      flexOptionsById = Map(
+        loadUUID -> fixedDischargeOneStep,
+        batUUID -> batteryDemoExample1,
+      ),
+      timeParams = twoHoursOneStep,
+      objectiveFactory = PeakShavingObjectiveFactory(variant =
+        CommonLossVariant.SoftConstraints
+      ),
+      solverLib = SolverLib.oJSolver,
+      tightenBoundaries = false,
+    )
+
+  // todo four steps now?
+  private val fixedDischargeThreeSteps: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(-10, -10, -10, -10).toPowerMap(fourHours)
+      )
+    )
+
+  protected val paramsExcessLossThreeSteps: OptimizationParams =
+    OptimizationParams(
+      flexOptionsById = Map(
+        loadUUID -> fixedDischargeThreeSteps,
+        batUUID -> batteryDemoExample1,
+      ),
+      timeParams = fourHours,
+      objectiveFactory = PeakShavingObjectiveFactory(variant =
+        CommonLossVariant.SoftConstraints
+      ),
+      solverLib = SolverLib.oJSolver,
+      tightenBoundaries = false,
+    )
+
+  private val fixedDischargeEx3: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(-10, -10, -10, -10, -10, -10, -10, -10).toPowerMap(eightHours)
+      )
+    )
+
+  protected val paramsExcessLossEx3: OptimizationParams = OptimizationParams(
+    flexOptionsById = Map(
+      loadUUID -> fixedDischargeEx3,
+      batUUID -> batteryDemoExample1,
+      bat2UUID -> batteryDemoExample1,
+    ),
+    timeParams = eightHours,
+    objectiveFactory =
+      PeakShavingObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
+    solverLib = SolverLib.oJSolver,
+    tightenBoundaries = false,
+  )
 
   /* MODEL WITH NO LOSS */
 

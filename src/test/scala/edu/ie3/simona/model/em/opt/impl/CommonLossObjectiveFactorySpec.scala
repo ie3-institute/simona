@@ -9,6 +9,11 @@ package edu.ie3.simona.model.em.opt.impl
 import CommonLossObjectiveFactorySpec.*
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant.{
+  NoSoftConstraints,
+  SoftConstraints,
+}
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.PeakShavingObjectiveFactory
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.enums.SolutionStatus
@@ -821,6 +826,75 @@ class CommonLossObjectiveFactorySpec
           bat2Res(11).energyVal should approximate(0d)
 
         } withClue buildDebugString(results.assetSymbols)
+      }
+
+    }
+
+    "provided with demonstrative examples" should {
+
+      "produce excess loss with one step" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossOneStep.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(NoSoftConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        val table = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+
+        {
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+      }
+
+      "produce excess loss with three steps" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossThreeSteps.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(NoSoftConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        val table = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+
+        {
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+        fail(buildDebugString(results.assetSymbols))
+
+      }
+
+      "charges and discharges repeatedly" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossEx3.copy(
+            objectiveFactory = PeakShavingObjectiveFactory(SoftConstraints),
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        val table1 = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+        val table2 = results.assetSymbols.vars(bat2UUID).getEnergyResultsTable
+
+        {
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+        fail(buildDebugString(results.assetSymbols))
+
       }
 
     }

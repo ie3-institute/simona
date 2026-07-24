@@ -10,6 +10,7 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization
 import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
 import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.{
   MinAbsPowerObjectiveFactory,
+  PeakShavingObjectiveFactory,
   PriceObjectiveFactory,
 }
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
@@ -962,6 +963,75 @@ class SplitPowerVarsObjectiveFactorySpec
           batRes(2).pVal + batRes(3).pVal should approximate(20d)
 
         } withClue buildDebugString(results.assetSymbols)
+      }
+
+    }
+
+    "provided with demonstrative examples" should {
+
+      "produce excess loss with one step" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossOneStep.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(NoAdditionalConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        val table = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+
+        {
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+      }
+
+      "produce excess loss with three steps" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossThreeSteps.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(RelaxedConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        val table = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+
+        {
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+        fail(buildDebugString(results.assetSymbols))
+
+      }
+
+      "charges and discharges repeatedly" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossEx3.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(BinaryConstraint)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+
+        val table1 = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+        val table2 = results.assetSymbols.vars(bat2UUID).getEnergyResultsTable
+
+        {
+
+          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+        fail(buildDebugString(results.assetSymbols))
+
       }
 
     }
