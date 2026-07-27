@@ -14,7 +14,7 @@ import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simona.util.TickUtil.toTick
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import tech.units.indriya.ComparableQuantity
 

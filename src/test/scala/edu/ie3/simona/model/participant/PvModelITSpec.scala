@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simona.util.TickUtil.toTick
 import squants.energy.{Megawatts, Power}
 
 /** A simple integration test that uses pre-calculated data to check if the pv

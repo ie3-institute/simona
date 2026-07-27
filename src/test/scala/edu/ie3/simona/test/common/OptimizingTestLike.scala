@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.test.common
 
-import edu.ie3.simona.model.em.opt.OptimizedFlexStrat.{
-  AssetStepVars,
-  AssetVarContainer,
+import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
+  AssetStepSymbols,
+  AssetSymbolContainer,
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
@@ -34,25 +34,27 @@ trait OptimizingTestLike extends Assertions {
         ProsumerPrice(EuroPerKilowattHour(sell), EuroPerKilowattHour(buy))
       })))
 
-  extension (vars: AssetStepVars) {
+  extension (vars: AssetStepSymbols) {
 
-    /** The state of energy in kWh.
+    /** The state of energy in kWh, if applicable (NaN else).
       */
     def energyVal: Double =
-      vars.getStateResult.toKilowattHours
+      vars.getStateOfEnergyResult.toKilowattHours
 
     /** Power value in kW.
       */
     def pVal: Double =
-      vars.getOperationResult.toKilowatts
+      vars.getOperatingPowerResult.toKilowatts
 
   }
 
-  extension [AV <: AssetStepVars](containers: Iterable[AssetVarContainer[AV]]) {
+  extension [AV <: AssetStepSymbols](
+      containers: Iterable[AssetSymbolContainer[AV]]
+  ) {
 
-    def vars(uuid: UUID): AssetVarContainer[AV] = containers
+    def vars(uuid: UUID): AssetSymbolContainer[AV] = containers
       .find(_.assetUuid == uuid)
-      .getOrElse(fail(s"No asset variables for battery ($uuid) found."))
+      .getOrElse(fail(s"No asset symbols for battery ($uuid) found."))
 
     def res(uuid: UUID): IndexedSeq[AV] = vars(uuid).results.headOption
       .getOrElse(fail(s"Empty results for battery ($uuid)."))
@@ -62,9 +64,9 @@ trait OptimizingTestLike extends Assertions {
   }
 
   def buildDebugString(
-      containers: Iterable[AssetVarContainer[? <: AssetStepVars]]
+      containers: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]]
   ): String =
-    s"\n\tDEBUGGING asset variables:" +
+    s"\n\tDEBUGGING asset symbols:" +
       containers
         .map { container =>
           s"\n\t\t ${container.assetUuid}:" +
@@ -72,8 +74,8 @@ trait OptimizingTestLike extends Assertions {
               .map { sortedVars =>
                 s"\n\t\t\tTrajectory: ${sortedVars
                     .map { case (_, vars) =>
-                      vars.getOperationResult.in(Kilowatts).rounded(6).toString +
-                        vars.stateVar.map(_ => s" ( -> ${vars.getStateResult.in(KilowattHours).rounded(6).toString})").getOrElse("")
+                      vars.getOperatingPowerResult.in(Kilowatts).rounded(6).toString +
+                        s" ( -> ${vars.getStateOfEnergyResult.in(KilowattHours).rounded(6).toString})"
                     }
                     .mkString(", ")}"
               }

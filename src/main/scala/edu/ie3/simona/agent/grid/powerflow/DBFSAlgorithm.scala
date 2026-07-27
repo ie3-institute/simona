@@ -40,7 +40,7 @@ import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.SquantsUtils.RichElectricPotential
+import edu.ie3.util.scala.quantities.SquantsUtils.multiplyWithDimensionless
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
