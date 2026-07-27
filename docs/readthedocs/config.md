@@ -14,6 +14,11 @@ To create the output directory name, the name of the simulation is used as a str
 
   `simona.simulationName = "vn_simona"`
 
+The simulation timeout defines the time after a simulation is automatically stopped. For long running simulations this parameter
+needs to be adapted.
+
+  `simona.simulationTimeout = 12h`
+
 ## Time parameters
 Starting date and time of the simulation in ISO-8601 date and time format with offset
 
@@ -434,6 +439,10 @@ Maximum Voltage Limit in p.u.:
 
 
 ## Default configuration values
+
+```
+simulationTimeout: FiniteDuration = 12h
+```
 
 ### Time
 ```
