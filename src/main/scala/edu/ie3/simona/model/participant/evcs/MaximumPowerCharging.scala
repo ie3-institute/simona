@@ -12,7 +12,7 @@ import java.util.UUID
 
 /** Determine scheduling for charging the EVs currently parked at the charging
   * station by charging with maximum power from current time until it reaches
-  * either 100% SoC or its departure time.
+  * either target SoC or its departure time.
   */
 object MaximumPowerCharging extends EvcsChargingStrategy {
 
@@ -21,7 +21,9 @@ object MaximumPowerCharging extends EvcsChargingStrategy {
       currentTick: Long,
       chargingProps: EvcsChargingProperties,
   ): Map[UUID, Power] = evs
-    .filter(ev => ev.storedEnergy < ev.eStorage)
+    .filter(ev =>
+      ev.storedEnergy < ev.eStorage * chargingProps.departureTargetSoc
+    )
     .map { ev =>
       ev.uuid -> chargingProps.getMaxAvailableChargingPower(ev)
     }

@@ -20,7 +20,6 @@ import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.test.common.ConfigTestData
 import edu.ie3.simona.test.common.input.NodeInputTestData
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
@@ -34,11 +33,7 @@ trait CongestedComponentsTestData
     with NodeInputTestData
     with DbfsTestGrid {
 
-  val startTime: ZonedDateTime = TimeUtil.withDefaults.toZonedDateTime(
-    simonaConfig.simona.time.startDateTime
-  )
-
-  val endTime: ZonedDateTime = startTime.plusHours(2)
+  override val endTime: ZonedDateTime = startTime.plusHours(2)
 
   val trafoType3W = new Transformer3WTypeInput(
     UUID.randomUUID(),
@@ -78,7 +73,7 @@ trait CongestedComponentsTestData
     false,
   )
 
-  protected val gridModel: GridModel = {
+  protected val defaultGridModel: GridModel = {
     val refSystem = RefSystem(Megawatts(600), Kilovolts(110))
 
     val model = GridModel(
@@ -129,7 +124,7 @@ trait CongestedComponentsTestData
   val nodeResultA = new NodeResult(
     startTime,
     supNodeA.getUuid,
-    0.89.asPu,
+    0.91.asPu,
     0.asDegreeGeom,
   )
 
@@ -157,7 +152,7 @@ trait CongestedComponentsTestData
   val nodeResult3 = new NodeResult(
     startTime,
     node3.getUuid,
-    0.89.asPu,
+    0.91.asPu,
     0.asDegreeGeom,
   )
 
@@ -184,6 +179,15 @@ trait CongestedComponentsTestData
     848d.asAmpere,
     0d.asDegreeGeom,
     849d.asAmpere,
+    0d.asDegreeGeom,
+  )
+
+  val lineResult34 = new LineResult(
+    startTime,
+    line3To4.getUuid,
+    230d.asAmpere,
+    0d.asDegreeGeom,
+    230d.asAmpere,
     0d.asDegreeGeom,
   )
 

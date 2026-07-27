@@ -6,21 +6,25 @@
 
 package edu.ie3.simona.sim
 
+import com.typesafe.config.Config
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.GridAgentCoordinator
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{
   DelayedStopHelper,
-  ResultEventListener,
+  ResultListener,
   RuntimeEventListener,
 }
-import edu.ie3.simona.event.{ResultEvent, RuntimeEvent}
 import edu.ie3.simona.main.RunSimona.SimonaEnded
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec.*
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
@@ -29,11 +33,11 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
-import org.apache.pekko.actor.typed.scaladsl.adapter.*
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 
 import java.nio.file.Path
+import java.time.ZonedDateTime
 import java.util.UUID
 
 class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
@@ -47,9 +51,9 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val runtimeListener =
           TestProbe[RuntimeEventListener.Request]("runtimeEventListener")
         val resultListener =
-          TestProbe[ResultEventListener.Request]("resultEventListener")
+          TestProbe[ResultListener.Message]("resultEventListener")
         val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
-        val extSimAdapter = TestProbe[ExtSimAdapter.Stop]("extSimAdapter")
+        val extSimAdapter = TestProbe[ExtSimAdapter.Request]("extSimAdapter")
 
         val simonaSim = spawn(
           SimonaSim(
@@ -61,6 +65,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               override def extSimulations(
                   context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
+                  resultProxy: ActorRef[ResultServiceProxy.Message],
                   extSimPath: Option[Path],
               ): ExtSimSetupData = {
                 // We cannot return a TestProbe ref here,
@@ -70,8 +75,10 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
                   uniqueName("extSimAdapterForwarder"),
                 )
                 ExtSimSetupData(
-                  Iterable(extSim.toClassic),
+                  Iterable(extSim),
                   Seq.empty,
+                  None,
+                  None,
                   Seq.empty,
                   Seq.empty,
                 )
@@ -113,7 +120,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val runtimeListener =
           TestProbe[RuntimeEventListener.Request]("runtimeEventListener")
         val resultListener =
-          TestProbe[ResultEventListener.Request]("resultEventListener")
+          TestProbe[ResultListener.Message]("resultEventListener")
         val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveThrowingActor =
@@ -179,7 +186,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
         val runtimeListener =
           TestProbe[RuntimeEventListener.Request]("runtimeEventListener")
         val resultListener =
-          TestProbe[ResultEventListener.Request]("resultEventListener")
+          TestProbe[ResultListener.Message]("resultEventListener")
         val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveStoppingActor =
@@ -242,7 +249,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
       "RuntimeEventListener stops unexpectedly" in {
         val starter = TestProbe[SimonaEnded]("starter")
         val resultListener =
-          TestProbe[ResultEventListener.Request]("resultEventListener")
+          TestProbe[ResultListener.Message]("resultEventListener")
         val timeAdvancer = TestProbe[TimeAdvancer.Request]("timeAdvancer")
 
         val receiveThrowingActor =
@@ -309,7 +316,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
               override def resultEventListener(
                   context: ActorContext[?]
-              ): Seq[ActorRef[ResultEventListener.Request]] =
+              ): Seq[ActorRef[ResultListener.Message]] =
                 throwTestException()
             }
           ),
@@ -331,7 +338,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
 }
 
-object SimonaSimSpec {
+object SimonaSimSpec extends ConfigTestData {
 
   /** Behavior that does nothing on receiving message */
   def empty[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
@@ -380,33 +387,27 @@ object SimonaSimSpec {
     "This is an exception for test purposes. It is expected to be thrown."
   )
 
-  /** Makes the given actor name unique by appending a random UUID */
+  /** Makes the given actor name unique by appending a random UUID. */
   def uniqueName(name: String): String =
     s"${name}_${UUID.randomUUID()}"
 
-  /** Mock implementation of [[SimonaSetup]]
+  /** Mock implementation of [[SimonaSetup]].
     *
     * @param runtimeEventProbe
     *   Optional ActorRef that messages received by RuntimeEventListener are
-    *   forwarded to
+    *   forwarded to.
     * @param resultEventProbe
     *   Optional ActorRef that messages received by ResultEventListener are
-    *   forwarded to
+    *   forwarded to.
     * @param timeAdvancerProbe
     *   Optional ActorRef that messages received by TimeAdvancer are forwarded
-    *   to
+    *   to.
     */
   class MockSetup(
       runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Request]] = None,
-      resultEventProbe: Option[ActorRef[ResultEventListener.Request]] = None,
+      resultEventProbe: Option[ActorRef[ResultListener.Message]] = None,
       timeAdvancerProbe: Option[ActorRef[TimeAdvancer.Request]] = None,
-  ) extends SimonaSetup
-      with ConfigTestData {
-
-    override val args: Array[String] = Array.empty[String]
-    override val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
-
-    override def logOutputDir: Path = throw new NotImplementedError()
+  ) extends SimonaSetup(typesafeConfig, SimonaConfig(typesafeConfig)) {
 
     override def runtimeEventListener(
         context: ActorContext[?]
@@ -417,7 +418,7 @@ object SimonaSimSpec {
 
     override def resultEventListener(
         context: ActorContext[?]
-    ): Seq[ActorRef[ResultEventListener.Request]] = Seq(
+    ): Seq[ActorRef[ResultListener.Message]] = Seq(
       context.spawn(
         stoppableForwardMessage(resultEventProbe),
         uniqueName("resultEventForwarder"),
@@ -431,11 +432,24 @@ object SimonaSimSpec {
     ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("primaryService"))
 
+    override def resultServiceProxy(
+        context: ActorContext[?],
+        listeners: Seq[ActorRef[ResultResponse]],
+        simStartTime: ZonedDateTime,
+    ): ActorRef[ResultServiceProxy.Message] =
+      context.spawn(stoppableForwardMessage(None), uniqueName("resultService"))
+
     override def weatherService(
         context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
     ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("weatherService"))
+
+    override def priceService(
+        context: ActorContext[?],
+        scheduler: ActorRef[SchedulerMessage],
+    ): Option[ActorRef[ServiceMessage]] =
+      None
 
     override def loadProfileService(
         context: ActorContext[?],
@@ -460,15 +474,23 @@ object SimonaSimSpec {
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
-    override def gridAgents(
+    override def gridAgentCoordinator(
+        participantRefs: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]
+    )(using
         context: ActorContext[?],
         environmentRefs: EnvironmentRefs,
-        resultEventListeners: Seq[ActorRef[ResultEvent]],
-    ): Iterable[ActorRef[GridAgent.Message]] = Iterable.empty
+    ): ActorRef[GridAgentCoordinator.Message] =
+      context.spawn(empty, uniqueName("gridAgentCoordinator"))
+
+    override def participantAgents(using
+        context: ActorContext[?],
+        environmentRefs: EnvironmentRefs,
+    ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = Map.empty
 
     override def extSimulations(
         context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
+        resultProxy: ActorRef[ResultServiceProxy.Message],
         extSimPath: Option[Path],
     ): ExtSimSetupData =
       ExtSimSetupData.apply

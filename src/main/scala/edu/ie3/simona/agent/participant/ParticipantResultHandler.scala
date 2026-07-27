@@ -20,18 +20,24 @@ import edu.ie3.simona.event.ResultEvent.{
 }
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.service.results.ResultServiceProxy.{
+  ExpectResult,
+  NoResult,
+}
 import org.apache.pekko.actor.typed.ActorRef
 
+import java.util.UUID
+
 /** Handles all kind of results stemming from the participant by sending them to
-  * the result listener, if applicable.
+  * the result proxy, if applicable.
   *
-  * @param listener
-  *   The actor reference to the result listener.
+  * @param resultProxy
+  *   The actor reference to the result resultProxy.
   * @param config
   *   The result configuration.
   */
 final case class ParticipantResultHandler(
-    private val listener: Iterable[ActorRef[ResultEvent]],
+    private val resultProxy: ActorRef[ResultEvent | ExpectResult | NoResult],
     private val config: NotifierConfig,
 ) {
 
@@ -42,18 +48,16 @@ final case class ParticipantResultHandler(
     */
   def maybeSend(result: ResultEntity): Unit =
     if config.simulationResultInfo then {
-      listener.foreach(actor =>
-        result match {
-          case thermalResult: ThermalUnitResult =>
-            actor ! ThermalResultEvent(thermalResult)
-          case participantResult: SystemParticipantResult =>
-            actor ! ParticipantResultEvent(participantResult)
-          case unsupported =>
-            throw new CriticalFailureException(
-              s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
-            )
-        }
-      )
+      result match {
+        case thermalResult: ThermalUnitResult =>
+          resultProxy ! ThermalResultEvent(thermalResult)
+        case participantResult: SystemParticipantResult =>
+          resultProxy ! ParticipantResultEvent(participantResult)
+        case unsupported =>
+          throw new CriticalFailureException(
+            s"Results of class '${unsupported.getClass.getSimpleName}' are currently not supported."
+          )
+      }
     }
 
   /** Send the flex options result to all listeners, if enabled.
@@ -63,9 +67,17 @@ final case class ParticipantResultHandler(
     */
   def maybeSend(result: FlexOptionsResult): Unit =
     if config.flexResult then {
-      listener.foreach(
-        _ ! FlexOptionsResultEvent(result)
-      )
+      resultProxy ! FlexOptionsResultEvent(result)
     }
+
+  def sendNoResult(uuid: UUID, tick: Long): Unit =
+    resultProxy ! NoResult(uuid, tick)
+
+  def informProxy(
+      uuid: UUID,
+      tick: Long,
+      waitForSetPoint: Boolean = false,
+  ): Unit =
+    resultProxy ! ExpectResult(uuid, tick, waitForSetPoint)
 
 }

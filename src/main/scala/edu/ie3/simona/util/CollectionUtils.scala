@@ -10,8 +10,52 @@ import squants.Quantity
 
 import scala.annotation.tailrec
 import scala.collection.immutable.HashSet
+import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
 object CollectionUtils {
+
+  /** Extension to convert a map with nested collection to java. The nested
+    * collection will be converted to lists.
+    */
+  extension [K, V](scalaMap: Map[K, Iterable[V]]) {
+    def asJava: java.util.Map[K, java.util.List[V]] = {
+      scalaMap.map { case (key, value) =>
+        key -> value.toList.asJava
+      }.asJava
+    }
+  }
+
+  /** Method to create an empty option map for the specified keys.
+    * @param keys
+    *   For which the map should be created.
+    * @tparam K1
+    *   Type of the primary key.
+    * @tparam K2
+    *   Type of the secondary key.
+    * @tparam V
+    *   Type of the values.
+    * @return
+    *   The created map.
+    */
+  def emptyOptionMap[K1, K2, V](
+      keys: Map[K1, Iterable[K2]]
+  ): Map[K1, Map[K2, Option[V]]] = keys.map { case (key, infKeys) =>
+    key -> emptyOptionMap(infKeys.toSet)
+  }
+
+  /** Method to create a map for the given keys. Each value is set to [[None]].
+    *
+    * @param keys
+    *   For which the map should be created.
+    * @tparam K
+    *   Type of the keys.
+    * @tparam V
+    *   Type of the values.
+    * @return
+    *   The created map.
+    */
+  def emptyOptionMap[K, V](keys: Set[K]): Map[K, Option[V]] =
+    keys.map(key => key -> None).toMap
 
   /** fast implementation to test if a list contains duplicates. See
     * https://stackoverflow.com/questions/3871491/functional-programming-does-a-list-only-contain-unique-items
@@ -59,10 +103,8 @@ object CollectionUtils {
   @tailrec
   private def isUniqueList[T](list: List[T], set: Set[T]): Boolean =
     list match {
-      case Nil => true
-      case headEntry :: tailList =>
-        if set(headEntry) then false
-        else isUniqueList(tailList, set + headEntry)
+      case Nil          => true
+      case head :: tail => !set(head) && isUniqueList(tail, set + head)
     }
 
   /** Checks if the provided list is sorted in accordance to the provided

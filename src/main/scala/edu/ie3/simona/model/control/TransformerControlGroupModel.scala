@@ -16,6 +16,7 @@ import edu.ie3.simona.model.control.TransformerControlGroupModel.{
   RegulationCriterion,
   harmonizeRegulationNeeds,
 }
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import squants.{Dimensionless, Each}
 
 import java.util.UUID
@@ -139,8 +140,8 @@ object TransformerControlGroupModel {
   private def harmonizeRegulationNeeds(
       regulationRequests: Array[Dimensionless]
   ): Option[Dimensionless] = {
-    val negativeRequests = regulationRequests.filter(_ < Each(0d))
-    val positiveRequests = regulationRequests.filter(_ > Each(0d))
+    val negativeRequests = regulationRequests.filter(_ < zeroPU)
+    val positiveRequests = regulationRequests.filter(_ > zeroPU)
 
     (negativeRequests.nonEmpty, positiveRequests.nonEmpty) match {
       case (true, true) =>

@@ -18,6 +18,7 @@ import edu.ie3.datamodel.models.input.system.{
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat.tolerance
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import squants.Power
 
@@ -47,18 +48,32 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
     * be used.
     *
     * @param flexOptions
-    *   The flex options per connected system participant
+    *   The flex options per connected system participant.
     * @param target
-    *   The target power to aim for when utilizing flexibility
+    *   The target power to aim for when utilizing flexibility.
+    * @param currentTick
+    *   The current tick.
+    * @param receivedData
+    *   The secondary data received by the EM agent.
     * @return
-    *   Power set points for devices, if applicable
+    *   Power set points for devices, if applicable.
     */
   override def determineFlexControl(
       flexOptions: Iterable[
         (? <: AssetInput, PowerLimitFlexOptions)
       ],
       target: Power,
+      currentTick: Long,
+      receivedData: Seq[SecondaryData],
   ): Seq[(UUID, Power)] = {
+
+    flexOptions.foreach {
+      case (_: SystemParticipantInput, _) =>
+      case _ =>
+        throw new CriticalFailureException(
+          s"Only system participant are allowed as controlled assets of this strategy."
+        )
+    }
 
     val totalRefPower =
       flexOptions
@@ -210,6 +225,13 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
       assetInput: AssetInput,
       flexOptions: PowerLimitFlexOptions,
   ): PowerLimitFlexOptions = {
+    assetInput match {
+      case _: SystemParticipantInput =>
+      case _ =>
+        throw new CriticalFailureException(
+          s"Only system participant are allowed as controlled assets of this strategy."
+        )
+    }
     if controllableAssets.contains(assetInput.getClass) then flexOptions
     else {
       // device is not controllable by this EmAgent

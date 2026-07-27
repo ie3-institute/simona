@@ -8,18 +8,19 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.MockParticipantModel.*
-import edu.ie3.simona.agent.participant.ParticipantAgent.ParticipantRequest
 import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
-import edu.ie3.simona.model.participant.{ParticipantFlexModel, ParticipantModel}
+import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
+import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
   FlexType,
   PowerLimitFlexOptions,
 }
 import edu.ie3.simona.service.Data.{PrimaryData, SecondaryData}
-import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.simona.service.{Data, DataTimeType, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
@@ -50,15 +51,18 @@ class MockParticipantModel(
     override val sRated: ApparentPower = Kilovoltamperes(10),
     override val cosPhiRated: Double = 0.9,
     override val qControl: QControl = CosPhiFixed(0.9),
-    mockActivationTicks: Map[Long, Long] = Map.empty,
-    mockChangeAtNext: Set[Long] = Set.empty,
+    val mockActivationTicks: Map[Long, Long] = Map.empty,
+    val mockChangeAtNext: Set[Long] = Set.empty,
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
       MockState,
     ] {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[MockState]] =
-    Map(FlexType.PowerLimit -> MockPowerLimitFlexModel)
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    MockState,
+  ]] =
+    Map(FlexType.PowerLimit -> new MockPowerLimitFlexModel(this))
 
   override def determineState(
       lastState: MockState,
@@ -136,19 +140,12 @@ class MockParticipantModel(
   override def determineOperatingPoint(
       state: MockState,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (
-      ActivePowerOperatingPoint(setPower),
-      OperationChangeIndicator(
-        changesAtNextActivation = mockChangeAtNext.contains(state.tick),
-        changesAtTick = mockActivationTicks.get(state.tick),
-      ),
-    )
+  ): ActivePowerOperatingPoint = ActivePowerOperatingPoint(setPower)
 
   override def handleRequest(
       state: MockState,
       ctx: ActorContext[ParticipantAgent.Message],
-      msg: ParticipantRequest,
+      msg: DirectAgentRequest,
   ): MockState = {
     msg match {
       case MockRequestMessage(_, replyTo) =>
@@ -164,10 +161,12 @@ object MockParticipantModel {
 
   val uuid: UUID = UUID.fromString("0-0-0-0-1")
 
-  object MockPowerLimitFlexModel extends ParticipantFlexModel[MockState] {
+  class MockPowerLimitFlexModel(model: MockParticipantModel)
+      extends ParticipantFlexModel[ActivePowerOperatingPoint, MockState] {
 
     override def determineFlexOptions(
-        state: MockState
+        state: MockState,
+        dataTimeType: DataTimeType,
     ): FlexOptions = {
       val additionalP = state.additionalP.getOrElse(zeroKW)
       PowerLimitFlexOptions(
@@ -177,6 +176,16 @@ object MockParticipantModel {
       )
     }
 
+    override def determineNextActivation(
+        state: MockState,
+        operatingPoint: ActivePowerOperatingPoint,
+        setPower: Power,
+        dataTimeType: DataTimeType,
+    ): OperationChangeIndicator =
+      OperationChangeIndicator(
+        changesAtNextActivation = model.mockChangeAtNext.contains(state.tick),
+        changesAtTick = model.mockActivationTicks.get(state.tick),
+      )
   }
 
   /** Simple [[ModelState]] to test its usage in operation point calculations.
@@ -206,7 +215,7 @@ object MockParticipantModel {
   final case class MockRequestMessage(
       override val tick: Long,
       replyTo: ActorRef[MockResponseMessage],
-  ) extends ParticipantRequest
+  ) extends DirectAgentRequest
 
   /** Mock response message that also enables testing of state handling
     *

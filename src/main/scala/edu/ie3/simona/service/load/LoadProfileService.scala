@@ -6,33 +6,31 @@
 
 package edu.ie3.simona.service.load
 
-import edu.ie3.datamodel.models.profile.LoadProfile
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  RegistrationFailedMessage,
-  RegistrationSuccessfulMessage,
-}
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  SecondaryServiceRegistrationMessage,
-  ServiceRegistrationMessage,
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.ServiceMessage.*
+import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.Data.SecondaryData.{
+  LoadDataFunction,
+  SecondarySeriesData,
 }
-import edu.ie3.simona.service.Data.SecondaryData.{LoadData, LoadDataFunction}
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.SimonaService
+import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
 
 import java.time.ZonedDateTime
+import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
 /** Load Profile Service is responsible to register other actors that require
@@ -43,23 +41,33 @@ object LoadProfileService extends SimonaService {
 
   override type S = LoadProfileInitializedStateData
 
+  /** Container storing registered actors for a load profile.
+    *
+    * @param registrantsMap
+    *   A map of data time type to registered actors.
+    */
+  final case class RegistrantsContainer(
+      registrantsMap: Map[DataTimeType, Set[
+        ActorRef[ServiceMessage.Response]
+      ]] = Map.empty
+  )
+
   /** @param loadProfileStore
     *   That stores that contains all load profiles.
-    * @param profileToRefs
-    *   Map: actor ref to [[LoadProfile]].
+    * @param registeredAgents
+    *   Registered agents by [[PowerProfileKey]].
     * @param profileResolutions
     *   Map: [[LoadProfile]] to resolution.
     * @param profileToNextActivationTick
-    *   Map: [[LoadProfile]] to next activation tick..
+    *   Map: [[LoadProfile]] to next activation tick.
     * @param simulationStartTime
     *   Start of the simulation.
     */
   final case class LoadProfileInitializedStateData(
       loadProfileStore: LoadProfileStore,
-      profileToRefs: Map[LoadProfile, Seq[ActorRef[ParticipantAgent.Request]]] =
-        Map.empty,
-      profileResolutions: Map[LoadProfile, Long],
-      profileToNextActivationTick: Map[LoadProfile, Long],
+      registeredAgents: Map[PowerProfileKey, RegistrantsContainer] = Map.empty,
+      profileResolutions: Map[PowerProfileKey, Long],
+      profileToNextActivationTick: Map[PowerProfileKey, Long],
       simulationStartTime: ZonedDateTime,
   ) extends ServiceBaseStateData
 
@@ -121,9 +129,16 @@ object LoadProfileService extends SimonaService {
   ): Try[LoadProfileInitializedStateData] = registrationMessage match {
     case SecondaryServiceRegistrationMessage(
           requestingActor,
-          loadProfile: LoadProfile,
+          dataTimeType,
+          powerProfileKey: PowerProfileKey,
         ) =>
-      Success(handleRegistrationRequest(requestingActor, loadProfile))
+      Success(
+        handleRegistrationRequest(
+          requestingActor,
+          powerProfileKey,
+          dataTimeType,
+        )
+      )
     case invalidMessage =>
       Failure(
         InvalidRegistrationRequestException(
@@ -137,76 +152,85 @@ object LoadProfileService extends SimonaService {
     * value provision.
     *
     * @param agentToBeRegistered
-    *   the agent that wants to be registered
-    * @param loadProfile
-    *   of the agent
+    *   The agent that wants to be registered.
+    * @param powerProfileKey
+    *   The load profile that the agent wants to receive data for.
+    * @param dataTimeType
+    *   The data time type that the agent wants to receive data for.
     * @param serviceStateData
-    *   the current service state data of this service
+    *   The current service state data of this service.
     * @return
-    *   an updated state data of this service that contains registration
-    *   information if the registration has been carried out successfully
+    *   An updated state data of this service that contains registration
+    *   information if the registration has been carried out successfully.
     */
   private def handleRegistrationRequest(
-      agentToBeRegistered: ActorRef[ParticipantAgent.Request],
-      loadProfile: LoadProfile,
+      agentToBeRegistered: ActorRef[ServiceMessage.Response],
+      powerProfileKey: PowerProfileKey,
+      dataTimeType: DataTimeType,
   )(using
       serviceStateData: LoadProfileInitializedStateData,
       ctx: ActorContext[Message],
   ): LoadProfileInitializedStateData = {
 
-    serviceStateData.profileToRefs.get(loadProfile) match {
-      case None =>
-        /* The load profile itself is not known yet. Try to figure out, which load profile is relevant */
-
-        if serviceStateData.loadProfileStore.contains(loadProfile) then {
-          // we can provide data for the agent
+    getRegistrantsContainer(powerProfileKey) match {
+      case Success(registrants) =>
+        if registrants.registrantsMap.contains(
+            dataTimeType,
+            agentToBeRegistered,
+          )
+        then
+          ctx.log.warn(
+            "Sending actor {} is already registered",
+            agentToBeRegistered,
+          )
+        else
           agentToBeRegistered ! RegistrationSuccessfulMessage(
             ctx.self,
             FIRST_TICK_IN_SIMULATION,
             serviceStateData.loadProfileStore.getProfileLoadFactoryData(
-              loadProfile
+              powerProfileKey
             ),
           )
 
-          serviceStateData.copy(profileToRefs =
-            serviceStateData.profileToRefs + (loadProfile -> Seq(
-              agentToBeRegistered
-            ))
-          )
-        } else {
-          // we cannot provide data for the agent
-          ctx.log.error(
-            s"Unable to obtain necessary information to register for load profile '${loadProfile.getKey}'."
+        val updatedRegistrants =
+          registrants.copy(registrantsMap =
+            registrants.registrantsMap.added(dataTimeType, agentToBeRegistered)
           )
 
-          agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
-          serviceStateData
-        }
-
-      case Some(actorRefs) if !actorRefs.contains(agentToBeRegistered) =>
-        // load profile is already known (= we have data for it), but this actor is not registered yet
-        agentToBeRegistered ! RegistrationSuccessfulMessage(
-          ctx.self,
-          FIRST_TICK_IN_SIMULATION,
-          serviceStateData.loadProfileStore.getProfileLoadFactoryData(
-            loadProfile
-          ),
+        serviceStateData.copy(registeredAgents =
+          serviceStateData.registeredAgents
+            .updated(powerProfileKey, updatedRegistrants)
         )
 
-        serviceStateData.copy(
-          profileToRefs =
-            serviceStateData.profileToRefs + (loadProfile -> (actorRefs :+ agentToBeRegistered))
+      case Failure(exception) =>
+        ctx.log.error(
+          s"Unable to register for load profile '$powerProfileKey'.",
+          exception,
         )
 
-      case _ =>
-        // actor is already registered, do nothing
-        ctx.log.warn(
-          "Sending actor {} is already registered",
-          agentToBeRegistered,
-        )
+        agentToBeRegistered ! RegistrationFailedMessage(ctx.self)
         serviceStateData
     }
+
   }
+
+  /** Retrieves or creates the [[RegistrantsContainer]] for given load profile.
+    */
+  private def getRegistrantsContainer(loadProfile: PowerProfileKey)(using
+      serviceStateData: LoadProfileInitializedStateData
+  ): Try[RegistrantsContainer] =
+    serviceStateData.registeredAgents.get(loadProfile) match {
+      case None =>
+        if serviceStateData.loadProfileStore.contains(loadProfile) then
+          Success(RegistrantsContainer())
+        else
+          Failure(
+            InvalidRegistrationRequestException(
+              s"Cannot register an agent for load profile $loadProfile, which is not available!"
+            )
+          )
+      case Some(container) => Success(container)
+    }
 
   override protected def announceInformation(tick: Long)(using
       serviceStateData: LoadProfileInitializedStateData,
@@ -216,7 +240,7 @@ object LoadProfileService extends SimonaService {
     val time = tick.toDateTime
 
     val loadProfileStore = serviceStateData.loadProfileStore
-    val profileToRefs = serviceStateData.profileToRefs
+    val registeredAgents = serviceStateData.registeredAgents
 
     /* Calculate the next activation ticks */
     val resolutions = serviceStateData.profileResolutions
@@ -230,41 +254,55 @@ object LoadProfileService extends SimonaService {
       }
 
     activations.foreach { case (loadProfile, nextTick) =>
-      profileToRefs.get(loadProfile).foreach { actorRefs =>
-        loadProfile match {
-          case LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE =>
-            val loadFunction = loadProfileStore.randomEntrySupplier(time)
+      registeredAgents.get(loadProfile).foreach { registrantsContainer =>
+        def dataRetrievalFunc(time: ZonedDateTime): SecondaryData =
+          LoadDataFunction(loadProfileStore.entryFunc(time, loadProfile))
 
-            /* Providing random load value function to the requester */
-            actorRefs.foreach(recipient =>
-              recipient ! DataProvision(
+        registrantsContainer.registrantsMap.foreach {
+          case (dataTimeType, actors) =>
+            val data = dataTimeType match {
+              case DataTimeType.Current =>
+                dataRetrievalFunc(time)
+
+              case DataTimeType
+                    .CurrentAndForecast(forecastLength, forecastResTime) =>
+                val profileRes = resolutions(loadProfile)
+                val forecastRes = forecastResTime.toSeconds.toLong
+                val endTick = tick + forecastLength.toSeconds.toLong
+
+                // if forecast resolution is a multiple of profile resolution,
+                // we can use forecast resolution instead
+                val adaptedRes =
+                  if forecastRes % profileRes == 0 then forecastRes
+                  else profileRes
+
+                // profile time series is forwarded as forecast without adding noise
+                val series =
+                  Range.Long
+                    .inclusive(tick, endTick, adaptedRes)
+                    .map { tickIt =>
+                      val timeIt = tickIt.toDateTime
+                      val data = dataRetrievalFunc(timeIt)
+
+                      tickIt -> data
+                    }
+                    .to(SortedMap)
+
+                SecondarySeriesData(
+                  reduceTimeSeriesResolution(series, forecastResTime)
+                )
+
+            }
+
+            /* Sending the found value to the requester */
+            actors.foreach(
+              _ ! DataProvision(
                 tick,
                 ctx.self,
-                LoadDataFunction(loadFunction),
+                data,
                 Some(nextTick),
               )
             )
-
-          case _ =>
-            loadProfileStore.entry(time, loadProfile) match {
-              case Some(averagePower) =>
-                /* Sending the found value to the requester */
-                actorRefs.foreach(recipient =>
-                  recipient ! DataProvision(
-                    tick,
-                    ctx.self,
-                    LoadData(averagePower),
-                    Some(nextTick),
-                  )
-                )
-              case None =>
-                /* There is no data available in the source. */
-                ctx.log.warn(
-                  s"No power value found for load profile {} for time: {}",
-                  loadProfile,
-                  time,
-                )
-            }
         }
       }
 

@@ -16,10 +16,13 @@ import edu.ie3.simona.model.participant.BmModel.*
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
-  OperationChangeIndicator,
   ParticipantModelFactory,
 }
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
+}
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
@@ -55,7 +58,10 @@ final case class BmModel(
       BmState,
     ] {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[BmState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    BmState,
+  ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
     )
@@ -109,8 +115,8 @@ final case class BmModel(
   override def determineOperatingPoint(
       state: BmState,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+  ): ActivePowerOperatingPoint =
+    ActivePowerOperatingPoint(setPower)
 
   /** Calculates electrical output from usage and efficiency.
     *

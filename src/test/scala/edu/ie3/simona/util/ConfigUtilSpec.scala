@@ -31,6 +31,7 @@ import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
+import java.util
 import java.util.UUID
 
 class ConfigUtilSpec
@@ -42,68 +43,20 @@ class ConfigUtilSpec
     "be created correctly with valid data" in {
       val emRuntimeConfig = ConfigFactory.parseString(
         """simona.runtime.em = {
-          |  defaultConfig = {
-          |    uuids = ["default"]
           |    scaling = 1.0
-          |    }
-          |  individualConfigs = []
           |}""".stripMargin
       )
       val config =
         emRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.EmConfigUtil(
-        simonaConfig.simona.runtime.em
-      )
+      val actual = ConfigUtil.EmConfigUtil(simonaConfig.runtime.em)
 
-      inside(actual) { case EmConfigUtil(configs, defaultConfigs) =>
-        configs shouldBe Map.empty[UUID, EmRuntimeConfig]
-
+      inside(actual) { case EmConfigUtil(defaultConfigs) =>
         defaultConfigs.calculateMissingReactivePowerWithModel shouldBe false
         defaultConfigs.scaling shouldBe 1.0
-        defaultConfigs.uuids shouldBe List("default")
         defaultConfigs.aggregateFlex shouldBe "SELF_OPT_EXCL_REG"
         defaultConfigs.curtailRegenerative shouldBe false
-      }
-    }
-
-    "be created correctly with one UUID correctly" in {
-      val emRuntimeConfig = ConfigFactory.parseString(
-        """simona.runtime.em = {
-          |  defaultConfig = {
-          |    uuids = ["default"]
-          |    scaling = 1.0
-          |    }
-          |  individualConfigs = [
-          |    {
-          |      calculateMissingReactivePowerWithModel = false
-          |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
-          |      scaling = 1.3
-          |      curtailRegenerative = true
-          |    }
-          |  ]
-          |}""".stripMargin
-      )
-      val config =
-        emRuntimeConfig.withFallback(typesafeConfig).resolve()
-      val simonaConfig = SimonaConfig(config)
-
-      val actual = ConfigUtil.EmConfigUtil(
-        simonaConfig.simona.runtime.em
-      )
-
-      inside(actual) { case EmConfigUtil(configs, _) =>
-        configs.size shouldBe 1
-
-        val individual =
-          configs(UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76"))
-
-        individual.calculateMissingReactivePowerWithModel shouldBe false
-        individual.scaling shouldBe 1.3
-        individual.uuids shouldBe List("49f250fa-41ff-4434-a083-79c98d260a76")
-        individual.aggregateFlex shouldBe "SELF_OPT_EXCL_REG"
-        individual.curtailRegenerative shouldBe true
       }
     }
   }
@@ -112,25 +65,19 @@ class ConfigUtilSpec
     "setup correctly with valid load data" in {
       val loadRuntimeConfig = ConfigFactory.parseString(
         """simona.runtime.participant.load = {
-          |  defaultConfig = {
-          |    uuids = ["default"]
           |    scaling = 1.0
           |    modelBehaviour = "fix"
           |    reference = "power"
-          |    }
-          |  individualConfigs = []
           |}""".stripMargin
       )
       val config =
         loadRuntimeConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
-      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
-        configs shouldBe Map.empty[UUID, LoadRuntimeConfig]
+      inside(actual) { case ParticipantConfigUtil(defaultConfigs) =>
         defaultConfigs.size shouldBe 8
 
         inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
@@ -138,7 +85,6 @@ class ConfigUtilSpec
                 LoadRuntimeConfig(
                   calculateMissingReactivePowerWithModel,
                   scaling,
-                  uuids,
                   modelBehaviour,
                   reference,
                 )
@@ -147,185 +93,12 @@ class ConfigUtilSpec
             modelBehaviour shouldBe "fix"
             reference shouldBe "power"
             scaling shouldBe 1.0
-            uuids shouldBe List("default")
           case unexpected =>
             fail(
               s"Expected a default $LoadRuntimeConfig. I got '$unexpected"
             )
         }
       }
-    }
-
-    "setup on one valid load input config with one UUID correctly" in {
-      val loadRuntimeConfig = ConfigFactory.parseString(
-        """simona.runtime.participant.load = {
-          |  defaultConfig = {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
-          |    scaling = 1.3
-          |    modelBehaviour = "profile"
-          |    reference = "power"
-          |    }
-          |  individualConfigs = [
-          |    {
-          |      calculateMissingReactivePowerWithModel = false
-          |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
-          |      scaling = 1.3
-          |      modelBehaviour = "profile"
-          |      reference = "power"
-          |    }
-          |  ]
-          |}""".stripMargin
-      )
-      val config =
-        loadRuntimeConfig.withFallback(typesafeConfig).resolve()
-      val simonaConfig = SimonaConfig(config)
-
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
-
-      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
-        configs.size shouldBe 1
-        configs.contains(
-          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        )
-
-        defaultConfigs.size shouldBe 8
-        inside(defaultConfigs.get(classOf[LoadRuntimeConfig])) {
-          case Some(
-                LoadRuntimeConfig(
-                  calculateMissingReactivePowerWithModel,
-                  scaling,
-                  uuids,
-                  modelBehaviour,
-                  reference,
-                )
-              ) =>
-            calculateMissingReactivePowerWithModel shouldBe false
-            modelBehaviour shouldBe "profile"
-            reference shouldBe "power"
-            scaling shouldBe 1.3
-            uuids shouldBe List("default")
-          case unexpected =>
-            fail(
-              s"Expected a default $LoadRuntimeConfig. I got '$unexpected"
-            )
-        }
-      }
-    }
-
-    "setup on one valid load input config with multiple UUIDs correctly" in {
-      val loadRuntimeConfig = ConfigFactory.parseString(
-        """simona.runtime.participant.load = {
-          |  defaultConfig = {
-          |    calculateMissingReactivePowerWithModel = false
-          |    baseModelConfig.uuids = ["default"]
-          |    baseModelConfig.scaling = 1.3
-          |    modelBehaviour = "profile"
-          |    reference = "power"
-          |    }
-          |  individualConfigs = [
-          |    {
-          |      calculateMissingReactivePowerWithModel = false
-          |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76", "fb8f1443-1843-4ecd-a94a-59be8148397f"]
-          |      scaling = 1.3
-          |      modelBehaviour = "profile"
-          |      reference = "power"
-          |    }
-          |  ]
-          |}""".stripMargin
-      )
-      val config =
-        loadRuntimeConfig.withFallback(typesafeConfig).resolve()
-      val simonaConfig = SimonaConfig(config)
-
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
-
-      inside(actual) { case ParticipantConfigUtil(configs, _) =>
-        configs.size shouldBe 2
-        configs.contains(
-          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        )
-        configs.contains(
-          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-        )
-      }
-
-      actual.getOrDefault[LoadRuntimeConfig](
-        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-      ) shouldBe actual.getOrDefault[LoadRuntimeConfig](
-        UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-      )
-    }
-
-    "setup on multiple correct load input configs correctly" in {
-      val loadRuntimeConfig = ConfigFactory.parseString(
-        """simona.runtime.participant.load = {
-          |  defaultConfig = {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
-          |    scaling = 1.3
-          |    modelBehaviour = "profile"
-          |    reference = "power"
-          |    }
-          |  individualConfigs = [
-          |    {
-          |     calculateMissingReactivePowerWithModel = false
-          |     uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
-          |     scaling = 1.3
-          |     modelBehaviour = "profile"
-          |     reference = "power"
-          |  },
-          |  {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
-          |    scaling = 1.5
-          |    modelBehaviour = "random"
-          |    reference = "energy"
-          |  }
-          |  ]
-          |}""".stripMargin
-      )
-      val config =
-        loadRuntimeConfig.withFallback(typesafeConfig).resolve()
-      val simonaConfig = SimonaConfig(config)
-
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
-
-      inside(actual) { case ParticipantConfigUtil(configs, _) =>
-        configs.size shouldBe 2
-        configs.contains(
-          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        )
-        configs.contains(
-          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-        )
-      }
-
-      actual.getOrDefault[LoadRuntimeConfig](
-        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-      ) shouldBe
-        LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          1.3,
-          List("49f250fa-41ff-4434-a083-79c98d260a76"),
-          "profile",
-        )
-      actual.getOrDefault[LoadRuntimeConfig](
-        UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-      ) shouldBe
-        LoadRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          1.5,
-          List("fb8f1443-1843-4ecd-a94a-59be8148397f"),
-          "random",
-          "energy",
-        )
     }
   }
 
@@ -333,193 +106,33 @@ class ConfigUtilSpec
     "setup on correct fixed feed in input data correctly" in {
       val fixedFeedInModelConfig = ConfigFactory.parseString(
         """simona.runtime.participant.fixedFeedIn = {
-          |  defaultConfig = {
           |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
           |    scaling = 1.0
-          |    }
-          |  individualConfigs = []
           |}""".stripMargin
       )
       val config =
         fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
-      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
-        configs shouldBe Map.empty[UUID, FixedFeedInRuntimeConfig]
-
+      inside(actual) { case ParticipantConfigUtil(defaultConfigs) =>
         inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
           case Some(
                 FixedFeedInRuntimeConfig(
                   calculateMissingReactivePowerWithModel,
                   scaling,
-                  uuids,
                 )
               ) =>
             calculateMissingReactivePowerWithModel shouldBe false
             scaling shouldBe 1.0
-            uuids shouldBe List("default")
           case unexpected =>
             fail(
               s"Expected a default $FixedFeedInRuntimeConfig. I got '$unexpected"
             )
         }
       }
-    }
-
-    "setup on one correct fixed feed in input config with one UUID correctly" in {
-      val fixedFeedInModelConfig = ConfigFactory.parseString(
-        """simona.runtime.participant.fixedFeedIn = {
-          |  defaultConfig = {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
-          |    scaling = 1.3
-          |    }
-          |  individualConfigs = [
-          |    {
-          |      calculateMissingReactivePowerWithModel = false
-          |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
-          |      scaling = 1.3
-          |    }
-          |  ]
-          |}""".stripMargin
-      )
-      val config =
-        fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
-      val simonaConfig = SimonaConfig(config)
-
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
-
-      inside(actual) { case ParticipantConfigUtil(configs, defaultConfigs) =>
-        configs.size shouldBe 1
-        configs.contains(
-          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        )
-
-        defaultConfigs.size shouldBe 8
-        inside(defaultConfigs.get(classOf[FixedFeedInRuntimeConfig])) {
-          case Some(
-                FixedFeedInRuntimeConfig(
-                  calculateMissingReactivePowerWithModel,
-                  scaling,
-                  uuids,
-                )
-              ) =>
-            calculateMissingReactivePowerWithModel shouldBe false
-            scaling shouldBe 1.3
-            uuids shouldBe List("default")
-          case unexpected =>
-            fail(
-              s"Expected a default $FixedFeedInRuntimeConfig. I got '$unexpected"
-            )
-        }
-      }
-    }
-
-    "setup on one correct fixed feed in input config with multiple UUIDs correctly" in {
-      val fixedFeedInModelConfig = ConfigFactory.parseString(
-        """simona.runtime.participant.fixedFeedIn = {
-          |  defaultConfig = {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
-          |    scaling = 1.3
-          |    }
-          |  individualConfigs = [
-          |    {
-          |      calculateMissingReactivePowerWithModel = false
-          |      uuids = ["49f250fa-41ff-4434-a083-79c98d260a76", "fb8f1443-1843-4ecd-a94a-59be8148397f"]
-          |      scaling = 1.3
-          |    }
-          |  ]
-          |}""".stripMargin
-      )
-      val config =
-        fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
-      val simonaConfig = SimonaConfig(config)
-
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
-
-      inside(actual) { case ParticipantConfigUtil(configs, _) =>
-        configs.size shouldBe 2
-        configs.contains(
-          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        )
-        configs.contains(
-          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-        )
-
-        actual.getOrDefault[FixedFeedInRuntimeConfig](
-          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        ) shouldBe actual.getOrDefault[FixedFeedInRuntimeConfig](
-          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-        )
-      }
-    }
-
-    "setup on multiple correct fixed feed in input configs correctly" in {
-      val fixedFeedInModelConfig = ConfigFactory.parseString(
-        """simona.runtime.participant.fixedFeedIn = {
-          |  defaultConfig = {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
-          |    scaling = 1.3
-          |    }
-          |  individualConfigs = [
-          |    {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
-          |    scaling = 1.3
-          |  },
-          |  {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
-          |    scaling = 1.5
-          |  }
-          |  ]
-          |}""".stripMargin
-      )
-      val config =
-        fixedFeedInModelConfig.withFallback(typesafeConfig).resolve()
-      val simonaConfig = SimonaConfig(config)
-
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
-
-      inside(actual) { case ParticipantConfigUtil(configs, _) =>
-        configs.size shouldBe 2
-        configs.contains(
-          UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-        )
-        configs.contains(
-          UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-        )
-      }
-
-      actual.getOrDefault[FixedFeedInRuntimeConfig](
-        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
-      ) shouldBe
-        FixedFeedInRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          1.3,
-          List("49f250fa-41ff-4434-a083-79c98d260a76"),
-        )
-      actual.getOrDefault[FixedFeedInRuntimeConfig](
-        UUID.fromString("fb8f1443-1843-4ecd-a94a-59be8148397f")
-      ) shouldBe
-        FixedFeedInRuntimeConfig(
-          calculateMissingReactivePowerWithModel = false,
-          1.5,
-          List("fb8f1443-1843-4ecd-a94a-59be8148397f"),
-        )
     }
   }
 
@@ -527,110 +140,56 @@ class ConfigUtilSpec
     "return default config when the requested config type does not match the found uuid" in {
       val combinedParticipantConfig = ConfigFactory.parseString(
         """simona.runtime.participant.fixedFeedIn = {
-          |  defaultConfig = {
           |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
           |    scaling = 1.0
-          |    }
-          |  individualConfigs = [
-          |    {
-          |     calculateMissingReactivePowerWithModel = false
-          |     uuids = ["50f250fa-41ff-4434-a083-79c98d260a76"]
-          |     scaling = 1.3
-          |  },
-          |  {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["e7cb5fa7-e4e6-4228-861c-f5b11e88ad1e"]
-          |    scaling = 1.5
-          |  }
-          |  ]
           |}
           |simona.runtime.participant.load = {
-          |  defaultConfig = {
           |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
           |    scaling = 1.0
           |    modelBehaviour = "profile"
           |    reference = "power"
-          |    }
-          |  individualConfigs = [
-          |    {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
-          |    scaling = 1.3
-          |    modelBehaviour = "profile"
-          |    reference = "power"
-          |  },
-          |  {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
-          |    scaling = 1.5
-          |    modelBehaviour = "profile"
-          |    reference = "power"
-          |  }
-          |  ]
           |}
           |simona.runtime.participant.pv = {
-          |  defaultConfig = {
           |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["default"]
           |    scaling = 1.0
-          |    }
-          |  individualConfigs = [
-          |   {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["49f250fa-41ff-4434-a083-79c98d260a76"]
-          |    scaling = 1.3
-          |  },
-          |  {
-          |    calculateMissingReactivePowerWithModel = false
-          |    uuids = ["fb8f1443-1843-4ecd-a94a-59be8148397f"]
-          |    scaling = 1.5
-          |  }
-          |  ]
           |}""".stripMargin
       )
       val config =
         combinedParticipantConfig.withFallback(typesafeConfig).resolve()
       val simonaConfig = SimonaConfig(config)
 
-      val actual = ConfigUtil.ParticipantConfigUtil(
-        simonaConfig.simona.runtime.participant
-      )
-
-      inside(actual) { case ParticipantConfigUtil(configs, _) =>
-        configs.size shouldBe 4
-      }
+      val actual =
+        ConfigUtil.ParticipantConfigUtil(simonaConfig.runtime.participant)
 
       // return default if a request for fix feed is done, but a load config is found
       actual.getOrDefault[FixedFeedInRuntimeConfig](
-        UUID.fromString("49f250fa-41ff-4434-a083-79c98d260a76")
+        "49f250fa-41ff-4434-a083-79c98d260a76",
+        new util.HashMap(),
       ) shouldBe
         FixedFeedInRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1.0,
-          List("default"),
         )
 
       // return default if a request for load is done, but fixed feed is found
       actual.getOrDefault[LoadRuntimeConfig](
-        UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
+        "50f250fa-41ff-4434-a083-79c98d260a76",
+        new util.HashMap(),
       ) shouldBe
         LoadRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1.0,
-          List("default"),
           "profile",
         )
 
       // return default if a request for pv is done, but fixed feed is found
       actual.getOrDefault[PvRuntimeConfig](
-        UUID.fromString("50f250fa-41ff-4434-a083-79c98d260a76")
+        "50f250fa-41ff-4434-a083-79c98d260a76",
+        new util.HashMap(),
       ) shouldBe
         PvRuntimeConfig(
           calculateMissingReactivePowerWithModel = false,
           1.0,
-          List("default"),
         )
     }
   }

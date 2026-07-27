@@ -25,38 +25,42 @@ import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
   WeatherSource as PsdmWeatherSource,
 }
-import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.config.ConfigParams.{
   BaseCsvParams,
   BaseInfluxDb1xParams,
   CouchbaseParams,
   SqlParams,
 }
+import edu.ie3.simona.config.InputConfig
 import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.weather.WeatherSource as SimonaWeatherSource
 import edu.ie3.simona.service.weather.WeatherSource.{
-  EMPTY_WEATHER_DATA,
   WeatherScheme,
   toWeatherData,
 }
-import edu.ie3.simona.service.weather.WeatherSourceWrapper.WeightSum
-import edu.ie3.simona.service.weather.WeatherSource as SimonaWeatherSource
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.service.weather.WeatherSourceWrapper.{
+  WeightSum,
+  ZERO_WEATHER_DATA,
+}
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
+import org.locationtech.jts.geom.Point
+import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.thermal.Kelvin
 import tech.units.indriya.ComparableQuantity
 
 import java.nio.file.Paths
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import javax.measure.quantity.Length
+import scala.collection.immutable.SortedMap
 import scala.jdk.CollectionConverters.{
   CollectionHasAsScala,
   IterableHasAsJava,
   MapHasAsScala,
 }
-import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
 /** This class provides an implementation of the SIMONA trait
@@ -83,96 +87,99 @@ private[weather] final case class WeatherSourceWrapper private (
 ) extends SimonaWeatherSource
     with LazyLogging {
 
-  /** Get the weather data for the given tick as a weighted average taking into
-    * account the given weighting of weather coordinates.
-    *
-    * @param tick
-    *   Simulation date in question
-    * @param weightedCoordinates
-    *   The coordinate in question
-    * @return
-    *   Matching weather data
-    */
   override def getWeather(
-      tick: Long,
+      startTick: Long,
+      endTick: Long,
       weightedCoordinates: WeatherSource.WeightedCoordinates,
-  ): WeatherData = {
-    val dateTime = tick.toDateTime
-    val interval = new ClosedInterval(dateTime, dateTime)
+  ): SortedMap[ZonedDateTime, WeatherData] = {
+    val interval = new ClosedInterval(startTick.toDateTime, endTick.toDateTime)
     val coordinates = weightedCoordinates.weighting.keys.toList.asJavaCollection
-    val results = source
+
+    source
       .getWeather(
         interval,
         coordinates,
       )
       .asScala
-      .toMap
-    val weatherDataMap = results.flatMap { case (point, timeSeries) =>
-      // change temperature scale for the upcoming calculations
-      timeSeries
-        .getValue(dateTime)
-        .toScala
-        .map(weatherValue => point -> toWeatherData(weatherValue))
-    }
-
-    weatherDataMap.foldLeft((EMPTY_WEATHER_DATA, WeightSum.EMPTY_WEIGHT_SUM)) {
-      case ((averagedWeather, currentWeightSum), (point, currentWeather)) =>
-        /** Calculate the contribution of a single coordinate value to the
-          * averaged weather information. If we got an empty quantity (which can
-          * be the case, as this particular value might be missing in the
-          * weather data), we do let it out and also return the "effective"
-          * weight of 0d.
-          */
-
-        /* Get pre-calculated weight for this coordinate */
+      .map { case (coordinate, timeSeries) =>
+        timeSeries.getEntries.asScala.map { weatherValue =>
+          (weatherValue.getTime, coordinate) -> weatherValue.getValue
+        }.toMap
+      }
+      .flatten
+      .groupMap { case ((time, _), _) =>
+        time
+      } { case ((_, location), weatherValue) =>
         val weight = weightedCoordinates.weighting.getOrElse(
-          point, {
-            logger.warn(s"Received an unexpected point: $point")
+          location, {
+            logger.warn(s"Received an unexpected point: $location")
             0d
           },
         )
-        /* Sum up weight and contributions */
+        val weatherData = toWeatherData(weatherValue)
+        (location, weatherData, weight)
+      }
+      .map { case (time, weather) =>
+        time -> spatialDataInterpolation(weather)
+      }
+      .to(SortedMap)
+  }
+
+  private def spatialDataInterpolation(
+      weatherData: Iterable[(Point, WeatherData, Double)]
+  ): WeatherData =
+    weatherData.foldLeft((ZERO_WEATHER_DATA, WeightSum.ZERO_WEIGHT_SUM)) {
+      case ((averagedWeather, weightSum), (point, weather, weight)) =>
+        /* Calculate the contribution of a single coordinate value to the
+         * averaged weather information.
+         *
+         * If we got an empty quantity (Double.Nan, which can be the case,
+         * as this particular value might be missing in the weather data),
+         * we do let it out and also return the "effective"  weight of 0d.
+         *
+         * Careful: Use Double.isNaN because Double.NaN != Double.NaN
+         */
 
         /* Determine actual weights and contributions */
-        val (diffIrradiance, diffIrrWeight) = currentWeather.diffIrr match {
-          case EMPTY_WEATHER_DATA.diffIrr =>
+        val (diffIrradiance, diffIrrWeight) =
+          if weather.diffIrr.value.isNaN then {
             // Some data sets do not provide diffuse irradiance, so we do not
             // warn here
-            logger.debug("Diffuse solar irradiance not available at $point.")
+            logger.debug(s"Diffuse solar irradiance not available at $point.")
             (averagedWeather.diffIrr, 0d)
-          case nonEmptyDiffIrr =>
-            (averagedWeather.diffIrr + nonEmptyDiffIrr * weight, weight)
-        }
+          } else {
+            (averagedWeather.diffIrr + weather.diffIrr * weight, weight)
+          }
 
-        val (dirIrradience, dirIrrWeight) = currentWeather.dirIrr match {
-          case EMPTY_WEATHER_DATA.`dirIrr` =>
+        val (dirIrradiance, dirIrrWeight) =
+          if weather.dirIrr.value.isNaN then {
             logger.warn(s"Direct solar irradiance not available at $point.")
             (averagedWeather.dirIrr, 0d)
-          case nonEmptyDirIrr =>
-            (averagedWeather.dirIrr + nonEmptyDirIrr * weight, weight)
-        }
+          } else {
+            (averagedWeather.dirIrr + weather.dirIrr * weight, weight)
+          }
 
-        val (temperature, tempWeight) = currentWeather.temp match {
-          case EMPTY_WEATHER_DATA.temp =>
+        val (temperature, tempWeight) =
+          if weather.temp.value.isNaN then {
             logger.warn(s"Temperature not available at $point.")
             (averagedWeather.temp, 0d)
-          case nonEmptyTemp =>
+          } else {
             // Important: squants temperature addition is bugged.
             // Conversion to Kelvin necessary.
-            (averagedWeather.temp + nonEmptyTemp.in(Kelvin) * weight, weight)
-        }
+            (averagedWeather.temp + weather.temp.in(Kelvin) * weight, weight)
+          }
 
-        val (windVelocity, windVelWeight) = currentWeather.windVel match {
-          case EMPTY_WEATHER_DATA.windVel =>
+        val (windVelocity, windVelWeight) =
+          if weather.windVel.value.isNaN then {
             logger.warn(s"Wind velocity not available at $point.")
             (averagedWeather.windVel, 0d)
-          case nonEmptyWindVel =>
-            (averagedWeather.windVel + nonEmptyWindVel * weight, weight)
-        }
+          } else {
+            (averagedWeather.windVel + weather.windVel * weight, weight)
+          }
 
         (
-          WeatherData(diffIrradiance, dirIrradience, temperature, windVelocity),
-          currentWeightSum.add(
+          WeatherData(diffIrradiance, dirIrradiance, temperature, windVelocity),
+          weightSum.add(
             diffIrrWeight,
             dirIrrWeight,
             tempWeight,
@@ -183,18 +190,7 @@ private[weather] final case class WeatherSourceWrapper private (
       case (weatherData: WeatherData, weightSum: WeightSum) =>
         weightSum.scale(weatherData)
     }
-  }
 
-  /** Determine an Array with all ticks between the request frame's start and
-    * end on which new data is available
-    *
-    * @param requestFrameStart
-    *   Beginning of the announced request frame
-    * @param requestFrameEnd
-    *   End of the announced request frame
-    * @return
-    *   Array with data ticks
-    */
   override def getDataTicks(
       requestFrameStart: Long,
       requestFrameEnd: Long,
@@ -234,17 +230,15 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
 
   private[weather] def buildPSDMSource(
       cfgParams: InputConfig.WeatherDatasource,
-      definedWeatherSources: Option[Serializable],
+      definedWeatherSource: Option[Any],
   )(implicit
       idCoordinateSource: IdCoordinateSource
   ): Option[PsdmWeatherSource] = {
-    implicit val timestampPattern: Option[String] =
-      cfgParams.timestampPattern
     implicit val scheme: String = cfgParams.scheme
 
-    val factory = buildFactory(scheme, timestampPattern)
+    val factory = buildFactory(scheme)
 
-    val source = definedWeatherSources.flatMap {
+    val source = definedWeatherSource.flatMap {
       case BaseCsvParams(csvSep, directoryPath, _) =>
         // initializing a csv weather source
         Some(
@@ -271,7 +265,6 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
             couchbaseParams.coordinateColumnName,
             couchbaseParams.keyPrefix,
             factory,
-            "yyyy-MM-dd'T'HH:mm:ssxxx",
           )
         )
       case BaseInfluxDb1xParams(database, _, url) =>
@@ -315,7 +308,7 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     source
   }
 
-  private def buildFactory(scheme: String, timestampPattern: Option[String]) =
+  private def buildFactory(scheme: String) =
     Try(WeatherScheme(scheme)) match {
       case Failure(exception) =>
         throw new InitializationException(
@@ -324,21 +317,9 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
           exception,
         )
       case Success(WeatherScheme.ICON) =>
-        timestampPattern
-          .map(pattern =>
-            new IconTimeBasedWeatherValueFactory(
-              DateTimeFormatter.ofPattern(pattern)
-            )
-          )
-          .getOrElse(new IconTimeBasedWeatherValueFactory())
+        new IconTimeBasedWeatherValueFactory()
       case Success(WeatherScheme.COSMO) =>
-        timestampPattern
-          .map(pattern =>
-            new CosmoTimeBasedWeatherValueFactory(
-              DateTimeFormatter.ofPattern(pattern)
-            )
-          )
-          .getOrElse(new CosmoTimeBasedWeatherValueFactory())
+        new CosmoTimeBasedWeatherValueFactory()
       case Success(unknownScheme) =>
         throw new InitializationException(
           s"Error while initializing WeatherFactory for weather source wrapper: weather scheme '$unknownScheme' is not an expected input."
@@ -392,18 +373,33 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
         implicit val precision: Double = 1e-3
         WeatherData(
           if this.diffIrr !~= 0d then diffIrr.divide(this.diffIrr)
-          else EMPTY_WEATHER_DATA.diffIrr,
+          else ZERO_WEATHER_DATA.diffIrr,
           if this.dirIrr !~= 0d then dirIrr.divide(this.dirIrr)
-          else EMPTY_WEATHER_DATA.dirIrr,
+          else ZERO_WEATHER_DATA.dirIrr,
           if this.temp !~= 0d then temp.divide(this.temp)
-          else EMPTY_WEATHER_DATA.temp,
+          else ZERO_WEATHER_DATA.temp,
           if this.windVel !~= 0d then windVel.divide(this.windVel)
-          else EMPTY_WEATHER_DATA.windVel,
+          else ZERO_WEATHER_DATA.windVel,
         )
     }
   }
+
   object WeightSum {
-    val EMPTY_WEIGHT_SUM: WeightSum = WeightSum(0d, 0d, 0d, 0d)
+    val ZERO_WEIGHT_SUM: WeightSum = WeightSum(0d, 0d, 0d, 0d)
   }
+
+  /** Weather data with all values set to zero.
+    *
+    * For temperature to represent a quantity with zero value, we need to
+    * explicitly set temperature to absolute zero, so 0 K. When temperature
+    * measures the movement of atoms, absolute zero means no movement, which
+    * represents the concept best.
+    */
+  val ZERO_WEATHER_DATA: WeatherData = WeatherData(
+    WattsPerSquareMeter(0d),
+    WattsPerSquareMeter(0d),
+    Kelvin(0d),
+    MetersPerSecond(0d),
+  )
 
 }

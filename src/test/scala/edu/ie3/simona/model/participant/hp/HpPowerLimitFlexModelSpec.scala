@@ -19,6 +19,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
@@ -50,6 +51,7 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
 
       val defaultState = HpState(
         0,
+        defaultSimulationStart,
         thermalState(Celsius(17d), ambientTemperature),
         HpOperatingPoint(zeroKW, ThermalGridOperatingPoint.zero),
         noThermalDemand,
@@ -78,8 +80,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(demand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, demand, demand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -101,8 +105,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
@@ -127,12 +133,19 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(demand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, demand, demand, noDemand),
             ),
             (95.0, 95.0, 95.0),
           ),
@@ -154,18 +167,59 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(demand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(demand, onlyAddDemand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
           // 5. Hp actually running
           // House is between target temperature and lower temperature boundary
           // Heat storage is empty
+          // Hp should run, since it was running in the last state
+          (
+            defaultState.copy(
+              thermalGridState = ThermalGridState(
+                Some(
+                  ThermalHouseState(
+                    0L,
+                    ambientTemperature,
+                    Celsius(19),
+                  )
+                ),
+                Some(
+                  ThermalStorageState(
+                    0L,
+                    zeroKWh,
+                  )
+                ),
+                None,
+              ),
+              lastHpOperatingPoint = HpOperatingPoint(
+                Kilowatts(1),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
+              ),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, noDemand, noDemand),
+            ),
+            (95.0, 95.0, 95.0),
+          ),
+          // 6. Same as before but the last operating point is now zero
           // Hp runs but can be turned off
           (
             defaultState.copy(
@@ -183,16 +237,18 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
-                Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                zeroKW,
+                ThermalGridOperatingPoint.zero,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 6. Same as before but heat storage is NOT empty
+          // 7. Same as before but heat storage is NOT empty
           // should be possible to keep hp off
           (
             defaultState.copy(
@@ -210,17 +266,27 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands =
-                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                onlyAddDemand,
+                demand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 7. Hp actually NOT running
+          // 8. Hp actually NOT running
           // House is between target temperature and lower temperature boundary
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -240,12 +306,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(onlyAddDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 8. Same as before but heat storage is NOT empty
+          // 9. Same as before but heat storage is NOT empty
           // Hp should be off but able to turn on
           (
             defaultState.copy(
@@ -263,13 +331,18 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands =
-                ThermalDemandWrapper(onlyAddDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                onlyAddDemand,
+                demand,
+                noDemand,
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
-          // 9. Hp actually running
+          // 10. Hp actually running
           // House is at target temperature boundary
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -289,16 +362,23 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 10. Same as before but storage is NOT empty
+          // 11. Same as before but storage is NOT empty
           // Hp should run but can be turned off
           (
             defaultState.copy(
@@ -316,16 +396,23 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 11. Hp actually not running
+          // 12. Hp actually not running
           // House is at target temperature boundary
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -345,12 +432,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 12. Same as before but storage is NOT empty
+          // 13. Same as before but storage is NOT empty
           // Hp should not run but can be turned on for storage
           (
             defaultState.copy(
@@ -368,12 +457,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
-          // 13. Hp actually running
+          // 14. Hp actually running
           // House is above target temperature
           // Heat storage is empty
           // Hp will run because of storage but can be turned off
@@ -393,16 +484,23 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 14. Same as before but storage is NOT empty
+          // 15. Same as before but storage is NOT empty
           // Hp should run but can be turned off
           (
             defaultState.copy(
@@ -420,16 +518,27 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands = ThermalDemandWrapper(
+                noDemand,
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 15. Hp actually not running
+          // 16. Hp actually not running
           // House is above target temperature
           // Heat storage is empty
           // Hp should run because of storage but can be turned off
@@ -449,12 +558,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     zeroKWh,
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, demand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, demand, demand, noDemand),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // 16. Same as before but storage is NOT empty
+          // 17. Same as before but storage is NOT empty
           // Hp should not run but can be turned on for storage
           (
             defaultState.copy(
@@ -472,12 +583,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(20),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, onlyAddDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, onlyAddDemand, demand, noDemand),
             ),
             (0.0, 0.0, 95.0),
           ),
-          // Storage is full, House has capacity till upper boundary, Hp not running
+          // 18. Storage is full, House has capacity till upper boundary, Hp not running
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
@@ -494,12 +607,18 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (0.0, 0.0, 95.0),
           ),
-          // Storage is full, House has capacity till upper boundary, Hp is running
+          // 19. Storage is full, House has capacity till upper boundary, Hp is running
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
@@ -516,16 +635,27 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
               lastHpOperatingPoint = HpOperatingPoint(
                 Kilowatts(1),
-                ThermalGridOperatingPoint(Kilowatts(1), Kilowatts(1), zeroKW),
+                ThermalGridOperatingPoint(
+                  Kilowatts(1),
+                  Kilowatts(1),
+                  zeroKW,
+                  zeroKW,
+                ),
               ),
-              thermalDemands = ThermalDemandWrapper(onlyAddDemand, noDemand),
+              thermalDemands = ThermalDemandWrapper(
+                onlyAddDemand,
+                noDemand,
+                noDemand,
+                noDemand,
+              ),
             ),
             (95.0, 0.0, 95.0),
           ),
-          // No capacity for flexibility at all because house is
+          // 20. No capacity for flexibility at all because house is
           // at target temperature and storage is at max capacity
           (
             defaultState.copy(
@@ -543,12 +673,14 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, noDemand, noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
-          // No capacity for flexibility at all when storage is full and house has been (externally) heated up above target temperature
+          // 21. No capacity for flexibility at all when storage is full and house has been (externally) heated up above target temperature
           (
             defaultState.copy(
               thermalGridState = ThermalGridState(
@@ -565,8 +697,10 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
                     KilowattHours(500),
                   )
                 ),
+                None,
               ),
-              thermalDemands = ThermalDemandWrapper(noDemand, noDemand),
+              thermalDemands =
+                ThermalDemandWrapper(noDemand, noDemand, noDemand, noDemand),
             ),
             (0.0, 0.0, 0.0),
           ),
@@ -588,7 +722,7 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
           // This can be simplified once the transitoryData is introduced
 
           // Invoke determineFlexOptions and match the results
-          flexModel.determineFlexOptions(state) match {
+          flexModel.determineFlexOptions(state, DataTimeType.Current) match {
             case PowerLimitFlexOptions(
                   referencePower,
                   minPower,
@@ -602,7 +736,5 @@ class HpPowerLimitFlexModelSpec extends UnitSpec with HpInputTestData {
           }
       }
     }
-
   }
-
 }

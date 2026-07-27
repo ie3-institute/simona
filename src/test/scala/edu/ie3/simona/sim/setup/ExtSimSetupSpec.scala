@@ -6,15 +6,17 @@
 
 package edu.ie3.simona.sim.setup
 
-import edu.ie3.simona.api.data.primarydata.ExtPrimaryDataConnection
+import edu.ie3.datamodel.models.value.Value
+import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.test.common.UnitSpec
+import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
-class ExtSimSetupSpec extends UnitSpec {
+class ExtSimSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
   "An ExtSimSetup" should {
     val uuid1 = UUID.fromString("726c40e1-b1cd-4f16-a5b6-3972e852f60b")
@@ -24,15 +26,16 @@ class ExtSimSetupSpec extends UnitSpec {
     val uuid5 = UUID.fromString("ebcefed4-a3e6-4a2a-b4a5-74226d548546")
     val uuid6 = UUID.fromString("4a9c8e14-c0ee-425b-af40-9552b9075414")
 
-    def toMap(uuids: Set[UUID]): Map[String, UUID] = uuids
-      .map(uuid => uuid.toString -> uuid)
+    def toMap(uuids: Set[UUID]): java.util.Map[UUID, Class[? <: Value]] = uuids
+      .map(uuid => uuid -> classOf[Value])
       .toMap
+      .asJava
 
     "validate primary data connections without duplicates correctly" in {
       val extPrimaryDataConnection: Seq[ExtPrimaryDataConnection] = Seq(
-        new ExtPrimaryDataConnection(toMap(Set(uuid1, uuid2)).asJava),
-        new ExtPrimaryDataConnection(toMap(Set(uuid3, uuid4)).asJava),
-        new ExtPrimaryDataConnection(toMap(Set(uuid5, uuid6)).asJava),
+        new ExtPrimaryDataConnection(toMap(Set(uuid1, uuid2))),
+        new ExtPrimaryDataConnection(toMap(Set(uuid3, uuid4))),
+        new ExtPrimaryDataConnection(toMap(Set(uuid5, uuid6))),
       )
 
       Try(
@@ -42,10 +45,10 @@ class ExtSimSetupSpec extends UnitSpec {
 
     "throw exception while validate primary data connections if duplicates are found" in {
       val extPrimaryDataConnection: Seq[ExtPrimaryDataConnection] = Seq(
-        new ExtPrimaryDataConnection(toMap(Set(uuid1, uuid2)).asJava),
-        new ExtPrimaryDataConnection(toMap(Set(uuid3, uuid4)).asJava),
-        new ExtPrimaryDataConnection(toMap(Set(uuid4, uuid5, uuid6)).asJava),
-        new ExtPrimaryDataConnection(toMap(Set(uuid6)).asJava),
+        new ExtPrimaryDataConnection(toMap(Set(uuid1, uuid2))),
+        new ExtPrimaryDataConnection(toMap(Set(uuid3, uuid4))),
+        new ExtPrimaryDataConnection(toMap(Set(uuid4, uuid5, uuid6))),
+        new ExtPrimaryDataConnection(toMap(Set(uuid6))),
       )
 
       intercept[ServiceException](

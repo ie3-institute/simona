@@ -7,15 +7,13 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import org.scalatest.matchers.should.Matchers
+import edu.ie3.simona.util.TickUtil.toTick
 import squants.energy.{Megawatts, Power}
 
 /** A simple integration test that uses pre-calculated data to check if the pv
   * model works as expected. It uses 8 pv models located in GER.
   */
-
-class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
+class PvModelITSpec extends UnitSpec with PvModelITHelper {
 
   private implicit val tolerance: Power = Megawatts(1e-14)
 
@@ -35,10 +33,10 @@ class PvModelITSpec extends Matchers with UnitSpec with PvModelITHelper {
           val model = pvModels(modelId)
           val weather = modelToWeatherMap(modelId)
           val pvState = PvModel.PvState(
-            dateTime.toTick,
-            dateTime,
-            weather.diffIrr,
-            weather.dirIrr,
+            tick = dateTime.toTick,
+            dateTime = dateTime,
+            dirIrradiance = weather.dirIrr,
+            diffIrradiance = weather.diffIrr,
           )
 
           val calc = model.determineOperatingPoint(pvState) match {

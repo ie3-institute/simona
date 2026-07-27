@@ -52,6 +52,36 @@ When executed, the simulation starts at a specified start time and simulates the
 As you might wonder who tells SIMONA when to start, when to end and what to actually perform a simulation on, there is indeed a piece missing.
 Since a simulation can be run with all sorts of grids and with different parameter sets, a simulation configuration has to be set for successful execution.
 
+
+## Containerized Setup
+
+Docker is a tool used to containerize the entire setup.
+A container is like a lightweight, isolated environment that bundles everything the software needs into a single package.
+It can run on local setups or on virtual machines and can be used to create containers, volumes and the images.
+
+Instead of installing the dependencies required for SIMONA on the local machine, docker can be used create a SIMONA image that includes all requirements.
+Once the image is built, it can be run on any host system.
+
+SIMONA provides a Dockerfile in the root directory that can be used to build a Docker image and run simulations inside a container. 
+
+### Building Docker Image
+
+1. Build a SIMONA image by executing the command below in the project root directory:
+    
+       docker build --build-arg version=4.1.0 -t simona 
+
+2. To run SIMONA and mount on your directory use the following command:
+
+       docker run -v `realpath input`:/input -e config=<path to config> simona
+   
+Note that on a Windows machine you have to manually enter the absolute path to the input directory. 
+
+3. Once the container runs, SIMONA executes the simulation using the specified config and produces output inside the container.
+
+You can find more information on docker setup and installation [here](https://docs.docker.com/engine/install/).
+Documentation for docker can be found [here](https://docs.docker.com/get-started/).
+Useful commands for docker can be found [here](https://docs.docker.com/reference/cli/docker/).
+
 ## Simulation Inputs
 
 ### Default Config and Where to Find It
@@ -109,7 +139,7 @@ Within SIMONA, we use the [PowerSystemDataModel (PSDM)](https://github.com/ie3-i
 Before the data can be utilized for a simulation run, make sure to convert them to the PSDM.
 For more information on the PSDM visit the [docs](https://powersystemdatamodel.readthedocs.io/en/latest/index.html) and for an example of how the converted data looks like you can take a look at an example grid at ``./input/samples/vn_simona/fullGrid``.
 The example grids are provided as csv files. You can choose to use a different data source for your own grid.
-For more information on supported sources, check out the {ref}`config:input parameters`.
+For more information on supported sources, check out the [](config.md#input-parameters).
 Include your grid and its specification by referencing the folder path, where all the converted grid data is located, within your custom configuration file.
 
 
@@ -191,7 +221,7 @@ These steps have to be performed each time updates to the external simulation ne
 - Execute ``gradlew shadowJar`` inside the external simulation project.
 - Copy the resulting *jar* (usually placed inside ``<external project>/build/libs``) into the external simulation folder. This folder is set via the given config.
 
-Now, when a simulation with SIMONA is started (see {ref}`usersguide:running a standalone simulation`), the external simulation is triggered at each tick that it requested.
+Now, when a simulation with SIMONA is started (see [](#running-a-standalone-simulation)), the external simulation is triggered at each tick that it requested.
 
 ## Troubleshooting
 

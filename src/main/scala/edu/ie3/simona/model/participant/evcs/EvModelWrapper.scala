@@ -6,12 +6,16 @@
 
 package edu.ie3.simona.model.participant.evcs
 
-import edu.ie3.simona.api.data.ev.model.EvModel
+import edu.ie3.simona.api.data.model.ev.EvModel
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import squants.Power
-import squants.energy.{Energy, KilowattHours}
+import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toApparent,
+  toSquants,
+}
+import squants.energy.{Power, Energy, KilowattHours}
+import squants.time.{Time, Seconds}
 
 import java.util.UUID
 
@@ -35,11 +39,23 @@ final case class EvModelWrapper(
   def uuid: UUID = original.getUuid
   def id: String = original.getId
 
-  lazy val pRatedAc: Power = original.getPRatedAC.toSquants
+  lazy val cosPhi: Double = original.getCosPhiRated
+  lazy val sRatedAc: ApparentPower = original.getSRatedAC.toApparent
+  lazy val pRatedAc: Power = sRatedAc.toActivePower(cosPhi)
   lazy val pRatedDc: Power = original.getPRatedDC.toSquants
   lazy val eStorage: Energy = original.getEStorage.toSquants
 
   def departureTick: Long = original.getDepartureTick
+
+  /** Returns time to departure from given tick.
+    *
+    * @param tick
+    *   The tick to subtract from departure time.
+    * @return
+    *   The time until departure.
+    */
+  def timeToDeparture(tick: Long): Time =
+    Seconds(departureTick - tick)
 
   /** Unwrapping the original [[EvModel]] while also updating the
     * [[storedEnergy]], which could have changed.

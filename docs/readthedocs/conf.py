@@ -14,18 +14,16 @@ add_function_parentheses = True
 extensions = [
     'myst_parser',
     'sphinx.ext.mathjax',
-    'sphinx.ext.autosectionlabel',
     'sphinx.ext.autodoc',
     'sphinxcontrib.plantuml',
     'sphinx.ext.intersphinx',
-    'hoverxref.extension',
     'sphinxcontrib.bibtex'
 ]
 
-# Make sure the target is unique
-autosectionlabel_prefix_document = True
-
 myst_enable_extensions = ["dollarmath", "amsmath"]
+
+# Automatically create anchors for headings (up to level 3)
+myst_heading_anchors = 3
 
 templates_path = ['_templates']
 exclude_trees = ['.build']
@@ -49,10 +47,6 @@ plantuml = 'plantuml'
 intersphinx_mapping = {
     'psdm': ('https://powersystemdatamodel.readthedocs.io/en/latest/', None),
 }
-
-hoverxref_intersphinx = [
-    "psdm",
-]
 
 # BibTex options
 bibtex_bibfiles = ['_static/bibliography/bibAboutSimona.bib',

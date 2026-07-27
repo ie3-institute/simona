@@ -9,7 +9,7 @@ package edu.ie3.simona.exceptions
 /** Exception to be thrown whenever an invalid Initialization Trigger is
   * received
   * @param message
-  *   spcecific error message
+  *   specific error message
   */
 class InitializationException(message: String) extends Exception(message) {
 

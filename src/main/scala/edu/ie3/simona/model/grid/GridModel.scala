@@ -449,7 +449,7 @@ object GridModel {
     */
   private def validateControlGroups(
       subGridContainer: SubGridContainer,
-      maybeControlConfig: Option[SimonaConfig.Simona.Control],
+      maybeControlConfig: Option[SimonaConfig.Control],
   ): Unit = {
     maybeControlConfig.foreach { control =>
       val measurementUnits =
@@ -585,7 +585,7 @@ object GridModel {
       )
 
     /* Build transformer control groups */
-    val transformerControlGroups = simonaConfig.simona.control
+    val transformerControlGroups = simonaConfig.control
       .map { controlConfig =>
         TransformerControlGroupModel.buildControlGroups(
           subGridContainer.getRawGrid.getMeasurementUnits.asScala.toSet,
@@ -611,10 +611,7 @@ object GridModel {
     // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
-    validateControlGroups(
-      subGridContainer,
-      simonaConfig.simona.control,
-    )
+    validateControlGroups(subGridContainer, simonaConfig.control)
 
     // return
     gridModel

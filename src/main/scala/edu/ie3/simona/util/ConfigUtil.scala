@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.util
 
+import com.typesafe.config.{ConfigFactory, ConfigObject}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.io.connectors.{
   CouchbaseConnector,
@@ -35,14 +36,17 @@ import edu.ie3.simona.config.OutputConfig.{
   SimpleOutputConfig,
   ThermalOutputConfigs,
 }
-import edu.ie3.simona.config.RuntimeConfig
 import edu.ie3.simona.config.RuntimeConfig.*
+import edu.ie3.simona.config.SimonaConfig.getOrThrow
+import edu.ie3.simona.config.{ConfigFailFast, RuntimeConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
 import org.apache.kafka.clients.admin.AdminClient
 import org.apache.kafka.common.KafkaException
+import pureconfig.{ConfigConvert, ConfigSource, ConfigWriter}
 
 import java.io.File
+import java.util
 import java.util.concurrent.ExecutionException
 import java.util.{Properties, UUID}
 import scala.collection.mutable
@@ -52,68 +56,80 @@ import scala.util.{Failure, Success, Try, Using}
 
 object ConfigUtil {
 
-  final case class EmConfigUtil private (
-      private val configs: Map[UUID, EmRuntimeConfig],
-      private val defaultConfigs: EmRuntimeConfig,
+  private def load[T <: BaseRuntimeConfig: ConfigConvert](
+      map: java.util.Map[String, String],
+      fallback: T,
+  )(using writer: ConfigWriter[T]): T = {
+    val validMap = new util.HashMap(map)
+    validMap.entrySet.removeIf(_.getValue.isBlank)
+
+    val fallbackValues = ConfigSource.fromConfig(
+      writer.to(fallback).asInstanceOf[ConfigObject].toConfig
+    )
+
+    ConfigSource
+      .fromConfig(ConfigFactory.parseMap(validMap))
+      .withFallback(fallbackValues)
+      .load[T]
+      .getOrThrow
+  }
+
+  final case class EmConfigUtil(
+      private val config: EmRuntimeConfig
   ) {
 
     /** Queries for a [[EmRuntimeConfig]], that applies for the given uuid and
       * either returns the config for the requested uuid or the default config.
       *
-      * @param uuid
-      *   Identifier of the requested load model
       * @return
       *   the requested config or a default value
       */
-    def getOrDefault(uuid: UUID): EmRuntimeConfig =
-      configs.getOrElse(uuid, defaultConfigs)
-  }
-
-  object EmConfigUtil {
-
-    /** Creates an em config utility from the given em configuration. It builds
-      * a map from uuid to individual em config for faster access.
-      *
-      * @param subConfig
-      *   Configuration subtree for the behaviour of ems
-      * @return
-      *   a matching config utility
-      */
-    def apply(subConfig: EmRuntimeConfigs): EmConfigUtil =
-      EmConfigUtil(
-        buildUuidMapping(subConfig.individualConfigs),
-        subConfig.defaultConfig,
-      )
+    def getOrDefault(
+        identifier: String,
+        additionalParameters: java.util.Map[String, String],
+    ): EmRuntimeConfig = {
+      val finalConfig = load(additionalParameters, config)
+      ConfigFailFast.checkBaseRuntimeConfigs(finalConfig, identifier)
+      finalConfig
+    }
   }
 
   final case class ParticipantConfigUtil private (
-      private val configs: Map[UUID, BaseRuntimeConfig],
-      private val defaultConfigs: Map[Class[?], BaseRuntimeConfig],
+      private val configs: Map[Class[?], BaseRuntimeConfig]
   ) {
 
     /** Queries for a [[BaseRuntimeConfig]] of type [[T]], that applies for the
       * given uuid and either returns the config for the requested uuid or the
       * default config for type [[T]].
       *
-      * @param uuid
-      *   Identifier of the requested load model
       * @return
       *   the requested config or a default value of type [[T]]
       */
-    def getOrDefault[T <: BaseRuntimeConfig](
-        uuid: UUID
-    )(implicit tag: ClassTag[T]): T =
-      configs.get(uuid) match {
+    def getOrDefault[T <: BaseRuntimeConfig: ConfigConvert](
+        identifier: String,
+        additionalParameters: java.util.Map[String, String],
+    )(implicit tag: ClassTag[T]): T = {
+      val defaultConfig = configs.get(tag.runtimeClass) match {
         case Some(conf: T) => conf
         case _ =>
-          defaultConfigs.get(tag.runtimeClass) match {
-            case Some(conf: T) => conf
-            case _ =>
-              throw new RuntimeException(
-                s"No config found for $uuid of type ${tag.runtimeClass.getSimpleName}."
-              )
-          }
+          throw new RuntimeException(
+            s"No config found of type ${tag.runtimeClass.getSimpleName}."
+          )
       }
+
+      val finalConfig = load(additionalParameters, defaultConfig)
+      ConfigFailFast.checkBaseRuntimeConfigs(finalConfig, identifier)
+
+      finalConfig match {
+        case load: LoadRuntimeConfig =>
+          ConfigFailFast.checkSpecificLoadModelConfig(load)
+        case storage: StorageRuntimeConfig =>
+          ConfigFailFast.checkStoragesConfig(storage)
+        case _ =>
+      }
+
+      finalConfig
+    }
   }
 
   object ParticipantConfigUtil {
@@ -130,28 +146,17 @@ object ConfigUtil {
     def apply(
         subConfig: RuntimeConfig.Participant
     ): ParticipantConfigUtil = {
-      ParticipantConfigUtil(
-        buildUuidMapping(
-          Seq(
-            subConfig.bm.individualConfigs,
-            subConfig.load.individualConfigs,
-            subConfig.fixedFeedIn.individualConfigs,
-            subConfig.pv.individualConfigs,
-            subConfig.evcs.individualConfigs,
-            subConfig.wec.individualConfigs,
-            subConfig.storage.individualConfigs,
-          ).flatten
-        ),
+      new ParticipantConfigUtil(
         Seq(
-          subConfig.bm.defaultConfig,
-          subConfig.load.defaultConfig,
-          subConfig.fixedFeedIn.defaultConfig,
-          subConfig.pv.defaultConfig,
-          subConfig.evcs.defaultConfig,
-          subConfig.wec.defaultConfig,
-          subConfig.hp.defaultConfig,
-          subConfig.storage.defaultConfig,
-        ).map { conf => conf.getClass -> conf }.toMap,
+          subConfig.bm,
+          subConfig.load,
+          subConfig.fixedFeedIn,
+          subConfig.pv,
+          subConfig.evcs,
+          subConfig.wec,
+          subConfig.hp,
+          subConfig.storage,
+        ).map { conf => conf.getClass -> conf }.toMap
       )
     }
 
@@ -572,15 +577,5 @@ object ConfigUtil {
       }
     }
   }
-
-  private def buildUuidMapping[T <: BaseRuntimeConfig](
-      configs: Seq[T]
-  ): Map[UUID, T] =
-    configs
-      .flatMap(modelConfig =>
-        modelConfig.uuids
-          .map(UUID.fromString(_) -> modelConfig)
-      )
-      .toMap
 
 }

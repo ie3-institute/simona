@@ -14,41 +14,35 @@ import edu.ie3.datamodel.io.source.TimeSeriesSource
 import edu.ie3.datamodel.io.source.csv.CsvTimeSeriesSource
 import edu.ie3.datamodel.io.source.sql.SqlTimeSeriesSource
 import edu.ie3.datamodel.models.value.Value
-import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.simona.agent.participant.ParticipantAgent.{
-  DataProvision,
-  PrimaryRegistrationSuccessfulMessage,
-}
 import edu.ie3.simona.config.ConfigParams.TimeStampedSqlParams
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
-import edu.ie3.simona.exceptions.agent.ServiceRegistrationException
 import edu.ie3.simona.exceptions.{
   CriticalFailureException,
   InitializationException,
 }
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
+  DataProvision,
+  PrimaryRegistrationSuccessfulMessage,
   ServiceRegistrationMessage,
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.service.Data.PrimaryData
-import edu.ie3.simona.service.Data.PrimaryData.RichValue
+import edu.ie3.simona.service.Data.PrimaryData.toPrimaryData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.SimonaService
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
-import edu.ie3.util.scala.collection.immutable.SortedDistinctSeq
+import edu.ie3.simona.service.{SimonaService, TimeSeriesUtil}
+import edu.ie3.simona.util.TickUtil.toDateTime
+import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.util.UUID
-import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.RichOptional
 import scala.util.{Failure, Success, Try}
 
@@ -92,8 +86,6 @@ object PrimaryServiceWorker extends SimonaService {
     *   ending!)
     * @param fileNamingStrategy
     *   [[FileNamingStrategy]], the input files follow
-    * @param timePattern
-    *   The time format pattern of the time series
     */
   final case class CsvInitPrimaryServiceStateData[V <: Value](
       override val timeSeriesUuid: UUID,
@@ -103,7 +95,6 @@ object PrimaryServiceWorker extends SimonaService {
       directoryPath: Path,
       filePath: Path,
       fileNamingStrategy: FileNamingStrategy,
-      timePattern: String,
   ) extends InitPrimaryServiceStateData[V]
 
   /** Specific implementation of [[InitPrimaryServiceStateData]], if the source
@@ -128,10 +119,8 @@ object PrimaryServiceWorker extends SimonaService {
 
   /** Class carrying the state of a fully initialized [[PrimaryServiceWorker]]
     *
-    * @param maybeNextActivationTick
-    *   The next tick, when this actor is triggered by scheduler
     * @param activationTicks
-    *   Linked collection of ticks, in which data is available
+    *   A queue of future ticks that the service will be activated at.
     * @param startDateTime
     *   Simulation time of the first instant in simulation
     * @param valueClass
@@ -145,12 +134,11 @@ object PrimaryServiceWorker extends SimonaService {
     *   Type of value to get from source
     */
   final case class PrimaryServiceInitializedStateData[V <: Value](
-      maybeNextActivationTick: Option[Long],
-      activationTicks: SortedDistinctSeq[Long] = SortedDistinctSeq.empty,
+      activationTicks: ActivationTickQueue = ActivationTickQueue.empty,
       startDateTime: ZonedDateTime,
       valueClass: Class[V],
       source: TimeSeriesSource[V],
-      subscribers: Vector[ActorRef[ParticipantAgent.Request]] = Vector.empty,
+      subscribers: Vector[ActorRef[ServiceMessage.Response]] = Vector.empty,
   ) extends ServiceBaseStateData
 
   override type S = PrimaryServiceInitializedStateData[Value]
@@ -169,14 +157,10 @@ object PrimaryServiceWorker extends SimonaService {
             directoryPath,
             filePath,
             fileNamingStrategy,
-            timePattern,
           ) =>
         Try {
           /* Set up source and acquire information */
-          val factory = new TimeBasedSimpleValueFactory(
-            valueClass,
-            DateTimeFormatter.ofPattern(timePattern),
-          )
+          val factory = new TimeBasedSimpleValueFactory(valueClass)
           val source = new CsvTimeSeriesSource(
             csvSep,
             directoryPath,
@@ -198,10 +182,7 @@ object PrimaryServiceWorker extends SimonaService {
           ) =>
         Try {
           val factory =
-            new TimeBasedSimpleValueFactory(
-              valueClass,
-              DateTimeFormatter.ofPattern(sqlParams.timePattern),
-            )
+            new TimeBasedSimpleValueFactory(valueClass)
 
           val sqlConnector = new SqlConnector(
             sqlParams.jdbcUrl,
@@ -234,92 +215,22 @@ object PrimaryServiceWorker extends SimonaService {
             simulationStart,
             valueClass: Class[Value],
           ) =>
-        given startDateTime: ZonedDateTime = simulationStart
-
-        // Note: because we want data for the start tick as well, we need to use any tick before the start tick
-        val intervalStart = simulationStart.minusSeconds(1)
-
-        val (maybeNextTick, furtherActivationTicks) = SortedDistinctSeq(
-          source
-            .getTimeKeysAfter(intervalStart)
-            .asScala
-            .toSeq
-            .map(_.toTick)
-        ).pop
-
-        val previousOption =
-          source.getLastTimeKeyBefore(simulationStart).toScala
-
-        (maybeNextTick, previousOption) match {
-          case (Some(tick), _) if tick == 0L =>
-            /* Set up the state data and determine the next activation tick. */
+        TimeSeriesUtil
+          .getTicksAdaptedToSimulation(
+            source,
+            simulationStart,
+          )
+          .map { activationTicks =>
             val initializedStateData =
               PrimaryServiceInitializedStateData(
-                maybeNextTick,
-                furtherActivationTicks,
+                activationTicks,
                 simulationStart,
                 valueClass,
                 source,
               )
 
-            Success(initializedStateData, maybeNextTick)
-
-          case (Some(tick), None) if tick > 0L =>
-            /* No data for the first tick or before, but the start of the data needs to be at the first tick of the simulation. */
-            Failure(
-              new ServiceRegistrationException(
-                s"The data for the timeseries '${source.getTimeSeries.getUuid}' starts after the start of this simulation (tick: $tick)! This is not allowed!"
-              )
-            )
-
-          case (Some(_), Some(value)) =>
-            /* We have data before and after the start of the simulation, but not at tick 0 */
-            log.debug(
-              s"No data at the start of the simulation. Use last know data for tick: ${value.toTick}"
-            )
-
-            val startTick = Some(0L)
-
-            /* Set up the state data. */
-            val initializedStateData =
-              PrimaryServiceInitializedStateData(
-                startTick,
-                furtherActivationTicks,
-                simulationStart,
-                valueClass,
-                source,
-              )
-
-            Success(initializedStateData, startTick)
-
-          case (_, Some(value)) =>
-            /* We have data before, but not after the start of the simulation */
-            log.warn(
-              s"Only found data before the start of the simulation. Tick: ${value.toTick}"
-            )
-
-            val nextTick = Some(0L)
-
-            /* Set up the state data. */
-            val initializedStateData =
-              PrimaryServiceInitializedStateData(
-                nextTick,
-                furtherActivationTicks,
-                simulationStart,
-                valueClass,
-                source,
-              )
-
-            Success(initializedStateData, nextTick)
-
-          case _ =>
-            /* No data for the simulation. */
-            Failure(
-              new ServiceRegistrationException(
-                s"No appropriate data found within simulation time range in timeseries '${source.getTimeSeries.getUuid}'!"
-              )
-            )
-        }
+            (initializedStateData, activationTicks.nextTick)
+          }
     }
   }
 
@@ -333,7 +244,7 @@ object PrimaryServiceWorker extends SimonaService {
       case WorkerRegistrationMessage(agentToBeRegistered) =>
         agentToBeRegistered ! PrimaryRegistrationSuccessfulMessage(
           ctx.self,
-          serviceStateData.maybeNextActivationTick.getOrElse(
+          serviceStateData.activationTicks.nextTick.getOrElse(
             throw new CriticalFailureException(
               s"There is no primary data for $agentToBeRegistered"
             )
@@ -394,14 +305,11 @@ object PrimaryServiceWorker extends SimonaService {
       PrimaryServiceInitializedStateData[V],
       Option[Long],
   ) = {
-    val (maybeNextActivationTick, remainderActivationTicks) =
-      baseStateData.activationTicks.pop
+    val remainingTicks = baseStateData.activationTicks.dropFirst
+    val maybeNextTick = remainingTicks.nextTick
     (
-      baseStateData.copy(
-        maybeNextActivationTick = maybeNextActivationTick,
-        activationTicks = remainderActivationTicks,
-      ),
-      maybeNextActivationTick,
+      baseStateData.copy(activationTicks = remainingTicks),
+      maybeNextTick,
     )
   }
 

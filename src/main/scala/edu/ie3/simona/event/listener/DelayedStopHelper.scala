@@ -21,7 +21,7 @@ object DelayedStopHelper {
     * functionality
     */
   sealed trait StoppingMsg
-      extends ResultEventListener.Request
+      extends ResultListener.Request
       with RuntimeEventListener.Request
 
   /** Message indicating that [[RuntimeEventListener]] should stop. Instead of

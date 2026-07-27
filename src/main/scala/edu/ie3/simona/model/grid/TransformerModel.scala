@@ -178,7 +178,7 @@ case object TransformerModel {
 
     // / transformer tapping
     val transformerTappingModel = TransformerTappingModel(
-      trafoType.getdV(),
+      trafoType.getdV.toSquants,
       transformerInput.getTapPos,
       trafoType.getTapMax,
       trafoType.getTapMin,

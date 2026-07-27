@@ -18,10 +18,12 @@ import edu.ie3.util.scala.quantities
 import squants.electro.{Kilovolts, Ohms, Siemens}
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
+import squants.radio.WattsPerSquareMeter
 import squants.space.{CubicMeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.{Amperes, Each, Radians, Velocity}
 import tech.units.indriya.ComparableQuantity
+import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
 
 import javax.measure.quantity.*
@@ -39,6 +41,21 @@ object QuantityConversionUtils {
     def toSquants: squants.Dimensionless = Each(
       quantity.to(PU).getValue.doubleValue
     )
+  }
+
+  extension (quantity: squants.Dimensionless) {
+    def toQuantity: ComparableQuantity[Dimensionless] =
+      Quantities.getQuantity(quantity.toEach, PU)
+  }
+
+  extension (value: squants.Power) {
+    def toQuantity: ComparableQuantity[Power] =
+      Quantities.getQuantity(value.toMegawatts, MEGAWATT)
+  }
+
+  extension (value: squants.Energy) {
+    def toQuantity: ComparableQuantity[Energy] =
+      Quantities.getQuantity(value.toMegawattHours, MEGAWATTHOUR)
   }
 
   /** Extension for [[ComparableQuantity]] of type [[ElectricPotential]] that
@@ -86,7 +103,7 @@ object QuantityConversionUtils {
   extension (quantity: ComparableQuantity[Energy]) {
 
     def toSquants: squants.Energy = KilowattHours(
-      quantity.to(KILOVARHOUR).getValue.doubleValue
+      quantity.to(KILOWATTHOUR).getValue.doubleValue
     )
   }
 
@@ -95,7 +112,7 @@ object QuantityConversionUtils {
     */
   extension (quantity: ComparableQuantity[EnergyPrice]) {
 
-    def toSquants: quantities.EnergyPrice = EuroPerKilowatthour(
+    def toSquants: quantities.EnergyPrice = EuroPerKilowattHour(
       quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
     )
   }
@@ -222,11 +239,11 @@ object QuantityConversionUtils {
   }
 
   /** Extension for [[ComparableQuantity]] of type [[Irradiance]] that allows
-    * conversion into a [[quantities.Irradiance]] squants quantity.
+    * conversion into a [[Irradiance]] squants quantity.
     */
   extension (quantity: ComparableQuantity[Irradiance]) {
 
-    def toSquants: quantities.Irradiance = WattsPerSquareMeter(
+    def toSquants: squants.radio.Irradiance = WattsPerSquareMeter(
       quantity
         .to(WATT_PER_SQUAREMETRE)
         .getValue

@@ -6,25 +6,15 @@
 
 package edu.ie3.simona.util
 
-import edu.ie3.datamodel.models.input.{MeasurementUnitInput, NodeInput}
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
   Transformer2WInput,
   Transformer3WInput,
 }
-import edu.ie3.datamodel.models.input.container.{
-  GraphicElements,
-  JointGridContainer,
-  RawGridElements,
-  SubGridContainer,
-  SystemParticipants,
-}
-import edu.ie3.datamodel.models.input.graphics.{
-  LineGraphicInput,
-  NodeGraphicInput,
-}
+import edu.ie3.datamodel.models.input.container.*
 import edu.ie3.datamodel.models.input.system.*
+import edu.ie3.datamodel.models.input.{EmInput, MeasurementUnitInput, NodeInput}
 
 import scala.jdk.CollectionConverters.*
 
@@ -37,27 +27,28 @@ object TestGridFactory {
     * then.
     *
     * @param gridName
-    *   The name of the grid, defaults to "TestGrid"
+    *   The name of the grid, defaults to "TestGrid".
     * @param rawGridElements
-    *   The raw grid elements, default to empty container
+    *   The raw grid elements, default to empty container.
     * @param systemParticipants
-    *   The system participants, default to empty container
-    * @param graphicElements
-    *   The graphic elements, default to empty container
+    *   The system participants, default to empty container.
+    * @param energyManagementUnits
+    *   The energy management units, default to empty container.
     * @return
-    *   A JointGridContainer for testing purposes
+    *   A JointGridContainer for testing purposes.
     */
   def createJointGrid(
       gridName: String = "TestGrid",
       rawGridElements: RawGridElements = createEmptyRawGridElements(),
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
-      graphicElements: GraphicElements = createEmptyGraphicElements(),
+      energyManagementUnits: EnergyManagementUnits =
+        createEmptyEnergyManagementUnits(),
   ): JointGridContainer =
     new JointGridContainer(
       gridName,
       rawGridElements,
       systemParticipants,
-      graphicElements,
+      energyManagementUnits,
     )
 
   /** Creates a sub grid container for testing purposes.
@@ -67,31 +58,32 @@ object TestGridFactory {
     * then.
     *
     * @param gridName
-    *   The name of the grid, defaults to "TestGrid"
+    *   The name of the grid, defaults to "TestGrid".
     * @param subgrid
-    *   The sub grid number, defaults to 100
+    *   The sub grid number, defaults to 100.
     * @param rawGridElements
-    *   The raw grid elements, default to empty container
+    *   The raw grid elements, default to empty container.
     * @param systemParticipants
-    *   The system participants, default to empty container
-    * @param graphicElements
-    *   The graphic elements, default to empty container
+    *   The system participants, default to empty container.
+    * @param energyManagementUnits
+    *   The energy management units, default to empty container.
     * @return
-    *   A SubGridContainer for testing purposes
+    *   A SubGridContainer for testing purposes.
     */
   def createSubGrid(
       gridName: String = "TestGrid",
       subgrid: Int = 100,
       rawGridElements: RawGridElements = createEmptyRawGridElements(),
       systemParticipants: SystemParticipants = createEmptySystemParticipants(),
-      graphicElements: GraphicElements = createEmptyGraphicElements(),
+      energyManagementUnits: EnergyManagementUnits =
+        createEmptyEnergyManagementUnits(),
   ): SubGridContainer =
     new SubGridContainer(
       gridName,
       subgrid,
       rawGridElements,
       systemParticipants,
-      graphicElements,
+      energyManagementUnits,
     )
 
   def createEmptyRawGridElements(): RawGridElements =
@@ -112,15 +104,16 @@ object TestGridFactory {
       Set.empty[EvInput].asJava,
       Set.empty[FixedFeedInInput].asJava,
       Set.empty[HpInput].asJava,
+      Set.empty[AcInput].asJava,
       Set.empty[LoadInput].asJava,
       Set.empty[PvInput].asJava,
       Set.empty[StorageInput].asJava,
       Set.empty[WecInput].asJava,
     )
 
-  def createEmptyGraphicElements(): GraphicElements =
-    new GraphicElements(
-      Set.empty[NodeGraphicInput].asJava,
-      Set.empty[LineGraphicInput].asJava,
+  def createEmptyEnergyManagementUnits(): EnergyManagementUnits =
+    new EnergyManagementUnits(
+      Set.empty[EmInput].asJava
     )
+
 }

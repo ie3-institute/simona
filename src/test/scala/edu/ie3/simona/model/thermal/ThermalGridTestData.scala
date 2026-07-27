@@ -30,27 +30,61 @@ trait ThermalGridTestData {
   protected val testGridQDotInfeed: Power = Kilowatts(15d)
   protected val noThermalDemand: ThermalDemandWrapper =
     ThermalDemandWrapper(
-      ThermalEnergyDemand(zeroKWh, zeroKWh),
-      ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
     )
   protected val onlyThermalDemandOfHouse: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
-      ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
     )
   protected val onlyThermalDemandOfHeatStorage: ThermalDemandWrapper =
     ThermalDemandWrapper(
-      ThermalEnergyDemand(zeroKWh, zeroKWh),
+      ThermalEnergyDemand.noDemand,
       ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
     )
   protected val onlyPossibleDemandOfHeatStorage: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand.noDemand,
       ThermalEnergyDemand(zeroKWh, KilowattHours(2)),
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
     )
+
+  protected val onlyThermalDemandOfHotWaterStorage: ThermalDemandWrapper =
+    ThermalDemandWrapper(
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+    )
+  protected val onlyPossibleDemandOfHotWaterStorage: ThermalDemandWrapper =
+    ThermalDemandWrapper(
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand(zeroKWh, KilowattHours(2)),
+    )
+
+  protected val thermalDemandOfHouseAndWaterStorage: ThermalDemandWrapper =
+    ThermalDemandWrapper(
+      ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand.noDemand,
+      ThermalEnergyDemand(KilowattHours(2), KilowattHours(2)),
+    )
+
   protected val thermalDemandOfHouseAndHeatStorage: ThermalDemandWrapper =
     ThermalDemandWrapper(
       ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+      ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
+      ThermalEnergyDemand.noDemand,
       ThermalEnergyDemand(KilowattHours(1), KilowattHours(2)),
     )
   protected val isRunning: Boolean = true

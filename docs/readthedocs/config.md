@@ -6,17 +6,20 @@ To configure a SIMONA simulation, several parameters must be specified. Each sim
 system for a given runtime and is based on a power flow calculation using the Newton-Raphson algorithm. Individual steps
 for configuring the simulation are performed below.
 
-An overview of all default values can be found below. These values are used when no other value is set in the configuration
+An overview of all default values can be found at the bottom of the page. These values are used when no other value is set in the configuration
 file.
 
-## Configuration Parameters 
-
-### General simulation parameters
+## General simulation parameters
 To create the output directory name, the name of the simulation is used as a string variable 
 
   `simona.simulationName = "vn_simona"`
 
-### Time parameters
+The simulation timeout defines the time after a simulation is automatically stopped. For long running simulations this parameter
+needs to be adapted.
+
+  `simona.simulationTimeout = 12h`
+
+## Time parameters
 Starting date and time of the simulation in ISO-8601 date and time format with offset
 
   `simona.time.startDateTime = "2011-01-01T00:00:00Z"`
@@ -37,7 +40,7 @@ If the simulation is to skip a failed power flow and continue to run, set:
 
   `simona.time.stopOnFailedPowerFlow = false`
 
-### Input parameters
+## Input parameters
 Setting of the data source
 
   `simona.input.grid.datasource.id = "csv"`
@@ -53,6 +56,8 @@ simona.input.primary.csvParams = {
   isHierarchic: false  
 }
 ```
+
+### Weather data
 
 Insert weather data source via:
 ```
@@ -74,13 +79,42 @@ simona.input.weather.datasource = {
     `coordinateSource.sampleParams.use = true`
   
     - The sample values should only be used to test the functionality. The performance of a reasonable simulation with sensitive results should be based on real weather data.
-    - Supported weather data sources are: influxdb1x, csv, sql, couchbase, sample
+  - Other supported weather data sources are: influxdb1x, csv, sql, couchbase
   - The parameter `maxCoordinateDistance` is used to specify the radius in which weather data should be searched in. The given distance should be in meter.
 
 Further model classes which can be used to parse a data set as input to power system simulations are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#time-series). 
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM. 
 
-### Output parameters
+### Price data
+
+For the buying price, fees (in EUR/MWh) are added to the wholesale price and the tax is added on the total cost.
+Conversely, for the selling price, fees (in EUR/MWh) are subtracted from the wholesale price, and the tax is subtracted from the remaining amount.
+
+Find below an exemplary configuration for households in Dortmund, 2025.
+An explanation of the exemplary price configuration below can be found [here](models/price_service.md#example-scenario).
+The UUID of the price time series to use as data source. 
+An individual time series with given UUID and column scheme ENERGY_PRICE needs to be provided.
+
+```
+simona.input.prices.datasource = {
+  buyingPrice = {
+    fees: 187.11
+    tax: 0.19
+  }
+  sellingPrice = {
+    fees: 5.0
+    tax: 0.0
+  }
+  timeseriesUuid = <UUID>
+  csvParams = {
+    directoryPath: "input/samples/vn_simona/fullGrid"
+    csvSep: ","
+    isHierarchic: false
+  }
+}
+```
+
+## Output parameters
 
 Specify the output directory
 
@@ -106,7 +140,7 @@ simona.output.sink.csv {
 While using a csv sink, the raw data output files can be zipped directly when `compressOutputs = true` is used.
 
 
-#### Output configuration of the grid
+### Output configuration of the grid
 
 The grid output configuration defines for which grid components simulation values are to be output.
 
@@ -121,7 +155,7 @@ simona.output.grid = {
 }
 ```
 
-#### Output configuration of system participants
+### Output configuration of system participants
 
 To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the participant is enabled to return its results. 
 
@@ -160,7 +194,7 @@ simona.output.participant.individualConfigs = [
 ]
 ```
 
-#### Output configuration of thermal elements
+### Output configuration of thermal elements
 
 To use the default configuration the default notifier has to be used. By setting "simulationResult" to true, the thermal elements is enabled to return its results.
 
@@ -193,7 +227,7 @@ simona.output.thermal.individualConfigs = [
 Further model classes which can be used to load the outcome of a system simulation are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#result).
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM.
 
-#### Output configuration for flexibility options
+### Output configuration for flexibility options
 
 The output of flexibility options either globally or for system participant groups or individual participants can also be applied. By setting "flexResult" to true, the participant is enabled to return the flexibility options results.
 
@@ -206,7 +240,7 @@ simona.output.participant.defaultConfig = {
 }
 ```
 
-## Logging level configuration
+### Logging level configuration
 
 To specify which log statements should be logged in the `simona.log` file and which log statements should be printed to
 the console, SIMONA offers the user two configuration options.
@@ -232,20 +266,30 @@ Specification of the runtime of subgrids and voltage levels:
 
   `simona.runtime.selected_volt_lvls = []`
 
-The participant runtime can be either based on default configuration or individual configurations can be assigned. 
+The participant runtime can be either based on default configuration or individual configurations can be assigned. For the
+individual configuration one need to add a column with the parameter name to the corresponding input files and fill in the
+values for those input that differ from the default configuration. As for the other models, no input needs to be provided.
 
 ```
 simona.runtime.participant.load = {
-  defaultConfig = {
     calculateMissingReactivePowerWithModel = false
-    uuids = []
     scaling = 1.0
     modelBehaviour = "fix"
     reference = "power"
-  }
-  individualConfigs = []
 }
 ```
+
+An example for individual configuration of loads:
+
+```
+uuid,cos_phi_rated,e_cons_annual,id,load_profile,node,operates_from,operates_until,operator,q_characteristics,s_rated,controlling_em,modelBehaviour,reference
+8221a6b1-eff3-48fe-88ab-0685a9f59cce,0.9700000286102295,4000.0,NS_NET116_L_S1_2(8),h0,3e21f3a1-2c9c-4138-bcc9-466b004609ed,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,,,
+5d4b96bf-a6ad-4026-b97a-4e6d77896480,0.9700000286102295,4000.0,NS_NET116_L_S2_2(4),h0,d53ff076-dadd-44f8-85d4-68f48991f7d0,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,,,
+a964d9b8-a035-41df-86c0-4c5306af2158,0.9700000286102295,4000.0,NS_NET116_L_S2_4(7),h0,e05c68b1-11cd-43fd-a4b2-31e4db380c78,,,,"cosPhiFixed:{(0.0,1.0)}",4.1237101554870605,,,
+50c89980-8da2-4e98-8602-e2f0b560e7c4,0.949999988079071,4000.0,NS_NET146_L_F1_(8),h0,d5489e1b-0e7e-4ca9-a362-09c23576a622,,,,"cosPhiFixed:{(0.0,1.0)}",2.3157899379730225,,fix,energy
+```
+
+
 
 The reactive power is determined based on the chosen Q-control of the participant, when: 
 
@@ -396,6 +440,10 @@ Maximum Voltage Limit in p.u.:
 
 ## Default configuration values
 
+```
+simulationTimeout: FiniteDuration = 12h
+```
+
 ### Time
 ```
 simona.time.schedulerReadyCheckWindow = None
@@ -405,6 +453,7 @@ simona.time.schedulerReadyCheckWindow = None
 
 ```
 simona.input = {
+    baseInputDir = ./input
     extSimDir = None
     
     loadProfile = {
@@ -427,7 +476,7 @@ simona.input = {
           sqlParams = None
         }
         couchbaseParams = None
-        csvParams: = None
+        csvParams = None
         influxDb1xParams = None
         maxCoordinateDistance = 50000
         resolution = 3600
@@ -435,6 +484,18 @@ simona.input = {
         scheme = "icon"
         sqlParams = None
         timestampPattern = None
+    }
+
+    prices.datasource = {
+        buyingPrice = {
+            fees: 0
+            tax: 0
+        }
+        sellingPrice = {
+            fees: 0
+            tax: 0
+        }
+        csvParams = None
     }
 }
 ```
@@ -498,87 +559,51 @@ simona.runtime = {
     }
     
     em = {
-        defaultConfig = {
-            calculateMissingReactivePowerWithModel = false
-            scaling = 1.0
-            uuids = []
-            aggregateFlex = "SELF_OPT_EXCL_REG"
-            curtailRegenerative = false
-        }
-        individualConfigs = []
+        calculateMissingReactivePowerWithModel = false
+        scaling = 1.0
+        aggregateFlex = "SELF_OPT_EXCL_REG"
+        curtailRegenerative = false
     }
     
     participant = {
         requestVoltageDeviationThreshold = 1e-14
         bm = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
         }
         evcs = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-                chargingStrategy = "maxPower"
-                lowestEvSoc = 0.2
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            chargingStrategy = "maxPower"
+            lowestEvSoc = 0.2
         }
         fixedFeedIn = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+             calculateMissingReactivePowerWithModel = false
+             scaling = 1.0
         }
         hp = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+             calculateMissingReactivePowerWithModel = false
+             scaling = 1.0
         }
         load = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-                modelBehaviour = "fix"
-                reference = "power"
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            modelBehaviour = "fix"
+            reference = "power"
         }
         pv = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
         }
         storage = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-                initialSoc = 0.0
-                targetSoc = None                
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
+            initialSoc = 0.0
+            targetSoc = None
         }
         wec = {
-            defaultConfig = {
-                calculateMissingReactivePowerWithModel = false
-                scaling = 1.0
-                uuids = []
-            }
-            individualConfigs = []
+            calculateMissingReactivePowerWithModel = false
+            scaling = 1.0
         }
     }
 }
@@ -592,7 +617,6 @@ simona.powerflow = {
     newtonraphson.iterations = 50
     resolution = 3600s
     stopOnFailure = false
-    sweepTimeout = 30s
 }
 ```
 
@@ -601,7 +625,7 @@ simona.powerflow = {
 ```
 simona.congestionManagement = {
     enableDetection = false
-    timeout = 30s
+    enableTransformerTapChange = false
 }
 ```
 

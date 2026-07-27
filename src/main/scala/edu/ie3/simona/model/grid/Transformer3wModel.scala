@@ -233,7 +233,7 @@ case object Transformer3wModel extends LazyLogging {
 
     // / transformer tapping
     val transformerTappingModel = TransformerTappingModel(
-      trafo3wType.getdV(),
+      trafo3wType.getdV.toSquants,
       powerFlowCase match {
         case PowerFlowCaseA => transformer3wInput.getTapPos
         case _              => trafo3wType.getTapNeutr

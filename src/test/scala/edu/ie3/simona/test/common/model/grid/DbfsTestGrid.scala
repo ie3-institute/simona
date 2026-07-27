@@ -413,4 +413,13 @@ trait DbfsTestGrid extends SubGridGateMokka {
       subGridGates,
     )
   }
+
+  protected val assetsHv: Seq[UUID] =
+    hvGridContainer.allEntitiesAsList.asScala.map(_.getUuid).toSeq
+  protected val assetsHvPF: Seq[UUID] =
+    hvGridContainerPF.allEntitiesAsList.asScala.map(_.getUuid).toSeq
+
+  protected val assetsEhv: Seq[UUID] =
+    ehvGridContainer.allEntitiesAsList.asScala.map(_.getUuid).toSeq
+
 }

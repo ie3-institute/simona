@@ -7,6 +7,7 @@
 package edu.ie3.util.scala.quantities
 
 import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
+import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.thermal.Celsius
 import squants.{Dimensionless, Each, Energy, Power, Temperature}
 
@@ -23,7 +24,11 @@ object DefaultQuantities {
   val zeroKWh: Energy = KilowattHours(0d)
   val zeroMWh: Energy = MegawattHours(0d)
 
+  val zeroEurPerKWh: EnergyPrice = EuroPerKilowattHour(0d)
+
   val zeroPU: Dimensionless = Each(0d)
+  val onePU: Dimensionless = Each(1d)
+
   val zeroCelsius: Temperature = Celsius(0)
 
 }

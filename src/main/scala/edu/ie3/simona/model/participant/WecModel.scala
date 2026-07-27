@@ -13,19 +13,19 @@ import edu.ie3.datamodel.models.result.system.{
   SystemParticipantResult,
   WecResult,
 }
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ActivePowerOperatingPoint,
   ModelState,
-  OperationChangeIndicator,
   ParticipantModelFactory,
 }
-import edu.ie3.simona.model.participant.WecModel.{
-  WecCharacteristic,
-  WecState,
-  molarMassAir,
-  universalGasConstantR,
-}
+import edu.ie3.simona.model.participant.WecModel.*
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.flex.{
+  ParticipantFlexModel,
+  ParticipantInflexibleEnergyLimitFlexModel,
+  ParticipantInflexiblePowerLimitFlexModel,
+}
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.ontology.messages.flex.FlexType
@@ -33,7 +33,10 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   ComplexPower,
   PrimaryDataWithComplexPower,
 }
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.Data.SecondaryData.{
+  SecondarySeriesData,
+  WeatherData,
+}
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
@@ -47,12 +50,13 @@ import squants.*
 import squants.energy.Watts
 import squants.mass.{Kilograms, KilogramsPerCubicMeter}
 import squants.motion.{MetersPerSecond, Pressure}
-import squants.thermal.{Celsius, JoulesPerKelvin}
+import squants.thermal.JoulesPerKelvin
 import tech.units.indriya.unit.Units.*
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.collection.SortedSet
+import scala.collection.immutable.SortedMap
 
 class WecModel private (
     override val uuid: UUID,
@@ -68,9 +72,16 @@ class WecModel private (
     ]
     with LazyLogging {
 
-  override val flexModels: Map[FlexType, ParticipantFlexModel[WecState]] =
+  override val flexModels: Map[FlexType, ParticipantFlexModel[
+    ActivePowerOperatingPoint,
+    WecState,
+  ]] =
     Map(
-      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
+        this,
+        _.toStateSeries,
+      ),
     )
 
   override def determineState(
@@ -86,31 +97,44 @@ class WecModel private (
       nodalVoltage: Dimensionless,
   ): WecState =
     receivedData
-      .collectFirst { case weatherData: WeatherData =>
-        weatherData
+      .collectFirst {
+        case weatherData: WeatherData =>
+          SortedMap(state.tick -> AirWeatherData(weatherData))
+        case SecondarySeriesData(series) =>
+          series.map {
+            case (tick, weatherData: WeatherData) =>
+              tick -> AirWeatherData(weatherData)
+            case (_, unexpectedData) =>
+              throw new CriticalFailureException(
+                s"Unexpected secondary data $unexpectedData"
+              )
+          }
       }
-      .map(newData =>
-        state.copy(
-          windVelocity = newData.windVel,
-          temperature = newData.temp,
-        )
-      )
+      .map(newData => state.copy(weatherData = newData))
       .getOrElse(state)
 
   override def determineOperatingPoint(
       state: WecState
   ): (ActivePowerOperatingPoint, Option[Long]) = {
-    val betzCoefficient = determineBetzCoefficient(state.windVelocity)
+    val (_, weatherData) = state.weatherData
+      .maxBefore(state.tick + 1)
+      .getOrElse(
+        throw new CriticalFailureException(
+          s"No weather data available for current tick ${state.tick}"
+        )
+      )
+
+    val betzCoefficient = determineBetzCoefficient(weatherData.windVelocity)
 
     /** air density in kg/m³
       */
     val airDensity =
       calculateAirDensity(
-        state.temperature,
-        state.airPressure,
+        weatherData.temperature,
+        weatherData.airPressure,
       ).toKilogramsPerCubicMeter
 
-    val v = state.windVelocity.toMetersPerSecond
+    val v = weatherData.windVelocity.toMetersPerSecond
 
     /** cubed velocity in m³/s³
       */
@@ -140,8 +164,7 @@ class WecModel private (
   override def determineOperatingPoint(
       state: WecState,
       setPower: Power,
-  ): (ActivePowerOperatingPoint, OperationChangeIndicator) =
-    (ActivePowerOperatingPoint(setPower), OperationChangeIndicator())
+  ): ActivePowerOperatingPoint = ActivePowerOperatingPoint(setPower)
 
   /** The coefficient is dependent on the wind velocity v. Therefore use v to
     * determine the betz coefficient cₚ.
@@ -229,21 +252,95 @@ object WecModel {
     */
   private val molarMassAir = Kilograms(0.0289647d)
 
-  /** Holds all relevant data for wec model calculation
+  /** Holds all relevant data for WEC model calculation.
     *
-    * @param windVelocity
-    *   current wind velocity
-    * @param temperature
-    *   current temperature
-    * @param airPressure
-    *   current air pressure
+    * @param tick
+    *   The current tick.
+    * @param weatherData
+    *   A map of tick to corresponding weather data. For regular calculations of
+    *   the operating point, only the weather data for the current tick is used.
+    *   For forecasts, the map needs to contain further data for future ticks.
     */
   final case class WecState(
       override val tick: Long,
+      weatherData: SortedMap[Long, AirWeatherData] = SortedMap.empty,
+  ) extends ModelState {
+
+    /** Creates states for forecast calculation given the current state.
+      *
+      * @return
+      *   States for forecast calculation.
+      */
+    def toStateSeries: SortedMap[Long, WecState] = {
+      weatherData.map { case (dataTick, _) =>
+        val tickState = WecState(
+          dataTick,
+          weatherData,
+        )
+
+        dataTick -> tickState
+      }
+    }
+  }
+
+  object WecState {
+
+    /** Convenience constructor for creating a state for regular operating point
+      * calculation at the current point in simulation time.
+      *
+      * @param tick
+      *   The current tick.
+      * @param windVelocity
+      *   The current wind velocity.
+      * @param temperature
+      *   The current temperature.
+      * @param airPressure
+      *   Optionally, the current air pressure.
+      * @return
+      *   A state for calculation at the current point in simulation time.
+      */
+    def apply(
+        tick: Long,
+        windVelocity: Velocity,
+        temperature: Temperature,
+        airPressure: Option[Pressure],
+    ): WecState = WecState(
+      tick,
+      SortedMap(
+        tick -> AirWeatherData(
+          windVelocity = windVelocity,
+          temperature = temperature,
+          airPressure = airPressure,
+        )
+      ),
+    )
+
+  }
+
+  /** Relevant weather data for a specific point in simulation time.
+    *
+    * @param windVelocity
+    *   The current wind velocity.
+    * @param temperature
+    *   The current temperature.
+    * @param airPressure
+    *   Optionally, the current air pressure.
+    */
+  final case class AirWeatherData(
       windVelocity: Velocity,
       temperature: Temperature,
-      airPressure: Option[Pressure],
-  ) extends ModelState
+      airPressure: Option[Pressure] = None,
+  )
+
+  object AirWeatherData {
+
+    def apply(weatherData: WeatherData): AirWeatherData =
+      AirWeatherData(
+        windVelocity = weatherData.windVel,
+        temperature = weatherData.temp,
+      )
+
+  }
 
   /** This class is initialized with a [[WecCharacteristicInput]], which
     * contains the needed betz curve.
@@ -285,12 +382,7 @@ object WecModel {
         tick: Long,
         simulationTime: ZonedDateTime,
     ): WecState =
-      WecState(
-        tick,
-        MetersPerSecond(0d),
-        Celsius(0d),
-        None,
-      )
+      WecState(tick)
 
     override def create(): WecModel =
       new WecModel(

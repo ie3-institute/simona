@@ -9,6 +9,7 @@ package edu.ie3.simona.model.em
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
   FlexOptions,
   PowerLimitFlexOptions,
 }
@@ -68,6 +69,12 @@ object EmAggregateFlex {
             s"Invalid format for aggregate flex strategy: $powerTargetAbsString"
           )
       }
+  }
+
+  def parseOptimizingModel: PartialFunction[String, EmAggregateFlex[
+    EnergyBoundariesFlexOptions
+  ]] = { case "SIMPLE_BOUNDARIES" =>
+    EmAggregateEnergyBoundariesSimple
   }
 
 }

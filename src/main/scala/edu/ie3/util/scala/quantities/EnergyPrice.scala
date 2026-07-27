@@ -6,50 +6,59 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.energy.Energy
+import squants.energy.{Energy, KilowattHours, MegawattHours}
 import squants.market.{EUR, Money}
 import squants.{Dimension, PrimaryUnit, SiUnit, UnitConverter, UnitOfMeasure}
 
 import scala.util.Try
 
-/** Represents the price of one Kilowatthour in currency EURO
+/** Represents the price of energy in currency EURO
   */
-
 final class EnergyPrice private (
-    val value: Double,
-    val unit: EnergyPriceUnit,
+    override val value: Double,
+    override val unit: EnergyPriceUnit,
 ) extends squants.Quantity[EnergyPrice] {
 
-  def dimension: EnergyPrice.type = EnergyPrice
+  override def dimension: EnergyPrice.type = EnergyPrice
 
   def *(that: Energy): Money = EUR(
     this.toEuroPerKilowattHour * that.toKilowattHours
   )
 
-  def toEuroPerKilowattHour: Double = to(EuroPerKilowatthour)
-
+  def toEuroPerWattHour: Double = to(EuroPerWattHour)
+  def toEuroPerKilowattHour: Double = to(EuroPerKilowattHour)
+  def toEuroPerMegawattHour: Double = to(EuroPerMegawattHour)
 }
 
 object EnergyPrice extends Dimension[EnergyPrice] {
   def apply[A](n: A, unit: EnergyPriceUnit)(implicit num: Numeric[A]) =
     new EnergyPrice(num.toDouble(n), unit)
   def apply(value: Any): Try[EnergyPrice] = parse(value)
-  def name = "EnergyPrice"
-  def primaryUnit: EuroPerKilowatthour.type = EuroPerKilowatthour
-  def siUnit: EuroPerKilowatthour.type = EuroPerKilowatthour
-  def units: Set[UnitOfMeasure[EnergyPrice]] = Set(
-    EuroPerKilowatthour
+  override def name = "EnergyPrice"
+  override def primaryUnit: EuroPerWattHour.type = EuroPerWattHour
+  override def siUnit: EuroPerWattHour.type = EuroPerWattHour
+  override def units: Set[UnitOfMeasure[EnergyPrice]] = Set(
+    EuroPerWattHour,
+    EuroPerKilowattHour,
+    EuroPerMegawattHour,
   )
 }
 
 trait EnergyPriceUnit extends UnitOfMeasure[EnergyPrice] with UnitConverter {
-  def apply[A](n: A)(implicit num: Numeric[A]): EnergyPrice =
+  override def apply[A](n: A)(implicit num: Numeric[A]): EnergyPrice =
     EnergyPrice(n, this)
 }
 
-object EuroPerKilowatthour
-    extends EnergyPriceUnit
-    with PrimaryUnit
-    with SiUnit {
-  val symbol: String = EUR.symbol + "/kWh"
+object EuroPerWattHour extends EnergyPriceUnit with PrimaryUnit with SiUnit {
+  override val symbol: String = EUR.symbol + "/Wh"
+}
+
+object EuroPerKilowattHour extends EnergyPriceUnit {
+  override val conversionFactor: Double = 1d / KilowattHours.conversionFactor
+  override val symbol: String = EUR.symbol + "/kWh"
+}
+
+object EuroPerMegawattHour extends EnergyPriceUnit {
+  override val conversionFactor: Double = 1d / MegawattHours.conversionFactor
+  override val symbol: String = EUR.symbol + "/MWh"
 }

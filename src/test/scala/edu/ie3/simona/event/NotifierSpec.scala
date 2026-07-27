@@ -6,71 +6,14 @@
 
 package edu.ie3.simona.event
 
-import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.result.system.*
-import edu.ie3.simona.event.NotifierSpec.{TestEvent, TestEventEnvelope}
-import edu.ie3.simona.event.notifier.Notifier
-import edu.ie3.simona.test.common.TestKitWithShutdown
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import edu.ie3.simona.util.EntityMapperUtil
-import org.apache.pekko.actor.{
-  Actor,
-  ActorLogging,
-  ActorRef,
-  ActorSystem,
-  Props,
-}
-import org.apache.pekko.testkit.ImplicitSender
-import org.scalatest.matchers.should.Matchers
 
-import java.util.{Calendar, Date}
 import scala.language.postfixOps
 
-class NotifierSpec
-    extends TestKitWithShutdown(
-      ActorSystem(
-        "NotifierSpec",
-        ConfigFactory
-          .parseString("""
-            |pekko.loggers =["org.apache.pekko.testkit.TestEventListener"]
-            |pekko.loglevel="OFF"
-            |""".stripMargin),
-      )
-    )
-    with Matchers
-    with ImplicitSender {
-
-  // test listenerActor
-  class NotifierActor(override val listener: Iterable[ActorRef])
-      extends Notifier
-      with Actor
-      with ActorLogging {
-    override def preStart(): Unit = {
-      log.debug(s"{} started!", self)
-    }
-
-    override def receive: Receive = {
-      case TestEventEnvelope(testEvent, "Please notify others of this!") =>
-        log.info(s"Received event $testEvent, will now notify my listeners")
-        notifyListener(testEvent)
-      case unknown => log.warning(s"Received this unknown message: $unknown")
-    }
-  }
-
-  // global vals
-  // Publisher Actor has 'self' as listener, which is possible through the mix in of 'ImplicitSender'
-  val notifier: ActorRef =
-    system.actorOf(Props(new NotifierActor(Iterable(self))))
-
-  "A simple Notifier" should {
-    "be able to notify his listeners of an event" in {
-      val msgDate = Calendar.getInstance().getTime
-      val msg = "Hello World"
-      val testEvent = TestEvent(msg, msgDate)
-      notifier ! TestEventEnvelope(testEvent)
-      expectMsg(testEvent)
-    }
-  }
+class NotifierSpec extends UnitSpec {
 
   "The notifier object" should {
     "provide notifier to result entity mappings" in {
@@ -101,16 +44,4 @@ class NotifierSpec
       } shouldBe true
     }
   }
-}
-
-object NotifierSpec {
-
-  // test classes
-  final case class TestEvent(str: String, date: Date) extends Event
-
-  final case class TestEventEnvelope(
-      testEvent: TestEvent,
-      msg: String = "Please notify others of this!",
-  )
-
 }

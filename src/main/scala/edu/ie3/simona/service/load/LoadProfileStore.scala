@@ -7,31 +7,30 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
-import edu.ie3.datamodel.models.profile.LoadProfile
+import edu.ie3.datamodel.io.source.PowerValueSource.TimeSeriesInputValue
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toApparent,
-  toSquants,
-}
+import edu.ie3.simona.util.TickUtil.toTick
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
 import java.util.Optional
 import javax.measure.quantity.{Energy, Power}
-import scala.jdk.CollectionConverters.{ListHasAsScala, MapHasAsScala}
+import scala.jdk.CollectionConverters.*
+import scala.jdk.FunctionConverters.enrichAsScalaFromSupplier
 import scala.jdk.OptionConverters.RichOptional
 
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
-  *   Map: [[LoadProfile]] to [[LoadProfileSource]]
+  *   Map: [[PowerProfileKey]] to [[LoadProfileSource]]
   */
 final case class LoadProfileStore(
-    profileToSource: Map[LoadProfile, LoadProfileSource[?, ?]]
+    profileToSource: Map[PowerProfileKey, LoadProfileSource[?]]
 ) {
 
   /** Converts an option for [[ComparableQuantity]] power to an option for
@@ -58,19 +57,19 @@ final case class LoadProfileStore(
   ): Option[squants.Energy] =
     energy.toScala.map(_.toSquants)
 
-  /** Method to check whether this [[LoadProfileStore]] contains the given
-    * [[LoadProfile]].
-    * @param loadProfile
+  /** Method to check whether this [[LoadProfileStore]] contains a load profile
+    * for given [[PowerProfileKey]].
+    * @param powerProfileKey
     *   That should be checked.
     * @return
     *   True, if this store contain the profile, else false.
     */
-  def contains(loadProfile: LoadProfile): Boolean =
-    profileToSource.contains(loadProfile)
+  def contains(powerProfileKey: PowerProfileKey): Boolean =
+    profileToSource.contains(powerProfileKey)
 
   /** Returns a map: [[LoadProfile]] to profile resolution in seconds.
     */
-  def getProfileResolutions: Map[LoadProfile, Long] = profileToSource.keys
+  def getProfileResolutions: Map[PowerProfileKey, Long] = profileToSource.keys
     .map(profile => profile -> LoadProfileSource.getResolution(profile))
     .toMap
 
@@ -91,56 +90,62 @@ final case class LoadProfileStore(
       val currentTime = startTime.plusSeconds(tick)
 
       profileToSource.view.flatMap { case (_, source) =>
-        source.getTimeKeysAfter(currentTime).asScala.headOption.map(_.toTick)
+        source.getNextTimeKey(currentTime).toScala.map(_.toTick)
       }.minOption
     }
   }
 
-  /** Returns the load profiles entry (average power consumption of the current
-    * interval) for given time and load profile.
+  /** Returns the load profiles entry function (supplying the average power
+    * consumption of the current interval) for given time and load profile.
     *
     * @param time
     *   The requested time.
-    * @param loadProfile
+    * @param powerProfileKey
     *   The requested load profile.
     * @return
     *   A load in kW.
     */
-  def entry(
+  def entryFunc(
       time: ZonedDateTime,
-      loadProfile: LoadProfile,
-  ): Option[squants.Power] =
-    profileToSource
-      .get(loadProfile)
-      .flatMap(_.getValue(time).toScala)
-      .flatMap(_.getP)
+      powerProfileKey: PowerProfileKey,
+  ): () => squants.Power = {
 
-  /** Returns a function, that will provide a random load value for the given
-    * time.
-    */
-  def randomEntrySupplier(time: ZonedDateTime): () => squants.Power = () =>
-    entry(time, RANDOM_LOAD_PROFILE) match {
-      case Some(value) =>
-        value
-      case None =>
+    val source = profileToSource
+      .getOrElse(
+        powerProfileKey,
         throw new CriticalFailureException(
-          s"Couldn't sample random load value!"
-        )
-    }
+          s"Load profile $powerProfileKey is not available."
+        ),
+      )
 
-  /** @param loadProfile
+    val supplier = source.getValueSupplier(new TimeSeriesInputValue(time))
+
+    () =>
+      supplier.asScala
+        .apply()
+        .toScala
+        .flatMap(_.getP.toScala)
+        .map(_.toSquants)
+        .getOrElse(
+          throw new CriticalFailureException(
+            s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
+          )
+        )
+  }
+
+  /** @param powerProfileKey
     *   Given load profile.
     * @return
     *   An option for the [[ProfileLoadFactoryData]] for the given
     *   [[LoadProfile]].
     */
   def getProfileLoadFactoryData(
-      loadProfile: LoadProfile
+      powerProfileKey: PowerProfileKey
   ): Option[ProfileLoadFactoryData] =
-    profileToSource.get(loadProfile).map { source =>
+    profileToSource.get(powerProfileKey).map { source =>
       ProfileLoadFactoryData(
         source.getMaxPower,
-        source.getLoadProfileEnergyScaling,
+        source.getProfileEnergyScaling,
       )
     }
 
@@ -158,11 +163,10 @@ object LoadProfileStore {
 
   /** Returns the build in [[LoadProfileSource]]s.
     */
-  private def buildInProfiles: Map[LoadProfile, LoadProfileSource[?, ?]] = {
-    val bdew: Map[LoadProfile, LoadProfileSource[?, ?]] =
-      LoadProfileSource.getBdewLoadProfiles.asScala.toMap
-    val random: Map[LoadProfile, LoadProfileSource[?, ?]] = Map(
-      RANDOM_LOAD_PROFILE -> LoadProfileSource.getRandomLoadProfile
+  private def buildInProfiles: Map[PowerProfileKey, LoadProfileSource[?]] = {
+    val bdew = LoadProfileSource.getBdewLoadProfiles.asScala.toMap
+    val random = Map(
+      RANDOM_LOAD_PROFILE.getKey -> LoadProfileSource.getRandomLoadProfile
     )
     bdew ++ random
   }

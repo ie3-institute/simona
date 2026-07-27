@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.service
 
-import edu.ie3.simona.api.data.ontology.DataMessageFromExt
+import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.ontology.messages.SchedulerMessage.ScheduleActivation
 import edu.ie3.simona.ontology.messages.ServiceMessage.{
   ScheduleServiceActivation,
@@ -25,8 +25,8 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 trait ExtDataSupport {
   this: SimonaService =>
 
-  override type Message = ServiceMessage | Activation | ServiceResponseMessage |
-    DataMessageFromExt
+  override type Message >: ServiceMessage | Activation |
+    ServiceResponseMessage | DataMessageFromExt
 
   override protected def idleExternal(using
       stateData: S,
@@ -46,8 +46,8 @@ trait ExtDataSupport {
 
       idle(using updatedStateData, scheduler)
 
-    case (_, extResponseMsg: ServiceResponseMessage) =>
-      val updatedStateData = handleDataResponseMessage(extResponseMsg)
+    case (ctx, extResponseMsg: ServiceResponseMessage) =>
+      val updatedStateData = handleDataResponseMessage(extResponseMsg, ctx)
 
       idle(using updatedStateData, scheduler)
   }
@@ -75,6 +75,7 @@ trait ExtDataSupport {
     *   the updated state data
     */
   protected def handleDataResponseMessage(
-      extResponseMsg: ServiceResponseMessage
+      extResponseMsg: ServiceResponseMessage,
+      ctx: ActorContext[Message],
   )(using serviceStateData: S): S
 }

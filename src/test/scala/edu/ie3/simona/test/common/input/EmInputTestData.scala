@@ -24,14 +24,10 @@ import edu.ie3.datamodel.models.input.thermal.{
 }
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.{OperationTime, StandardUnits}
-import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.InputModelContainer.{
   SimpleInputContainer,
   WithHeatInputContainer,
 }
-import edu.ie3.simona.util.ConfigUtil
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
 
@@ -94,24 +90,8 @@ trait EmInputTestData
 
   protected val storageInputContainer = SimpleInputContainer(storageInput)
 
-  protected val simonaConfig: SimonaConfig = createSimonaConfig()
-
-  private val configUtil = ConfigUtil.EmConfigUtil(
-    simonaConfig.simona.runtime.em
-  )
-
-  protected val defaultOutputConfig: NotifierConfig =
-    NotifierConfig(
-      simonaConfig.simona.output.participant.defaultConfig.simulationResult,
-      simonaConfig.simona.output.participant.defaultConfig.powerRequestReply,
-      simonaConfig.simona.output.participant.defaultConfig.flexResult,
-    )
-
-  protected val modelConfig: EmRuntimeConfig =
-    configUtil.getOrDefault(emInput.getUuid)
-
-  protected val adaptedTypeInput = new HpTypeInput(
-    UUID.fromString("9802bf35-2a4e-4ff5-be9b-cd9e6a78dcd6"),
+  protected val hpTypeInputEmIT = new HpTypeInput(
+    UUID.fromString("a42f567a-f132-43d3-8b9f-2d5703673647"),
     "hp type",
     Quantities.getQuantity(0.0, StandardUnits.CAPEX),
     Quantities.getQuantity(0.0, StandardUnits.ENERGY_PRICE),
@@ -120,8 +100,8 @@ trait EmInputTestData
     Quantities.getQuantity(7.5, StandardUnits.ACTIVE_POWER_IN),
   )
 
-  protected val adaptedHpInputModel = new HpInput(
-    UUID.fromString("7832dea4-8703-4b37-8752-e67b86e957df"),
+  protected val hpInputModelEmIT = new HpInput(
+    UUID.fromString("f2d207b4-d70b-4cf0-a140-4cc76df24695"),
     "test hp",
     OperatorInput.NO_OPERATOR_ASSIGNED,
     OperationTime.notLimited(),
@@ -129,12 +109,12 @@ trait EmInputTestData
     thermalBusInput,
     ReactivePowerCharacteristic.parse("cosPhiFixed:{(0.00,0.98)}"),
     emInput,
-    adaptedTypeInput,
+    hpTypeInputEmIT,
   )
 
   /* Set inner temperature of house a bit lower */
-  val adaptedThermalHouse = new ThermalHouseInput(
-    UUID.fromString("91940626-bdd0-41cf-96dd-47c94c86b20e"),
+  val thermalHouseEmIT = new ThermalHouseInput(
+    UUID.fromString("bdd682c0-7ad2-4b06-9751-fe3051a35825"),
     "thermal house",
     thermalBusInput,
     Quantities.getQuantity(0.15, StandardUnits.THERMAL_TRANSMISSION),
@@ -145,13 +125,13 @@ trait EmInputTestData
     "house",
     2.0,
   )
-  val adaptedThermalGrid = new ThermalGrid(
+  val thermalGridEmIT = new ThermalGrid(
     thermalBusInput,
-    Seq(adaptedThermalHouse).asJava,
+    Seq(thermalHouseEmIT).asJava,
     Seq.empty[ThermalStorageInput].asJava,
-    Seq.empty[ThermalStorageInput].asJava,
+    Seq[ThermalStorageInput](defaultDomesticHotWaterStorageInput).asJava,
   )
 
-  protected val adaptedWithHeatContainer =
-    WithHeatInputContainer(adaptedHpInputModel, adaptedThermalGrid)
+  protected val withHeatContainerEmIT =
+    WithHeatInputContainer(hpInputModelEmIT, thermalGridEmIT)
 }

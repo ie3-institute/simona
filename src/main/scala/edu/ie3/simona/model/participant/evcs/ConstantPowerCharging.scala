@@ -6,14 +6,14 @@
 
 package edu.ie3.simona.model.participant.evcs
 
-import squants.{Power, Seconds}
+import squants.Power
 
 import java.util.UUID
 
 /** Determine scheduling for charging the EVs currently parked at the charging
   * station by charging with constant power from current time until departure.
-  * If less than the maximum power is required to reach 100% SoC, the power is
-  * reduced accordingly.
+  * If less than the maximum power is required to reach the target SoC, the
+  * power is reduced accordingly.
   */
 object ConstantPowerCharging extends EvcsChargingStrategy {
 
@@ -22,15 +22,18 @@ object ConstantPowerCharging extends EvcsChargingStrategy {
       currentTick: Long,
       chargingProps: EvcsChargingProperties,
   ): Map[UUID, Power] = evs
-    .filter(ev => ev.storedEnergy < ev.eStorage)
+    .filter(ev =>
+      ev.storedEnergy < ev.eStorage * chargingProps.departureTargetSoc
+    )
     .map { ev =>
       val maxChargingPower = chargingProps.getMaxAvailableChargingPower(ev)
-      val remainingParkingTime = Seconds(ev.departureTick - currentTick)
+      val timeToDeparture = ev.timeToDeparture(currentTick)
 
-      val requiredEnergyUntilFull = ev.eStorage - ev.storedEnergy
+      val requiredEnergyUntilTarget =
+        ev.eStorage * chargingProps.departureTargetSoc - ev.storedEnergy
 
       val chargingPower =
-        maxChargingPower.min(requiredEnergyUntilFull / remainingParkingTime)
+        maxChargingPower.min(requiredEnergyUntilTarget / timeToDeparture)
 
       ev.uuid -> chargingPower
     }
