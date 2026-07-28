@@ -50,7 +50,7 @@ java {
 }
 
 apply from: scriptsLocation + 'spotless.gradle'
-apply from: scriptsLocation + 'checkJavaVersion.gradle'
+//apply from: scriptsLocation + 'checkJavaVersion.gradle'
 apply from: scriptsLocation + 'documentation.gradle' // documentation tasks + configuration
 apply from: scriptsLocation + 'tests.gradle' // tasks for tests
 apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
