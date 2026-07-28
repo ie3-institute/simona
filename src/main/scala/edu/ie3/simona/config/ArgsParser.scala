@@ -21,12 +21,14 @@ object ArgsParser extends LazyLogging {
       mainArgs: Array[String],
       configLocation: Option[String] = None,
       config: Option[TypesafeConfig] = None,
-      extAddress: Option[String] = None,
   )
 
   // build the config parser using scopt library
   private def buildParser: scoptOptionParser[Arguments] = {
     new scoptOptionParser[Arguments]("simona") {
+      override def errorOnUnknownArgument: Boolean =
+        false // needed for some external simulations
+
       opt[String]("config")
         .action((value, args) => {
           args.copy(
@@ -40,15 +42,6 @@ object ArgsParser extends LazyLogging {
         )
         .text("Location of the simona config file")
         .minOccurs(1)
-      opt[String]("ext-address")
-        .action((value, args) => args.copy(extAddress = Option(value)))
-        .validate(value =>
-          if value.trim.isEmpty then failure("ext-address cannot be empty")
-          else success
-        )
-        .text(
-          "Comma separated list (no whitespaces!) of initial addresses used for the rest of the cluster to bootstrap"
-        )
     }
   }
 
