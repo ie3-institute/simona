@@ -89,8 +89,3 @@ simona.output.grid.nodes = true
 simona.output.grid.lines = true
 simona.output.grid.transformers2w = true
 ```
-
-## Typical application
-
-This functionality can be used to analyse available flexibility and its influence on participant behaviour and grid
-loading.

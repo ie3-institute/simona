@@ -71,8 +71,3 @@ simona.powerflow = {
   stopOnFailure = false
 }
 ```
-
-## Typical application
-
-This functionality can be used to analyse voltage rise, line loading, transformer loading and hosting capacity for
-renewable energy sources.

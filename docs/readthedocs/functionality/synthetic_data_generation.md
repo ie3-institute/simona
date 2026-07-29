@@ -71,8 +71,3 @@ A timestamp is added to the output directory by default. To disable this, set:
 ```
 simona.output.base.addTimestampToOutputDir = false
 ```
-
-## Typical application
-
-This functionality can be used to create reproducible data sets for testing, validation, benchmarking and data-driven
-methods.

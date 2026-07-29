@@ -48,8 +48,3 @@ Participant results are disabled by default. To write participant time series, e
 ```
 simona.output.participant.defaultConfig.simulationResult = true
 ```
-
-## Typical application
-
-This functionality can be used to analyse voltage violations, line loading, transformer loading and the impact of future
-grid scenarios.

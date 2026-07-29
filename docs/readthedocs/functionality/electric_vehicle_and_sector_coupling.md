@@ -89,8 +89,3 @@ simona.powerflow = {
   stopOnFailure = false
 }
 ```
-
-## Typical application
-
-This functionality can be used to analyse voltage impacts, line loading and transformer loading caused by electric
-vehicles, heat pumps and other flexible loads.
