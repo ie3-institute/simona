@@ -184,17 +184,31 @@ object ResultListener {
     *   The behavior of the listener.
     */
   def external(connection: ExtResultListener): Behavior[Message] =
-    Behaviors.receivePartial[Message] {
-      case (_, ResultResponse(results)) =>
-        connection.queueExtResponseMsg(
-          new ProvideResultEntities(results.asJava)
-        )
+    Behaviors
+      .receivePartial[Message] {
+        case (_, ResultResponse(results)) =>
+          connection.handleResponseMsg(
+            new ProvideResultEntities(results.asJava)
+          )
+
+          Behaviors.same
+
+        case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
+          DelayedStopHelper.handleMsg((ctx, msg))
+
+      }
+      .receiveSignal { case (ctx, PostStop) =>
+        // wait until all I/O has finished
+        ctx.log.debug("Shutdown of external listener initiated.")
+
+        // close sinks concurrently to speed up closing (closing calls might be blocking)
+        Await.ready(Future(connection.close()), 5.minutes)
+
+        ctx.log.debug("Result of external listener I/O completed.")
+        ctx.log.debug("Shutdown.")
 
         Behaviors.same
-
-      case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
-        DelayedStopHelper.handleMsg((ctx, msg))
-    }
+      }
 
   def apply(
       resultFileHierarchy: ResultFileHierarchy

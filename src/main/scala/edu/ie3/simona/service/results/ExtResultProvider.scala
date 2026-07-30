@@ -96,7 +96,7 @@ object ExtResultProvider {
     Behaviors.receivePartial[Message | DataMessageFromExt | Activation] {
       case (ctx, ResultResponse(results)) =>
         // send result to external simulation
-        stateData.connection.queueExtResponseMsg(
+        stateData.connection.handleResponseMsg(
           new ProvideResultEntities(results.asJava)
         )
 

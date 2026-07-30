@@ -12,7 +12,12 @@ import edu.ie3.simona.api.data.SetupData
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimulation
-import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
+import edu.ie3.simona.api.{
+  ExtLinkInterface,
+  ExtListenerProvider,
+  ExtSimAdapter,
+  ExtSimulationProvider,
+}
 import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.exceptions.ServiceException
 import edu.ie3.simona.ontology.messages.SchedulerMessage
@@ -88,9 +93,7 @@ object ExtSimSetup {
           s"ExtSimAdapter-$index",
         )
 
-      // creating the data connection
-      val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-      val setupData = new SetupData(
+      given setupData: SetupData = new SetupData(
         args,
         config,
         grid,
@@ -101,27 +104,8 @@ object ExtSimSetup {
       Try {
         // sets up the external simulation
         extLink.setup(setupData)
-        extLink.getExtSimulation
-      }.map { extSimulation =>
-        // sets the data connection and the setup data explicitly
-        extSimulation.setDataConnection(extSimDataConnection)
-        extSimulation.setSetupData(setupData)
-
-        // send init data right away, init activation is scheduled
-        extSimAdapter ! ExtSimAdapter.Create(
-          extSimDataConnection,
-          ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
-        )
-
-        // setup data services that belong to this external simulation
-        val updatedSetupData = connect(extSimulation, extSimSetupData, index)
-
-        // starting external simulation
-        new Thread(extSimulation, s"External simulation $index")
-          .start()
-
-        // updating the data with newly connected external simulation
-        updatedSetupData.updateAdapter(extSimAdapter)
+        val updated = connectExternalSimulation(extLink, extSimSetupData, index)
+        connectExternalListeners(extLink, updated, index)
       } match {
         case Failure(exception) =>
           log.warn(
@@ -134,8 +118,77 @@ object ExtSimSetup {
       }
   }
 
+  private[setup] def connectExternalSimulation(
+      extLink: ExtLinkInterface,
+      extSimSetupData: ExtSimSetupData,
+      index: Int,
+  )(using
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapter: ActorRef[ExtSimAdapter.Request],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
+      startTime: ZonedDateTime,
+      setupData: SetupData,
+  ): ExtSimSetupData = extLink match {
+    case provider: ExtSimulationProvider =>
+      val extSimulation = provider.getExtSimulation
+      val connections = extSimulation.getDataConnections.asScala
+
+      log.info(
+        s"Setting up addon `${extSimulation.getSimulationName}` with the following data connections: ${connections.map(_.getClass).mkString(",")}."
+      )
+
+      // creating the data connection
+      val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
+
+      // sets the data connection and the setup data explicitly
+      extSimulation.setDataConnection(extSimDataConnection)
+      extSimulation.setSetupData(setupData)
+
+      // send init data right away, init activation is scheduled
+      extSimAdapter ! ExtSimAdapter.Create(
+        extSimDataConnection,
+        ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
+      )
+
+      // setup data services that belong to this external simulation
+      val updatedSetupData = connect(connections, extSimSetupData, index)
+
+      // starting external simulation
+      new Thread(extSimulation, s"External simulation $index")
+        .start()
+
+      // updating the data with newly connected external simulation
+      updatedSetupData.updateAdapter(extSimAdapter)
+
+    case _ =>
+      extSimSetupData
+  }
+
+  private[setup] def connectExternalListeners(
+      extLink: ExtLinkInterface,
+      extSimSetupData: ExtSimSetupData,
+      index: Int,
+  )(using
+      context: ActorContext[?],
+      scheduler: ActorRef[SchedulerMessage],
+      extSimAdapter: ActorRef[ExtSimAdapter.Request],
+      resultProxy: ActorRef[ResultServiceProxy.Message],
+      startTime: ZonedDateTime,
+  ): ExtSimSetupData = extLink match {
+    case provider: ExtListenerProvider =>
+      connect(
+        provider.getResultListeners.asScala,
+        extSimSetupData,
+        index,
+      )
+
+    case _ =>
+      extSimSetupData
+  }
+
   /** Method for connecting a given external simulation.
-    * @param extSimulation
+    * @param connections
     *   To connect.
     * @param extSimSetupData
     *   That contains information about all external simulations.
@@ -151,7 +204,7 @@ object ExtSimSetup {
     *   An updated [[ExtSimSetupData]].
     */
   private[setup] def connect(
-      extSimulation: ExtSimulation,
+      connections: Iterable[ExtDataConnection],
       extSimSetupData: ExtSimSetupData,
       index: Int,
   )(using
@@ -161,13 +214,7 @@ object ExtSimSetup {
       resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
   ): ExtSimSetupData = {
-    // the data connections this external simulation provides
-    val connections = extSimulation.getDataConnections.asScala
-
-    log.info(
-      s"Setting up external simulation `${extSimulation.getSimulationName}` with the following data connections: ${connections.map(_.getClass).mkString(",")}."
-    )
-
+    // the data connections provided
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
       case (setupData, connection) =>
         connection match {
