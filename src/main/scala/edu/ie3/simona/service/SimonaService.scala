@@ -158,7 +158,7 @@ abstract class SimonaService {
     */
   protected def idleExternal(using
       stateData: S,
-      val scheduler: ActorRef[SchedulerMessage],
+      scheduler: ActorRef[SchedulerMessage],
   ): PartialFunction[(ActorContext[Message], Message), Behavior[
     Message
   ]] = PartialFunction.empty
