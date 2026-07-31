@@ -102,18 +102,18 @@ abstract class ParticipantModel[
     *
     * @param state
     *   The current state
-    * @param _receivedData
+    * @param receivedData
     *   The currently received primary or secondary data. Sequence could be
     *   empty, if no new data is available.
-    * @param _nodalVoltage
+    * @param nodalVoltage
     *   The voltage at the node that we're connected to.
     * @return
     *   The current state with updated input data
     */
   def handleInput(
       state: S,
-      _receivedData: Seq[Data],
-      _nodalVoltage: Dimensionless,
+      receivedData: Seq[Data],
+      nodalVoltage: Dimensionless,
   ): S = state
 
   /** Returns a partial function that transfers the current nodal voltage and
