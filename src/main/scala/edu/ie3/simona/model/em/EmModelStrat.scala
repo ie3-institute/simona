@@ -144,6 +144,11 @@ object EmModelStrat {
         sampleTime = Hours(1),
         predictionHorizon = Hours(12),
       )
+    case "COMP_QUAD" =>
+      ComparativeOptimizingFlexStrat.createQuadraticComp(
+        sampleTime = Hours(1),
+        predictionHorizon = Hours(12),
+      )
     case "COMP_MINABS" =>
       ComparativeOptimizingFlexStrat.createMinAbsComp(
         sampleTime = Hours(1),

@@ -878,7 +878,7 @@ class CommonLossObjectiveFactorySpec
 
         val results = FlexibilityOptimization.optimize(
           paramsExcessLossEx3.copy(
-            objectiveFactory = PeakShavingObjectiveFactory(SoftConstraints),
+            objectiveFactory = PeakShavingObjectiveFactory(SoftConstraints)
           )
         )
 

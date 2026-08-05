@@ -38,10 +38,8 @@ final case class ComparativeOptimizingFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
     objectiveFactories: Seq[(String, ObjectiveFactory[? <: AssetStepSymbols])],
+    referenceModelId: String,
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
-
-  private val allReferenceIds: Set[String] =
-    Set("OPT_SPM_BIN_MINABS", "OPT_SPM_BIN_PRICE", "OPT_SPM_BIN_PS")
 
   private val logger: Logger = LoggerFactory.getLogger(
     s"${classOf[ComparativeOptimizingFlexStrat].getSimpleName}"
@@ -94,17 +92,17 @@ final case class ComparativeOptimizingFlexStrat(
       }
       .toMap
 
-    val (referenceId, referenceResult) = results
+    val (_, referenceResult) = results
       .find { case (id, _) =>
-        allReferenceIds.contains(id)
+        referenceModelId == id
       }
       .getOrElse(
-        throw new CriticalFailureException("No reference model provided.")
+        throw new CriticalFailureException("Reference model not found.")
       )
 
     val referenceObjValue = referenceResult.objectiveValue.getOrElse(
       throw new CriticalFailureException(
-        s"$referenceId: Reference optimization failed: $referenceResult"
+        s"$referenceModelId: Reference optimization failed: $referenceResult"
       )
     )
 
@@ -132,7 +130,7 @@ final case class ComparativeOptimizingFlexStrat(
 
         // if objValueRelError > 1e-9 || stateCalcError > WattHours(1e-6) then
         logger.warn(
-          s"$id: Objective error $objValueRelError compared to $referenceId, state calc error $stateCalcError, total time: $totalTime ms"
+          s"$id: Objective error $objValueRelError compared to $referenceModelId, state calc error $stateCalcError, total time: $totalTime ms"
         )
       }
     }
@@ -173,6 +171,29 @@ object ComparativeOptimizingFlexStrat {
         "OPT_SPM_BIN_PS" -> SplitPowerVarsObjectiveFactory
           .PeakShavingObjectiveFactory(BinaryConstraint),
       ),
+      referenceModelId = "OPT_SPM_BIN_MINABS"
+    )
+  }
+
+  def createQuadraticComp(
+                             sampleTime: Time,
+                             predictionHorizon: Time,
+                           ): ComparativeOptimizingFlexStrat = {
+    ComparativeOptimizingFlexStrat(
+      sampleTime = sampleTime,
+      predictionHorizon = predictionHorizon,
+      objectiveFactories = Seq(
+        "OPT_CLM_SC_QUAD" -> CommonLossObjectiveFactory
+          .QuadraticPowerObjectiveFactory(variant =
+            CommonLossVariant.SoftConstraints
+          ),
+        "OPT_CLM_SC_LINQUAD" -> CommonLossObjectiveFactory
+          .LinearizedQuadraticPowerObjectiveFactory(variant =
+            CommonLossVariant.SoftConstraints,
+            segmentCount = 10
+          ),
+      ),
+      referenceModelId = "OPT_CLM_SC_QUAD"
     )
   }
 
@@ -197,6 +218,7 @@ object ComparativeOptimizingFlexStrat {
         "OPT_SPM_BIN_MINABS" -> SplitPowerVarsObjectiveFactory
           .MinAbsPowerObjectiveFactory(BinaryConstraint),
       ),
+      referenceModelId = "OPT_SPM_BIN_PS"
     )
   }
 
@@ -218,6 +240,7 @@ object ComparativeOptimizingFlexStrat {
         "OPT_SPM_BIN_PRICE" -> SplitPowerVarsObjectiveFactory
           .PriceObjectiveFactory(BinaryConstraint),
       ),
+      referenceModelId = "OPT_SPM_BIN_PRICE"
     )
   }
 

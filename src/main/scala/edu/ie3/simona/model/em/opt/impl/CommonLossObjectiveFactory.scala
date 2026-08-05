@@ -11,6 +11,7 @@ import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.*
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant.SoftConstraints
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetSymbolContainer,
+  QuadraticPowerObjective,
   RelativeStateErrorHelper,
   VariableAssetStepSymbols,
 }
@@ -182,6 +183,48 @@ object CommonLossObjectiveFactory {
   ) extends CommonLossObjectiveFactory
       with MinAbsPowerObjective
 
+  /** Creates an objective that uses a quadratic function on the sum of power.
+    * Effectively, higher power values are punished more than lower ones.
+    */
+  final case class QuadraticPowerObjectiveFactory(
+      override val variant: CommonLossVariant
+  ) extends CommonLossObjectiveFactory
+      with QuadraticPowerObjective[PowerVarAssetStepSymbols] {
+
+    override def getRequiredSecondaryServices: Iterable[ServiceType] =
+      Iterable.empty
+
+    override def build(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
+        ],
+        target: Power,
+        receivedData: Iterable[Data.SecondaryData],
+    )(using model: MPModel): Expression = {
+
+      sortSymbolsByTick(assetSymbols)
+        // create objective expression for every time step
+        .map { case (stepStartTick, tickAssetSymbols) =>
+          val differenceAbs =
+            createAbsDifference(tickAssetSymbols, target, stepStartTick)
+
+          val mainObjective = differenceAbs * differenceAbs
+
+          val softConstraint = tickAssetSymbols
+            .flatMap(_.objectiveAddition)
+            .reduceOption[Expression](_ + _)
+            .getOrElse(Zero)
+
+          mainObjective + softConstraint
+        }
+        // combine expressions of all time steps
+        .reduceOption[Expression](_ + _)
+        .getOrElse(Zero)
+    }
+
+  }
+
   /** Creates an objective that uses a piecewise-linear (over-)approximation of
     * the quadratic function on the sum of power. Effectively, higher power
     * values are punished more than lower ones.
@@ -198,7 +241,8 @@ object CommonLossObjectiveFactory {
       override val variant: CommonLossVariant,
       segmentCount: Int,
   ) extends CommonLossObjectiveFactory
-      with PowerVariableObjectiveFactory {
+      with PowerVariableObjectiveFactory
+      with QuadraticPowerObjective[PowerVarAssetStepSymbols] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
@@ -278,16 +322,6 @@ object CommonLossObjectiveFactory {
         .reduceOption[Expression](_ + _)
         .getOrElse(Zero)
     }
-
-    // todo
-    override def getComparableObjectiveValue(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
-        target: Power,
-        receivedData: Iterable[Data.SecondaryData],
-    ): Double = ???
 
   }
 

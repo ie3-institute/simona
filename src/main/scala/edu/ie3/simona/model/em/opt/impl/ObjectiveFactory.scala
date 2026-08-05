@@ -255,6 +255,26 @@ object ObjectiveFactory {
 
   }
 
+  trait QuadraticPowerObjective[AV <: AssetStepSymbols]
+      extends ObjectiveFactory[AV] {
+
+    override def getComparableObjectiveValue(
+        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
+        assetSymbols: Iterable[
+          AssetSymbolContainer[AV]
+        ],
+        target: Power,
+        receivedData: Iterable[SecondaryData],
+    ): Double =
+      sortSymbolsByTick(assetSymbols).map { case (_, tickAssetSymbols) =>
+        val powerSum =
+          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+
+        powerSum * powerSum
+      }.sum
+
+  }
+
   trait PriceObjective[AV <: AssetStepSymbols] extends ObjectiveFactory[AV] {
 
     override def getComparableObjectiveValue(
