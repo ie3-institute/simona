@@ -8,7 +8,7 @@ plugins {
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.6.1' // fat jar
-  id "org.sonarqube" version "7.3.1.8318" // sonarqube
+  id "org.sonarqube" version "7.4.0.8496" // sonarqube
   id "org.scoverage" version "9.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
