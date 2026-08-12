@@ -29,7 +29,7 @@ spotless {
   }
 
   // removes unnecessary whitespace, indents with tabs and ends on new line for gradle, md and gitignore files and config-XMLs
-  format ('misc') {
+  format('misc') {
     target('**/.gitignore', 'configs/**')
     trimTrailingWhitespace()
     leadingSpacesToTabs()
