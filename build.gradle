@@ -66,7 +66,9 @@ configurations {
 
 repositories {
   mavenCentral() // searches in Sonatype's central repository
-  maven { url = 'https://packages.confluent.io/maven' } // confluent repo (kafka)
+  maven {
+    url = 'https://packages.confluent.io/maven'
+  } // confluent repo (kafka)
 }
 
 dependencies {
@@ -140,7 +142,7 @@ dependencies {
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
 
   // JTS
-  implementation ("org.locationtech.jts:jts-core:${jtsVersion}") {
+  implementation("org.locationtech.jts:jts-core:${jtsVersion}") {
     exclude group: 'junit', module: 'junit'
   }
 
