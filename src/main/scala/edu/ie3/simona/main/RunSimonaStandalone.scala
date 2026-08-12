@@ -9,24 +9,20 @@ package edu.ie3.simona.main
 import edu.ie3.simona.config.{ArgsParser, ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.main.RunSimona.*
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
-import edu.ie3.simona.util.ResultFileHierarchy
+import edu.ie3.simona.sim.setup.SimonaSetup
 import org.apache.pekko.actor.typed.scaladsl.AskPattern.*
 import org.apache.pekko.actor.typed.{ActorSystem, Scheduler}
 import org.apache.pekko.util.Timeout
 
-import scala.concurrent.Await
-import scala.concurrent.duration.DurationInt
+import scala.concurrent.{Await, TimeoutException}
 
 /** Run a standalone simulation of simona
   *
   * @since 01.07.20
   */
-object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
+object RunSimonaStandalone extends RunSimona[SimonaSetup] {
 
-  override implicit val timeout: Timeout = Timeout(12.hours)
-
-  override def setup(args: Array[String]): SimonaStandaloneSetup = {
+  override def setup(args: Array[String]): SimonaSetup = {
     // get the config and prepare it with the provided args
     val (arguments, parsedConfig) = ArgsParser.prepareConfig(args)
 
@@ -34,32 +30,43 @@ object RunSimonaStandalone extends RunSimona[SimonaStandaloneSetup] {
     val simonaConfig = SimonaConfig(parsedConfig)
     ConfigFailFast.check(parsedConfig, simonaConfig)
 
-    SimonaStandaloneSetup(
+    SimonaSetup(
       parsedConfig,
       simonaConfig,
-      ResultFileHierarchy(parsedConfig, simonaConfig),
-      mainArgs = arguments.mainArgs,
+      arguments.mainArgs,
     )
   }
 
-  override def run(simonaSetup: SimonaStandaloneSetup): Boolean = {
+  override def run(simonaSetup: SimonaSetup): Boolean = {
     val simonaSim = ActorSystem(
       SimonaSim(simonaSetup),
       name = "Simona",
       config = simonaSetup.typeSafeConfig,
     )
 
-    implicit val scheduler: Scheduler = simonaSim.scheduler
+    given scheduler: Scheduler = simonaSim.scheduler
+    given timeout: Timeout = simonaSetup.simonaConfig.simulationTimeout
 
-    // run the simulation
-    val terminated = simonaSim.ask[SimonaEnded](ref => SimonaSim.Start(ref))
+    try {
+      // run the simulation
+      val terminated = simonaSim.ask[SimonaEnded](ref => SimonaSim.Start(ref))
 
-    Await.result(terminated, timeout.duration) match {
-      case SimonaEnded(successful) =>
+      Await.result(terminated, timeout.duration) match {
+        case SimonaEnded(successful) =>
+          simonaSim.terminate()
+
+          successful
+      }
+    } catch {
+      case te: TimeoutException =>
         simonaSim.terminate()
-
-        successful
+        logger.error(
+          s"Simulation timeout reached! Stopping the simulation.",
+          te,
+        )
+        false
     }
+
   }
 
 }
