@@ -37,7 +37,8 @@ ext {
     "-language:implicitConversions",
     "-language:existentials",
     "-Wunused:all",
-    "-Xmax-inlines:128"
+    "-Xmax-inlines:128",
+    "-Xunchecked-java-output-version:21"
   ]
 }
 
