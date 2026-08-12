@@ -206,23 +206,21 @@ tasks.shadowJar {
 // using compileScala instead of tasks.withType(ScalaCompile) prevents applying scapegoat to scala test classes
 // see https://docs.gradle.org/current/userguide/scala_plugin.html#sec:configure_scala_classpath for details
 tasks.withType(ScalaCompile).configureEach {
-  scalaCompileOptions.additionalParameters = scala3compilerOptions + [
-    "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
-    "-P:scapegoat:disabledInspections:TryGet:ComparingFloatingPointTypes"
-  ]
+  scalaCompileOptions.additionalParameters = scala3compilerOptions
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
-    '-XX:-UseGCOverheadLimit'
+    '-XX:-UseGCOverheadLimit',
+    '-Xmx4g'
   ]
 }
 
 // separate scapegoat report for test classes
 compileTestScala {
-  scalaCompileOptions.additionalParameters = scala3compilerOptions + [
-    "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
-    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/",
-    "-P:scapegoat:disabledInspections:TryGet:ComparingFloatingPointTypes"
+  scalaCompileOptions.additionalParameters = scala3compilerOptions
+  scalaCompileOptions.forkOptions.jvmArgs = [
+    '-Xss2m',
+    '-XX:-UseGCOverheadLimit',
+    '-Xmx4g'
   ]
 }
 
