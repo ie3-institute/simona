@@ -976,7 +976,7 @@ val thermalLineSegments: Set[LineSegmentThermalModel] =
       jc.diameter().toSquants,
       jc.thermalResistivity().toSquants,
       jc.thermalCapacitance().toSquants,
-      jc.area().toSquants,
+      Some(jc.area.toSquants),
     )
   }
 
