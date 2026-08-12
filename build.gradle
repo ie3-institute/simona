@@ -81,12 +81,16 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:9.1.0') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
-    /* Exclude our own nested dependencies */
-    exclude group: 'com.github.ie3-institute'
-  }
+  // FIXME
+  //implementation('com.github.ie3-institute:PowerSystemDataModel:9.1.0') {
+  //  exclude group: 'org.apache.logging.log4j'
+  //    exclude group: 'org.slf4j'
+  /* Exclude our own nested dependencies */
+  //    exclude group: 'com.github.ie3-institute'
+  //  }
+  implementation files('/home/smdafeis/PowerSystemDataModel/build/libs/PowerSystemDataModel-9.2.0-all.jar')
+  runtimeOnly 'org.postgresql:postgresql:42.7.11' // postgresql jdbc driver required during runtime
+
   implementation('com.github.ie3-institute:powerflow:0.4.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
@@ -171,7 +175,7 @@ dependencies {
   implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:3.4.5"
 
   // Parsing line geoCoordinates
-  implementation("com.typesafe.play:play_3:2.9.6")
+  implementation("org.playframework:play_3:3.1.0-M9")
 }
 
 tasks.withType(JavaCompile).configureEach {
