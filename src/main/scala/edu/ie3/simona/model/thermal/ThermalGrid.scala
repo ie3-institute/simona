@@ -147,7 +147,7 @@ final case class ThermalGrid(
     val heatStorageDemand = calculateHeatStorageDemand(thermalGridState)
     val domesticHotWaterStorageDemand = calculateDomesticStorageDemand(
       thermalGridState,
-      houseDemandWater
+      houseDemandWater,
     )
 
     ThermalDemandWrapper(
