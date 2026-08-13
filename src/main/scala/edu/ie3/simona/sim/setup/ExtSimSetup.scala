@@ -79,59 +79,82 @@ object ExtSimSetup {
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[ResultServiceProxy.Message],
       startTime: ZonedDateTime,
-  ): ExtSimSetupData = extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
-    case (extSimSetupData, (extLink, index)) =>
-      // external simulation always needs at least an ExtSimAdapter
-      given extSimAdapter: ActorRef[ExtSimAdapter.Request] =
-        context.spawn(
-          ExtSimAdapter(scheduler),
-          s"ExtSimAdapter-$index",
-        )
+  ): ExtSimSetupData = {
 
-      // creating the data connection
-      val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
-      val setupData = new SetupData(
-        args,
-        config,
-        grid,
-        inputBaseDirectory,
-        outputBaseDirectory,
-      )
+    val finalSetupData =
+      extLinks.zipWithIndex.foldLeft(ExtSimSetupData.apply) {
+        case (extSimSetupData, (extLink, index)) =>
+          // external simulation always needs at least an ExtSimAdapter
+          given extSimAdapter: ActorRef[ExtSimAdapter.Request] =
+            context.spawn(
+              ExtSimAdapter(scheduler),
+              s"ExtSimAdapter-$index",
+            )
 
-      Try {
-        // sets up the external simulation
-        extLink.setup(setupData)
-        extLink.getExtSimulation
-      }.map { extSimulation =>
-        // sets the data connection and the setup data explicitly
-        extSimulation.setDataConnection(extSimDataConnection)
-        extSimulation.setSetupData(setupData)
-
-        // send init data right away, init activation is scheduled
-        extSimAdapter ! ExtSimAdapter.Create(
-          extSimDataConnection,
-          ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
-        )
-
-        // setup data services that belong to this external simulation
-        val updatedSetupData = connect(extSimulation, extSimSetupData, index)
-
-        // starting external simulation
-        new Thread(extSimulation, s"External simulation $index")
-          .start()
-
-        // updating the data with newly connected external simulation
-        updatedSetupData.updateAdapter(extSimAdapter)
-      } match {
-        case Failure(exception) =>
-          log.warn(
-            s"External simulation of link '${extLink.getClass.getSimpleName}' could not be loaded, due to the following exception: ",
-            exception,
+          // creating the data connection
+          val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
+          val setupData = new SetupData(
+            args,
+            config,
+            grid,
+            inputBaseDirectory,
+            outputBaseDirectory,
           )
 
-          extSimSetupData
-        case Success(setupData) => setupData
+          Try {
+            // sets up the external simulation
+            extLink.setup(setupData)
+            extLink.getExtSimulation
+          }.map { extSimulation =>
+            // sets the data connection and the setup data explicitly
+            extSimulation.setDataConnection(extSimDataConnection)
+            extSimulation.setSetupData(setupData)
+
+            // send init data right away, init activation is scheduled
+            extSimAdapter ! ExtSimAdapter.Create(
+              extSimDataConnection,
+              ScheduleLock.singleKey(context, scheduler, PRE_INIT_TICK),
+            )
+
+            // setup data services that belong to this external simulation
+            val updatedSetupData =
+              connect(extSimulation, extSimSetupData, index)
+
+            // starting external simulation
+            new Thread(extSimulation, s"External simulation $index")
+              .start()
+
+            // updating the data with newly connected external simulation
+            updatedSetupData.updateAdapter(extSimAdapter)
+          } match {
+            case Failure(exception) =>
+              log.warn(
+                s"External simulation of link '${extLink.getClass.getSimpleName}' could not be loaded, due to the following exception: ",
+                exception,
+              )
+
+              extSimSetupData
+
+            case Success(setupData) =>
+              setupData
+          }
       }
+
+    // check if there are EVCs in the grid and if there is an external EV data connection provided
+    val containEvcs =
+      !grid.getSystemParticipants.getEvcs.isEmpty
+
+    if extLinks.nonEmpty && containEvcs && finalSetupData.evDataService.isEmpty
+    then
+      val errorMsg =
+        "There are EVCs in the grid, but no external EV data connection is provided. Please provide an external EV data connection to control the EVCs."
+
+      log.error(errorMsg)
+      throw ServiceException(errorMsg)
+
+    validatePrimaryData(finalSetupData.primaryDataConnections)
+
+    finalSetupData
   }
 
   /** Method for connecting a given external simulation.
@@ -276,9 +299,6 @@ object ExtSimSetup {
             setupData
         }
     }
-
-    // validate data
-    validatePrimaryData(updatedSetupData.primaryDataConnections)
 
     updatedSetupData
   }
