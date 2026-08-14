@@ -9,6 +9,10 @@ package edu.ie3.simona.test.common.input
 import breeze.math.Complex
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
+import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
+import edu.ie3.datamodel.models.input.connector.`type`.LineTypeInput
+import edu.ie3.datamodel.models.input.connector.`type`.CableTypeInput
+import edu.ie3.datamodel.models.input.container.RawGridTypes
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
@@ -184,9 +188,16 @@ trait Transformer3wInputTestData extends DefaultTestData {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava,
     )
+    val rawGridTypes = new RawGridTypes(
+      Set.empty[LineTypeInput].asJava,
+      Set.empty[CableTypeInput].asJava,
+      Set.empty[Transformer2WTypeInput].asJava,
+      Set(transformer3wType).asJava,
+    )
     TestGridFactory.createJointGrid(
       gridName = "threeWindingTestGrid",
       rawGridElements = rawGridElements,
+      rawGridTypes = rawGridTypes,
     )
   }
 
@@ -226,9 +237,16 @@ trait Transformer3wInputTestData extends DefaultTestData {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava,
     )
+    val rawGridTypes = new RawGridTypes(
+      Set.empty[LineTypeInput].asJava,
+      Set.empty[CableTypeInput].asJava,
+      Set.empty[Transformer2WTypeInput].asJava,
+      Set(transformer3wType).asJava,
+    )
     TestGridFactory.createJointGrid(
       gridName = "transformer3WTestGrid",
       rawGridElements = rawGridElements,
+      rawGridTypes = rawGridTypes,
     )
   }
 

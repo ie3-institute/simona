@@ -7,7 +7,10 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.OperationTime
-import edu.ie3.datamodel.models.input.connector.`type`.Transformer2WTypeInput
+import edu.ie3.datamodel.models.input.connector.`type`.{
+  Transformer2WTypeInput,
+  Transformer3WTypeInput,
+}
 import edu.ie3.datamodel.models.input.connector.{
   LineInput,
   SwitchInput,
@@ -17,12 +20,17 @@ import edu.ie3.datamodel.models.input.connector.{
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
   RawGridElements,
+  RawGridTypes,
 }
 import edu.ie3.datamodel.models.input.{
   MeasurementUnitInput,
   NodeInput,
   OperatorInput,
 }
+import edu.ie3.datamodel.models.input.connector.`type`.LineTypeInput
+import edu.ie3.datamodel.models.input.connector.`type`.CableTypeInput
+import edu.ie3.datamodel.models.input.connector.`type`.LineTypeInput
+import edu.ie3.datamodel.models.input.container.RawGridTypes
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.TestGridFactory
@@ -126,9 +134,16 @@ trait Transformer2wInputTestData extends DefaultTestData {
       Set.empty[SwitchInput].asJava,
       Set.empty[MeasurementUnitInput].asJava,
     )
+    val rawGridTypes = new RawGridTypes(
+      Set.empty[LineTypeInput].asJava,
+      Set.empty[CableTypeInput].asJava,
+      Set(transformerType).asJava,
+      Set.empty[Transformer3WTypeInput].asJava,
+    )
     TestGridFactory.createJointGrid(
       gridName = "twoWindingTestGrid",
       rawGridElements = rawGridElements,
+      rawGridTypes = rawGridTypes,
     )
   }
 }
