@@ -982,12 +982,6 @@ class EmAgentIT
         /* INIT */
         emAgentActivation ! Activation(INIT_SIM_TICK)
 
-        // load
-        loadAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
-
-        // pv
-        pvAgent ! RegistrationFailedMessage(primaryServiceProxy.ref)
-
         primaryServiceProxy.receiveMessages(2) should contain allOf (
           PrimaryServiceRegistrationMessage(
             loadAgent,

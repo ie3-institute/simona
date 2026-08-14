@@ -147,6 +147,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed initialization problems when using `ExtEmDataService` [#1780](https://github.com/ie3-institute/simona/issues/1780)
 - Fixed handling of disconnecting tick of energy boundaries flex options [#1821](https://github.com/ie3-institute/simona/issues/1821)
 - Fixed exception thrown when providing additional main arguments [#1890](https://github.com/ie3-institute/simona/issues/1890)
+- Fixed race condition at EmAgentIT [#1901](https://github.com/ie3-institute/simona/issues/1901)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
