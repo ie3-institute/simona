@@ -10,7 +10,8 @@ import CommonLossObjectiveFactorySpec.*
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant.{
-  NoSoftConstraints,
+  NoAdditionalConstraints,
+  RelaxedConstraints,
   SoftConstraints,
 }
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.PeakShavingObjectiveFactory
@@ -836,7 +837,7 @@ class CommonLossObjectiveFactorySpec
 
         val results = FlexibilityOptimization.optimize(
           paramsExcessLossOneStep.copy(objectiveFactory =
-            PeakShavingObjectiveFactory(NoSoftConstraints)
+            PeakShavingObjectiveFactory(NoAdditionalConstraints)
           )
         )
 
@@ -855,8 +856,8 @@ class CommonLossObjectiveFactorySpec
       "produce excess loss with three steps" in {
 
         val results = FlexibilityOptimization.optimize(
-          paramsExcessLossThreeSteps.copy(objectiveFactory =
-            PeakShavingObjectiveFactory(NoSoftConstraints)
+          paramsExcessLossFourSteps.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(SoftConstraints)
           )
         )
 

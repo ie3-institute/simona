@@ -164,21 +164,21 @@ object ComparativeOptimizingFlexStrat {
           ),
         "OPT_CLM_NSC_PS" -> CommonLossObjectiveFactory
           .PeakShavingObjectiveFactory(variant =
-            CommonLossVariant.NoSoftConstraints
+            CommonLossVariant.NoAdditionalConstraints
           ),
         "OPT_SPM_REL_PS" -> SplitPowerVarsObjectiveFactory
           .PeakShavingObjectiveFactory(RelaxedConstraints),
         "OPT_SPM_BIN_PS" -> SplitPowerVarsObjectiveFactory
           .PeakShavingObjectiveFactory(BinaryConstraint),
       ),
-      referenceModelId = "OPT_SPM_BIN_MINABS"
+      referenceModelId = "OPT_SPM_BIN_MINABS",
     )
   }
 
   def createQuadraticComp(
-                             sampleTime: Time,
-                             predictionHorizon: Time,
-                           ): ComparativeOptimizingFlexStrat = {
+      sampleTime: Time,
+      predictionHorizon: Time,
+  ): ComparativeOptimizingFlexStrat = {
     ComparativeOptimizingFlexStrat(
       sampleTime = sampleTime,
       predictionHorizon = predictionHorizon,
@@ -188,12 +188,12 @@ object ComparativeOptimizingFlexStrat {
             CommonLossVariant.SoftConstraints
           ),
         "OPT_CLM_SC_LINQUAD" -> CommonLossObjectiveFactory
-          .LinearizedQuadraticPowerObjectiveFactory(variant =
-            CommonLossVariant.SoftConstraints,
-            segmentCount = 10
+          .LinearizedQuadraticPowerObjectiveFactory(
+            variant = CommonLossVariant.SoftConstraints,
+            segmentCount = 10,
           ),
       ),
-      referenceModelId = "OPT_CLM_SC_QUAD"
+      referenceModelId = "OPT_CLM_SC_QUAD",
     )
   }
 
@@ -211,14 +211,14 @@ object ComparativeOptimizingFlexStrat {
           ),
         "OPT_CLM_NSC_MINABS" -> CommonLossObjectiveFactory
           .MinAbsPowerObjectiveFactory(variant =
-            CommonLossVariant.NoSoftConstraints
+            CommonLossVariant.NoAdditionalConstraints
           ),
         "OPT_SPM_REL_MINABS" -> SplitPowerVarsObjectiveFactory
           .MinAbsPowerObjectiveFactory(RelaxedConstraints),
         "OPT_SPM_BIN_MINABS" -> SplitPowerVarsObjectiveFactory
           .MinAbsPowerObjectiveFactory(BinaryConstraint),
       ),
-      referenceModelId = "OPT_SPM_BIN_PS"
+      referenceModelId = "OPT_SPM_BIN_PS",
     )
   }
 
@@ -233,14 +233,16 @@ object ComparativeOptimizingFlexStrat {
         "OPT_CLM_SC_PRICE" -> CommonLossObjectiveFactory
           .PriceObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
         "OPT_CLM_NSC_PRICE" -> CommonLossObjectiveFactory
-          .PriceObjectiveFactory(variant = CommonLossVariant.NoSoftConstraints),
+          .PriceObjectiveFactory(variant =
+            CommonLossVariant.NoAdditionalConstraints
+          ),
         "OPT_SEC_PRICE" -> SignedEnergyVariableObjectiveFactory.PriceObjectiveFactory,
         "OPT_SPM_REL_PRICE" -> SplitPowerVarsObjectiveFactory
           .PriceObjectiveFactory(RelaxedConstraints),
         "OPT_SPM_BIN_PRICE" -> SplitPowerVarsObjectiveFactory
           .PriceObjectiveFactory(BinaryConstraint),
       ),
-      referenceModelId = "OPT_SPM_BIN_PRICE"
+      referenceModelId = "OPT_SPM_BIN_PRICE",
     )
   }
 

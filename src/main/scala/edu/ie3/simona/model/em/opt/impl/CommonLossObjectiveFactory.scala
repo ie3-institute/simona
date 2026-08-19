@@ -8,7 +8,10 @@ package edu.ie3.simona.model.em.opt.impl
 
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.*
-import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant.SoftConstraints
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant.{
+  RelaxedConstraints,
+  SoftConstraints,
+}
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetSymbolContainer,
   QuadraticPowerObjective,
@@ -112,17 +115,20 @@ abstract class CommonLossObjectiveFactory
               case other => other
             }
 
-          val stateMax = varPower.eMax.toKilowattHours * conversionFactor
-          model.add(
-            p <:= (Const(stateMax) - adaptedPreviousEnergy) *
-              Const(1 / (etaCommon.toEach * varPower.sampleTime.toHours))
-          )
+          if variant == RelaxedConstraints then {
+            val stateMax = varPower.eMax.toKilowattHours * conversionFactor
+            model.add(
+              p <:= (Const(stateMax) - adaptedPreviousEnergy) *
+                Const(1 / (etaCommon.toEach * varPower.sampleTime.toHours))
+            )
+          }
 
           model.add(
             newState := adaptedPreviousEnergy +
               (p - pAbs * Const(1 - etaCommon.toEach)) *
               Const(varPower.sampleTime.toHours)
           )
+
           InefficientCommonLossAssetStepSymbols(
             varPower,
             p,
@@ -166,9 +172,14 @@ object CommonLossObjectiveFactory {
         */
       SoftConstraints,
 
+      /** Tighter boundaries that exclude some, but not all configurations with
+        * simultaneous charging and discharging.
+        */
+      RelaxedConstraints,
+
       /** Using no soft constraints.
         */
-      NoSoftConstraints
+      NoAdditionalConstraints
 
   final case class PeakShavingObjectiveFactory(
       override val variant: CommonLossVariant
