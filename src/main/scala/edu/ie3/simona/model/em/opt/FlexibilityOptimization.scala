@@ -65,7 +65,7 @@ object FlexibilityOptimization {
       timeMeasurements: TimeMeasurements,
       model: MPModel,
   ) {
-    def varsolutions = {
+    def varsolutions: String = {
       assetSymbols
         .map { container =>
           s"\n\t\t${container.assetUuid}:" +
@@ -177,7 +177,6 @@ object FlexibilityOptimization {
     *   The ticks (including current tick and last predicted tick) of the time
     *   steps to consider in the optimization. The ticks should all be exactly
     *   the sample time duration (in seconds) apart from each other.
-    *
     * @param target
     *   The target power to aim for. This parameter might not be considered by
     *   all objective factories.
