@@ -373,11 +373,7 @@ object ObjectiveFactory {
       val startEnergy = getStepStartEnergyResult
       val endEnergy = getStepEndEnergyResult
 
-      val factor =
-        if power > zeroKW then parameters.etaCharge.toEach
-        else 1d / parameters.etaDischarge.toEach
-
-      val correctEndEnergy = startEnergy + power * sampleTime * factor
+      val correctEndEnergy = startEnergy + power * sampleTime - getActualLoss
       (correctEndEnergy - endEnergy).abs
     }
   }
