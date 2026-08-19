@@ -989,11 +989,11 @@ class SplitPowerVarsObjectiveFactorySpec
 
       }
 
-      "produce excess loss with three steps" in {
+      "produce excess loss with four steps" in {
 
         val results = FlexibilityOptimization.optimize(
-          paramsExcessLossThreeSteps.copy(objectiveFactory =
-            PeakShavingObjectiveFactory(RelaxedConstraints)
+          paramsExcessLossFourSteps.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(BinaryConstraint)
           )
         )
 

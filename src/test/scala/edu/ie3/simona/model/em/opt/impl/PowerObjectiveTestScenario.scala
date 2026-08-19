@@ -234,18 +234,17 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
       tightenBoundaries = false,
     )
 
-  // todo four steps now?
-  private val fixedDischargeThreeSteps: EnergyBoundariesFlexOptions =
+  private val fixedDischargeFourSteps: EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
         Seq(-10, -10, -10, -10).toPowerMap(fourHours)
       )
     )
 
-  protected val paramsExcessLossThreeSteps: OptimizationParams =
+  protected val paramsExcessLossFourSteps: OptimizationParams =
     OptimizationParams(
       flexOptionsById = Map(
-        loadUUID -> fixedDischargeThreeSteps,
+        loadUUID -> fixedDischargeFourSteps,
         batUUID -> batteryDemoExample1,
       ),
       timeParams = fourHours,
