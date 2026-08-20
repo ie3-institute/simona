@@ -6,7 +6,7 @@ The approach addresses challenges such as missing or erroneous measurement signa
 
 ## Workflow & SIMONA Integration
 
-To perform neural state estimation, SIMONA serves as the simulation environment to generate the necessary data foundation:
+To generate training data e.g. for neural state estimation, SIMONA serves as the simulation environment to generate the necessary data foundation:
 
 1. **Data Generation:** Create synthetic grid states and corresponding measurement data via simulation.
 2. **Training:** Train a neural model on the generated supervised dataset.
