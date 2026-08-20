@@ -13,4 +13,4 @@ To perform neural state estimation, SIMONA serves as the simulation environment 
 3. **Inference:** Apply the trained model to real measurement data to estimate non-observable grid states.
 4. **Assessment:** Evaluate the model’s transferability, robustness against faulty measurements, and the quality of uncertainty-aware estimates {cite:p}`Oberließen.2025`.
 
-By systematically varying operating conditions and measurement configurations, SIMONA provides a controlled, consistent basis for developing and analyzing robust neural estimators {cite:p}`Oberließen.2025`.
+By systematically varying operating conditions and measurement configurations, SIMONA can be used to provide a controlled, consistent basis for developing and analyzing robust neural estimators {cite:p}`Oberließen.2025`.
