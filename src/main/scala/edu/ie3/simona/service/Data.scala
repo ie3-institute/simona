@@ -363,9 +363,9 @@ object Data {
       * @param windVel
       *   Wind velocity
       * @param groundTempLvl3
-      *   Optional of ground temperature at Level 3
+      *   Option of ground temperature at Level 3
       * @param groundTempLvl4
-      *   Optional of ground temperature at Level 4
+      *   Option of ground temperature at Level 4
       */
     final case class WeatherData(
         diffIrr: Irradiance,
