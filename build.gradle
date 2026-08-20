@@ -21,7 +21,7 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.8.4'
-  pekkoVersion = '1.6.0'
+  pekkoVersion = '1.7.0'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.3.6'
