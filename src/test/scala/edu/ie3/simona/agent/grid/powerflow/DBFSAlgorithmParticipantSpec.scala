@@ -71,39 +71,39 @@ class DBFSAlgorithmParticipantSpec
     with DbfsTestGridWithParticipants
     with TestSpawnerTyped {
 
-private val simonaConfig = SimonaConfig(
-  input = InputConfig(
-    grid = Grid(
-      datasource = GridDatasource(
-        id = "csv"
+  private val simonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
       )
-    )
-  ),
-  output = OutputConfig(
-    base = Base(
-      addTimestampToOutputDir = false,
-      dir = "testOutput/"
-    )
-  ),
-  powerflow = Some(
-    SimonaConfig.Powerflow(
-      maxSweepPowerDeviation = 1e-5,
-      newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
-        epsilon = List(1e-12),
-        iterations = 50,
-      ),
-      stopOnFailure = true,
-    )
-  ),
-  simulationName = "DBFSAlgorithmParticipantSpec",
-  time = SimonaConfig.Time(
-    startDateTime = "2011-05-01T00:00:00Z",
-    endDateTime = "2011-05-01T01:00:00Z",
-  ),
-)
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    powerflow = Some(
+      SimonaConfig.Powerflow(
+        maxSweepPowerDeviation = 1e-5,
+        newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
+          epsilon = List(1e-12),
+          iterations = 50,
+        ),
+        stopOnFailure = true,
+      )
+    ),
+    simulationName = "DBFSAlgorithmParticipantSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
 
-private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
-private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
+  private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+  private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] =

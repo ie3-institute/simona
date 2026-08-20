@@ -74,7 +74,7 @@ class DBFSAlgorithmCenGridSpec
     output = OutputConfig(
       base = Base(
         addTimestampToOutputDir = false,
-        dir = "testOutput/"
+        dir = "testOutput/",
       )
     ),
     powerflow = Some(
