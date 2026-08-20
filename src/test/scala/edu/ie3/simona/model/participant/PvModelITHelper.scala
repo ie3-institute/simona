@@ -21,8 +21,12 @@ import java.nio.charset.StandardCharsets
 import java.time.ZonedDateTime
 import java.util.zip.GZIPInputStream
 import scala.jdk.CollectionConverters.IterableHasAsScala
+import edu.ie3.simona.test.common.DefaultTestData
 
-trait PvModelITHelper extends PvInputTestData with TestResourceHelper {
+trait PvModelITHelper
+    extends PvInputTestData
+    with TestResourceHelper
+    with DefaultTestData {
 
   private val CSV_FORMAT: CSVFormat =
     CSVFormat.DEFAULT.builder().setHeader().get()
