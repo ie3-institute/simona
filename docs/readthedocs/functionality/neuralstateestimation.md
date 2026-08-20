@@ -1,4 +1,4 @@
-# Neural State Estimation
+# Training data generation for neural state estimation
 
 SIMONA facilitates the neural state estimation workflow for distribution grids by providing high-quality synthetic training data. This workflow enables the evaluation of neural models trained on simulation data and their transferability to real-world grid measurements {cite:p}`Oberließen.2025`.
 
