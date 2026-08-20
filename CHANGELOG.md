@@ -45,6 +45,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 - Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
 - Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
+- Implement energy dependent power tolerance for EVCS [#1698](https://github.com/ie3-institute/simona/issues/1698)
 - Added external em communication to em service [#1781](https://github.com/ie3-institute/simona/issues/1781)
 
 ### Changed
@@ -109,6 +110,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Replaced implicit classes with scala 3 extension methods [#1833](https://github.com/ie3-institute/simona/issues/1833)
 - Refactored simulation setup [#1858](https://github.com/ie3-institute/simona/issues/1858)
 - Improved parsing of runtime parameters via input files [#1875](https://github.com/ie3-institute/simona/issues/1875)
+- Enhanced PvModelITSpec to ensure temporal consistency and validate all expected PV results [#1130](https://github.com/ie3-institute/simona/issues/1130)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -146,6 +148,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `ParticipantAgent.isCalculationRequired` to include `changesAtNextActivation` [#1820](https://github.com/ie3-institute/simona/issues/1820)
 - Fixed initialization problems when using `ExtEmDataService` [#1780](https://github.com/ie3-institute/simona/issues/1780)
 - Fixed handling of disconnecting tick of energy boundaries flex options [#1821](https://github.com/ie3-institute/simona/issues/1821)
+- Fixed exception thrown when providing additional main arguments [#1890](https://github.com/ie3-institute/simona/issues/1890)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
