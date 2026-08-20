@@ -232,7 +232,7 @@ object Data {
       }
     }
 
-    implicit class RichValue(private val value: Value) {
+    extension (value: Value) {
       def toPrimaryData: Try[PrimaryData] =
         value match {
           case hs: HeatAndSValue =>

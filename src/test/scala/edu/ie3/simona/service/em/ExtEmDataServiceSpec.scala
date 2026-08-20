@@ -77,7 +77,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -91,43 +91,6 @@ class ExtEmDataServiceSpec
       scheduler.expectNoMessage()
     }
 
-    "stash registration request and handle it correctly once initialized" in {
-      val scheduler = TestProbe[SchedulerMessage]("scheduler")
-      val extSimAdapter =
-        TestProbe[ControlResponseMessageFromExt]("extSimAdapter")
-
-      val extEmDataConnection =
-        new ExtEmDataConnection(emptyControlled, EmMode.BASE)
-      val serviceKey =
-        ScheduleLock.singleKey(TSpawner, scheduler.ref, INIT_SIM_TICK)
-      // lock activation scheduled
-      scheduler.expectMessageType[ScheduleActivation]
-      val emService = spawn(
-        ExtEmDataService(
-          scheduler.ref,
-          InitExtEmData(extEmDataConnection, simulationStart),
-          serviceKey,
-        )
-      )
-
-      extEmDataConnection.setActorRefs(
-        emService,
-        extSimAdapter.ref,
-      )
-
-      val emAgent = TestProbe[EmAgent.Message]("emAgent")
-
-      // this one should be stashed
-      emService ! EmServiceRegistration(
-        emAgent.ref,
-        emInput.getUuid,
-        None,
-        None,
-      )
-
-      // no message for scheduling first service activation expected
-      scheduler.expectNoMessage()
-    }
   }
 
   "An idle em service" must {
@@ -148,7 +111,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -167,11 +130,13 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent.expectMessage(FlexInit(FlexType.PowerLimit, DataTimeType.Current))
+
       emService ! EmFlexMessage(
         FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
         emAgent1UUID,
       )
+
+      scheduler.expectMessage(Completion(emAgent.ref))
 
       // we trigger em service and expect an exception
       emService ! Activation(0)
@@ -195,7 +160,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -217,13 +182,6 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent1.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
-      )
-      emService ! EmFlexMessage(
-        FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
-        emAgent1UUID,
-      )
 
       emService ! EmServiceRegistration(
         emAgent2.ref,
@@ -231,15 +189,18 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent2.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+
+      emService ! EmFlexMessage(
+        FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
+        emAgent1UUID,
       )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
       )
 
-      // scheduler.expectMessage(Completion(emService))
+      scheduler.expectMessage(Completion(emAgent1.ref))
+      scheduler.expectMessage(Completion(emAgent2.ref))
 
       extEmDataConnection.sendExtMsg(
         new ProvideEmData(
@@ -282,14 +243,14 @@ class ExtEmDataServiceSpec
       extEmDataConnection.receiveTriggerQueue.size() shouldBe 1
 
       extEmDataConnection.receiveTriggerQueue
-        .take() shouldBe new FlexOptionsResponse(
+        .take() shouldBe new EmResultResponse(
         Map(
           emAgent1UUID -> List(
             new em.PowerLimitFlexOptions(
               emAgent1UUID,
               emAgent1UUID,
-              0.asMegaWatt,
               0.005.asMegaWatt,
+              0.asMegaWatt,
               0.01.asMegaWatt,
             )
           )
@@ -311,7 +272,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
           serviceKey,
         )
       )
@@ -333,13 +294,6 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent1.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
-      )
-      emService ! EmFlexMessage(
-        FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
-        emAgent1UUID,
-      )
 
       emService ! EmServiceRegistration(
         emAgent2.ref,
@@ -347,13 +301,18 @@ class ExtEmDataServiceSpec
         None,
         None,
       )
-      emAgent2.expectMessage(
-        FlexInit(FlexType.PowerLimit, DataTimeType.Current)
+
+      emService ! EmFlexMessage(
+        FlexCompletion(emAgent1UUID, requestAtTick = Some(0)),
+        emAgent1UUID,
       )
       emService ! EmFlexMessage(
         FlexCompletion(emAgent2UUID, requestAtTick = Some(0)),
         emAgent2UUID,
       )
+
+      scheduler.expectMessage(Completion(emAgent1.ref))
+      scheduler.expectMessage(Completion(emAgent2.ref))
 
       extEmDataConnection.sendExtMsg(
         new ProvideEmData(

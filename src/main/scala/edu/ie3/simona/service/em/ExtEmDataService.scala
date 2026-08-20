@@ -8,33 +8,32 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
+import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
+import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{DataTimeType, ExtDataSupport, SimonaService}
+import edu.ie3.simona.service.{ExtDataSupport, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.{
   FIRST_TICK_IN_SIMULATION,
   INIT_SIM_TICK,
 }
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
-import org.slf4j.{Logger, LoggerFactory}
+import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
 object ExtEmDataService extends SimonaService with ExtDataSupport {
-
-  private val log: Logger = LoggerFactory.getLogger(ExtEmDataService.getClass)
 
   override type S = ExtEmDataStateData
 
@@ -92,6 +91,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   }
 
   final case class ExtEmDataStateData(
+      scheduler: ActorRef[SchedulerMessage],
       extEmDataConnection: ExtEmDataConnection,
       startTime: ZonedDateTime,
       serviceCore: EmServiceCore,
@@ -100,41 +100,25 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
   ) extends ServiceBaseStateData
 
   case class InitExtEmData(
+      scheduler: ActorRef[SchedulerMessage],
       extEmData: ExtEmDataConnection,
       startTime: ZonedDateTime,
   ) extends InitializeServiceStateData
-
-  override protected def handleServiceResponse(
-      serviceResponse: ServiceResponseMessage
-  )(using
-      ctx: ActorContext[Message]
-  ): Unit = serviceResponse match {
-    case EmFlexMessage(
-          scheduleFlexActivation: ScheduleFlexActivation,
-          receiver,
-        ) =>
-      log.debug(s"Received response message: $scheduleFlexActivation")
-
-      receiver match {
-        case _: UUID =>
-          log.debug(s"Unlocking msg: $scheduleFlexActivation")
-          scheduleFlexActivation.scheduleKey.foreach(_.unlock())
-
-        case ref: ActorRef[EmAgent.Message] =>
-          log.debug(s"Forwarding the message to: $ref")
-          ref ! scheduleFlexActivation
-      }
-  }
 
   override def init(
       initServiceData: InitializeServiceStateData
   )(using log: Logger): Try[(ExtEmDataStateData, Option[Long])] =
     initServiceData match {
-      case InitExtEmData(extEmDataConnection, startTime) =>
-        val serviceCore = EmServiceBaseCore()
+      case InitExtEmData(scheduler, extEmDataConnection, startTime) =>
+        val serviceCore = EmServiceCore(extEmDataConnection.mode, scheduler)
 
         val emDataInitializedStateData =
-          ExtEmDataStateData(extEmDataConnection, startTime, serviceCore)
+          ExtEmDataStateData(
+            scheduler,
+            extEmDataConnection,
+            startTime,
+            serviceCore,
+          )
 
         Success(
           emDataInitializedStateData,
@@ -160,13 +144,6 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         val updatedCore =
           serviceStateData.serviceCore.handleRegistration(emServiceRegistration)
 
-        if emServiceRegistration.parentEm.isEmpty then {
-          emServiceRegistration.requestingActor ! FlexInit(
-            FlexType.PowerLimit,
-            DataTimeType.Current,
-          )
-        }
-
         Success(serviceStateData.copy(serviceCore = updatedCore))
       case invalidMessage =>
         Failure(
@@ -180,6 +157,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       serviceStateData: ExtEmDataStateData,
       ctx: ActorContext[Message],
   ): (ExtEmDataStateData, Option[Long]) = {
+    val core = serviceStateData.serviceCore
     given Logger = ctx.log
 
     val extMsg = serviceStateData.extEmDataMessage.getOrElse(
@@ -188,19 +166,34 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       )
     )
 
-    val (updatedCore, msgToExt) =
-      serviceStateData.serviceCore.handleExtMessage(tick, extMsg)
+    val nonCompleted =
+      tick != serviceStateData.tick && core.completions.nonComplete
 
-    msgToExt.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+    core match {
+      case _ if nonCompleted =>
+        // we request a new activation for the same tick
+        (serviceStateData, Some(tick))
 
-    (
-      serviceStateData.copy(
-        tick = tick,
-        serviceCore = updatedCore,
-        extEmDataMessage = None,
-      ),
-      None,
-    )
+      case core =>
+        ctx.log.debug(
+          s"Tick ($tick): ServiceCore -> ${core.getClass}, msg -> ${serviceStateData.extEmDataMessage}"
+        )
+
+        val (updatedCore, msgToExt) = core.handleExtMessage(tick, extMsg)
+
+        msgToExt.foreach(
+          serviceStateData.extEmDataConnection.queueExtResponseMsg
+        )
+
+        (
+          serviceStateData.copy(
+            tick = tick,
+            serviceCore = updatedCore,
+            extEmDataMessage = None,
+          ),
+          None,
+        )
+    }
   }
 
   override protected def handleDataMessage(
@@ -228,7 +221,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       serviceStateData.serviceCore.handleDataResponseMessage(
         tick,
         extResponseMsg,
-      )(using serviceStateData.startTime, log)
+      )(using serviceStateData.startTime, ctx.log)
 
     if tick >= FIRST_TICK_IN_SIMULATION then {
       extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)

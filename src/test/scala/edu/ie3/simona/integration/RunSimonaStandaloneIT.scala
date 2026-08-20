@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.integration
 
-import java.io.File
-import java.util.concurrent.LinkedBlockingQueue
 import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.PvResult
@@ -16,12 +14,14 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.main.RunSimonaStandalone
-import edu.ie3.simona.sim.setup.SimonaStandaloneSetup
+import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
 import org.scalatest.BeforeAndAfterAll
 
+import java.io.File
+import java.util.concurrent.LinkedBlockingQueue
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters.*
 
@@ -80,16 +80,15 @@ class RunSimonaStandaloneIT
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
-      val simonaStandaloneSetup = SimonaStandaloneSetup(
+      val simonaSetup = SimonaSetup(
         parsedConfig,
         simonaConfig,
-        resultFileHierarchy,
-        Some(runtimeEventQueue),
+        runtimeEventQueue = Some(runtimeEventQueue),
       )
 
       /* run simulation */
       val successful = RunSimonaStandalone.run(
-        simonaStandaloneSetup
+        simonaSetup
       )
 
       successful shouldBe true
@@ -160,16 +159,15 @@ class RunSimonaStandaloneIT
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
-      val simonaStandaloneSetup = SimonaStandaloneSetup(
+      val simonaSetup = SimonaSetup(
         parsedConfig,
         simonaConfig,
-        resultFileHierarchy,
-        Some(runtimeEventQueue),
+        runtimeEventQueue = Some(runtimeEventQueue),
       )
 
       /* run simulation */
       val successful = RunSimonaStandalone.run(
-        simonaStandaloneSetup
+        simonaSetup
       )
 
       successful shouldBe true

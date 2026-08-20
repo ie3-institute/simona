@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.weather
 
+import edu.ie3.datamodel.exceptions.SourceException
 import edu.ie3.datamodel.io.factory.timeseries.IconTimeBasedWeatherValueFactory
 import edu.ie3.datamodel.io.source.{
   IdCoordinateSource,
@@ -42,7 +43,6 @@ import java.util
 import java.util.{Optional, UUID}
 import javax.measure.quantity.Length
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.*
 
 class WeatherSourceWrapperSpec extends UnitSpec {
 
@@ -499,11 +499,17 @@ object WeatherSourceWrapperSpec {
     override def getWeather(
         date: ZonedDateTime,
         coordinate: Point,
-    ): Optional[TimeBasedValue[WeatherValue]] =
-      dummyValues
-        .get(coordinate)
-        .map(value => new TimeBasedValue(date, value))
-        .toJava
+    ): TimeBasedValue[WeatherValue] = {
+      val value = dummyValues
+        .getOrElse(
+          coordinate,
+          throw new SourceException(
+            s"No data available for coordinate $coordinate and time $date."
+          ),
+        )
+
+      new TimeBasedValue(date, value)
+    }
   }
 
   /** Prepare test data for WeightSum-related tests

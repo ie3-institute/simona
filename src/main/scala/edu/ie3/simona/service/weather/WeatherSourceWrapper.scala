@@ -43,7 +43,7 @@ import edu.ie3.simona.service.weather.WeatherSourceWrapper.{
   WeightSum,
   ZERO_WEATHER_DATA,
 }
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.DoubleUtils.!~=
 import edu.ie3.util.interval.ClosedInterval
 import org.locationtech.jts.geom.Point
