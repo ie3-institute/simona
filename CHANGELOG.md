@@ -46,6 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
 - Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
 - Include functionality description of training data generation for neural state estimation [1709](https://github.com/ie3-institute/simona/issues/1709)
+- Implement energy dependent power tolerance for EVCS [#1698](https://github.com/ie3-institute/simona/issues/1698)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
