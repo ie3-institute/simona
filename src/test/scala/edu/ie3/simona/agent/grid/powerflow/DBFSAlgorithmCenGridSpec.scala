@@ -36,6 +36,9 @@ import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.simona.test.common.TestSpawnerTyped
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.util.scala.quantities.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
