@@ -105,35 +105,7 @@ object ExtSimSetup {
       Try {
         // sets up the external simulation
         extLink.setup(setupData)
-
-        // get all connections from external simulations
-        val simulationConnections = extLink match {
-          case provider: ExtSimulationProvider =>
-            val extSim = provider.getExtSimulation
-            val currentConnections = extSim.getDataConnections.asScala.toSeq
-
-            setupExtSimulation(extSim, currentConnections, index)
-
-            currentConnections
-
-          case _ =>
-            Seq.empty
-        }
-
-        // get all connections from listeners
-        val listenerConnections = extLink match {
-          case provider: ExtListenerProvider =>
-            provider.getResultListeners.asScala.toSeq
-
-          case _ =>
-            Seq.empty
-        }
-
-        val connections = simulationConnections ++ listenerConnections
-
-        if connections.isEmpty then {
-          throw new IllegalArgumentException("No data connections provided!")
-        }
+        val connections = getConnections(extLink, index)
         
         // updating the data with newly connected addon
         connect(connections, extSimSetupData, index).updateAdapter(
@@ -150,6 +122,47 @@ object ExtSimSetup {
         case Success(setupData) => setupData
       }
   }
+  
+  private[setup] def getConnections(extLink: ExtLinkInterface, index: Int)(using
+                                                                            context: ActorContext[?],
+                                                                            scheduler: ActorRef[SchedulerMessage],
+                                                                            extSimAdapter: ActorRef[ExtSimAdapter.Request],
+                                                                            resultProxy: ActorRef[ResultServiceProxy.Message],
+                                                                            startTime: ZonedDateTime,
+                                                                            setupData: SetupData,
+  ): Seq[? <: ExtDataConnection] = {
+    // get all connections from external simulations
+    val simulationConnections = extLink match {
+      case provider: ExtSimulationProvider =>
+        val extSim = provider.getExtSimulation
+        val currentConnections = extSim.getDataConnections.asScala.toSeq
+
+        setupExtSimulation(extSim, currentConnections, index)
+
+        currentConnections
+
+      case _ =>
+        Seq.empty
+    }
+
+    // get all connections from listeners
+    val listenerConnections = extLink match {
+      case provider: ExtListenerProvider =>
+        provider.getResultListeners.asScala.toSeq
+
+      case _ =>
+        Seq.empty
+    }
+
+    val connections = simulationConnections ++ listenerConnections
+
+    if connections.isEmpty then {
+      throw new IllegalArgumentException("No data connections provided!")
+    }
+    
+    connections
+  }
+  
 
   private[setup] def setupExtSimulation(
       extSimulation: ExtSimulation,
