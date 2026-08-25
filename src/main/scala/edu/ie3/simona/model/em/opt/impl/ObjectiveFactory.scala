@@ -28,6 +28,7 @@ import optimus.algebra.Expression
 import optimus.optimization.MPModel
 import optimus.optimization.model.MPFloatVar
 import squants.energy.PowerConversions.PowerNumeric
+import squants.time.Hours
 import squants.{Energy, Power}
 
 import java.util.UUID
@@ -291,13 +292,17 @@ object ObjectiveFactory {
       sortSymbolsByTick(assetSymbols).map { (stepStartTick, tickAssetSymbols) =>
         val priceData = getAndCheckPriceData(priceSeries, stepStartTick)
 
-        val priceSell = priceData.priceSell.toEuroPerKilowattHour
-        val priceBuy = priceData.priceBuy.toEuroPerKilowattHour
+        val sampleTime = tickAssetSymbols.headOption
+          .map(_.parameters.sampleTime)
+          .getOrElse(Hours(0))
+        val energySum =
+          tickAssetSymbols.map(_.getOperatingPowerResult).sum * sampleTime
 
-        val powerSum =
-          tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
+        val price =
+          if energySum > zeroKWh then priceData.priceBuy
+          else priceData.priceSell
 
-        math.max(powerSum * priceSell, powerSum * priceBuy)
+        price.toEuroPerKilowattHour * energySum.toKilowattHours
       }.sum
 
     }
