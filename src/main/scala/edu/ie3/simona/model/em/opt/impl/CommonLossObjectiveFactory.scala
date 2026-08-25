@@ -345,12 +345,10 @@ object CommonLossObjectiveFactory {
         priceSeries: SortedMap[Long, ProsumerPrice]
     ): SortedMap[Long, ProsumerPrice] =
       priceSeries
-        .maxByOption { case (_, priceData) =>
-          priceData.priceBuy
-        }
         .map { case (_, priceData) =>
-          priceData.priceBuy.toEuroPerKilowattHour
+          priceData.priceBuy.abs.max(priceData.priceSell.abs).toEuroPerKilowattHour
         }
+        .maxOption
         .map { maxPrice =>
           priceSeries.map { case (tick, priceData) =>
             tick -> ProsumerPrice(
