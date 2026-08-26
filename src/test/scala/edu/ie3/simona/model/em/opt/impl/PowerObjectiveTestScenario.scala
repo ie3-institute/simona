@@ -70,7 +70,7 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
     currentTick = 0L,
   )
 
-  protected val twoHoursOneStep: TimeParams = TimeParams(
+  protected val oneTwoHours: TimeParams = TimeParams(
     sampleTime = hour * 2,
     predictionHorizon = hour * 2,
     currentTick = 0L,
@@ -216,7 +216,7 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
   private val fixedDischargeOneStep: EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
-        Seq(-10, 0).toPowerMap(twoHoursOneStep)
+        Seq(-10, 0).toPowerMap(oneTwoHours)
       )
     )
 
@@ -226,7 +226,7 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
         loadUUID -> fixedDischargeOneStep,
         batUUID -> batteryDemoExample1,
       ),
-      timeParams = twoHoursOneStep,
+      timeParams = oneTwoHours,
       objectiveFactory = PeakShavingObjectiveFactory(variant =
         CommonLossVariant.SoftConstraints
       ),
@@ -255,25 +255,43 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
       tightenBoundaries = false,
     )
 
-  private val fixedDischargeEx3: EnergyBoundariesFlexOptions =
+  protected val priceDataNegative: SecondarySeriesData =
+    Seq((-0.1d, -0.05d), (-0.1d, -0.05d), (-0.1d, -0.05d), (0.01d, 0.01d))
+      .toPriceData(fourHours)
+
+  protected val paramsExcessLossPrices: OptimizationParams = OptimizationParams(
+    flexOptionsById = Map(
+      batUUID -> batteryDemoExample1
+    ),
+    receivedData = Seq(priceDataNegative),
+    timeParams = fourHours,
+    objectiveFactory =
+      PriceObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
+    solverLib = SolverLib.oJSolver,
+    tightenBoundaries = false,
+  )
+
+  private val fixedDischargeStorageActivity: EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       AssetEnergyBoundaries(
         Seq(-10, -10, -10, -10, -10, -10, -10, -10).toPowerMap(eightHours)
       )
     )
 
-  protected val paramsExcessLossEx3: OptimizationParams = OptimizationParams(
-    flexOptionsById = Map(
-      loadUUID -> fixedDischargeEx3,
-      batUUID -> batteryDemoExample1,
-      bat2UUID -> batteryDemoExample1,
-    ),
-    timeParams = eightHours,
-    objectiveFactory =
-      PeakShavingObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
-    solverLib = SolverLib.oJSolver,
-    tightenBoundaries = false,
-  )
+  protected val paramsExcessLossStorageActivity: OptimizationParams =
+    OptimizationParams(
+      flexOptionsById = Map(
+        loadUUID -> fixedDischargeStorageActivity,
+        batUUID -> batteryDemoExample1,
+        bat2UUID -> batteryDemoExample1,
+      ),
+      timeParams = eightHours,
+      objectiveFactory = PeakShavingObjectiveFactory(variant =
+        CommonLossVariant.SoftConstraints
+      ),
+      solverLib = SolverLib.oJSolver,
+      tightenBoundaries = false,
+    )
 
   /* MODEL WITH NO LOSS */
 

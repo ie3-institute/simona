@@ -14,7 +14,10 @@ import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVar
   RelaxedConstraints,
   SoftConstraints,
 }
-import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.PeakShavingObjectiveFactory
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.{
+  PeakShavingObjectiveFactory,
+  PriceObjectiveFactory,
+}
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.enums.SolutionStatus
@@ -831,9 +834,9 @@ class CommonLossObjectiveFactorySpec
 
     }
 
-    "provided with demonstrative examples" should {
+    "provided with demonstrative example with peak shaving objective in one step" should {
 
-      "produce excess loss with one step" in {
+      "produce excess loss with no additional constraints" in {
 
         val results = FlexibilityOptimization.optimize(
           paramsExcessLossOneStep.copy(objectiveFactory =
@@ -842,18 +845,92 @@ class CommonLossObjectiveFactorySpec
         )
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
-
-        val table = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+        val batRes = results.assetSymbols.res(batUUID)
 
         {
+          results.objectiveValue.value should approximate(2.926829)
 
-          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          batRes.actualLossSum should approximate(2.829268)
+          batRes.excessLossSum should approximate(1.317073)
+
+          batRes(0).energyVal should approximate(10)
 
         } withClue buildDebugString(results.assetSymbols)
 
       }
 
-      "produce excess loss with three steps" in {
+      "produce no excess loss with relaxed constraints" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossOneStep.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(RelaxedConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+        val batRes = results.assetSymbols.res(batUUID)
+
+        {
+          results.objectiveValue.value should approximate(3.75)
+
+          batRes.actualLossSum should approximate(2.5)
+          batRes.excessLossSum should approximate(0)
+
+          batRes(0).energyVal should approximate(10)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+      }
+
+      "produce no excess loss with soft constraints" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossOneStep.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(SoftConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+        val batRes = results.assetSymbols.res(batUUID)
+
+        {
+          results.objectiveValue.value should approximate(3.75)
+
+          batRes.actualLossSum should approximate(2.5)
+          batRes.excessLossSum should approximate(0)
+          batRes(0).energyVal should approximate(10)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+      }
+
+    }
+
+    "provided with demonstrative example with peak shaving objective in four steps" should {
+
+      "produce excess loss with relaxed constraints" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossFourSteps.copy(objectiveFactory =
+            PeakShavingObjectiveFactory(RelaxedConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+        val batRes = results.assetSymbols.res(batUUID)
+
+        {
+          results.objectiveValue.value should approximate(5.677419)
+
+          batRes.actualLossSum should approximate(3.458064)
+          batRes.excessLossSum should approximate(3.832258)
+          batRes(3).energyVal should approximate(10)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+      }
+
+      "produce no excess loss with soft constraints" in {
 
         val results = FlexibilityOptimization.optimize(
           paramsExcessLossFourSteps.copy(objectiveFactory =
@@ -862,39 +939,101 @@ class CommonLossObjectiveFactorySpec
         )
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
-
-        val table = results.assetSymbols.vars(batUUID).getEnergyResultsTable
+        val batRes = results.assetSymbols.res(batUUID)
 
         {
+          results.objectiveValue.value should approximate(6.875)
 
-          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          batRes.actualLossSum should approximate(2.5)
+          batRes.excessLossSum should approximate(0)
+          batRes(3).energyVal should approximate(10)
 
         } withClue buildDebugString(results.assetSymbols)
 
-        fail(buildDebugString(results.assetSymbols))
+      }
+
+    }
+
+    "provided with demonstrative example with price objective" should {
+
+      "produce excess loss with relaxed constraints" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossPrices.copy(objectiveFactory =
+            PriceObjectiveFactory(RelaxedConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+        val batRes = results.assetSymbols.res(batUUID)
+
+        {
+          results.objectiveValue.value should approximate(-0.897073)
+
+          batRes.actualLossSum should approximate(5.268292)
+          batRes.excessLossSum should approximate(3.073171)
+
+          batRes(2).energyVal should approximate(10.0d)
+          batRes(3).energyVal should approximate(0.0d)
+
+        } withClue buildDebugString(results.assetSymbols)
 
       }
 
-      "charges and discharges repeatedly" in {
+      "fail to discharge with soft constraints" in {
 
         val results = FlexibilityOptimization.optimize(
-          paramsExcessLossEx3.copy(
+          paramsExcessLossPrices.copy(objectiveFactory =
+            PriceObjectiveFactory(SoftConstraints)
+          )
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+        val batRes = results.assetSymbols.res(batUUID)
+
+        {
+          results.objectiveValue.value should approximate(-0.625)
+
+          batRes.actualLossSum should approximate(2.5)
+          batRes.excessLossSum should approximate(0)
+
+          batRes(2).energyVal should approximate(10.0d)
+          batRes(3).energyVal should approximate(10.0d)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+      }
+
+    }
+
+    "provided with demonstrative example with peak shaving objective and two batteries" should {
+
+      "works as expected with soft constraints" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossStorageActivity.copy(
             objectiveFactory = PeakShavingObjectiveFactory(SoftConstraints)
           )
         )
 
         results.solutionStatus shouldBe SolutionStatus.OPTIMAL
-
-        val table1 = results.assetSymbols.vars(batUUID).getEnergyResultsTable
-        val table2 = results.assetSymbols.vars(bat2UUID).getEnergyResultsTable
+        val bat1Res = results.assetSymbols.res(batUUID)
+        val bat2Res = results.assetSymbols.res(bat2UUID)
 
         {
+          results.objectiveValue.value should approximate(6.875)
 
-          results.assetSymbols.checkModelStateError(using stateEnergyTolerance)
+          bat1Res.actualLossSum should approximate(2.5)
+          bat1Res.excessLossSum should approximate(0)
+
+          bat1Res(7).energyVal should approximate(10.0d)
+
+          bat2Res.actualLossSum should approximate(2.5)
+          bat2Res.excessLossSum should approximate(0)
+
+          bat2Res(7).energyVal should approximate(10.0d)
 
         } withClue buildDebugString(results.assetSymbols)
-
-        fail(buildDebugString(results.assetSymbols))
 
       }
 
