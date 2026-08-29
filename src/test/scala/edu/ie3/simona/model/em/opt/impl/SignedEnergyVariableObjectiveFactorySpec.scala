@@ -260,5 +260,33 @@ class SignedEnergyVariableObjectiveFactorySpec
 
       }
     }
+
+    "provided with demonstrative example with price objective" should {
+
+      "produce suboptimal results without excess loss" in {
+
+        val results = FlexibilityOptimization.optimize(
+          paramsExcessLossPrices.copy(objectiveFactory = PriceObjectiveFactory)
+        )
+
+        results.solutionStatus shouldBe SolutionStatus.OPTIMAL
+        val batRes = results.assetSymbols.res(batUUID)
+
+        {
+          results.objectiveValue.value should approximate(-0.39125)
+
+          batRes.actualLossSum should approximate(4.5)
+          batRes.excessLossSum should approximate(0.0d)
+
+          batRes(2).energyVal should approximate(10.0d)
+          batRes(3).energyVal should approximate(0.0d)
+
+        } withClue buildDebugString(results.assetSymbols)
+
+      }
+
+    }
+
   }
+
 }

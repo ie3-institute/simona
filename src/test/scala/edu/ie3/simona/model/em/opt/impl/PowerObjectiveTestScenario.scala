@@ -255,13 +255,21 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
       tightenBoundaries = false,
     )
 
+  private val fixedLowDischargeFourSteps: EnergyBoundariesFlexOptions =
+    EnergyBoundariesFlexOptions(
+      AssetEnergyBoundaries(
+        Seq(-2, -2, -2, -2).toPowerMap(fourHours)
+      )
+    )
+
   protected val priceDataNegative: SecondarySeriesData =
-    Seq((-0.1d, -0.05d), (-0.1d, -0.05d), (-0.1d, -0.05d), (0.01d, 0.01d))
+    Seq((-0.1d, -0.05d), (-0.08d, -0.04d), (-0.06d, -0.03d), (0.01d, 0.01d))
       .toPriceData(fourHours)
 
   protected val paramsExcessLossPrices: OptimizationParams = OptimizationParams(
     flexOptionsById = Map(
-      batUUID -> batteryDemoExample1
+      loadUUID -> fixedLowDischargeFourSteps,
+      batUUID -> batteryDemoExample1,
     ),
     receivedData = Seq(priceDataNegative),
     timeParams = fourHours,
@@ -370,10 +378,6 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
     )
 
   /* OBJECTIVE TESTS */
-
-  // fixme deprecated, rename below
-  protected given ticksScenario1: Seq[Long] =
-    Range.Long.inclusive(0, 12 * halfHourTicks, halfHourTicks)
 
   protected val priceDataScenario1: SecondarySeriesData =
     (Seq.fill(2)((0.1d, 0.3d)) ++

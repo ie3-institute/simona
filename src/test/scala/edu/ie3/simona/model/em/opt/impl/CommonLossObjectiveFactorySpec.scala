@@ -968,10 +968,10 @@ class CommonLossObjectiveFactorySpec
         val batRes = results.assetSymbols.res(batUUID)
 
         {
-          results.objectiveValue.value should approximate(-0.897073)
+          results.objectiveValue.value should approximate(-0.523281)
 
-          batRes.actualLossSum should approximate(5.268292)
-          batRes.excessLossSum should approximate(3.073171)
+          batRes.actualLossSum should approximate(4.921875)
+          batRes.excessLossSum should approximate(1.6875)
 
           batRes(2).energyVal should approximate(10.0d)
           batRes(3).energyVal should approximate(0.0d)
@@ -992,7 +992,7 @@ class CommonLossObjectiveFactorySpec
         val batRes = results.assetSymbols.res(batUUID)
 
         {
-          results.objectiveValue.value should approximate(-0.625)
+          results.objectiveValue.value should approximate(-0.345)
 
           batRes.actualLossSum should approximate(2.5)
           batRes.excessLossSum should approximate(0)

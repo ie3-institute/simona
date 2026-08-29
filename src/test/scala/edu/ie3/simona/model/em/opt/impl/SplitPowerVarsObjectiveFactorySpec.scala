@@ -1101,10 +1101,10 @@ class SplitPowerVarsObjectiveFactorySpec
         val batRes = results.assetSymbols.res(batUUID)
 
         {
-          results.objectiveValue.value should approximate(-0.842195)
+          results.objectiveValue.value should approximate(-0.461)
 
-          batRes.actualLossSum should approximate(5.04878)
-          batRes.excessLossSum should approximate(2.195122)
+          batRes.actualLossSum should approximate(4.644)
+          batRes.excessLossSum should approximate(0.576)
 
           batRes(2).energyVal should approximate(10.0d)
           batRes(3).energyVal should approximate(0.0d)
@@ -1125,7 +1125,7 @@ class SplitPowerVarsObjectiveFactorySpec
         val batRes = results.assetSymbols.res(batUUID)
 
         {
-          results.objectiveValue.value should approximate(-0.705)
+          results.objectiveValue.value should approximate(-0.425)
 
           batRes.actualLossSum should approximate(4.5)
           batRes.excessLossSum should approximate(0)
