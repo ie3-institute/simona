@@ -10,6 +10,7 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
+  VariableAssetStepSymbols,
 }
 import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory.{
   FixedSignedEnergyStepSymbols,
@@ -253,7 +254,8 @@ object SignedEnergyVariableObjectiveFactory {
       energyChange: MPVar,
       stepStartState: MPSymbol,
       stepEndState: MPSymbol,
-  ) extends SignedEnergyStepSymbols {
+  ) extends SignedEnergyStepSymbols
+      with VariableAssetStepSymbols {
 
     override def getStepEndStateSymbol: MPSymbol = stepEndState
 
