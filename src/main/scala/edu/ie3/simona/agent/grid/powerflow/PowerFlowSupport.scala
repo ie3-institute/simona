@@ -70,6 +70,8 @@ trait PowerFlowSupport {
       targetVoltageFromReceivedData: Boolean = true,
       ignoreTargetVoltage: Boolean = false,
   ): (Array[PresetData], WithForcedStartVoltages) = {
+    val nodeToReceivedPower = receivedValuesStore.nodeToReceivedPower
+
     val (operatingPoints, stateData) = nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
@@ -84,39 +86,26 @@ trait PowerFlowSupport {
       )
 
       val apparentPower: Complex =
-        receivedValuesStore.nodeToReceivedPower
-          .get(nodeModel.uuid) match {
-          case Some(actorRefsWithPower) =>
-            val (p, q) = actorRefsWithPower
-              .map { case (_, powerMsg) => powerMsg }
+        nodeToReceivedPower.get(nodeModel.uuid) match {
+          case Some(powerResponses) =>
+            val (active, reactive) = powerResponses
               .collect {
-                case Some(providePowerMessage: ProvidedPowerResponse) =>
+                case providePowerMessage: ProvidedPowerResponse =>
                   providePowerMessage
-                case Some(message) =>
+                case message =>
                   throw new RuntimeException(
                     s"Received message $message which cannot processed here!"
                   )
-                case None =>
-                  throw new RuntimeException(
-                    s"Did not receive all power values I expected @ node ${nodeModel.id}. This is a fatal and should never happen!"
-                  )
               }
-              .foldLeft(
+              .map { response =>
                 (
-                  zeroKW,
-                  zeroKVAr,
-                )
-              ) { case ((pSum, qSum), powerMessage) =>
-                (
-                  pSum + powerMessage.p,
-                  qSum + powerMessage.q,
+                  gridMainRefSystem.pInPu(response.p).value,
+                  gridMainRefSystem.qInPu(response.q).value,
                 )
               }
+              .unzip
 
-            new Complex(
-              gridMainRefSystem.pInPu(p).value.doubleValue,
-              gridMainRefSystem.qInPu(q).value.doubleValue,
-            )
+            new Complex(active.sum, reactive.sum)
           case None => new Complex(0, 0)
         }
 
@@ -125,9 +114,8 @@ trait PowerFlowSupport {
           /* If the preset voltage is meant to be determined by means of received data and the node is a slack node
            * (only then there is received data), look it up and transform it */
           val receivedSlackVoltage =
-            receivedValuesStore.nodeToReceivedSlackVoltage
-              .get(nodeModel.uuid)
-              .flatten
+            receivedValuesStore
+              .getSlackVoltage(nodeModel.uuid)
               .getOrElse(
                 throw new RuntimeException(
                   s"No slack voltage received for node ${nodeModel.id} [${nodeModel.uuid}]!"
