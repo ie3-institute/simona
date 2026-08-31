@@ -352,6 +352,13 @@ object SimonaSimSpec {
       |  input.grid.datasource.id = "csv"
       |  output.base.dir = "testOutput/"
       |  output.base.addTimestampToOutputDir = false
+      |  output.sink.csv {
+      |    fileFormat = ".csv"
+      |    filePrefix = ""
+      |    fileSuffix = ""
+      |    csvSep = ","
+      |    compressOutputs = false
+      |    }
       |  powerflow.maxSweepPowerDeviation = 1E-5
       |  powerflow.stopOnFailure = true
       |  powerflow.newtonraphson.epsilon = [1E-12]
