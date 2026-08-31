@@ -229,6 +229,8 @@ class ThermalGridIT
             WattsPerSquareMeter(0d),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(3600),
         )
@@ -362,6 +364,8 @@ class ThermalGridIT
             WattsPerSquareMeter(1d),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(21600),
         )
@@ -489,6 +493,8 @@ class ThermalGridIT
             WattsPerSquareMeter(2d),
             Celsius(-55d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(25000),
         )
@@ -614,6 +620,8 @@ class ThermalGridIT
             WattsPerSquareMeter(3d),
             Celsius(-55d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(28000),
         )
@@ -758,6 +766,8 @@ class ThermalGridIT
             WattsPerSquareMeter(4d),
             Celsius(5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(151200),
         )
@@ -1278,6 +1288,8 @@ class ThermalGridIT
             WattsPerSquareMeter(0),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(1800),
         )
@@ -1394,6 +1406,8 @@ class ThermalGridIT
             WattsPerSquareMeter(400),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(5400),
         )
@@ -1586,6 +1600,8 @@ class ThermalGridIT
             WattsPerSquareMeter(0),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(9200),
         )
@@ -1784,6 +1800,8 @@ class ThermalGridIT
             WattsPerSquareMeter(250),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(12000),
         )
@@ -2017,6 +2035,8 @@ class ThermalGridIT
             WattsPerSquareMeter(250),
             Celsius(-25d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(12500),
         )
@@ -2120,6 +2140,8 @@ class ThermalGridIT
             WattsPerSquareMeter(0d),
             Celsius(-25d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(25200),
         )
@@ -2237,6 +2259,8 @@ class ThermalGridIT
             WattsPerSquareMeter(250),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(27500),
         )
@@ -2406,6 +2430,8 @@ class ThermalGridIT
             WattsPerSquareMeter(250),
             Celsius(-5d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(31000),
         )
@@ -2543,6 +2569,8 @@ class ThermalGridIT
             WattsPerSquareMeter(0),
             Celsius(-35d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(46800),
         )
@@ -2862,6 +2890,8 @@ class ThermalGridIT
             WattsPerSquareMeter(0),
             Celsius(-35d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(57600),
         )
