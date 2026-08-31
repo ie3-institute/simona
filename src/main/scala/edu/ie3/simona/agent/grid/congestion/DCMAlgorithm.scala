@@ -105,6 +105,10 @@ trait DCMAlgorithm
     case (ctx, doPowerFlowTrigger: DoPowerFlowTrigger) =>
       ctx.self ! doPowerFlowTrigger
       simulateGrid(stateData.gridAgentBaseData, doPowerFlowTrigger.tick)
+
+    case (ctx, msg) =>
+      ctx.log.warn(s"Waiting for next step: $msg")
+      Behaviors.same
   }
 
   /** Method for finishing the congestion management. This method will return to

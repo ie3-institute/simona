@@ -9,26 +9,17 @@ package edu.ie3.simona.agent.em
 import edu.ie3.datamodel.models.result.system.EmResult
 import edu.ie3.simona.agent.DataInputHandler
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.event.ResultEvent.{
-  FlexOptionsResultEvent,
-  ParticipantResultEvent,
-}
+import edu.ie3.simona.event.ResultEvent.{FlexOptionsResultEvent, ParticipantResultEvent}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelShell
-import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, tick}
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.ServiceMessage.DataMessage
+import edu.ie3.simona.ontology.messages.AgentMessage.{ActivationRequest, force, tick}
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{DataMessage, EmFlexMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.{
-  Activation,
-  SchedulerMessage,
-  ServiceMessage,
-}
+import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage, ServiceMessage}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.quantities.QuantityUtils.*
@@ -69,6 +60,7 @@ object EmAgent {
       simulationStartDate: ZonedDateTime,
       parent: Either[ActorRef[SchedulerMessage], ActorRef[FlexResponse]],
       listener: ActorRef[ResultEvent],
+      emService: Option[ActorRef[ExtEmDataService.Message]]
   )
 
   /** Behavior of an inactive [[EmAgent]], which waits for an activation or flex
@@ -137,6 +129,9 @@ object EmAgent {
     case (_, msg: DataMessage) =>
       inactive(emData, modelShell, inputHandler.handleDataMessage(msg), core)
 
+    case (ctx, unhandled) =>
+      ctx.log.warn(s"Unhandled (inactive): $unhandled")
+      Behaviors.same
   }
 
   private def activate(
@@ -146,7 +141,12 @@ object EmAgent {
       core: EmDataCore.Inactive,
       msg: ActivationRequest,
   ): Behavior[Message] = {
-    val flexOptionsCore = core.activate(msg.tick)
+    val tick = msg.tick
+    val force = msg.force
+
+    val flexOptionsCore = if force then {
+      core.gotoTick(tick).activateAll(tick)
+    } else core.activate(tick)
 
     val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()
 
@@ -161,7 +161,7 @@ object EmAgent {
     val activationMsg = msg.tick match {
       case INIT_SIM_TICK =>
         FlexInit(modelShell.getFlexType, modelShell.getDataTimeType)
-      case _ => FlexActivation(msg.tick)
+      case _ => FlexActivation(msg.tick, force)
     }
     toActivate.foreach(_ ! activationMsg)
 
@@ -179,8 +179,8 @@ object EmAgent {
       modelShell: EmModelShell[?],
       inputHandler: DataInputHandler,
       flexOptionsCore: EmDataCore.AwaitingFlexOptions,
-  ): Behavior[Message] = Behaviors.receiveMessagePartial {
-    case provideFlex: ProvideFlexOptions =>
+  ): Behavior[Message] = Behaviors.receivePartial {
+    case (ctx, provideFlex: ProvideFlexOptions) =>
       val updatedCore = flexOptionsCore.handleFlexOptions(
         provideFlex.modelUuid,
         provideFlex.flexOptions,
@@ -188,7 +188,7 @@ object EmAgent {
 
       maybeDetermineFlex(emData, modelShell, inputHandler, updatedCore)
 
-    case msg: DataMessage =>
+    case (ctx, msg: DataMessage) =>
       val updatedInputHandler = inputHandler.handleDataMessage(msg)
 
       maybeDetermineFlex(
@@ -278,6 +278,8 @@ object EmAgent {
       }
 
     } else {
+      emData.emService.foreach(_ ! EmFlexMessage(WaitingForData(modelShell.uuid), modelShell.uuid))
+
       // more flex options expected
       awaitingFlexOptions(
         emData,
@@ -406,6 +408,11 @@ object EmAgent {
           )
         }
 
+    case (ctx, x) =>
+      ctx.log.warn(
+        s"AwaitingCompletion: (${modelShell.id}, tick: ${core.activeTick}) Could not handle $x"
+      )
+      Behaviors.same
   }
 
   /** Completions have all been received, possibly send results and report to
