@@ -1,0 +1,38 @@
+tasks.register('stagingAtMavenCentralPortal') {
+  group = 'publishing'
+  description = 'Stages uploaded artifacts to Maven Central Portal for manual approval'
+
+  doLast {
+    def username = project.getProperty('mavenCentralUser')
+    def password =  project.getProperty('mavenCentralPassword')
+
+    if (!username || !password) {
+      throw new GradleException("Sonatype credentials not found. Set sonatypeUser and sonatypePassword properties or environment variables.")
+    }
+
+    // Request API for repo key
+    def repositoryString = providers.exec {
+      commandLine 'curl',
+      '-u', "${username}:${password}",
+      'https://ossrh-staging-api.central.sonatype.com/manual/search/repositories'
+    }.getStandardOutput().getAsText().get()
+
+    def repositoryGroovy = new groovy.json.JsonSlurper().parseText(repositoryString)
+    def key = repositoryGroovy.repositories[0].key
+
+    // Stage via curl
+    def stageResult = providers.exec {
+      ignoreExitValue true
+      commandLine 'curl',
+          '-u', "${username}:${password}",
+          '-i', '-X', 'POST', "https://ossrh-staging-api.central.sonatype.com/manual/upload/repository/$key"
+    }
+
+    if (stageResult.result.get().exitValue == 0) {
+      println "✓ Staging successful!"
+      println "Check status at: https://central.sonatype.com/publishing/deployments"
+    } else {
+      throw new GradleException("Staging failed")
+    }
+  }
+}
