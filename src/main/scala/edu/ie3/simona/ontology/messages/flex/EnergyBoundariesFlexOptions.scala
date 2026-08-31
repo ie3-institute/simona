@@ -90,7 +90,7 @@ object EnergyBoundariesFlexOptions
       )
     else if setPower > flexOptions.powerLimits.getUpper then
       throw new FlexException(
-        s"The set power $setPower must not be greater than the maximum power ${flexOptions.powerLimits.getLower}!"
+        s"The set power $setPower must not be greater than the maximum power ${flexOptions.powerLimits.getUpper}!"
       )
   }
 
