@@ -26,7 +26,7 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData
-import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.common.TestSpawnerTyped
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ActorTestKitBase,
   TestProbe,
@@ -41,20 +41,39 @@ import org.mockito.Mockito.when
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
+import java.time.ZonedDateTime
+
 trait CongestionTestBaseData
-    extends ConfigTestData
-    with CongestedComponentsTestData
+    extends CongestedComponentsTestData
     with TestSpawnerTyped {
   this: ActorTestKitBase =>
 
-  protected val config: SimonaConfig = SimonaConfig(
-    ConfigFactory
-      .parseString("""
-        |simona.congestionManagement.enableDetection = true
-        |""".stripMargin)
-      .withFallback(typesafeConfig)
-      .resolve()
+  protected val typesafeConfig = ConfigFactory
+    .parseString(
+      """
+      |simona.simulationName = "CongestionTest"
+      |
+      |simona.time.startDateTime = "2011-05-01T00:00:00Z"
+      |simona.time.endDateTime   = "2011-05-01T01:00:00Z"
+      |
+      |simona.input.grid.datasource.id = "csv"
+      |
+      |simona.output.base.dir = "testOutput/"
+      |simona.output.base.addTimestampToOutputDir = false
+      |
+      |simona.powerflow.maxSweepPowerDeviation = 1E-5
+      |simona.powerflow.stopOnFailure = true
+      |simona.powerflow.newtonraphson.epsilon = [1E-12]
+      |simona.powerflow.newtonraphson.iterations = 50
+      |""".stripMargin
+    )
+    .resolve()
+
+  override protected val simonaConfig: SimonaConfig = SimonaConfig(
+    typesafeConfig
   )
+  override val startTime = simonaConfig.time.simStartTime
+  override protected val endTime = simonaConfig.time.simEndTime
 
   protected val refSystem: RefSystem = RefSystem(
     Megawatts(600d),

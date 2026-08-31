@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.sim
 
-import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentCoordinator
 import edu.ie3.simona.agent.participant.ParticipantAgent
@@ -28,7 +28,7 @@ import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec.*
 import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -338,7 +338,30 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
 }
 
-object SimonaSimSpec extends ConfigTestData {
+object SimonaSimSpec {
+
+  private val typesafeConfig = ConfigFactory
+    .parseString(
+      """
+      |simona {
+      |  simulationName = "SimonaSimSpec"
+      |  time {
+      |    startDateTime = "2011-05-01T00:00:00Z"
+      |    endDateTime   = "2011-05-01T01:00:00Z"
+      |  }
+      |  input.grid.datasource.id = "csv"
+      |  output.base.dir = "testOutput/"
+      |  output.base.addTimestampToOutputDir = false
+      |  powerflow.maxSweepPowerDeviation = 1E-5
+      |  powerflow.stopOnFailure = true
+      |  powerflow.newtonraphson.epsilon = [1E-12]
+      |  powerflow.newtonraphson.iterations = 50
+      |}
+      |""".stripMargin
+    )
+    .resolve()
+
+  private val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
 
   /** Behavior that does nothing on receiving message */
   def empty[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
