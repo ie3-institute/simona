@@ -31,7 +31,7 @@ import java.util.UUID
 
 trait CongestedComponentsTestData extends NodeInputTestData with DbfsTestGrid {
 
-  override protected lazy val typesafeConfig = ConfigFactory
+  protected lazy val typesafeConfig = ConfigFactory
     .parseString(
       """
       |simona.simulationName = "CongestedComponentsTest"
@@ -52,12 +52,12 @@ trait CongestedComponentsTestData extends NodeInputTestData with DbfsTestGrid {
     )
     .resolve()
 
-  override protected lazy val simonaConfig: SimonaConfig = SimonaConfig(
+  protected lazy val simonaConfig: SimonaConfig = SimonaConfig(
     typesafeConfig
   )
-  override protected lazy val startTime: ZonedDateTime =
+  protected lazy val startTime: ZonedDateTime =
     simonaConfig.time.simStartTime
-  override protected lazy val endTime: ZonedDateTime = startTime.plusHours(2)
+  protected lazy val endTime: ZonedDateTime = startTime.plusHours(2)
 
   val trafoType3W = new Transformer3WTypeInput(
     UUID.randomUUID(),
