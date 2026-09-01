@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.test.common.result
 
+import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.OperatorInput
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
@@ -16,8 +17,8 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
 }
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.model.grid.*
-import edu.ie3.simona.test.common.ConfigTestData
 import edu.ie3.simona.test.common.input.NodeInputTestData
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
 import edu.ie3.util.quantities.QuantityUtils.*
@@ -28,12 +29,35 @@ import squants.{Amperes, Radians}
 import java.time.ZonedDateTime
 import java.util.UUID
 
-trait CongestedComponentsTestData
-    extends ConfigTestData
-    with NodeInputTestData
-    with DbfsTestGrid {
+trait CongestedComponentsTestData extends NodeInputTestData with DbfsTestGrid {
 
-  override val endTime: ZonedDateTime = startTime.plusHours(2)
+  protected lazy val typesafeConfig = ConfigFactory
+    .parseString(
+      """
+      |simona.simulationName = "CongestedComponentsTest"
+      |
+      |simona.time.startDateTime = "2011-05-01T00:00:00Z"
+      |simona.time.endDateTime   = "2011-05-01T01:00:00Z"
+      |
+      |simona.input.grid.datasource.id = "csv"
+      |
+      |simona.output.base.dir = "testOutput/"
+      |simona.output.base.addTimestampToOutputDir = false
+      |
+      |simona.powerflow.maxSweepPowerDeviation = 1E-5
+      |simona.powerflow.stopOnFailure = true
+      |simona.powerflow.newtonraphson.epsilon = [1E-12]
+      |simona.powerflow.newtonraphson.iterations = 50
+      |""".stripMargin
+    )
+    .resolve()
+
+  protected lazy val simonaConfig: SimonaConfig = SimonaConfig(
+    typesafeConfig
+  )
+  protected lazy val startTime: ZonedDateTime =
+    simonaConfig.time.simStartTime
+  protected lazy val endTime: ZonedDateTime = startTime.plusHours(2)
 
   val trafoType3W = new Transformer3WTypeInput(
     UUID.randomUUID(),

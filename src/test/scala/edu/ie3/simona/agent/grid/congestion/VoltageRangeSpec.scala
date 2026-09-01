@@ -20,7 +20,10 @@ import edu.ie3.simona.test.common.model.grid.{
   SubGridGateMokka,
 }
 import edu.ie3.simona.test.common.result.ResultMokka
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.util.quantities.QuantityUtils.{asAmpere, asPu}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
@@ -30,14 +33,49 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 }
 import squants.{Dimensionless, Each, Percent}
 
+import java.time.ZonedDateTime
+
 class VoltageRangeSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with GridComponentsMokka
     with ResultMokka
     with SubGridGateMokka
-    with DbfsTestGrid
-    with ConfigTestData {
+    with DbfsTestGrid {
+
+  private val simonaConfig: SimonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
+      )
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    powerflow = Some(
+      SimonaConfig.Powerflow(
+        maxSweepPowerDeviation = 1e-5,
+        newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
+          epsilon = List(1e-12),
+          iterations = 50,
+        ),
+        stopOnFailure = true,
+      )
+    ),
+    simulationName = "VoltageRangeSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
+
+  private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+  private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 
   private given Conversion[Double, squants.Dimensionless] = (d: Double) =>
     Each(d)
