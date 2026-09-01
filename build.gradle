@@ -3,7 +3,7 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.9.0' // code format
+  id 'com.diffplug.spotless' version '8.10.1' // code format
   id "com.github.ben-manes.versions" version '0.61.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
@@ -21,7 +21,7 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.8.4'
-  pekkoVersion = '1.6.0'
+  pekkoVersion = '1.7.0'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.3.6'
@@ -107,7 +107,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.6.1"
+  implementation "ch.qos.logback:logback-classic:1.6.3"
 
   /* testing */
   // scalatest & junit
@@ -209,11 +209,14 @@ tasks.shadowJar {
 }
 
 // scapegoat hook configuration
-// https://github.com/sksamuel/scapegoat
-// using compileScala instead of tasks.withType(ScalaCompile) prevents applying scapegoat to scala test classes
+// Configure Scapegoat compiler plugin for all Scala compile tasks.
 // see https://docs.gradle.org/current/userguide/scala_plugin.html#sec:configure_scala_classpath for details
 tasks.withType(ScalaCompile).configureEach {
-  scalaCompileOptions.additionalParameters = scala3compilerOptions
+  scalaCompileOptions.additionalParameters = scala3compilerOptions + [
+    "-Xplugin:" + configurations.scalaCompilerPlugin.asPath,
+    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/src/",
+    "-P:scapegoat:disabledInspections:TryGet:ComparingFloatingPointTypes"
+  ]
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
     '-XX:-UseGCOverheadLimit',
@@ -223,7 +226,9 @@ tasks.withType(ScalaCompile).configureEach {
 
 // separate scapegoat report for test classes
 compileTestScala {
-  scalaCompileOptions.additionalParameters = scala3compilerOptions
+  scalaCompileOptions.additionalParameters = scalaCompileOptions.additionalParameters + [
+    "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/"
+  ]
   scalaCompileOptions.forkOptions.jvmArgs = [
     '-Xss2m',
     '-XX:-UseGCOverheadLimit',
