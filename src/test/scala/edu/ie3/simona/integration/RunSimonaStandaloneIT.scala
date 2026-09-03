@@ -6,7 +6,10 @@
 
 package edu.ie3.simona.integration
 
-import com.typesafe.config.{ConfigFactory, ConfigValueFactory}
+import com.typesafe.config.{Config, ConfigFactory, ConfigValueFactory}
+import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.source.ResultEntitySource
+import edu.ie3.datamodel.io.source.csv.CsvDataSource
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.PvResult
 import edu.ie3.simona.config.{ConfigFailFast, SimonaConfig}
@@ -14,14 +17,24 @@ import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.main.RunSimonaStandalone
+import edu.ie3.simona.ontology.messages.ResultMessage
+import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
+import edu.ie3.simona.service.results.ResultServiceProxy.Message
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
+import edu.ie3.util.scala.Scope
+import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
+import java.nio.file.Path
+import java.time.ZonedDateTime
+import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
+import scala.collection.mutable
 import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters.*
 
@@ -35,7 +48,74 @@ class RunSimonaStandaloneIT
     FileIOUtils.deleteRecursively(testTmpDir)
   }
 
+  // small test setup that adds a new listener
+  final class Setup(
+      override val typeSafeConfig: Config,
+      override val simonaConfig: SimonaConfig,
+      override val args: Array[String] = Array.empty[String],
+      override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]],
+      val actualResults: mutable.Map[UUID, mutable.Set[ResultEntity]] =
+        mutable.Map.empty,
+  ) extends SimonaSetup(typeSafeConfig, simonaConfig, args, runtimeEventQueue) {
+
+    override def resultServiceProxy(
+        context: ActorContext[?],
+        listeners: Seq[ActorRef[ResultMessage.ResultResponse]],
+        simStartTime: ZonedDateTime,
+    ): ActorRef[Message] = {
+      val behavior = Behaviors.receiveMessage[ResultResponse] { msg =>
+        msg.results.foreach { case (model, results) =>
+          actualResults
+            .getOrElseUpdate(model, mutable.Set.empty)
+            .addAll(results)
+        }
+
+        Behaviors.same
+      }
+
+      val ref = context.spawn(behavior, "listener")
+
+      super.resultServiceProxy(context, listeners :+ ref, simStartTime)
+    }
+  }
+
   "A simona standalone simulation" must {
+
+    val expectedResultSource = new CsvDataSource(
+      ",",
+      Path.of(this.getClass.getResource("").getPath),
+      new FileNamingStrategy(),
+    )
+    val expectedResults = Scope(
+      new ResultEntitySource(expectedResultSource)
+    ).map { res =>
+      Set(
+        res.getNodeResults,
+        res.getSwitchResults,
+        res.getLineResults,
+        res.getTransformer2WResultResults,
+        res.getTransformer3WResultResults,
+        res.getPowerLimitFlexOptionsResults,
+        res.getEnergyBoundariesFlexOptionsResults,
+        res.getLoadResults,
+        res.getPvResults,
+        res.getFixedFeedInResults,
+        res.getBmResults,
+        res.getChpResults,
+        res.getWecResults,
+        res.getStorageResults,
+        res.getEvcsResults,
+        res.getEvResults,
+        res.getAcResults,
+        res.getHpResults,
+        res.getCylindricalStorageResult,
+        res.getDomesticHotWaterStorageResult,
+        res.getThermalHouseResults,
+        res.getEmResults,
+        res.getCongestionResults,
+      ).flatMap(_.asScala)
+    }.get
+      .groupBy(_.getInputModel)
 
     "run und produce results based on a valid config correctly" in {
 
@@ -59,6 +139,14 @@ class RunSimonaStandaloneIT
             ConfigFactory.parseString("""
                 |simona.output.log.level = "INFO"
                 |simona.output.log.consoleLevel = "ERROR"
+                |simona.output.grid = {
+                |  nodes = true
+                |  lines = true
+                |  switches = true
+                |  transformers2w = true
+                |  transformers3w = true
+                |  congestions = true
+                |}
                 |""".stripMargin)
           )
           .withFallback(
@@ -80,7 +168,7 @@ class RunSimonaStandaloneIT
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
-      val simonaSetup = SimonaSetup(
+      val simonaSetup = Setup(
         parsedConfig,
         simonaConfig,
         runtimeEventQueue = Some(runtimeEventQueue),
@@ -104,6 +192,15 @@ class RunSimonaStandaloneIT
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
+      simonaSetup.actualResults.foreach { case (model, results) =>
+        val actual = results.toSeq
+        val expected = expectedResults(model).toSeq
+
+        // we should receive the same amount of results
+        actual.size shouldBe expected.size
+        actual shouldBe expected
+      }
+
       // todo implement if valid result handling is implemented (see issue #1491)
       val pvResultFileContent = getFileSource(
         resultFileHierarchy,
@@ -138,6 +235,14 @@ class RunSimonaStandaloneIT
             ConfigFactory.parseString("""
                 |simona.output.log.level = "INFO"
                 |simona.output.log.consoleLevel = "ERROR"
+                |simona.output.grid = {
+                |  nodes = true
+                |  lines = true
+                |  switches = true
+                |  transformers2w = true
+                |  transformers3w = true
+                |  congestions = true
+                |}
                 |""".stripMargin)
           )
           .withFallback(
@@ -159,7 +264,7 @@ class RunSimonaStandaloneIT
 
       val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
 
-      val simonaSetup = SimonaSetup(
+      val simonaSetup = Setup(
         parsedConfig,
         simonaConfig,
         runtimeEventQueue = Some(runtimeEventQueue),
@@ -181,6 +286,16 @@ class RunSimonaStandaloneIT
 
       // check runtime event queue for the expected runtime events
       checkRuntimeEvents(runtimeEventQueue.asScala)
+
+      // check result data
+      simonaSetup.actualResults.foreach { case (model, results) =>
+        val actual = results.toSeq
+        val expected = expectedResults(model).toSeq
+
+        // we should receive the same amount of results
+        actual.size shouldBe expected.size
+        actual shouldBe expected
+      }
 
       // check result data
       // todo implement if valid result handling is implemented (see issue #1491)
