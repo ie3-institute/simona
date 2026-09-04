@@ -17,6 +17,10 @@ import edu.ie3.datamodel.models.result.connector.{
   TransformerResult,
 }
 import edu.ie3.datamodel.models.result.system.*
+import edu.ie3.datamodel.models.result.thermal.{
+  AbstractThermalStorageResult,
+  ThermalHouseResult,
+}
 import edu.ie3.datamodel.models.result.{
   CongestionResult,
   NodeResult,
@@ -414,13 +418,33 @@ class RunSimonaStandaloneIT
         a.getQ should equalWithTolerance(e.getQ)
         a.getSoc should equalWithTolerance(e.getSoc)
 
-      case (a: FlexOptionsResult, e: FlexOptionsResult) =>
+      case (a: PowerLimitFlexOptionsResult, e: PowerLimitFlexOptionsResult) =>
+        a.getpMin should equalWithTolerance(e.getpMin)
+        e.getpRef should equalWithTolerance(e.getpRef)
+        a.getpMax should equalWithTolerance(e.getpMax)
+
+      case (
+            a: EnergyBoundariesFlexOptionsResult,
+            e: EnergyBoundariesFlexOptionsResult,
+          ) =>
         a.getpMin should equalWithTolerance(e.getpMin)
         a.getpMax should equalWithTolerance(e.getpMax)
+        a.geteState should equalWithTolerance(e.geteState)
+        a.geteMin should equalWithTolerance(e.geteMin)
+        a.geteMax should equalWithTolerance(e.geteMax)
 
       case (a: SystemParticipantResult, e: SystemParticipantResult) =>
         a.getP should equalWithTolerance(e.getP)
         a.getQ should equalWithTolerance(e.getQ)
+
+      case (a: AbstractThermalStorageResult, e: AbstractThermalStorageResult) =>
+        a.getqDot should equalWithTolerance(e.getqDot)
+        a.getEnergy should equalWithTolerance(e.getEnergy)
+        a.getFillLevel should equalWithTolerance(e.getFillLevel)
+
+      case (a: ThermalHouseResult, e: ThermalHouseResult) =>
+        a.getqDot should equalWithTolerance(e.getqDot)
+        a.getIndoorTemperature should equalWithTolerance(e.getIndoorTemperature)
 
       case (a, e) =>
         fail(s"Can't compare $a and $e.")
