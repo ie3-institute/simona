@@ -98,7 +98,7 @@ class RunSimonaStandaloneIT
 
     val expectedResultSource = new CsvDataSource(
       ",",
-      getResourcePath(""),
+      getResourcePath("vn_simona"),
       new FileNamingStrategy(),
     )
     val expectedResults
