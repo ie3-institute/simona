@@ -44,7 +44,6 @@ import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.mutable
-import scala.io.{BufferedSource, Source}
 import scala.jdk.CollectionConverters.*
 
 class RunSimonaStandaloneIT
@@ -213,16 +212,6 @@ class RunSimonaStandaloneIT
         checkResult(result, expectedResults(key))
       }
 
-      // todo implement if valid result handling is implemented (see issue #1491)
-      val pvResultFileContent = getFileSource(
-        resultFileHierarchy,
-        classOf[PvResult],
-      ).getLines().toVector
-      pvResultFileContent.size shouldBe 190
-      pvResultFileContent.headOption.map(
-        _.equals("uuid,inputModel,p,q,timestamp")
-      )
-
     }
 
     "run und produce results based on a valid minimal config correctly" in {
@@ -304,32 +293,7 @@ class RunSimonaStandaloneIT
         checkResult(result, expectedResults(key))
       }
 
-      // check result data
-      // todo implement if valid result handling is implemented (see issue #1491)
-      val pvResultFileContent = getFileSource(
-        resultFileHierarchy,
-        classOf[PvResult],
-      ).getLines().toVector
-      pvResultFileContent.size shouldBe 190
-      pvResultFileContent.headOption.map(
-        _.equals("uuid,inputModel,p,q,timestamp")
-      )
-
     }
-  }
-
-  private def getFileSource(
-      resultFileHierarchy: ResultFileHierarchy,
-      entityClass: Class[? <: ResultEntity],
-  ): BufferedSource = {
-    Source.fromFile(
-      resultFileHierarchy.rawOutputDataFilePaths
-        .getOrElse(
-          entityClass,
-          fail(s"Unable to get output path for result entity: $entityClass"),
-        )
-        .toFile
-    )
   }
 
   private def checkRuntimeEvents(
@@ -458,6 +422,8 @@ class RunSimonaStandaloneIT
         a.getP should equalWithTolerance(e.getP)
         a.getQ should equalWithTolerance(e.getQ)
 
+      case (a, e) =>
+        fail(s"Can't compare $a and $e.")
     }
   }
 
