@@ -121,16 +121,41 @@ final case class LoadProfileStore(
     val supplier = source.getValueSupplier(new TimeSeriesInputValue(time))
 
     () =>
-      supplier.asScala
-        .apply()
-        .toScala
-        .flatMap(_.getP.toScala)
-        .map(_.toSquants)
-        .getOrElse(
-          throw new CriticalFailureException(
-            s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
+      // TODO DF Check if this workaround still necessary for PSDM 9.2
+      {
+        val raw = supplier.asScala.apply()
+
+        def extractComparableQuantity(
+            obj: Any
+        ): Option[ComparableQuantity[Power]] =
+          obj match
+            case null => None
+            case jopt: java.util.Optional[?] =>
+              jopt.toScala.flatMap(inner => extractComparableQuantity(inner))
+            case anyRef: AnyRef =>
+              try
+                val method = anyRef.getClass.getMethod("getP")
+                val res = method.invoke(anyRef)
+                res match
+                  case rp: java.util.Optional[?] =>
+                    rp.toScala.asInstanceOf[Option[ComparableQuantity[Power]]]
+                  case _ => None
+              catch
+                case _: NoSuchMethodException => None
+                case _: Throwable             => None
+            case _ => None
+
+        val maybeP: Option[ComparableQuantity[Power]] =
+          extractComparableQuantity(raw)
+
+        maybeP
+          .map(_.toSquants)
+          .getOrElse(
+            throw new CriticalFailureException(
+              s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
+            )
           )
-        )
+      }
   }
 
   /** @param powerProfileKey

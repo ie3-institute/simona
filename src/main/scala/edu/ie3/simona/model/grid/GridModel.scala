@@ -601,10 +601,15 @@ object GridModel {
             val deploymentsByLine =
               subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
             val deploymentListOpt = deploymentsByLine.get(lineInput.getUuid)
-            val firstDeploymentOpt = deploymentListOpt.map(_.asScala).flatMap(_.headOption)
+            val firstDeploymentOpt =
+              deploymentListOpt.map(_.asScala).flatMap(_.headOption)
             val deploymentPattern: String = firstDeploymentOpt
               .flatMap(d => Option(d.getLayoutFormation))
-              .map(_).getOrElse(throw new NoSuchElementException("No deployment pattern available"))
+              .getOrElse(
+                throw new NoSuchElementException(
+                  "No deployment pattern available"
+                )
+              )
 
             val conductorDistance = firstDeploymentOpt
               .flatMap(d => Option(d.getDistanceCables))

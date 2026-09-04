@@ -794,7 +794,7 @@ object EmServiceCore {
     def clear(): Unit = {
       receivedActivation = false
       disaggregated = false
-      awaitedFlexOptions.clear
+      awaitedFlexOptions.clear()
       awaitedSetPoint = false
       waitingForInternal = false
     }
