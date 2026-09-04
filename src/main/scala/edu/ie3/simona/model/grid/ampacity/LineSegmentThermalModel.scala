@@ -12,7 +12,7 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.util.Coordinate
+import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.quantities.*
 import squants.motion.MetersPerSecond
@@ -67,10 +67,10 @@ final case class LineSegmentThermalModel(
       simulationStart: ZonedDateTime,
   ): LineState = {
 
-    val point = ???
+    val point = cableSetup.pointA // FIXME averaging between pointA and pointB?
 
     val groundTemperature =
-      getGroundTemperature(tick, point, lastLineState.cableSetup.depthCables)
+      getGroundTemperature(tick, point)
 
     val updatedLineTemperatures = createAndCalcRCNetworkMvCableShortDuration(
       tick,
@@ -91,16 +91,12 @@ final case class LineSegmentThermalModel(
 
   def getGroundTemperature(
       tick: Long,
-      point: Coordinate,
-      depth: Length,
+      point: Coordinate3D,
   ): Temperature = {
-    // FIXME the depth of the cable should come from the geometry / coordinates
     val (weightTempLvl3, weightTempLvl4) =
       LineSegmentThermalModel.determineWeightsGroundTemperatures(
-        depth
+        Meters(point.height)
       )
-
-    // nodeInput.getGeoPosition.getZ
 
     // FIXME
     val newData: WeatherData = WeatherData(

@@ -9,6 +9,8 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
+import java.nio.file.Paths
+import scala.util.Try
 import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableMaterial,
@@ -35,6 +37,8 @@ import edu.ie3.simona.model.grid.ampacity.{
   Layer,
   LineSegmentThermalModel,
   ScreenLayer,
+  SoilLayer,
+  SoilDataParser,
 }
 import edu.ie3.simona.util.{CollectionUtils, Coordinate3D}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
@@ -112,6 +116,7 @@ object GridModel {
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel],
+      soilLayers: Seq[SoilLayer],
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -541,6 +546,21 @@ object GridModel {
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
+    // Read and add SoilLayers
+    val soilLayers: Seq[SoilLayer] = Try {
+      val resUrl = getClass.getResource(
+        "/edu/ie3/simona/service/soilLayers/soilLayers.csv"
+      )
+      if resUrl != null then
+        SoilDataParser
+          .readSoilLayers(Paths.get(resUrl.toURI))
+          .getOrElse(Seq.empty[SoilLayer])
+      else Seq.empty[SoilLayer]
+    }.getOrElse(Seq.empty[SoilLayer])
+
+    val cableDeploymentInput =
+      subGridContainer.getRawGrid.getCableDeploymentsByLine
+
     val cableTypeMap: Map[UUID, CableTypeInput] =
       subGridContainer.getRawGridTypes.getCableTypes.asScala
         .map(ct => ct.getUuid -> ct)
@@ -578,6 +598,19 @@ object GridModel {
             val jack: List[Layer] =
               cableTypeInput.getJack.asScala.map(mapLayer).toList
 
+            val deploymentsByLine =
+              subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
+            val deploymentListOpt = deploymentsByLine.get(lineInput.getUuid)
+            val firstDeploymentOpt = deploymentListOpt.map(_.asScala).flatMap(_.headOption)
+            val deploymentPattern: String = firstDeploymentOpt
+              .flatMap(d => Option(d.getLayoutFormation))
+              .map(_).getOrElse(throw new NoSuchElementException("No deployment pattern available"))
+
+            val conductorDistance = firstDeploymentOpt
+              .flatMap(d => Option(d.getDistanceCables))
+              .map(_.toSquants)
+              .getOrElse(Meters(1))
+
             val cable: CableSetup = CableSetup(
               cableTypeInput.getUuid,
               cableTypeInput.getId,
@@ -593,13 +626,13 @@ object GridModel {
               filler,
               armor,
               jack,
-              "trefoil-touching",
-              Meters(1),
+              deploymentPattern,
+              conductorDistance,
               cableTypeInput.getJack.asScala.lastOption
                 .map(_.outerDiameter().toSquants)
                 .getOrElse(
                   throw new NoSuchElementException("No jack available")
-                ),
+                ), // FIXME this is not the distance
               KelvinMetersPerWatt(1), // FIXME
               JoulesPerMeterKelvin(1), // FIXME
               cableTypeInput.getLimitTemperature.toSquants,
@@ -920,6 +953,7 @@ val thermalLineSegments: Set[LineSegmentThermalModel] =
         transformers,
         transformer3ws,
         switches,
+        soilLayers,
       )
 
     /* Build transformer control groups */
@@ -976,7 +1010,7 @@ val thermalLineSegments: Set[LineSegmentThermalModel] =
       jc.diameter().toSquants,
       jc.thermalResistivity().toSquants,
       jc.thermalCapacitance().toSquants,
-      Some(jc.area.toSquants),
+      jc.area().toScala.map(_.toSquants),
     )
   }
 
@@ -989,7 +1023,7 @@ val thermalLineSegments: Set[LineSegmentThermalModel] =
       jl.outerDiameter().toSquants,
       jl.thermalResistivity().toSquants,
       jl.thermalCapacitance().toSquants,
-      jl.area().toSquants,
+      jl.area().toScala.map(_.toSquants),
     )
   }
 
@@ -1001,10 +1035,10 @@ val thermalLineSegments: Set[LineSegmentThermalModel] =
       js.outerDiameter().toSquants,
       js.thermalResistivity().toSquants,
       js.thermalCapacitance().toSquants,
-      js.area().toSquants,
+      js.area().toScala.map(_.toSquants),
       js.wiresNumber,
       js.wireDiameter.toSquants,
-      js.lengthOfLay().toSquants,
+      js.lengthOfLay().toScala.map(_.toSquants),
       js.electricalResistivity.toSquants,
     )
   }

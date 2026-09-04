@@ -9,6 +9,7 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import breeze.numerics.abs
+import edu.ie3.simona.model.grid.ampacity.SoilLayer
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -215,6 +216,7 @@ class GridSpec
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           switches,
+          Seq.empty[SoilLayer],
         ),
         defaultVoltageLimits,
         GridControls.empty,
@@ -253,6 +255,7 @@ class GridSpec
           Set(transformer2wModel),
           Set.empty[Transformer3wModel],
           switches,
+          Seq.empty[SoilLayer],
         ),
         defaultVoltageLimits,
         GridControls.empty,
@@ -359,6 +362,7 @@ class GridSpec
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             switches,
+            Seq.empty[SoilLayer],
           ),
           defaultVoltageLimits,
           GridControls.empty,
@@ -413,6 +417,7 @@ class GridSpec
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             Set.empty[SwitchModel],
+            Seq.empty[SoilLayer],
           ),
           defaultVoltageLimits,
           GridControls.empty,
@@ -468,6 +473,7 @@ class GridSpec
             Set(transformer2wModel),
             Set.empty[Transformer3wModel],
             switches,
+            Seq.empty[SoilLayer],
           ),
           defaultVoltageLimits,
           GridControls.empty,
@@ -550,6 +556,7 @@ class GridSpec
             Set.empty,
             Set.empty,
             switches,
+            Seq.empty[SoilLayer],
           ),
           defaultVoltageLimits,
           GridControls.empty,

@@ -98,6 +98,7 @@ class VoltageRangeSpec
         Set.empty,
         Set.empty,
         Set.empty,
+        Seq.empty,
       )
 
       val cases = Table(
@@ -151,6 +152,7 @@ class VoltageRangeSpec
         Set.empty,
         Set.empty,
         Set.empty,
+        Seq.empty,
       )
 
       val powerFlowResult = buildPowerFlowResultEvent(
@@ -187,6 +189,7 @@ class VoltageRangeSpec
         Set.empty,
         Set.empty,
         Set.empty,
+        Seq.empty,
       )
 
       val tappingModel = mockTransformerTapping(
