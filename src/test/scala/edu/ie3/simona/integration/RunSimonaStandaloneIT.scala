@@ -36,6 +36,7 @@ import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.service.results.ResultServiceProxy.Message
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
 import org.apache.pekko.actor.typed.ActorRef
@@ -43,7 +44,6 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
-import java.nio.file.Path
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
@@ -54,7 +54,8 @@ class RunSimonaStandaloneIT
     extends IntegrationSpecCommon
     with UnitSpec
     with BeforeAndAfterAll
-    with IOTestCommons {
+    with IOTestCommons
+    with TestResourceHelper {
 
   override def afterAll(): Unit = {
     FileIOUtils.deleteRecursively(testTmpDir)
@@ -97,7 +98,7 @@ class RunSimonaStandaloneIT
 
     val expectedResultSource = new CsvDataSource(
       ",",
-      Path.of(this.getClass.getResource("").getPath),
+      getResourcePath(""),
       new FileNamingStrategy(),
     )
     val expectedResults
@@ -135,6 +136,10 @@ class RunSimonaStandaloneIT
       sourse.getCongestionResults.forEach(add)
 
       tmp.toMap
+    }
+
+    "check the loaded results" in {
+      expectedResults.size shouldBe 5839
     }
 
     "run und produce results based on a valid config correctly" in {
