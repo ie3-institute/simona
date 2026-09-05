@@ -546,26 +546,142 @@ object GridModel {
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
+    // helper: read a CSV from the configured grid csv directory only
+    def readFromConfiguredDir[T](
+        fileName: String,
+        parser: java.nio.file.Path => Try[Seq[T]],
+    ): Try[Seq[T]] = {
+      simonaConfig.input.grid.datasource.csvParams.map(_.directoryPath) match {
+        case Some(dir) =>
+          val p = Paths.get(dir).resolve(fileName)
+          if java.nio.file.Files.exists(p) then parser(p)
+          else Success(Seq.empty[T])
+        case None => Success(Seq.empty[T])
+      }
+    }
+
     // Read and add SoilLayers
-    val soilLayers: Seq[SoilLayer] = Try {
-      val resUrl = getClass.getResource(
-        "/edu/ie3/simona/service/soilLayers/soilLayers.csv"
-      )
-      if resUrl != null then
-        SoilDataParser
-          .readSoilLayers(Paths.get(resUrl.toURI))
-          .getOrElse(Seq.empty[SoilLayer])
-      else Seq.empty[SoilLayer]
-    }.getOrElse(Seq.empty[SoilLayer])
+    val soilLayersTry: Try[Seq[SoilLayer]] = readFromConfiguredDir[SoilLayer](
+      "soilLayers.csv",
+      SoilDataParser.readSoilLayers,
+    )
+    val soilLayers: Seq[SoilLayer] =
+      soilLayersTry.getOrElse(Seq.empty[SoilLayer])
+
+    // Read and add SoilTypes (needed to map soil layer references)
+    val soilTypesTry: Try[Seq[SoilType]] = readFromConfiguredDir[SoilType](
+      "soilTypes.csv",
+      SoilDataParser.readSoilTypes,
+    )
+    val soilTypes: Seq[SoilType] = soilTypesTry.getOrElse(Seq.empty[SoilType])
+
+    // If ampacity calculation is activated, soil layers/types must be available and readable
+    if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
+      // layers errors
+      soilLayersTry match
+        case Failure(cause) =>
+          throw new GridAgentInitializationException(
+            "Ampacity calculation is activated, but reading soil layers failed. Please ensure 'soilLayers.csv' is present and valid.",
+            cause,
+          )
+        case Success(layers) if layers.isEmpty =>
+          throw new GridAgentInitializationException(
+            "Ampacity calculation is activated, but no soil layers were found. Please provide 'soilLayers.csv' with valid entries."
+          )
+        case _ => // ok
+    // If ampacity calculation is activated, also check types errors
+    if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
+      soilTypesTry match
+        case Failure(cause) =>
+          throw new GridAgentInitializationException(
+            "Ampacity calculation is activated, but reading soil types failed. Please ensure 'soilTypes.csv' is present and valid.",
+            cause,
+          )
+        case Success(types) if types.isEmpty =>
+          throw new GridAgentInitializationException(
+            "Ampacity calculation is activated, but no soil types were found. Please provide 'soilTypes.csv' with valid entries."
+          )
+        case _ => // ok
+    // If both present, check that layers reference existing types
+    if simonaConfig.ampacityCalculation.activateAmpacityCalculation && soilLayers.nonEmpty && soilTypes.nonEmpty
+    then
+      val missingRefs =
+        SoilDataParser.associateLayersWithTypes(soilLayers, soilTypes).collect {
+          case (l, None) => l
+        }
+      if missingRefs.nonEmpty then
+        throw new GridAgentInitializationException(
+          s"Ampacity calculation is activated, but ${missingRefs.size} soil layers reference missing soil types. Please ensure soilTypes.csv contains the referenced UUIDs."
+        )
 
     val cableDeploymentInput =
       subGridContainer.getRawGrid.getCableDeploymentsByLine
+
+    if cableDeploymentInput.size > 0 then
+      print(
+        s"Found ${cableDeploymentInput.size} cable deployment entries for lines."
+      )
 
     val cableTypeMap: Map[UUID, CableTypeInput] =
       subGridContainer.getRawGridTypes.getCableTypes.asScala
         .map(ct => ct.getUuid -> ct)
         .toMap
 
+    // TODO DF move to ConfigFailFast
+    // If ampacity calculation is activated, ensure required additional inputs are present
+    /*
+  if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
+    // Require at least one cable type available
+    if cableTypeMap.isEmpty then
+     throw new GridAgentInitializationException(
+       "Ampacity calculation is activated, but no cable types are available. Please provide at least one cable type."
+      )
+
+    // Require at least one cable deployment entry
+    val deploymentsByLine = subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
+   if deploymentsByLine.isEmpty then
+     throw new GridAgentInitializationException(
+       "Ampacity calculation is activated, but no cable deployment entries were provided. Please provide at least one cable deployment."
+      )
+     */
+
+    // Resolver: resolve cable type UUID from lineType.additionalInformation "cableType" entry
+    def resolveCableType(lineType: LineTypeInput): Option[CableTypeInput] =
+      Option(lineType.getAdditionalInformation).flatMap { ai =>
+        // helper: try to extract a UUID string from different shapes (String, Map, other)
+        def extractUuidFromValue(v: Any): Option[CableTypeInput] = {
+          val asString: Option[String] = Option(v).collect { case s: String => s }
+
+          val fromMap: Option[String] = try {
+            val m = v.asInstanceOf[java.util.Map[?, ?]]
+            Option(m.get("cableType")).collect { case ss: String => ss }
+          } catch { case _: ClassCastException => None }
+
+          val candidate: Option[String] = asString.orElse(fromMap).orElse(Option(v).map(_.toString))
+
+          candidate.flatMap(s => Try(UUID.fromString(s)).toOption.flatMap(cableTypeMap.get))
+        }
+
+        // Try direct "cableType" entry first
+        val direct: Option[CableTypeInput] =
+          Option(ai.get("cableType")).flatMap(extractUuidFromValue)
+
+        // Fallback: look for nested "additionalInformation" that may contain a JSON string or map
+        val fallback: Option[CableTypeInput] =
+          Option(ai.get("additionalInformation")).flatMap {
+            case s: String =>
+              Try {
+                val js = Json.parse(s)
+                (js \\ "cableType").headOption
+                  .flatMap(_.asOpt[String])
+                  .flatMap(str => Try(UUID.fromString(str)).toOption.flatMap(cableTypeMap.get))
+              }.toOption.flatten
+            case other =>
+              extractUuidFromValue(other)
+          }
+
+        direct.orElse(fallback)
+      }
     // 2. Dynamische Generierung der thermischen Segmente
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
