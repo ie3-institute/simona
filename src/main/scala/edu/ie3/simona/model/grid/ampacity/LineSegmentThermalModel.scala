@@ -218,7 +218,6 @@ object LineSegmentThermalModel {
   ) extends ModelState
 
   def initState(
-      groundTemperature: Temperature,
       cableSetup: CableSetup,
       lineSegmentModel: LineSegmentThermalModel,
   ): LineState = {
@@ -318,6 +317,8 @@ object LineSegmentThermalModel {
       thermalCapacityCe,
       Celsius(90),
     )
+
+    val groundTemperature = Celsius(20) //FIXME get ground temp from weather data
 
     val initLineTemperatures = LineTemperatures(
       groundTemperature,

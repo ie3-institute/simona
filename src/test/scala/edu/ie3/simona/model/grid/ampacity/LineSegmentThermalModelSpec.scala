@@ -39,7 +39,7 @@ class LineSegmentThermalModelSpec
         (
           72000L,
           cigreT880LandCable33kV,
-          20d,
+          20d,  //FIXME GroundTemperature removed here
           537d,
           89.879674069971, // approx 90°C
         ), // CIGRE TB880 S. 205
@@ -48,7 +48,7 @@ class LineSegmentThermalModelSpec
         (
           72000L,
           andersSingleCore10kV,
-          15d,
+          15d, //FIXME GroundTemperature removed here
           629d,
           91.27098,
         ), // a bit too much because of overestimated screen ac resistance
@@ -62,10 +62,8 @@ class LineSegmentThermalModelSpec
             lineCurrent,
             exptLineTemperature,
         ) =>
-          val groundTemperature = Celsius(groundTemp)
 
           val startingState: LineState = LineSegmentThermalModel.initState(
-            groundTemperature,
             cableSetup,
             lineSegmentThermalModel,
           )

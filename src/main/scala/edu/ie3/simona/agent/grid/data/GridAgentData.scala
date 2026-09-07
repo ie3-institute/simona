@@ -264,14 +264,11 @@ object GridAgentData {
           SweepValueStore,
         ] // initialization is assumed to be always with no sweep data
 
-      val groundTemperature = Celsius(20) // FIXME DF
-
       val thermalLineStates =
         if ampacityCalculationParams.activateAmpacityCalculation
         then
           gridModel.gridComponents.thermalLineSegments.map { lineSeg =>
             lineSeg.uuid -> LineSegmentThermalModel.initState(
-              groundTemperature,
               lineSeg.cableSetup,
               lineSeg,
             )
