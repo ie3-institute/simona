@@ -805,7 +805,7 @@ object GridModel {
           }
         }
       }.toSet
-    
+
 // / transformers
     val transformers: Set[TransformerModel] =
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {

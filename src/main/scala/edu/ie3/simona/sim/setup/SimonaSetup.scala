@@ -21,6 +21,7 @@ import edu.ie3.simona.agent.participant.{
 }
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
+import edu.ie3.simona.event.listener.AmpacityResultWriter
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
@@ -418,4 +419,17 @@ class SimonaSetup(
       simonaConfig,
     )
   }
+
+  /** Creates an ampacity result writer actor that writes line temperatures to a
+    * CSV in the run's rawOutputData dir.
+    * @param context
+    *   Actor context to spawn the writer
+    */
+  def ampacityResultWriter(
+      context: ActorContext[?]
+  ): ActorRef[AmpacityResultWriter.Message] =
+    context.spawn(
+      AmpacityResultWriter(resultFileHierarchy.runOutputDir),
+      "ampacityResultWriter",
+    )
 }

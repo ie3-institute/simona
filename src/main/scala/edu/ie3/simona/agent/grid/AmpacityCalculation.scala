@@ -75,6 +75,11 @@ trait AmpacityCalculation {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
+    val lineTemps: Seq[LineStateResult] =
+      stateData.getLineTemperatures(constantData.simStartTime).toSeq
+
+    ampacityCalcRequest.sender ! AmpacityCalcResponse(ctx.self, lineTemps)
+
     calcAmpacity(stateData)
   }
 

@@ -42,10 +42,13 @@ final case class AmpacityCalculationData(
     * @return
     *   An iterable of [[LineStateResult]].
     */
-  private def getLineTemperatures(
+  def getLineTemperatures(
       startTime: ZonedDateTime
   ): Iterable[LineStateResult] = {
-    ???
+    gridAgentBaseData.thermalLineStates.values.toSeq.flatMap { state =>
+      val dateTime = gridAgentBaseData.simulationStart.plusSeconds(state.tick)
+      state.currentLineSegmentThermalModel.createResults(state, dateTime)
+    }
   }
 
   lazy val inferiorGridRefs: MultiMap[GridAgentRef, UUID] =
@@ -54,15 +57,21 @@ final case class AmpacityCalculationData(
   lazy val superiorGridRefs: MultiMap[GridAgentRef, UUID] =
     gridAgentBaseData.superiorGridRefs
 
-  object AmpacityCalculationData {
+}
 
-    def apply(
-        gridAgentBaseData: GridAgentBaseData,
-        currentTick: Long,
-        subgridNo: Int,
-        powerFlowResults: Option[PowerFlowResultEvent] = None,
-    ): AmpacityCalculationData = {
-      ???
-    }
+object AmpacityCalculationData {
+
+  def apply(
+      gridAgentBaseData: GridAgentBaseData,
+      currentTick: Long,
+      subgridNo: Int,
+      powerFlowResults: Option[PowerFlowResultEvent] = None,
+  ): AmpacityCalculationData = {
+    AmpacityCalculationData(
+      gridAgentBaseData,
+      currentTick,
+      subgridNo,
+      powerFlowResults,
+    )
   }
 }

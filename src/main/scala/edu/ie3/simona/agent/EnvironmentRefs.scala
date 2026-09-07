@@ -12,6 +12,7 @@ import edu.ie3.simona.service.ServiceType
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.event.listener.AmpacityResultWriter
 import org.apache.pekko.actor.typed.ActorRef
 
 /** Container class, that gather together reference to relevant entities, that
@@ -35,6 +36,8 @@ import org.apache.pekko.actor.typed.ActorRef
   *   Reference to the energy management service, if existing.
   * @param evDataService
   *   Reference to the EV data service, if existing.
+  * @param ampacityWriter
+  *   Reference to the ampacity writer actor, if existing.
   */
 final case class EnvironmentRefs(
     scheduler: ActorRef[SchedulerMessage],
@@ -46,6 +49,7 @@ final case class EnvironmentRefs(
     loadProfiles: ActorRef[ServiceMessage],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
+    ampacityWriter: Option[ActorRef[AmpacityResultWriter.Message]] = None,
 ) {
 
   /** Returns references to services by service type.

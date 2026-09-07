@@ -129,7 +129,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       buffer.unstashAll(
         simulateGrid(gridAgentBaseData, doPowerFlowTrigger.tick)
       )
-      
+
     case (ctx, DoCongestionManagement(currentTick, results)) =>
       startCongestionManagement(
         gridAgentBaseData,
@@ -228,6 +228,19 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     val updatedBaseData =
       gridAgentBaseData.copy(thermalLineStates = updatedThermalLineStates)
+
+    // Collect ampacity (line temperature) results and forward to ampacity writer if available
+    val ampacityResults = updatedThermalLineStates.values.toSeq.flatMap {
+      state =>
+        val dateTime = gridAgentBaseData.simulationStart.plusSeconds(state.tick)
+        state.currentLineSegmentThermalModel.createResults(state, dateTime)
+    }
+
+    // send to writer actor when configured
+    constantData.environmentRefs.ampacityWriter.foreach(
+      _ ! edu.ie3.simona.event.listener.AmpacityResultWriter
+        .WriteLineTemps(ampacityResults)
+    )
 
     // clean up agent and go back to idle
     gotoIdle(updatedBaseData, results, ctx)

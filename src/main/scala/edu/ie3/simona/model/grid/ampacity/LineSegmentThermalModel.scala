@@ -67,10 +67,7 @@ final case class LineSegmentThermalModel(
       simulationStart: ZonedDateTime,
   ): LineState = {
 
-    val point = cableSetup.pointA // FIXME averaging between pointA and pointB?
-
-    val groundTemperature =
-      getGroundTemperature(tick, point)
+    val groundTemperature = lastLineState.groundTemperature
 
     val updatedLineTemperatures = createAndCalcRCNetworkMvCableShortDuration(
       tick,
@@ -89,38 +86,38 @@ final case class LineSegmentThermalModel(
     updatedLineState
   }
 
-  def getGroundTemperature(
-      tick: Long,
-      point: Coordinate3D,
-  ): Temperature = {
-    val (weightTempLvl3, weightTempLvl4) =
-      LineSegmentThermalModel.determineWeightsGroundTemperatures(
-        Meters(point.height)
-      )
+  /** Handle incoming secondary data (e.g. weather). This must call this method
+    * before determineState for the weather-aware behaviour.
+    */
+  def handleInput(
+      state: LineState,
+      receivedData: Seq[edu.ie3.simona.service.Data],
+  ): LineState = {
 
-    // FIXME
-    val newData: WeatherData = WeatherData(
-      WattsPerSquareMeter(0d),
-      WattsPerSquareMeter(0d),
-      Celsius(0),
-      MetersPerSecond(0),
-      Some(Celsius(20)),
-      Some(Celsius(20)),
-    )
+    val point = cableSetup.pointA // FIXME averaging between pointA and pointB?
 
-    val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
-      throw new IllegalArgumentException(
-        s"Ground Temperature Level 3 expected but not found."
-      )
-    ) * weightTempLvl3 +
-      newData.groundTempLvl4.getOrElse(
-        throw new IllegalArgumentException(
-          s"Ground Temperature Level 4 expected but not found."
-        )
-      ) * weightTempLvl4
+    receivedData
+      .collectFirst { case weatherData: WeatherData => weatherData }
+      .map { newData =>
+        val (weightTempLvl3, weightTempLvl4) =
+          LineSegmentThermalModel.determineWeightsGroundTemperatures(
+            Meters(cableSetup.pointA.height) // FIXME, it is not always pointA
+          )
 
-    groundTempCableDepth
+        val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
+          throw new IllegalArgumentException(
+            s"Ground Temperature Level 3 expected but not found."
+          )
+        ) * weightTempLvl3 +
+          newData.groundTempLvl4.getOrElse(
+            throw new IllegalArgumentException(
+              s"Ground Temperature Level 4 expected but not found."
+            )
+          ) * weightTempLvl4
 
+        state.copy(groundTemperature = groundTempCableDepth)
+      }
+      .getOrElse(state)
   }
 
   /*
@@ -318,7 +315,7 @@ object LineSegmentThermalModel {
       Celsius(90),
     )
 
-    val groundTemperature = Celsius(20) //FIXME get ground temp from weather data
+    val groundTemperature = Celsius(20) // FIXME ground temp from weather
 
     val initLineTemperatures = LineTemperatures(
       groundTemperature,
