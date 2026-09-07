@@ -172,6 +172,8 @@ class WeatherServiceSpec
             WattsPerSquareMeter(0d),
             Celsius(-2.3719999999999573),
             MetersPerSecond(4.16474),
+            Some(Celsius(-2.3719999999999573)),
+            Some(Celsius(-2.3719999999999573)),
           ),
           Some(3600L),
         )
@@ -208,6 +210,8 @@ class WeatherServiceSpec
             WattsPerSquareMeter(0d),
             Celsius(-2.5259999999999536),
             MetersPerSecond(4.918092),
+            Some(Celsius(-2.5259999999999536)),
+            Some(Celsius(-2.5259999999999536)),
           ),
           None,
         )

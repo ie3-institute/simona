@@ -275,7 +275,9 @@ class EvcsModel private (
 
     if evs.isEmpty then return (evs.map(_ -> zeroKW), setPower)
 
-    if setPower.~=(zeroKW)(using Kilowatts(1e-6)) then {
+    val tolerance = evs.map(calcPowerTolerance).max
+
+    if setPower.~=(zeroKW)(using tolerance) then {
       // No power left. Rest is not charging
       return (evs.map(_ -> zeroKW), zeroKW)
     }
@@ -345,7 +347,7 @@ class EvcsModel private (
       power: Power,
       currentTick: Long,
   ): Option[Long] = {
-    implicit val tolerance: Power = calcPowerTolerance
+    implicit val tolerance: Power = calcPowerTolerance(ev)
 
     val chargingEnergyTarget = () => ev.eStorage
 
@@ -467,10 +469,28 @@ class EvcsModel private (
     // of a second worth of charging
     getMaxAvailableChargingPower(ev) * Seconds(1)
 
-  def calcPowerTolerance: Power =
-    // TODO adapt like in StorageModel: dependent tolerance -> issue #1698
-    Watts(1e-3)
-
+  /** Calculates a tolerance for power comparisons for a specific EV.
+    *
+    * Very small charging or discharging powers relative to the EV's battery
+    * capacity can result in extremely large charging durations when computing
+    * the next activation tick (e.g. time until fully charged or empty).
+    *
+    * Since simulation time is represented as Long values (ticks in seconds),
+    * this can lead to overflows and therefore undefined behavior.
+    *
+    * To prevent this, powers below this tolerance are treated as zero. The
+    * tolerance scales with the EV's battery capacity and corresponds roughly
+    * to:
+    *
+    * 1 W per 1 GWh battery capacity
+    *
+    * @param ev
+    *   The EV whose battery capacity is used to derive the tolerance.
+    * @return
+    *   A power threshold below which values are treated as zero.
+    */
+  private[evcs] def calcPowerTolerance(ev: EvModelWrapper): Power =
+    ev.eStorage / Seconds(1) / 3.6e12
 }
 
 object EvcsModel {
