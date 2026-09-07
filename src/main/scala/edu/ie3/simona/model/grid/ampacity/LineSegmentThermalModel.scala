@@ -222,6 +222,7 @@ object LineSegmentThermalModel {
       cableSetup: CableSetup,
       lineSegmentModel: LineSegmentThermalModel,
   ): LineState = {
+
     val t1 = calcThermalResistanceT1(cableSetup, cableSetup.voltage)
 
     val t2 = cableSetup.screenLayer.fold(KelvinMetersPerWatt(0))(layer =>

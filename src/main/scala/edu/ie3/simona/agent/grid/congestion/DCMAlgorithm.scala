@@ -43,53 +43,6 @@ trait DCMAlgorithm
     with AmpacityCalculation
     with TransformerTapPositionChange {
 
-  /* //FIXME DF is this necessary at all?
-/** Method for starting the ampacity calculation.
-   *
-   * @param gridAgentBaseData
-   *   State data of the actor.
-   * @param currentTick
-   *   The current tick in the simulation.
-   * @param subGridNo
-   *   The number of the subgrid.
-   * @param results
-   *   Option for the last power flow results.
-   * @param ctx
-   *   Actor context.
-   * @param constantData
-   *   Immutable [[GridAgent]] values.
-   * @param buffer
-   *   For [[GridAgent.Message]]s.
-   * @return
-   *   A [[Behavior]].
-   */
-private[grid] def startAmpacityCalculation(
-    gridAgentBaseData: GridAgentBaseData,
-    currentTick: Long,
-    subGridNo: Int,
-    results: Option[PowerFlowResultEvent],
-    ctx: ActorContext[Message],
-)(using
-    constantData: GridAgentConstantData,
-    buffer: StashBuffer[Message],
-): Behavior[Message] = {
-  // build the state data
-  val ampacityCalcData =
-    AmpacityCalculationData(
-      gridAgentBaseData,
-      currentTick,
-      subGridNo,
-      results,
-    )
-
-  ctx.self ! StartStep
-  GridAgent.calcAmpacity(
-    ampacityCalcData
-  )
-}
-
-   */
-
   /** Method for starting the congestion management.
     *
     * @param gridAgentBaseData
