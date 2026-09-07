@@ -83,6 +83,41 @@ object LineThermalModelCalculations extends LazyLogging {
     baseResistance + screenCorrection
   }
 
+  /** Calculates the thermal resistance T2 of the cable elements between screen
+    * and the outer cable covering. This includes the filler and armour
+    * elements.
+    *
+    * @param cableSetup
+    *   The setup of the cable in this line segment.
+    * @return
+    *   The thermal resistance per unit of length.
+    */
+  def calcThermalResistanceT2(
+      cableSetup: CableSetup
+  ): ThermalResistivity = {
+    val t2Filler =
+      cableSetup.layersFillerElements.foldLeft(KelvinMetersPerWatt(0)) {
+        (acc, layer) =>
+          acc + calcThermalResistanceCableShells(
+            layer.thermalResistivity,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
+
+    val t2Armor =
+      cableSetup.layersArmorElements.foldLeft(KelvinMetersPerWatt(0)) {
+        (acc, layer) =>
+          acc + calcThermalResistanceCableShells(
+            layer.thermalResistivity,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+      }
+
+    t2Filler + t2Armor
+  }
+
   /** Calculates the thermal resistance T3 of the outer cable covering.
     *
     * @param cableSetup
@@ -1014,7 +1049,7 @@ object LineThermalModelCalculations extends LazyLogging {
     /* Build RC-Network */
     // in case of short durations we have an RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
     // However, it simplifies if we transform them to conductance
-    val g1 = 2d / t1.toKelvinMetersPerWatt // FIXME, Squants should convert this
+    val g1 = 2d / t1.toKelvinMetersPerWatt
     val g2 = 2d / t1.toKelvinMetersPerWatt
     val g3 = 2d / t3.toKelvinMetersPerWatt
     val g4 = 2d / t3.toKelvinMetersPerWatt

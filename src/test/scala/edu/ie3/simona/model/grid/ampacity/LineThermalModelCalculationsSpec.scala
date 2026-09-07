@@ -714,6 +714,7 @@ class LineThermalModelCalculationsSpec
       LineSegmentThermalModel.initState(
         cigreT880LandCable33kV,
         lineSegmentThermalModel,
+        groundTemp,
       )
 
     val current = Amperes(537.46)

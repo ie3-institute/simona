@@ -211,26 +211,18 @@ object LineSegmentThermalModel {
       cableSetup: CableSetup,
       currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
-      lineTemperatures: LineTemperatures,
+      lineTemperatures: LineTemperatures, // FIXME Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
   ) extends ModelState
 
   def initState(
       cableSetup: CableSetup,
       lineSegmentModel: LineSegmentThermalModel,
+      initialGroundTemperature: Temperature,
   ): LineState = {
 
     val t1 = calcThermalResistanceT1(cableSetup, cableSetup.voltage)
-
-    val t2 = cableSetup.screenLayer.fold(KelvinMetersPerWatt(0))(layer =>
-      calcThermalResistanceCableShells(
-        layer.thermalResistivity,
-        layer.innerDiameter,
-        layer.outerDiameter,
-      )
-    ) // FIXME Check if this is correct
-
+    val t2 = calcThermalResistanceT2(cableSetup)
     val t3 = calcThermalResistanceT3(cableSetup)
-
     val t4 = calcThermalResistanceToSoilSingleCable(
       cableSetup.soilResistivity,
       cableSetup.depthCables,
@@ -316,14 +308,12 @@ object LineSegmentThermalModel {
       Celsius(90),
     )
 
-    val groundTemperature = Celsius(20) // FIXME ground temp from weather
-
     val initLineTemperatures = LineTemperatures(
-      groundTemperature,
-      groundTemperature,
-      groundTemperature,
-      groundTemperature,
-      groundTemperature,
+      initialGroundTemperature,
+      initialGroundTemperature,
+      initialGroundTemperature,
+      initialGroundTemperature,
+      initialGroundTemperature,
     )
 
     LineState(
@@ -331,7 +321,7 @@ object LineSegmentThermalModel {
       -1L,
       cableSetup,
       initialLineSegmentThermalModel,
-      groundTemperature,
+      initialGroundTemperature,
       initLineTemperatures,
     )
   }
