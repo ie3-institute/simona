@@ -6,31 +6,19 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.linalg.max
-import breeze.math.*
-import breeze.numerics.pow
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
-import edu.ie3.simona.exceptions.{
-  InvalidActionRequestException,
-  InvalidParameterException,
-}
+import edu.ie3.powerflow.math.Complex
+import edu.ie3.simona.exceptions.{InvalidActionRequestException, InvalidParameterException}
 import edu.ie3.simona.model.SystemComponent
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
-  PowerFlowCaseA,
-  PowerFlowCaseB,
-  PowerFlowCaseC,
-}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.ApparentPower
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toApparent,
-  toSquants,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{toApparent, toSquants}
 import squants.electro.Siemens
 
 import java.time.ZonedDateTime
@@ -38,6 +26,7 @@ import java.util.UUID
 import javax.measure.Quantity
 import javax.measure.quantity.ElectricPotential
 import scala.math.BigDecimal.RoundingMode
+import scala.math.{max, pow}
 
 /** This model represents a three winding transformer incorporating a virtual
   * node between the three voltage levels. From node A --> node Temp the

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.control
 
-import breeze.math.Complex
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult

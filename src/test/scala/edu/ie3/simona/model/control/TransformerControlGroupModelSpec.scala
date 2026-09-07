@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.control
 
-import breeze.linalg.DenseMatrix
-import breeze.math.Complex
+import edu.ie3.powerflow.math.DenseMatrix
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
 import edu.ie3.powerflow.model.enums.NodeType
@@ -64,7 +64,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
           StateData(1, NodeType.PQ, Complex.one, Complex.zero),
           StateData(2, NodeType.PQ, Complex.one, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1),
+        DenseMatrix.filled(1, 1, 0d),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)
@@ -80,7 +80,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
           StateData(1, NodeType.PQ, Complex.one * 0.88, Complex.zero),
           StateData(2, NodeType.PQ, Complex.one * 1.11, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1),
+        DenseMatrix.filled(1, 1, 0d),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)
@@ -96,7 +96,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
           StateData(1, NodeType.PQ, Complex.one * 0.85, Complex.zero),
           StateData(2, NodeType.PQ, Complex.one * 0.88, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1),
+        DenseMatrix.filled(1, 1, 0d),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)
@@ -116,7 +116,7 @@ class TransformerControlGroupModelSpec extends UnitSpec with QuantityMatchers {
           StateData(1, NodeType.PQ, Complex.one * 1.15, Complex.zero),
           StateData(2, NodeType.PQ, Complex.one * 1.11, Complex.zero),
         ),
-        DenseMatrix.zeros(1, 1),
+        DenseMatrix.filled(1, 1, 0d),
       )
 
       val actual = dut.determineRegulationNeed(result, uuidToIndex)

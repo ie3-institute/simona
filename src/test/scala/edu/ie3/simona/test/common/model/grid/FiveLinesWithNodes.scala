@@ -6,9 +6,8 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import breeze.linalg.DenseMatrix
-import breeze.math.{Complex as C}
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
+import edu.ie3.powerflow.math.{DenseMatrix, Complex as C}
 import edu.ie3.simona.model.grid.{LineModel, NodeModel}
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
@@ -206,7 +205,7 @@ trait FiveLinesWithNodes {
 
   // corresponding admittance matrix
   protected val lineAdmittanceMatrix: DenseMatrix[C] = DenseMatrix(
-    (
+    Seq(
       C(1146.2415343374096, -933.7802848111248),
       C(-458.4966137349637, 373.5121155369499),
       C.zero,
@@ -214,7 +213,7 @@ trait FiveLinesWithNodes {
       C.zero,
       C.zero,
     ),
-    (
+    Seq(
       C(-458.4966137349637, 373.5121155369499),
       C(802.3690740361866, -653.6461965459123),
       C(-343.8724603012229, 280.1340866527124),
@@ -222,7 +221,7 @@ trait FiveLinesWithNodes {
       C.zero,
       C.zero,
     ),
-    (
+    Seq(
       C.zero,
       C(-343.8724603012229, 280.1340866527124),
       C(343.8724603012229, -280.1340834277124),
@@ -230,7 +229,7 @@ trait FiveLinesWithNodes {
       C.zero,
       C.zero,
     ),
-    (
+    Seq(
       C(-687.7449206024457, 560.2681733054249),
       C.zero,
       C.zero,
@@ -238,7 +237,7 @@ trait FiveLinesWithNodes {
       C(-1375.4898412048915, 1120.5363466108497),
       C(-275.0979682409783, 224.10726932216994),
     ),
-    (
+    Seq(
       C.zero,
       C.zero,
       C.zero,
@@ -246,7 +245,7 @@ trait FiveLinesWithNodes {
       C(1375.4898412048915, -1120.5363458045997),
       C.zero,
     ),
-    (
+    Seq(
       C.zero,
       C.zero,
       C.zero,
