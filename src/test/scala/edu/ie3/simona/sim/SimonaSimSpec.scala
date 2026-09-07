@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.sim
 
+import com.typesafe.config.Config
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentCoordinator
+import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
@@ -336,7 +338,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
 }
 
-object SimonaSimSpec {
+object SimonaSimSpec extends ConfigTestData {
 
   /** Behavior that does nothing on receiving message */
   def empty[T]: Behavior[T] = Behaviors.receiveMessage { _ =>
@@ -405,13 +407,7 @@ object SimonaSimSpec {
       runtimeEventProbe: Option[ActorRef[RuntimeEventListener.Request]] = None,
       resultEventProbe: Option[ActorRef[ResultListener.Message]] = None,
       timeAdvancerProbe: Option[ActorRef[TimeAdvancer.Request]] = None,
-  ) extends SimonaSetup
-      with ConfigTestData {
-
-    override val args: Array[String] = Array.empty[String]
-    override val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
-
-    override def logOutputDir: Path = throw new NotImplementedError()
+  ) extends SimonaSetup(typesafeConfig, SimonaConfig(typesafeConfig)) {
 
     override def runtimeEventListener(
         context: ActorContext[?]
@@ -478,11 +474,18 @@ object SimonaSimSpec {
     ): ActorRef[SchedulerMessage] =
       context.spawn(empty, uniqueName("scheduler"))
 
-    override def gridAgentCoordinator(using
+    override def gridAgentCoordinator(
+        participantRefs: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]
+    )(using
         context: ActorContext[?],
         environmentRefs: EnvironmentRefs,
     ): ActorRef[GridAgentCoordinator.Message] =
       context.spawn(empty, uniqueName("gridAgentCoordinator"))
+
+    override def participantAgents(using
+        context: ActorContext[?],
+        environmentRefs: EnvironmentRefs,
+    ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = Map.empty
 
     override def extSimulations(
         context: ActorContext[?],

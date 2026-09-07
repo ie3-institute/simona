@@ -8,7 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{ConfigFactory, Config as TypesafeConfig}
 import com.typesafe.scalalogging.LazyLogging
-import scopt.{OptionParser as scoptOptionParser}
+import scopt.OptionParser as scoptOptionParser
 
 import java.io.File
 import java.nio.file.Paths
@@ -26,6 +26,9 @@ object ArgsParser extends LazyLogging {
   // build the config parser using scopt library
   private def buildParser: scoptOptionParser[Arguments] = {
     new scoptOptionParser[Arguments]("simona") {
+      override def errorOnUnknownArgument: Boolean =
+        false // needed for some external simulations
+
       opt[String]("config")
         .action((value, args) => {
           args.copy(
