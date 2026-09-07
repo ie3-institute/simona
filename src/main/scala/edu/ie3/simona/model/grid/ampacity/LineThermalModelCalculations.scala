@@ -1062,7 +1062,7 @@ object LineThermalModelCalculations extends LazyLogging {
       state.lineTemperatures.currentLineTemp2.toCelsiusScale,
       state.lineTemperatures.currentLineTemp3.toCelsiusScale,
       state.lineTemperatures.currentLineTemp4.toCelsiusScale,
-      state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME: Check if this is always ambientTemp, then it can be removed.
+      state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME: Check if this is always ambientTemp/groundTemp, then it can be removed.
     )
 
     val vp = matrixA \ (-vectorB)

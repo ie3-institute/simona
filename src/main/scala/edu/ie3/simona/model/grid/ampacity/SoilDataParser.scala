@@ -108,7 +108,7 @@ object SoilDataParser extends LazyLogging {
             val uuid = UUID.fromString(cols(0))
             val trWet = KelvinMetersPerWatt(cols(2).toDouble)
             val trDry = KelvinMetersPerWatt(cols(3).toDouble)
-            val shc = KilowattHoursPerKelvinCubicMeters(cols(4).toDouble)
+            val shc = KilowattHoursPerCubicMeterKelvin(cols(4).toDouble)
             val critTemp = Celsius(cols(5).toDouble)
 
             SoilType(uuid, cols(1), trWet, trDry, shc, critTemp)

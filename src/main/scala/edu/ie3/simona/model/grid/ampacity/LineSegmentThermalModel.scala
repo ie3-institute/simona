@@ -244,13 +244,14 @@ object LineSegmentThermalModel {
     )
 
     val thermalCapacityCd1 =
-      cableSetup.layersIsolationElements.foldLeft(JoulesPerCubicMeterKelvin(0)) {
-        (acc, layer) =>
-          acc + calcThermalCapacityCylindrical(
-            layer.thermalCapacitance,
-            layer.innerDiameter,
-            layer.outerDiameter,
-          )
+      cableSetup.layersIsolationElements.foldLeft(
+        JoulesPerCubicMeterKelvin(0)
+      ) { (acc, layer) =>
+        acc + calcThermalCapacityCylindrical(
+          layer.thermalCapacitance,
+          layer.innerDiameter,
+          layer.outerDiameter,
+        )
       }
     val thermalCapacityCd2 =
       cableSetup.layersFillerElements.foldLeft(JoulesPerCubicMeterKelvin(0)) {

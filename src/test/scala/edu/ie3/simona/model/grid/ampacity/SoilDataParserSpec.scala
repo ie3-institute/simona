@@ -12,8 +12,8 @@ import squants.thermal.Celsius
 import squants.{Kelvin, Meters, Temperature}
 import edu.ie3.util.scala.quantities.{
   KelvinMetersPerWatt,
-  KilowattHoursPerKelvinCubicMeters,
-  SpecificHeatCapacity,
+  KilowattHoursPerCubicMeterKelvin,
+  ThermalCapacitance,
   ThermalResistivity,
 }
 import org.scalatest.matchers.should.Matchers
@@ -26,7 +26,7 @@ import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
 
   given Temperature = Kelvin(1e-3)
-  given SpecificHeatCapacity = KilowattHoursPerKelvinCubicMeters(1e-8)
+  given ThermalCapacitance = KilowattHoursPerCubicMeterKelvin(1e-8)
   given ThermalResistivity = KelvinMetersPerWatt(1e-8)
   given Double = 1e-8
 

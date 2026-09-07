@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.util.scala.quantities.{SpecificHeatCapacity, ThermalResistivity}
+import edu.ie3.util.scala.quantities.{ThermalCapacitance, ThermalResistivity}
 import squants.Temperature
 
 import java.util.UUID
@@ -18,7 +18,7 @@ case class SoilType(
     id: String,
     thermalResistivityWet: ThermalResistivity,
     thermalResistivityDry: ThermalResistivity,
-    specificHeatCapacity: SpecificHeatCapacity, // FIXME Check if required per volume or per weight
+    specificHeatCapacity: ThermalCapacitance, // FIXME Check if required per volume or per weight
     criticalTemperature: Temperature,
 ) {
 

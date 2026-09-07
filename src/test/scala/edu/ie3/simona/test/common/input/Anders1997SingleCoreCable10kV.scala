@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
 import edu.ie3.util.scala.quantities.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
@@ -34,7 +35,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(0),
       Millimeters(20.5),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquants,
+      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
       Some(SquareMeters(0.00024)),
     )
   }
@@ -47,7 +48,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(20.5),
       Millimeters(21.7),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquants,
+      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -60,7 +61,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(21.7),
       Millimeters(28.5),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquants,
+      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -73,7 +74,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(28.5),
       Millimeters(30.1),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquants,
+      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -84,7 +85,9 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(30.1),
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
       CableMaterial.COPPER.getThermalProperties.resistivity().toSquants,
-      CableMaterial.COPPER.getThermalProperties.capacitance().toSquants,
+      CableMaterial.COPPER.getThermalProperties
+        .capacitance()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
       76,
       Millimeters(0.65),
@@ -101,7 +104,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
       Millimeters(35.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquants,
+      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }

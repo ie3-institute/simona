@@ -44,7 +44,10 @@ import edu.ie3.simona.model.grid.ampacity.{
 }
 import edu.ie3.simona.util.{CollectionUtils, Coordinate3D}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.{JoulesPerCubicMeterKelvin, KelvinMetersPerWatt}
+import edu.ie3.util.scala.quantities.{
+  JoulesPerCubicMeterKelvin,
+  KelvinMetersPerWatt,
+}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
@@ -926,7 +929,7 @@ object GridModel {
       Millimeters(0.0),
       jc.diameter().toSquants,
       jc.thermalResistivity().toSquants,
-      jc.thermalCapacitance().toSquants,
+      jc.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
       jc.area().toScala.map(_.toSquants),
     )
   }
@@ -939,7 +942,7 @@ object GridModel {
       jl.innerDiameter().toSquants,
       jl.outerDiameter().toSquants,
       jl.thermalResistivity().toSquants,
-      jl.thermalCapacitance().toSquants,
+      jl.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
       jl.area().toScala.map(_.toSquants),
     )
   }
@@ -951,7 +954,7 @@ object GridModel {
       js.innerDiameter().toSquants,
       js.outerDiameter().toSquants,
       js.thermalResistivity().toSquants,
-      js.thermalCapacitance().toSquants,
+      js.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
       js.area().toScala.map(_.toSquants),
       js.wiresNumber,
       js.wireDiameter.toSquants,

@@ -171,7 +171,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
     "properly convert thermal capacitance quantities from different units" in {
       val thermalCapa =
         Quantities.getQuantity(2.0, JOULE_PER_CUBIC_METRE_KELVIN)
-      thermalCapa.toSquants shouldBe JoulesPerCubicMeterKelvin(
+      thermalCapa.toSquantsJoulePerCubicMeterKelvin shouldBe JoulesPerCubicMeterKelvin(
         2.0
       )
     }
@@ -194,7 +194,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
         1.15,
         KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE,
       )
-      specHeatCapacity.toSquants shouldBe KilowattHoursPerKelvinCubicMeters(
+      specHeatCapacity.toSquantsKWhPerCubicMeterKelvin shouldBe KilowattHoursPerCubicMeterKelvin(
         1.15
       )
     }
