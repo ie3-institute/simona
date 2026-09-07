@@ -32,7 +32,7 @@ class LineThermalModelCalculationsSpec
   implicit val powerTolerance: Power = Watts(1e-7)
   implicit val tolerance: Double = 1e-10
   implicit val thermalCapacitanceTolerance: ThermalCapacitance =
-    JoulesPerMeterKelvin(1e-10)
+    JoulesPerCubicMeterKelvin(1e-10)
   implicit val temperatureTolerance: Temperature = Celsius(1e-3)
 
   "A LineSegmentThermalModel" should {
@@ -458,12 +458,12 @@ class LineThermalModelCalculationsSpec
             outerDiameter,
             expectedThermalCapacitance,
         ) =>
-          val specThermalCap = JoulesPerMeterKelvin(
+          val specThermalCap = JoulesPerCubicMeterKelvin(
             specificThermalCapacity
           )
           val innerDia = Meters(innerDiameter)
           val outerDia = Meters(outerDiameter)
-          val expectedCapacitance = JoulesPerMeterKelvin(
+          val expectedCapacitance = JoulesPerCubicMeterKelvin(
             expectedThermalCapacitance
           )
 

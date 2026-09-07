@@ -171,9 +171,9 @@ class QuantityConversionUtilsSpec extends UnitSpec {
     "properly convert thermal capacitance quantities from different units" in {
       val thermalCapa =
         Quantities.getQuantity(2.0, JOULE_PER_CUBIC_METRE_KELVIN)
-      thermalCapa.toSquants shouldBe JoulesPerMeterKelvin(
+      thermalCapa.toSquants shouldBe JoulesPerCubicMeterKelvin(
         2.0
-      ) // FIXME JoulesPerMeter or CubicMeter
+      )
     }
 
     "properly convert angle quantities from different units" in {

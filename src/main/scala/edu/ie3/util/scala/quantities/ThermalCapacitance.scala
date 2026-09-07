@@ -8,10 +8,11 @@ package edu.ie3.util.scala.quantities
 
 import squants.*
 import squants.energy.Joules
+import squants.space.CubicMeters
 
 import scala.util.Try
 
-/** Represents the thermal capacitance, in J/(m*K). //FIXME J/(m³*K)?
+/** Represents the thermal capacitance, in J/(m³*K).
   */
 final class ThermalCapacitance private (
     val value: Double,
@@ -20,7 +21,7 @@ final class ThermalCapacitance private (
 
   def dimension: ThermalCapacitance.type = ThermalCapacitance
 
-  def toJoulesPerMeterKelvin: Double = to(JoulesPerMeterKelvin)
+  def toJoulesPerCubicMeterKelvin: Double = to(JoulesPerCubicMeterKelvin)
 }
 
 object ThermalCapacitance extends Dimension[ThermalCapacitance] {
@@ -28,10 +29,10 @@ object ThermalCapacitance extends Dimension[ThermalCapacitance] {
     new ThermalCapacitance(num.toDouble(n), unit)
   def apply(value: Any): Try[ThermalCapacitance] = parse(value)
   def name = "ThermalCapacitance"
-  def primaryUnit: JoulesPerMeterKelvin.type = JoulesPerMeterKelvin
-  def siUnit: JoulesPerMeterKelvin.type = JoulesPerMeterKelvin
+  def primaryUnit: JoulesPerCubicMeterKelvin.type = JoulesPerCubicMeterKelvin
+  def siUnit: JoulesPerCubicMeterKelvin.type = JoulesPerCubicMeterKelvin
   def units: Set[UnitOfMeasure[ThermalCapacitance]] = Set(
-    JoulesPerMeterKelvin
+    JoulesPerCubicMeterKelvin
   )
 }
 
@@ -42,10 +43,10 @@ trait ThermalCapacitanceUnit
     ThermalCapacitance(n, this)
 }
 
-object JoulesPerMeterKelvin
+object JoulesPerCubicMeterKelvin
     extends ThermalCapacitanceUnit
     with PrimaryUnit
     with SiUnit {
   val symbol: String =
-    Joules.symbol + "/(" + Meters.symbol + "*" + Kelvin.symbol + ")"
+    Joules.symbol + "/(" + CubicMeters.symbol + "*" + Kelvin.symbol + ")"
 }

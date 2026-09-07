@@ -365,7 +365,7 @@ object QuantityConversionUtils {
       ]
   ) {
     def toSquants: ThermalCapacitanceSquants =
-      JoulesPerMeterKelvin( // FIXME JoulesPerMeter or CubicMeter
+      JoulesPerCubicMeterKelvin(
         quantity
           .to(JOULE_PER_CUBIC_METRE_KELVIN)
           .getValue

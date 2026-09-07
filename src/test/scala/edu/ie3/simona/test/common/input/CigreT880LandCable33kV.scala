@@ -11,7 +11,7 @@ import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.{
-  JoulesPerMeterKelvin,
+  JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
   OhmsPerMeter,
 }
@@ -160,7 +160,7 @@ object CigreT880LandCable33kV {
     Meters(1),
     Meters(0.044),
     KelvinMetersPerWatt(1.0),
-    JoulesPerMeterKelvin(1.0), // FIXME check this
+    JoulesPerCubicMeterKelvin(1.0), // FIXME check this
     Celsius(90),
     Kilovolts(33),
     Hertz(50),

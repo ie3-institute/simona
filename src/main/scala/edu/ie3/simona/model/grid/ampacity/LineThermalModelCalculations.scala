@@ -17,7 +17,7 @@ import edu.ie3.util.scala.quantities.SquantsUtils.{
 }
 import edu.ie3.util.scala.quantities.{
   ElectricalResistancePerLength,
-  JoulesPerMeterKelvin,
+  JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
   OhmsPerMeter,
   ThermalCapacitance,
@@ -738,8 +738,8 @@ object LineThermalModelCalculations extends LazyLogging {
       innerDiameter.toMeters,
       2,
     )
-    JoulesPerMeterKelvin(
-      PI_OVER_FOUR * areaDifference * specificThermalCapacity.toJoulesPerMeterKelvin
+    JoulesPerCubicMeterKelvin(
+      PI_OVER_FOUR * areaDifference * specificThermalCapacity.toJoulesPerCubicMeterKelvin
     )
   }
 
@@ -1023,19 +1023,19 @@ object LineThermalModelCalculations extends LazyLogging {
     // the RC-Network can be simplified since all parallel capacitance can be merged
     // Conductor capacitance and first part of the first half of the dielectric
     val c1 =
-      (currentLineModel.thermalCapacityCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin // FIXME check conversion factor !
+      (currentLineModel.thermalCapacityCc + dielectricThermCapacitanceC11).toJoulesPerCubicMeterKelvin // FIXME check conversion factor !
         // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
     val c2 =
-      (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin
+      (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerCubicMeterKelvin
     // Capacitance of the second part of second half of the dielectric + the sheath + the first part of the first half of the jack
     val c3 =
-      (dielectricThermCapacitanceC22 + currentLineModel.thermalCapacityCs + jackThermCapacitanceC11).toJoulesPerMeterKelvin
+      (dielectricThermCapacitanceC22 + currentLineModel.thermalCapacityCs + jackThermCapacitanceC11).toJoulesPerCubicMeterKelvin
     // Capacitance of the second part of first half of the jack + first part of the second half of the jack
     val c4 =
-      (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerMeterKelvin
+      (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerCubicMeterKelvin
     // Capacitance of the second part of second half of the jack + the capacitance of the soil
     val c5 =
-      (jackThermCapacitanceC22 + state.cableSetup.soilCapacitance).toJoulesPerMeterKelvin
+      (jackThermCapacitanceC22 + state.cableSetup.soilCapacitance).toJoulesPerCubicMeterKelvin
 
     // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
     val matrixA = DenseMatrix(

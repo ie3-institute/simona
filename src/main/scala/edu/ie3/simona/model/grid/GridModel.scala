@@ -44,7 +44,7 @@ import edu.ie3.simona.model.grid.ampacity.{
 }
 import edu.ie3.simona.util.{CollectionUtils, Coordinate3D}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
+import edu.ie3.util.scala.quantities.{JoulesPerCubicMeterKelvin, KelvinMetersPerWatt}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
@@ -763,7 +763,7 @@ object GridModel {
                     throw new NoSuchElementException("No jack available")
                   ),
                 KelvinMetersPerWatt(1),
-                JoulesPerMeterKelvin(1),
+                JoulesPerCubicMeterKelvin(1),
                 cableTypeInput.getLimitTemperature.toSquants,
                 lineType.getvRated().toSquants,
                 cableTypeInput.getFrequency.toSquants,
@@ -790,11 +790,11 @@ object GridModel {
                         KelvinMetersPerWatt(1),
                         KelvinMetersPerWatt(1),
                         KelvinMetersPerWatt(1),
-                        JoulesPerMeterKelvin(1),
-                        JoulesPerMeterKelvin(1),
-                        JoulesPerMeterKelvin(1),
-                        JoulesPerMeterKelvin(1),
-                        JoulesPerMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
                         cableTypeInput.getLimitTemperature.toSquants,
                       )
                     }
