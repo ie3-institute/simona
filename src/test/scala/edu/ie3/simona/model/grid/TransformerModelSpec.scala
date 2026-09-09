@@ -23,7 +23,10 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestData,
   TransformerTestGrid,
 }
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.util.scala.quantities.{
   ApparentPower,
   Kilovoltamperes,
@@ -38,15 +41,37 @@ import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
 
-class TransformerModelSpec
-    extends UnitSpec
-    with TableDrivenPropertyChecks
-    with ConfigTestData {
+class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
+
   val quantityTolerance: Double = 1e-5
   val testingTolerancePf = 1e-9
   given electricCurrentTolerance: ElectricCurrent = Amperes(1e-9)
   given dimensionlessTolerance: Dimensionless = Each(1e-9)
   given powerTolerance: ApparentPower = Voltamperes(1e-3)
+
+  private val simonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
+      )
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    simulationName = "TransformerModelSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
+
+  private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+  private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 
   "A valid TransformerInput " should {
     "be validated without an exception" in new TransformerTestData {

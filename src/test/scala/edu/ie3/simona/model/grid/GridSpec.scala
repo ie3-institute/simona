@@ -23,16 +23,50 @@ import edu.ie3.simona.test.common.model.grid.{
   BasicGridWithSwitches,
   FiveLinesWithNodes,
 }
-import edu.ie3.simona.test.common.{ConfigTestData, DefaultTestData, UnitSpec}
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import testutils.TestObjectFactory
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
-class GridSpec
-    extends UnitSpec
-    with LineInputTestData
-    with DefaultTestData
-    with ConfigTestData {
+class GridSpec extends UnitSpec with LineInputTestData with DefaultTestData {
+
+  private val simonaConfig: SimonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
+      )
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    powerflow = Some(
+      SimonaConfig.Powerflow(
+        maxSweepPowerDeviation = 1e-5,
+        newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
+          epsilon = List(1e-12),
+          iterations = 50,
+        ),
+        stopOnFailure = true,
+      )
+    ),
+    simulationName = "GridSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
+
+  private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+  private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 
   private val _printAdmittanceMatrixOnMismatch
       : (DenseMatrix[Complex], DenseMatrix[Complex]) => Unit = {

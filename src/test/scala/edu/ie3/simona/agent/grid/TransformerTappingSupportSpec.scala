@@ -14,7 +14,7 @@ import edu.ie3.simona.test.common.model.grid.{
   SubGridGateMokka,
 }
 import edu.ie3.simona.test.common.result.ResultMokka
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -27,8 +27,7 @@ class TransformerTappingSupportSpec
     with GridComponentsMokka
     with ResultMokka
     with SubGridGateMokka
-    with DbfsTestGrid
-    with ConfigTestData {
+    with DbfsTestGrid {
 
   private given Dimensionless = Each(1e-3)
 

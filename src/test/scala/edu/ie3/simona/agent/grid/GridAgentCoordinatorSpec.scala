@@ -35,7 +35,10 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGrid
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.testkit.typed.Effect.{Spawned, Watched}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -46,14 +49,48 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
 import org.scalatestplus.mockito.MockitoSugar
 
+import java.time.ZonedDateTime
 import java.util.UUID
 
 class GridAgentCoordinatorSpec
     extends ScalaTestWithActorTestKit
     with UnitSpec
     with DbfsTestGrid
-    with ConfigTestData
     with MockitoSugar {
+
+  private val simonaConfig: SimonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
+      )
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    powerflow = Some(
+      SimonaConfig.Powerflow(
+        maxSweepPowerDeviation = 1e-5,
+        newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
+          epsilon = List(1e-12),
+          iterations = 50,
+        ),
+        stopOnFailure = true,
+      )
+    ),
+    simulationName = "GridAgentCoordinatorSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
+
+  private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+  private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] = TestProbe(
