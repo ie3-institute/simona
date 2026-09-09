@@ -125,6 +125,7 @@ object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
       simulationStartDate,
       parentData,
       listener,
+      emDataService
     )
 
     val modelShell = EmModelShell(
