@@ -178,69 +178,62 @@ object GridModel {
       nodeUuidToIndexMap: Map[UUID, Int],
       gridComponents: GridComponents,
   ): DenseMatrix[Complex] = {
-
-    val _returnAdmittanceMatrixIfValid
-        : DenseMatrix[Complex] => DenseMatrix[Complex] = {
-      (admittanceMatrix: DenseMatrix[Complex]) =>
-        if !breeze.linalg.all(
-            { (entry: Complex) =>
-              !entry.imag.isNaN & !entry.real.isNaN & entry.imag.isFinite & entry.real.isFinite
-            },
-            admittanceMatrix,
-          )
-        then throw new RuntimeException(s"Admittance matrix is illegal.")
-        else admittanceMatrix
-    }
+    val matrixDimension = nodeUuidToIndexMap.values.toSeq.distinct.size
+    val admittanceMatrix =
+      DenseMatrix.zeros[Complex](matrixDimension, matrixDimension)
 
     /*
     Nodes that are connected via a [closed] switch map to the same idx as we fuse them during the power flow.
     Therefore, the admittance matrix has to be of the size of the distinct node idxs.
      */
-    val linesAdmittanceMatrix = buildAssetAdmittanceMatrix(
+    addElementsToAdmittanceMatrix(
+      admittanceMatrix,
       nodeUuidToIndexMap,
       gridComponents.lines,
       getLinesAdmittance,
     )
-    val trafoAdmittanceMatrix = buildAssetAdmittanceMatrix(
+    addElementsToAdmittanceMatrix(
+      admittanceMatrix,
       nodeUuidToIndexMap,
       gridComponents.transformers,
       getTransformerAdmittance,
     )
-    val trafo3wAdmittanceMatrix = buildAssetAdmittanceMatrix(
+    addElementsToAdmittanceMatrix(
+      admittanceMatrix,
       nodeUuidToIndexMap,
       gridComponents.transformers3w,
       getTransformer3wAdmittance,
     )
 
-    _returnAdmittanceMatrixIfValid(
-      linesAdmittanceMatrix + trafoAdmittanceMatrix + trafo3wAdmittanceMatrix
-    )
+    val illegalState = admittanceMatrix.data.exists { e =>
+      e.real.isNaN || e.imag.isNaN || !e.real.isFinite || !e.imag.isFinite
+    }
+
+    if illegalState then
+      throw new RuntimeException(s"Admittance matrix is illegal.")
+    else admittanceMatrix
   }
 
-  private def buildAssetAdmittanceMatrix[C <: SystemComponent](
+  private def addElementsToAdmittanceMatrix[C <: SystemComponent](
+      admittanceMatrix: DenseMatrix[Complex],
       nodeUuidToIndexMap: Map[UUID, Int],
       assets: Set[C],
       getAssetAdmittance: (
           Map[UUID, Int],
           C,
       ) => (Int, Int, Complex, Complex, Complex),
-  ): DenseMatrix[Complex] = {
-    val matrixDimension = nodeUuidToIndexMap.values.toSeq.distinct.size
-
+  ): Unit = {
     assets
       .filter(_.isInOperation)
-      .foldLeft(DenseMatrix.zeros[Complex](matrixDimension, matrixDimension))(
-        (admittanceMatrix, asset) => {
-          val (i, j, yab, yaa, ybb) =
-            getAssetAdmittance(nodeUuidToIndexMap, asset)
+      .foreach { asset =>
+        val (i, j, yab, yaa, ybb) =
+          getAssetAdmittance(nodeUuidToIndexMap, asset)
 
-          admittanceMatrix(i, i) += (yab + yaa)
-          admittanceMatrix(j, j) += (yab + ybb)
-          admittanceMatrix(i, j) += (yab * -1)
-          admittanceMatrix(j, i) += (yab * -1)
-          admittanceMatrix
-        }
-      )
+        admittanceMatrix(i, i) += (yab + yaa)
+        admittanceMatrix(j, j) += (yab + ybb)
+        admittanceMatrix(i, j) += (yab * -1)
+        admittanceMatrix(j, i) += (yab * -1)
+      }
   }
 
   private def getLinesAdmittance(

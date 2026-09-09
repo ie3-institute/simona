@@ -121,9 +121,7 @@ final case class LoadProfileStore(
     val supplier = source.getValueSupplier(new TimeSeriesInputValue(time))
 
     () =>
-      supplier.asScala
-        .apply()
-        .toScala
+      supplier.get.toScala
         .flatMap(_.getP.toScala)
         .map(_.toSquants)
         .getOrElse(
