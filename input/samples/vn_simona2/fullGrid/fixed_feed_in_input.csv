@@ -1,0 +1,9 @@
+uuid,cos_phi_rated,id,node,operates_from,operates_until,operator,q_characteristics,s_rated
+aa58ee0f-4500-4d61-8265-5cd3d85a0b11,1.0,LV1.101 SGen 3_pv,5f5115e6-4b12-4fb4-ad05-1de237b58e7e,,,,"cosPhiFixed:{(0.0,1.0)}",23.0
+f20f3938-1995-44a7-adba-ef47168e0b62,1.0,LV1.101 SGen 8_pv,927da381-2441-4931-89f0-67fc2062230f,,,,"cosPhiFixed:{(0.0,1.0)}",117.2
+a02e2f15-dd4c-4726-a3a1-d9f88fec4f4e,1.0,LV1.101 SGen 1_pv,cdae595f-99b6-46e1-8164-bc0a8f3ce03d,,,,"cosPhiFixed:{(0.0,1.0)}",40.0
+cf0596ca-070c-4fd4-9380-7c5c2e5ded04,1.0,LV1.101 SGen 5_pv,76410fde-3a71-47ef-9830-86bc2ca39864,,,,"cosPhiFixed:{(0.0,1.0)}",48.9
+6611c351-8f05-4f96-9259-cfc21ce07e80,1.0,LV1.101 SGen 2_pv,d9acbdee-b64b-41da-bde4-6161a7420958,,,,"cosPhiFixed:{(0.0,1.0)}",78.4
+2fd5b9e2-c992-46d0-8229-be14a72e1313,1.0,LV1.101 SGen 4_pv,ae28a289-0bfd-4d5f-93b3-8fdd228de2cd,,,,"cosPhiFixed:{(0.0,1.0)}",19.0
+9dd69361-45f3-42c6-b855-86a59b23cafa,1.0,LV1.101 SGen 6_pv,97ec3c60-0934-472b-8ba1-68e7ecdb51dc,,,,"cosPhiFixed:{(0.0,1.0)}",117.2
+2964b8af-6fe4-4405-9d92-a5dc1642d5a4,1.0,LV1.101 SGen 7_pv,3137f920-6da9-45d6-89f3-fa1cab80ea7c,,,,"cosPhiFixed:{(0.0,1.0)}",24.5
