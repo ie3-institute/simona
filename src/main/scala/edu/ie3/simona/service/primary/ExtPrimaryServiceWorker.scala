@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.service.primary
 
-import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.api.data.connection.ExtPrimaryDataConnection
 import edu.ie3.simona.api.ontology.DataMessageFromExt
 import edu.ie3.simona.api.ontology.primary.{

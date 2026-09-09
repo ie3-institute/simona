@@ -38,13 +38,13 @@ import java.util.UUID
   *   Energy stored in the thermal storage
   */
 final case class CylindricalThermalStorage(
-    uuid: UUID,
-    id: String,
-    operatorInput: OperatorInput,
-    operationTime: OperationTime,
-    bus: ThermalBusInput,
-    maxEnergyThreshold: Energy,
-    pThermalMax: Power,
+    override val uuid: UUID,
+    override val id: String,
+    override val operatorInput: OperatorInput,
+    override val operationTime: OperationTime,
+    override val bus: ThermalBusInput,
+    override val maxEnergyThreshold: Energy,
+    override val pThermalMax: Power,
     storedEnergy: Energy,
 ) extends AbstractThermalStorage(
       uuid,

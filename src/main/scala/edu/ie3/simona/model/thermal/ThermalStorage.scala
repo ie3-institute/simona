@@ -39,13 +39,13 @@ import java.util.UUID
   *   Thermal power, that can be charged / discharged
   */
 abstract class ThermalStorage(
-    uuid: UUID,
-    id: String,
-    operatorInput: OperatorInput,
-    operationTime: OperationTime,
-    bus: ThermalBusInput,
-    maxEnergyThreshold: Energy,
-    pThermalMax: Power,
+    val uuid: UUID,
+    val id: String,
+    val operatorInput: OperatorInput,
+    val operationTime: OperationTime,
+    val bus: ThermalBusInput,
+    val maxEnergyThreshold: Energy,
+    val pThermalMax: Power,
 ) {
 
   /** In order to avoid faulty flexibility options, we want to avoid offering

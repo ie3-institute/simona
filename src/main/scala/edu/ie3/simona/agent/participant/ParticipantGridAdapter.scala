@@ -13,7 +13,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroMVAr, zeroMW}
 import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
 import org.slf4j.Logger
 import squants.energy.Megawatts
-import squants.{Dimensionless, Each, Energy, Power, UnitOfMeasure}
+import squants.{Dimensionless, Energy, Power, UnitOfMeasure}
 
 import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success}
