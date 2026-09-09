@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `GridAgentCoordinator` [#1617](https://github.com/ie3-institute/simona/issues/1617)
 - Added transformer tap change to congestion management [#1378](https://github.com/ie3-institute/simona/issues/1378)
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
+- Include staging step to Maven Central in CI pipeline [#1834](https://github.com/ie3-institute/simona/issues/1834)
 - Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
 - Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
 - Implement energy dependent power tolerance for EVCS [#1698](https://github.com/ie3-institute/simona/issues/1698)
