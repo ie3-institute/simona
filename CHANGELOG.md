@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
 - Implement energy dependent power tolerance for EVCS [#1698](https://github.com/ie3-institute/simona/issues/1698)
 - Added ground temperatures to weather data [#1818](https://github.com/ie3-institute/simona/issues/1818)
+- Added check for data in `RunSimonaStandaloneIT` [#1491](https://github.com/ie3-institute/simona/issues/1491)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
