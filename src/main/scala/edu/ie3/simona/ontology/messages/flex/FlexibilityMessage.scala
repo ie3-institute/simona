@@ -104,6 +104,9 @@ object FlexibilityMessage {
       flexOptions: FlexOptions,
   ) extends FlexResponse
 
+  final case class WaitingForData(override val modelUuid: UUID)
+      extends FlexResponse
+
   /** Message that issues flexibility control to a controlled asset model, i.e.
     * a feasible set point is delivered that the controlled asset model should
     * adhere to. Sending agent expects a [[FlexCompletion]] as a reply.
