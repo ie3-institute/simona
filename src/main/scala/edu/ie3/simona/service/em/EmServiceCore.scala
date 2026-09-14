@@ -544,10 +544,15 @@ case class EmServiceCore(
 
         (this, None)
 
-      case WaitingForData(modelUuid) if mode == EmMode.EM_COMMUNICATION && internal.isEmpty =>
-        val msgToExt = if !emDataStore.expects(modelUuid) && emStates(modelUuid).isWaitingForExtern then {
-          Some(new EmResultResponse(Map.empty.asJava))
-        } else None
+      case WaitingForData(modelUuid)
+          if mode == EmMode.EM_COMMUNICATION && internal.isEmpty =>
+        val msgToExt =
+          if !emDataStore.expects(modelUuid) && emStates(
+              modelUuid
+            ).isWaitingForExtern
+          then {
+            Some(new EmResultResponse(Map.empty.asJava))
+          } else None
 
         (this, msgToExt)
 
