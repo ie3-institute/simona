@@ -18,7 +18,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.ProvidedPowerResponse
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
 
