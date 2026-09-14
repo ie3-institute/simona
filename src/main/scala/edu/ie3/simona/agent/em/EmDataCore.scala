@@ -81,6 +81,29 @@ object EmDataCore {
         modelToActor = modelToActor.updated(asset, actor)
       )
 
+    def gotoTick(newTick: Long): Inactive = {
+      // remove the activations
+      activationQueue.headKeyOption.foreach { nextScheduledTick =>
+        if newTick > nextScheduledTick then {
+          val toActivate = activationQueue.getAndRemoveSet(nextScheduledTick)
+          activationQueue.set(newTick, toActivate)
+        }
+      }
+
+      this
+    }
+
+    def activateAll(newTick: Long): AwaitingFlexOptions = {
+      activationQueue.set(newTick, modelToActor.keySet)
+
+      AwaitingFlexOptions(
+        modelToActor,
+        activationQueue,
+        correspondences,
+        activeTick = newTick,
+      )
+    }
+
     /** Tries to handle an activation of the EmAgent for given tick. If the
       * activation for the tick is not valid, a [[CriticalFailureException]] is
       * thrown. If successful, an [[AwaitingFlexOptions]] data core is returned

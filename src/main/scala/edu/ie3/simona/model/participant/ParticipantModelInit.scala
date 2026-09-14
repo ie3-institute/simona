@@ -125,6 +125,7 @@ object ParticipantModelInit {
     PrimaryDataParticipantModel.Factory(
       modelFactory.create(),
       primaryDataExtra,
+      modelConfig.scaling,
     )
   }
 

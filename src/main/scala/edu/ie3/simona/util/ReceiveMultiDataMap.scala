@@ -79,7 +79,7 @@ final case class ReceiveMultiDataMap[K, V](
   }
 
   def getExpectedKeys: Set[K] = expectedKeys.keySet
-
+  def getExpected: Map[K, Int] = expectedKeys
 }
 
 object ReceiveMultiDataMap {
