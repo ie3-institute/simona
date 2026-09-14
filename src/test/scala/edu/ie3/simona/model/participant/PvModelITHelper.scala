@@ -65,6 +65,8 @@ trait PvModelITHelper
         WattsPerSquareMeter(row.get(21).replace("Wh/m²", "").toDouble),
         Kelvin(0.0),
         MetersPerSecond(0.0),
+        None,
+        None,
       )
 
       val modelToWeatherMap = weatherDataMap.getOrElse(
