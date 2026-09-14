@@ -20,6 +20,7 @@ import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.simona.test.helper.TableDrivenHelper
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.scala.quantities.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
@@ -107,6 +108,30 @@ class EvcsModelSpec
         )
         nextEvent shouldBe None
       }
+    }
+
+    "handling power tolerance during operating point determination" in {
+      val evcsModel = createTestModel("constantPower")
+      val ev = EvModelWrapper(
+        ev1.copyWith(5.0.asKiloWattHour)
+      )
+      val tolerance = evcsModel.calcPowerTolerance(ev)
+      val tinyPower = tolerance / 10
+      val validPower = tolerance * 10
+
+      tinyPower.~=(zeroKW)(using tolerance) shouldBe true
+
+      val state = EvcsState(Seq(ev), 0L)
+      val op = evcsModel.determineOperatingPoint(state, tinyPower)
+      op.evOperatingPoints(ev.uuid) shouldBe zeroKW
+
+      evcsModel.determineChargingLimitEvent(ev, tinyPower, 0L) shouldBe None
+
+      evcsModel.determineChargingLimitEvent(
+        ev,
+        validPower,
+        0L,
+      ) should not be empty
     }
 
     "determining current state correctly" when {
