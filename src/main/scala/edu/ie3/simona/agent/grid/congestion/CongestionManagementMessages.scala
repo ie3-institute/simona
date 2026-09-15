@@ -8,7 +8,6 @@ package edu.ie3.simona.agent.grid.congestion
 
 import edu.ie3.simona.agent.grid.GridAgent
 import edu.ie3.simona.agent.grid.congestion.mitigations.MitigationSteps
-import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 
 /** Messages for the congestion management.
