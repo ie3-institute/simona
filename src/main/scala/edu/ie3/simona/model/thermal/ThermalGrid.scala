@@ -146,7 +146,8 @@ final case class ThermalGrid(
       calculateHouseDemand(thermalGridState, hoursWaterDemandToDetermine)
     val heatStorageDemand = calculateHeatStorageDemand(thermalGridState)
     val domesticHotWaterStorageDemand = calculateDomesticStorageDemand(
-      thermalGridState
+      thermalGridState,
+      houseDemandWater,
     )
 
     ThermalDemandWrapper(
@@ -209,20 +210,40 @@ final case class ThermalGrid(
       thermalGridState.heatStorageState,
     )
 
-    /** Determine the energy demand of the DomesticHotWaterStorage.
-      *
-      * @param thermalGridState
-      *   Last state of the thermal grid.
-      * @return
-      *   The energy demand of the domestic hot water storage.
-      */
+  /** Determine the energy demand of the DomesticHotWaterStorage.
+    *
+    * @param thermalGridState
+    *   Last state of the thermal grid.
+    * @param domesticHotWaterDemandOfHouse
+    *   The domestic hot water demand of the house.
+    * @return
+    *   The energy demand of the domestic hot water storage.
+    */
   private def calculateDomesticStorageDemand(
-      thermalGridState: ThermalGridState
+      thermalGridState: ThermalGridState,
+      domesticHotWaterDemandOfHouse: ThermalEnergyDemand,
   ): ThermalEnergyDemand =
-    calculateStorageDemand(
-      domesticHotWaterStorage,
-      thermalGridState.domesticHotWaterStorageState,
-    )
+    domesticHotWaterStorage
+      .zip(thermalGridState.domesticHotWaterStorageState)
+      .map { case (storage, storageState) =>
+        val storageDemand =
+          calculateStorageDemand(
+            Some(storage),
+            Some(storageState),
+          )
+
+        val uncoveredDomesticHotWaterDemand =
+          if domesticHotWaterDemandOfHouse.required > storageState.storedEnergy
+          then
+            domesticHotWaterDemandOfHouse.required - storageState.storedEnergy
+          else zeroKWh
+
+        ThermalEnergyDemand(
+          storageDemand.required + uncoveredDomesticHotWaterDemand,
+          storageDemand.possible + uncoveredDomesticHotWaterDemand,
+        )
+      }
+      .getOrElse(ThermalEnergyDemand.noDemand)
 
   /** Determine the energy demand of a thermal storage.
     *
