@@ -9,19 +9,15 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
-
-import java.nio.file.Paths
-import scala.util.{Failure, Success, Try}
 import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.{
-  LineTypeInput,
   CableMaterial,
   CableTypeInput,
+  LineTypeInput,
   ConductorInput as JConductorInput,
   LayerInput as JLayerInput,
   ScreenLayerInput as JScreenLayerInput,
 }
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -34,17 +30,9 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
-import edu.ie3.simona.model.grid.ampacity.{
-  CableSetup,
-  Layer,
-  LineSegmentThermalModel,
-  ScreenLayer,
-  SoilDataParser,
-  SoilLayer,
-  SoilType,
-}
+import edu.ie3.simona.model.grid.ampacity.*
 import edu.ie3.simona.util.{CollectionUtils, Coordinate3D}
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
@@ -57,10 +45,12 @@ import squants.Meters
 import squants.space.Millimeters
 import squants.thermal.Celsius
 
+import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
+import scala.util.{Failure, Success, Try}
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
@@ -555,12 +545,12 @@ object GridModel {
     // helper: read a CSV from the configured grid csv directory only
     def readFromConfiguredDir[T](
         fileName: String,
-        parser: java.nio.file.Path => Try[Seq[T]],
+        parser: Path => Try[Seq[T]],
     ): Try[Seq[T]] = {
       simonaConfig.input.grid.datasource.csvParams.map(_.directoryPath) match {
         case Some(dir) =>
           val p = Paths.get(dir).resolve(fileName)
-          if java.nio.file.Files.exists(p) then parser(p)
+          if Files.exists(p) then parser(p)
           else Success(Seq.empty[T])
         case None => Success(Seq.empty[T])
       }
@@ -1003,32 +993,28 @@ object GridModel {
     val baseOutputDir = Paths.get(simonaConfig.output.base.dir)
     val simulationName = simonaConfig.simulationName
 
-    val runDirOpt: Option[java.nio.file.Path] =
+    val runDirOpt: Option[Path] =
       try
-        val stream = java.nio.file.Files.list(baseOutputDir)
+        val stream = Files.list(baseOutputDir)
         try
-          import scala.jdk.CollectionConverters.*
           val dirs = stream
             .filter(p =>
-              java.nio.file.Files.isDirectory(p) && p.getFileName.toString
-                .startsWith(simulationName)
+              Files.isDirectory(p) && p.getFileName.toString.startsWith(
+                simulationName
+              )
             )
             .iterator()
             .asScala
             .toSeq
           if dirs.nonEmpty then
-            Some(
-              dirs.maxBy(p =>
-                java.nio.file.Files.getLastModifiedTime(p).toMillis
-              )
-            )
+            Some(dirs.maxBy(p => Files.getLastModifiedTime(p).toMillis))
           else None
         finally stream.close()
       catch case _: Exception => None
 
     val runDir = runDirOpt.getOrElse(baseOutputDir.resolve(simulationName))
     val rawOutputDir = runDir.resolve("rawOutputData")
-    java.nio.file.Files.createDirectories(rawOutputDir)
+    Files.createDirectories(rawOutputDir)
 
     val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
 
@@ -1048,16 +1034,14 @@ object GridModel {
     val content = rows.mkString("\n") + "\n"
 
     // Append if the file already exists, otherwise create it with the header.
-    if java.nio.file.Files.exists(outPath) then
-      java.nio.file.Files.write(
+    if Files.exists(outPath) then
+      Files.write(
         outPath,
         content.getBytes("UTF-8"),
-        java.nio.file.StandardOpenOption.CREATE,
-        java.nio.file.StandardOpenOption.APPEND,
+        StandardOpenOption.CREATE,
+        StandardOpenOption.APPEND,
       )
-    else
-      java.nio.file.Files
-        .write(outPath, (header +: rows).mkString("\n").getBytes("UTF-8"))
+    else Files.write(outPath, (header +: rows).mkString("\n").getBytes("UTF-8"))
   }
   private def mapConductor(jc: JConductorInput): Layer = {
     val mat = CableMaterial.fromString(jc.material().toString)
