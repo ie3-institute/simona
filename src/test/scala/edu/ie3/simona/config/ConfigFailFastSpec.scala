@@ -22,14 +22,155 @@ import edu.ie3.simona.config.SimonaConfig.{
   TransformerControlGroup,
 }
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.ConfigUtil.{CsvConfigUtil, NotifierIdentifier}
 import edu.ie3.util.TimeUtil
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.DurationInt
 
-class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
+class ConfigFailFastSpec extends UnitSpec {
+
+  private val typesafeConfig = ConfigFactory
+    .parseString(
+      """
+      |simona.simulationName = "ConfigTestDataSimulation"
+      |
+      |simona.time.startDateTime = "2011-05-01T00:00:00Z"
+      |simona.time.endDateTime   = "2011-05-01T01:00:00Z"
+      |
+      |simona.input.grid.datasource.id = "csv"
+      |simona.input.grid.datasource.csvParams = {
+      |  directoryPath: "input/samples/vn_simona/fullGrid"
+      |  isHierarchic: false
+      |  csvSep: ","
+      |}
+      |simona.input.primary.csvParams = {
+      |  directoryPath: "input/samples/two_winding"
+      |  isHierarchic: false
+      |  csvSep: ","
+      |}
+      |simona.input.weather.datasource = {
+      |  scheme = "icon"
+      |  sampleParams.use = true
+      |  coordinateSource.sampleParams.use = true
+      |}
+      |
+      |simona.output.base.dir = "testOutput/"
+      |simona.output.sink.csv {
+      |  fileFormat = ".csv"
+      |  filePrefix = ""
+      |  fileSuffix = ""
+      |}
+      |
+      |simona.output.grid = {
+      |  notifier = "grid"
+      |  nodes = false
+      |  lines = false
+      |  switches = false
+      |  transformers2w = false
+      |  transformers3w = false
+      |}
+      |simona.output.participant.defaultConfig = {
+      |    notifier = "default"
+      |    powerRequestReply = false
+      |    simulationResult = false
+      |}
+      |simona.output.participant.individualConfigs = []
+      |simona.output.thermal = {
+      |  defaultConfig = {
+      |    notifier = "default",
+      |    simulationResult = false
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.requestVoltageDeviationThreshold = 1E-14
+      |simona.runtime.participant.load = {
+      |  defaultConfig = {
+      |    calculateMissingReactivePowerWithModel = false
+      |    uuids = ["default"]
+      |    scaling = 1.0
+      |    modelBehaviour = "fix"
+      |    reference = "power"
+      |  }
+      |  individualConfigs = []
+      |}
+      |simona.runtime.participant.fixedFeedIn = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.pv = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.wec = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.evcs = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.hp = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.storage = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.runtime.participant.em = {
+      |  defaultConfig = {
+      |       calculateMissingReactivePowerWithModel = false
+      |       uuids = ["default"]
+      |       scaling = 1.0
+      |  }
+      |  individualConfigs = []
+      |}
+      |
+      |simona.powerflow.maxSweepPowerDeviation = 1E-5
+      |simona.powerflow.stopOnFailure = true
+      |simona.powerflow.newtonraphson.epsilon = [1E-12]
+      |simona.powerflow.newtonraphson.iterations = 50
+      |
+      |simona.gridConfig.refSystems = []
+      |""".stripMargin
+    )
+    .resolve()
+
+  private val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
+
   "Validating the configs" when {
     "validating the simona config" when {
       "Checking date input" should {
