@@ -149,7 +149,7 @@ final case class LineSegmentThermalModel(
     Iterable(
       LineStateResult(
         dateTime,
-        lineUuid,
+        lineUuid, // TODO DF this would be redundant if the linesement will be written out once in GridModel when creating them
         uuid,
         state.lineTemperatures.currentLineTemp1,
       )

@@ -9,13 +9,14 @@ package edu.ie3.simona.model.grid
 import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
+
 import java.nio.file.Paths
 import scala.util.{Failure, Success, Try}
 import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.{
+  LineTypeInput,
   CableMaterial,
   CableTypeInput,
-  LineTypeInput,
   ConductorInput as JConductorInput,
   LayerInput as JLayerInput,
   ScreenLayerInput as JScreenLayerInput,
@@ -627,11 +628,6 @@ object GridModel {
         s"Found ${cableDeploymentInput.size} cable deployment entries for lines."
       )
 
-    val cableTypeMap: Map[UUID, CableTypeInput] =
-      subGridContainer.getRawGridTypes.getCableTypes.asScala
-        .map(ct => ct.getUuid -> ct)
-        .toMap
-
     // TODO DF move to ConfigFailFast
     // If ampacity calculation is activated, ensure required additional inputs are present
     /*
@@ -649,6 +645,15 @@ object GridModel {
        "Ampacity calculation is activated, but no cable deployment entries were provided. Please provide at least one cable deployment."
       )
      */
+
+    // Build map of available cable types (to resolve references from line types)
+    val cableTypeMap: Map[
+      UUID,
+      edu.ie3.datamodel.models.input.connector.`type`.CableTypeInput,
+    ] =
+      subGridContainer.getRawGridTypes.getCableTypes.asScala
+        .map(ct => ct.getUuid -> ct)
+        .toMap
 
     // Resolver: resolve cable type UUID from lineType.additionalInformation "cableType" entry
     def resolveCableType(lineType: LineTypeInput): Option[CableTypeInput] =
@@ -695,7 +700,45 @@ object GridModel {
 
         direct.orElse(fallback)
       }
+
+    // Validate: every line whose line type has a cable_type must also have a
+    // cable deployment (only relevant when ampacity calculation is activated).
+    if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
+      val deploymentsByLine =
+        subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
+      val missingDeployments: Seq[String] =
+        subGridContainer.getRawGrid.getLines.asScala.toSeq.flatMap {
+          lineInput =>
+            // check whether this line's type has a cable type
+            Option(lineInput.getType)
+              .flatMap(resolveCableType)
+              .toSeq
+              .flatMap { cableType =>
+                val hasDeployment =
+                  deploymentsByLine
+                    .get(lineInput.getUuid)
+                    .exists(_.asScala.nonEmpty)
+                if hasDeployment then None
+                else
+                  Some(
+                    s"line ${lineInput.getUuid} (id: ${lineInput.getId}, lineType=${lineInput.getType.getUuid}, cableType=${cableType.getUuid})"
+                  )
+              }
+        }.toSeq
+
+      if missingDeployments.nonEmpty then
+        throw new GridAgentInitializationException(
+          s"Ampacity calculation is activated, but ${missingDeployments.size} line(s) reference a cable_type and do not have a cable deployment in cable_deployment_input.csv:\n" +
+            missingDeployments.mkString("\n") +
+            "\nPlease add a cable deployment entry for each of these lines."
+        )
+
     // 2. Dynamische Generierung der thermischen Segmente
+    // Collect each generated segment together with the coordinates it was
+    // built from, so they can be written out to the output folder afterwards.
+    val generatedSegments: scala.collection.mutable.ListBuffer[
+      (LineSegmentThermalModel, (Double, Double), (Double, Double))
+    ] = scala.collection.mutable.ListBuffer.empty
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
         // Only build thermal segments if both a cable type and a cable deployment exist
@@ -784,7 +827,7 @@ object GridModel {
                   coordinates
                     .sliding(2)
                     .collect { case Seq(start, end) =>
-                      LineSegmentThermalModel(
+                      val segment = LineSegmentThermalModel(
                         UUID.randomUUID(),
                         s"LineTher_${lineInput.getId}_${start}_${end}",
                         lineInput.getUuid,
@@ -800,6 +843,14 @@ object GridModel {
                         JoulesPerCubicMeterKelvin(1),
                         cableTypeInput.getLimitTemperature.toSquants,
                       )
+                      val entry: (
+                          LineSegmentThermalModel,
+                          (Double, Double),
+                          (Double, Double),
+                      ) =
+                        (segment, start, end)
+                      generatedSegments += entry
+                      segment
                     }
                     .toSet
                 else Set.empty
@@ -894,6 +945,13 @@ object GridModel {
       GridControls(transformerControlGroups),
     )
 
+    // Write out the generated thermal line segments to the simulation output folder
+    writeThermalSegmentsToOutput(
+      generatedSegments,
+      subGridContainer.getSubnet,
+      simonaConfig,
+    )
+
     /** Check and validates the grid. Especially the consistency of the grid
       * model the connectivity of the grid model if there is InitData for
       * superior or inferior GridGates if there exists voltage measurements for
@@ -921,6 +979,86 @@ object GridModel {
     s"""{"type": "LineString", "coordinates": [$coordinatesJson]}"""
   }
 
+  /** Writes the generated thermal line segments to a CSV file in the simulation
+    * output folder (configured via `simona.output.base.dir`).
+    *
+    * @param segments
+    *   The generated thermal segments, each with the start/end coordinates it
+    *   was built from.
+    * @param subnetNo
+    *   The subnet number, used to name the output file.
+    * @param simonaConfig
+    *   The SIMONA configuration (used to resolve the output base dir).
+    */
+  private def writeThermalSegmentsToOutput(
+      segments: Iterable[
+        (LineSegmentThermalModel, (Double, Double), (Double, Double))
+      ],
+      subnetNo: Int,
+      simonaConfig: SimonaConfig,
+  ): Unit = {
+    // If nothing to write, nothing to do
+    if segments.isEmpty then return
+
+    val baseOutputDir = Paths.get(simonaConfig.output.base.dir)
+    val simulationName = simonaConfig.simulationName
+
+    val runDirOpt: Option[java.nio.file.Path] =
+      try
+        val stream = java.nio.file.Files.list(baseOutputDir)
+        try
+          import scala.jdk.CollectionConverters.*
+          val dirs = stream
+            .filter(p =>
+              java.nio.file.Files.isDirectory(p) && p.getFileName.toString
+                .startsWith(simulationName)
+            )
+            .iterator()
+            .asScala
+            .toSeq
+          if dirs.nonEmpty then
+            Some(
+              dirs.maxBy(p =>
+                java.nio.file.Files.getLastModifiedTime(p).toMillis
+              )
+            )
+          else None
+        finally stream.close()
+      catch case _: Exception => None
+
+    val runDir = runDirOpt.getOrElse(baseOutputDir.resolve(simulationName))
+    val rawOutputDir = runDir.resolve("rawOutputData")
+    java.nio.file.Files.createDirectories(rawOutputDir)
+
+    val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
+
+    val header = "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature"
+    val rows = segments.map { case (segment, (sx, sy), (ex, ey)) =>
+      Seq(
+        segment.uuid.toString,
+        segment.lineUuid.toString,
+        sx.toString,
+        sy.toString,
+        ex.toString,
+        ey.toString,
+        segment.upperBoundaryTemperature.value.toString,
+      ).mkString(",")
+    }.toSeq
+
+    val content = rows.mkString("\n") + "\n"
+
+    // Append if the file already exists, otherwise create it with the header.
+    if java.nio.file.Files.exists(outPath) then
+      java.nio.file.Files.write(
+        outPath,
+        content.getBytes("UTF-8"),
+        java.nio.file.StandardOpenOption.CREATE,
+        java.nio.file.StandardOpenOption.APPEND,
+      )
+    else
+      java.nio.file.Files
+        .write(outPath, (header +: rows).mkString("\n").getBytes("UTF-8"))
+  }
   private def mapConductor(jc: JConductorInput): Layer = {
     val mat = CableMaterial.fromString(jc.material().toString)
     Layer(
