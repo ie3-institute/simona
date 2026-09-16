@@ -718,7 +718,7 @@ object LineThermalModelCalculations extends LazyLogging {
       )
 
     specificThermalResistivityGround * (0.475 * log(2 * u) - 0.346)
-    /*FIXME Check
+    /*FIXME DF Check
       An Improved Formula for External Thermal  Resistance of Three Buried Single-Core Metal-Sheathed Touching Cables in Flat Formation by Niksa Kovac, George Anders, and Dragan Poljak
      */
   }
@@ -866,7 +866,7 @@ object LineThermalModelCalculations extends LazyLogging {
     val phaseToGroundVoltage =
       cableSetup.voltage / sqrt(
         3
-      ) // Fixme: This should be the currentVoltage at the cable / average of both connected nodes!
+      ) // Fixme DF: This should be the currentVoltage at the cable / average of both connected nodes!
     val dielectricLosses = calcDielectricLosses(
       phaseToGroundVoltage,
       Hertz(50),
@@ -973,8 +973,8 @@ object LineThermalModelCalculations extends LazyLogging {
                 "Jack layer expected but not found for thermal resistance to soil calculation"
               )
             ),
-        ) // FIXME add tests!
-      case "trefoil-not-touching" => // FIXME Check for Trefoil
+        ) // FIXME DF add tests!
+      case "trefoil-not-touching" => // FIXME DF Check for Trefoil
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
         )
@@ -1058,7 +1058,7 @@ object LineThermalModelCalculations extends LazyLogging {
     // the RC-Network can be simplified since all parallel capacitance can be merged
     // Conductor capacitance and first part of the first half of the dielectric
     val c1 =
-      (currentLineModel.thermalCapacityCc + dielectricThermCapacitanceC11).toJoulesPerCubicMeterKelvin // FIXME check conversion factor !
+      (currentLineModel.thermalCapacityCc + dielectricThermCapacitanceC11).toJoulesPerCubicMeterKelvin // FIXME DF check conversion factor !
         // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
     val c2 =
       (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerCubicMeterKelvin
@@ -1097,7 +1097,7 @@ object LineThermalModelCalculations extends LazyLogging {
       state.lineTemperatures.currentLineTemp2.toCelsiusScale,
       state.lineTemperatures.currentLineTemp3.toCelsiusScale,
       state.lineTemperatures.currentLineTemp4.toCelsiusScale,
-      state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME: Check if this is always ambientTemp/groundTemp, then it can be removed.
+      state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME DF: Check if this is always ambientTemp/groundTemp, then it can be removed.
     )
 
     val vp = matrixA \ (-vectorB)

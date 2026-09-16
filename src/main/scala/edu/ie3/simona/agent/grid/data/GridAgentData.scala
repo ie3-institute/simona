@@ -266,7 +266,7 @@ object GridAgentData {
 
       val initialGroundTemperature = Celsius(
         20d
-      ) // FIXME Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
+      ) // FIXME DF Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
 
       val thermalLineStates =
         if ampacityCalculationParams.activateAmpacityCalculation

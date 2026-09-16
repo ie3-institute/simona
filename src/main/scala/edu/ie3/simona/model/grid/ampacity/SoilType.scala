@@ -18,7 +18,7 @@ case class SoilType(
     id: String,
     thermalResistivityWet: ThermalResistivity,
     thermalResistivityDry: ThermalResistivity,
-    specificHeatCapacity: ThermalCapacitance, // FIXME Check if required per volume or per weight
+    specificHeatCapacity: ThermalCapacitance, // FIXME DF Check if required per volume or per weight
     criticalTemperature: Temperature,
 ) {
 

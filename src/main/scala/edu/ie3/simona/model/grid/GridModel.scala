@@ -618,7 +618,7 @@ object GridModel {
         s"Found ${cableDeploymentInput.size} cable deployment entries for lines."
       )
 
-    // TODO DF move to ConfigFailFast
+    // FIXME DF move to ConfigFailFast
     // If ampacity calculation is activated, ensure required additional inputs are present
     /*
   if simonaConfig.ampacityCalculation.activateAmpacityCalculation then

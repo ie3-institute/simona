@@ -48,7 +48,7 @@ final case class LineSegmentThermalModel(
     thermalResistanceT1: ThermalResistivity,
     thermalResistanceT2: ThermalResistivity,
     thermalResistanceT3: ThermalResistivity,
-    thermalResistanceT4: ThermalResistivity, // FIXME Think about to remove this one here, since it needs to be calculated everytime new in case of changes in surrounding conditions (e.g. parallel cables and their current load)
+    thermalResistanceT4: ThermalResistivity, // FIXME DF Think about to remove this one here, since it needs to be calculated everytime new in case of changes in surrounding conditions (e.g. parallel cables and their current load)
     thermalCapacityCc: ThermalCapacitance,
     thermalCapacityCd: ThermalCapacitance,
     thermalCapacityCs: ThermalCapacitance,
@@ -93,14 +93,14 @@ final case class LineSegmentThermalModel(
       receivedData: Seq[edu.ie3.simona.service.Data],
   ): LineState = {
 
-    val point = cableSetup.pointA // FIXME averaging between pointA and pointB?
+    val point = cableSetup.pointA // FIXME DF averaging between pointA and pointB?
 
     receivedData
       .collectFirst { case weatherData: WeatherData => weatherData }
       .map { newData =>
         val (weightTempLvl3, weightTempLvl4) =
           LineSegmentThermalModel.determineWeightsGroundTemperatures(
-            Meters(cableSetup.pointA.height) // FIXME, it is not always pointA
+            Meters(cableSetup.pointA.height) // FIXME DF, it is not always pointA
           )
 
         val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
@@ -208,7 +208,7 @@ object LineSegmentThermalModel {
       cableSetup: CableSetup,
       currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
-      lineTemperatures: LineTemperatures, // FIXME Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
+      lineTemperatures: LineTemperatures, // FIXME DF Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
   ) extends ModelState
 
   def initState(
@@ -286,7 +286,7 @@ object LineSegmentThermalModel {
     val thermalCapacityCj = thermalCapacityCj1 + thermalCapacityCj2
 
     val thermalCapacityCe =
-      cableSetup.soilCapacitance // FIXME Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
+      cableSetup.soilCapacitance // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
 
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       lineSegmentModel.uuid,
