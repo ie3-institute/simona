@@ -35,7 +35,7 @@ object AmpacityResultWriter {
       Try {
         val bw = new BufferedWriter(new FileWriter(outFile.toFile, true))
         try {
-          bw.write("time,lineUuid,lineSegmentUuid,lineSegmentTemperature_C")
+          bw.write("time,lineSegmentUuid,lineSegmentTemperature_C")
           bw.newLine()
         } finally bw.close()
       } match {
@@ -53,7 +53,7 @@ object AmpacityResultWriter {
             val tempC =
               Try(res.lineSegmentTemperature.inCelsius).getOrElse(Double.NaN)
             bw.write(
-              s"${res.time},${res.lineUuid},${res.lineSegmentUuid},${tempC}"
+              s"${res.time},${res.lineSegmentUuid},${tempC}"
             )
             bw.newLine()
           }

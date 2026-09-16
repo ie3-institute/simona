@@ -12,11 +12,10 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.simona.util.TickUtil.toDateTime
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.util.scala.quantities.*
 import squants.motion.MetersPerSecond
-import squants.radio.WattsPerSquareMeter
 import squants.space.{Length, Meters}
 import squants.thermal.Celsius
 import squants.{ElectricCurrent, Kelvin, Temperature}
@@ -149,7 +148,6 @@ final case class LineSegmentThermalModel(
     Iterable(
       LineStateResult(
         dateTime,
-        lineUuid, // TODO DF this would be redundant if the linesement will be written out once in GridModel when creating them
         uuid,
         state.lineTemperatures.currentLineTemp1,
       )
@@ -160,7 +158,6 @@ final case class LineSegmentThermalModel(
 
 final case class LineStateResult(
     time: ZonedDateTime,
-    lineUuid: UUID,
     lineSegmentUuid: UUID,
     lineSegmentTemperature: Temperature,
 )
