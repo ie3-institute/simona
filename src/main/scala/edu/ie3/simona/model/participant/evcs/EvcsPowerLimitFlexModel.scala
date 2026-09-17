@@ -116,7 +116,7 @@ class EvcsPowerLimitFlexModel(private val model: EvcsModel)
       power: Power,
       currentTick: Long,
   ): Option[Long] = {
-    implicit val tolerance: Power = model.calcPowerTolerance
+    implicit val tolerance: Power = model.calcPowerTolerance(ev)
 
     val maxPower = model.getMaxAvailableChargingPower(ev)
 
