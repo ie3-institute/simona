@@ -27,13 +27,13 @@ addition to that, a grid agent (GA) manages interactions between subgrids and wi
 ![SIMONA Message Protocol Overview](images/usersguide/agent_messages.png)
 
 ## Use Cases
-SIMONA can be applied to a range of research and development tasks related to electrical distribution systems, with a particular focus on power flow analysis in grid planning and operation. Typical application areas include
+SIMONA can be applied to a range of research and development tasks related to electrical distribution systems, with a particular focus on power flow analysis in grid planning and operation. Typical application areas include:
 
 - **Distribution Grid Planning:**  
   Generation of grid utilisation and power flow time series for future scenarios. These results can be used to analyse hosting capacity, evaluate grid reinforcement measures, and assess the impact of new technologies.
 
 - **Grid Operation and Congestion Analysis:**  
-  Investigation of operational challenges in distribution grids with high shares of distributed energy resources, using power flow analysis. Possible mitigation measures such as coordinated control strategies or transformer tap changes are described in the {doc}`Congestion Management ` section.
+  Investigation of operational challenges in distribution grids with high shares of distributed energy resources, using power flow analysis. Possible mitigation measures such as coordinated control strategies or transformer tap changes are described in the {doc}`functionality/congestionmanagement ` section.
 
 - **Energy Management and Flexibility Utilisation:**  
   Evaluation of energy management strategies and the coordinated utilisation of flexibility from distributed energy resources such as batteries, controllable loads, and distributed generation.
@@ -45,10 +45,9 @@ SIMONA can be applied to a range of research and development tasks related to el
   Coupling with models from other domains, such as mobility simulations, enables the analysis of electric vehicle charging demand and its impact on grid operation.
 
 - **Synthetic Data Generation for Data‑Driven Methods:**  
-  Generation of physically consistent synthetic grid operation data that can be used to develop and validate data‑driven approaches, for example machine‑learning‑based state estimation; see the {doc}`Neural State Estimation ` section.
+  Generation of physically consistent synthetic grid operation data that can be used to develop and validate data‑driven approaches, for example machine‑learning‑based state estimation; see the {doc}`functionality/neuralstateestimation ` section.
 
-For an overview of the implemented functionalities, see the {doc}`Functionality ` section.
-
+For an overview of the implemented functionalities, see the {doc}`functionality ` section.
 ## Further Information and Contact Details
 
 Please, visit the SIMONA [website](https://simona.ie3.e-technik.tu-dortmund.de) for further Information. There you will
