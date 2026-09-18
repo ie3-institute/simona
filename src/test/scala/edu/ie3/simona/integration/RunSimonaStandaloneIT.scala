@@ -219,6 +219,7 @@ class RunSimonaStandaloneIT
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
+      simonaSetup.actualResults.size shouldBe expectedResults.size
       simonaSetup.actualResults.foreach { case (key, result) =>
         checkResult(result, expectedResults(key)).withClue(
           s"$result\n${expectedResults(key)}"
@@ -302,6 +303,7 @@ class RunSimonaStandaloneIT
       checkRuntimeEvents(runtimeEventQueue.asScala)
 
       // check result data
+      simonaSetup.actualResults.size shouldBe expectedResults.size
       simonaSetup.actualResults.foreach { case (key, result) =>
         checkResult(result, expectedResults(key)).withClue(
           s"$result\n${expectedResults(key)}"
