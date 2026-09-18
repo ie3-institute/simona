@@ -29,6 +29,7 @@ import edu.ie3.datamodel.models.result.{
 import edu.ie3.simona.config.{ConfigFailFast, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.*
+import edu.ie3.simona.event.listener.{DelayedStopHelper, ResultListener}
 import edu.ie3.simona.integration.common.IntegrationSpecCommon
 import edu.ie3.simona.main.RunSimonaStandalone
 import edu.ie3.simona.ontology.messages.ResultMessage
@@ -39,7 +40,7 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
-import org.apache.pekko.actor.typed.ActorRef
+import org.apache.pekko.actor.typed.{ActorRef, PostStop}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.scalatest.BeforeAndAfterAll
 
@@ -47,7 +48,9 @@ import java.io.File
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
+import scala.collection.concurrent.TrieMap
 import scala.collection.mutable
+import scala.concurrent.Await
 import scala.jdk.CollectionConverters.*
 
 class RunSimonaStandaloneIT
@@ -69,10 +72,10 @@ class RunSimonaStandaloneIT
       override val simonaConfig: SimonaConfig,
       override val args: Array[String] = Array.empty[String],
       override val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]],
-      val actualResults: mutable.Map[
+      val actualResults: TrieMap[
         (UUID, ZonedDateTime, Class[? <: ResultEntity]),
         ResultEntity,
-      ] = mutable.Map.empty,
+      ] = TrieMap.empty,
   ) extends SimonaSetup(typeSafeConfig, simonaConfig, args, runtimeEventQueue) {
 
     override def resultServiceProxy(
@@ -103,37 +106,36 @@ class RunSimonaStandaloneIT
     )
     val expectedResults
         : Map[(UUID, ZonedDateTime, Class[? <: ResultEntity]), ResultEntity] = {
-      val sourse = new ResultEntitySource(expectedResultSource)
+      val source = new ResultEntitySource(expectedResultSource)
       val tmp = mutable.Map
         .empty[(UUID, ZonedDateTime, Class[? <: ResultEntity]), ResultEntity]
 
       def add(res: ResultEntity): Unit =
         tmp.put((res.getInputModel, res.getTime, res.getClass), res)
 
-      sourse.getNodeResults.forEach(add)
-      sourse.getNodeResults.forEach(add)
-      sourse.getSwitchResults.forEach(add)
-      sourse.getLineResults.forEach(add)
-      sourse.getTransformer2WResultResults.forEach(add)
-      sourse.getTransformer3WResultResults.forEach(add)
-      sourse.getPowerLimitFlexOptionsResults.forEach(add)
-      sourse.getEnergyBoundariesFlexOptionsResults.forEach(add)
-      sourse.getLoadResults.forEach(add)
-      sourse.getPvResults.forEach(add)
-      sourse.getFixedFeedInResults.forEach(add)
-      sourse.getBmResults.forEach(add)
-      sourse.getChpResults.forEach(add)
-      sourse.getWecResults.forEach(add)
-      sourse.getStorageResults.forEach(add)
-      sourse.getEvcsResults.forEach(add)
-      sourse.getEvResults.forEach(add)
-      sourse.getAcResults.forEach(add)
-      sourse.getHpResults.forEach(add)
-      sourse.getCylindricalStorageResult.forEach(add)
-      sourse.getDomesticHotWaterStorageResult.forEach(add)
-      sourse.getThermalHouseResults.forEach(add)
-      sourse.getEmResults.forEach(add)
-      sourse.getCongestionResults.forEach(add)
+      source.getNodeResults.forEach(add)
+      source.getSwitchResults.forEach(add)
+      source.getLineResults.forEach(add)
+      source.getTransformer2WResultResults.forEach(add)
+      source.getTransformer3WResultResults.forEach(add)
+      source.getPowerLimitFlexOptionsResults.forEach(add)
+      source.getEnergyBoundariesFlexOptionsResults.forEach(add)
+      source.getLoadResults.forEach(add)
+      source.getPvResults.forEach(add)
+      source.getFixedFeedInResults.forEach(add)
+      source.getBmResults.forEach(add)
+      source.getChpResults.forEach(add)
+      source.getWecResults.forEach(add)
+      source.getStorageResults.forEach(add)
+      source.getEvcsResults.forEach(add)
+      source.getEvResults.forEach(add)
+      source.getAcResults.forEach(add)
+      source.getHpResults.forEach(add)
+      source.getCylindricalStorageResult.forEach(add)
+      source.getDomesticHotWaterStorageResult.forEach(add)
+      source.getThermalHouseResults.forEach(add)
+      source.getEmResults.forEach(add)
+      source.getCongestionResults.forEach(add)
 
       tmp.toMap
     }
@@ -218,7 +220,9 @@ class RunSimonaStandaloneIT
 
       // check result data
       simonaSetup.actualResults.foreach { case (key, result) =>
-        checkResult(result, expectedResults(key))
+        checkResult(result, expectedResults(key)).withClue(
+          s"$result\n${expectedResults(key)}"
+        )
       }
 
     }
@@ -299,7 +303,9 @@ class RunSimonaStandaloneIT
 
       // check result data
       simonaSetup.actualResults.foreach { case (key, result) =>
-        checkResult(result, expectedResults(key))
+        checkResult(result, expectedResults(key)).withClue(
+          s"$result\n${expectedResults(key)}"
+        )
       }
 
     }
@@ -371,88 +377,114 @@ class RunSimonaStandaloneIT
     actual.getTime shouldBe expected.getTime
 
     (actual, expected) match {
-      case (a: NodeResult, e: NodeResult) =>
-        a.getvAng should equalWithTolerance(e.getvAng)
-        a.getvMag should equalWithTolerance(e.getvMag)
+      case (actualResult: NodeResult, expectedResult: NodeResult) =>
+        actualResult.getvAng should equalWithTolerance(expectedResult.getvAng)
+        actualResult.getvMag should equalWithTolerance(expectedResult.getvMag)
 
-      case (a: CongestionResult, e: CongestionResult) =>
-        a.getSubgrid shouldBe e.getSubgrid
-        a.getType shouldBe e.getType
-        a.getValue should equalWithTolerance(a.getValue)
-        a.getMin should equalWithTolerance(a.getMin)
-        a.getMax should equalWithTolerance(a.getMax)
-
-      case (a: Transformer3WResult, e: Transformer3WResult) =>
-        a.getiAAng should equalWithTolerance(e.getiAAng)
-        a.getiAMag should equalWithTolerance(e.getiAMag)
-        a.getiBAng should equalWithTolerance(e.getiBAng)
-        a.getiBMag should equalWithTolerance(e.getiBMag)
-        a.getiCAng should equalWithTolerance(e.getiCAng)
-        a.getiCMag should equalWithTolerance(e.getiCMag)
-        a.getTapPos shouldBe e.getTapPos
-
-      case (a: TransformerResult, e: TransformerResult) =>
-        a.getiAAng should equalWithTolerance(e.getiAAng)
-        a.getiAMag should equalWithTolerance(e.getiAMag)
-        a.getiBAng should equalWithTolerance(e.getiBAng)
-        a.getiBMag should equalWithTolerance(e.getiBMag)
-        a.getTapPos shouldBe e.getTapPos
-
-      case (a: ConnectorResult, e: ConnectorResult) =>
-        a.getiAAng should equalWithTolerance(e.getiAAng)
-        a.getiAMag should equalWithTolerance(e.getiAMag)
-        a.getiBAng should equalWithTolerance(e.getiBAng)
-        a.getiBMag should equalWithTolerance(e.getiBMag)
-
-      case (a: SwitchResult, e: SwitchResult) =>
-        a.getClosed shouldBe e.getClosed
+      case (actualResult: CongestionResult, expectedResult: CongestionResult) =>
+        actualResult.getSubgrid shouldBe expectedResult.getSubgrid
+        actualResult.getType shouldBe expectedResult.getType
+        actualResult.getValue should equalWithTolerance(expectedResult.getValue)
+        actualResult.getMin should equalWithTolerance(expectedResult.getMin)
+        actualResult.getMax should equalWithTolerance(expectedResult.getMax)
 
       case (
-            a: SystemParticipantWithHeatResult,
-            e: SystemParticipantWithHeatResult,
+            actualResult: Transformer3WResult,
+            expectedResult: Transformer3WResult,
           ) =>
-        a.getP should equalWithTolerance(e.getP)
-        a.getQ should equalWithTolerance(e.getQ)
-        a.getqDot should equalWithTolerance(e.getqDot)
+        actualResult.getiAAng should equalWithTolerance(expectedResult.getiAAng)
+        actualResult.getiAMag should equalWithTolerance(expectedResult.getiAMag)
+        actualResult.getiBAng should equalWithTolerance(expectedResult.getiBAng)
+        actualResult.getiBMag should equalWithTolerance(expectedResult.getiBMag)
+        actualResult.getiCAng should equalWithTolerance(expectedResult.getiCAng)
+        actualResult.getiCMag should equalWithTolerance(expectedResult.getiCMag)
+        actualResult.getTapPos shouldBe expectedResult.getTapPos
 
       case (
-            a: ElectricalEnergyStorageResult,
-            e: ElectricalEnergyStorageResult,
+            actualResult: TransformerResult,
+            expectedResult: TransformerResult,
           ) =>
-        a.getP should equalWithTolerance(e.getP)
-        a.getQ should equalWithTolerance(e.getQ)
-        a.getSoc should equalWithTolerance(e.getSoc)
+        actualResult.getiAAng should equalWithTolerance(expectedResult.getiAAng)
+        actualResult.getiAMag should equalWithTolerance(expectedResult.getiAMag)
+        actualResult.getiBAng should equalWithTolerance(expectedResult.getiBAng)
+        actualResult.getiBMag should equalWithTolerance(expectedResult.getiBMag)
+        actualResult.getTapPos shouldBe expectedResult.getTapPos
 
-      case (a: PowerLimitFlexOptionsResult, e: PowerLimitFlexOptionsResult) =>
-        a.getpMin should equalWithTolerance(e.getpMin)
-        e.getpRef should equalWithTolerance(e.getpRef)
-        a.getpMax should equalWithTolerance(e.getpMax)
+      case (actualResult: ConnectorResult, expectedResult: ConnectorResult) =>
+        actualResult.getiAAng should equalWithTolerance(expectedResult.getiAAng)
+        actualResult.getiAMag should equalWithTolerance(expectedResult.getiAMag)
+        actualResult.getiBAng should equalWithTolerance(expectedResult.getiBAng)
+        actualResult.getiBMag should equalWithTolerance(expectedResult.getiBMag)
+
+      case (actualResult: SwitchResult, expectedResult: SwitchResult) =>
+        actualResult.getClosed shouldBe expectedResult.getClosed
 
       case (
-            a: EnergyBoundariesFlexOptionsResult,
-            e: EnergyBoundariesFlexOptionsResult,
+            actualResult: SystemParticipantWithHeatResult,
+            expectedResult: SystemParticipantWithHeatResult,
           ) =>
-        a.getpMin should equalWithTolerance(e.getpMin)
-        a.getpMax should equalWithTolerance(e.getpMax)
-        a.geteState should equalWithTolerance(e.geteState)
-        a.geteMin should equalWithTolerance(e.geteMin)
-        a.geteMax should equalWithTolerance(e.geteMax)
+        actualResult.getP should equalWithTolerance(expectedResult.getP)
+        actualResult.getQ should equalWithTolerance(expectedResult.getQ)
+        actualResult.getqDot should equalWithTolerance(expectedResult.getqDot)
 
-      case (a: SystemParticipantResult, e: SystemParticipantResult) =>
-        a.getP should equalWithTolerance(e.getP)
-        a.getQ should equalWithTolerance(e.getQ)
+      case (
+            actualResult: ElectricalEnergyStorageResult,
+            expectedResult: ElectricalEnergyStorageResult,
+          ) =>
+        actualResult.getP should equalWithTolerance(expectedResult.getP)
+        actualResult.getQ should equalWithTolerance(expectedResult.getQ)
+        actualResult.getSoc should equalWithTolerance(expectedResult.getSoc)
 
-      case (a: AbstractThermalStorageResult, e: AbstractThermalStorageResult) =>
-        a.getqDot should equalWithTolerance(e.getqDot)
-        a.getEnergy should equalWithTolerance(e.getEnergy)
-        a.getFillLevel should equalWithTolerance(e.getFillLevel)
+      case (
+            actualResult: PowerLimitFlexOptionsResult,
+            expectedResult: PowerLimitFlexOptionsResult,
+          ) =>
+        actualResult.getpMin should equalWithTolerance(expectedResult.getpMin)
+        actualResult.getpRef should equalWithTolerance(expectedResult.getpRef)
+        actualResult.getpMax should equalWithTolerance(expectedResult.getpMax)
 
-      case (a: ThermalHouseResult, e: ThermalHouseResult) =>
-        a.getqDot should equalWithTolerance(e.getqDot)
-        a.getIndoorTemperature should equalWithTolerance(e.getIndoorTemperature)
+      case (
+            actualResult: EnergyBoundariesFlexOptionsResult,
+            expectedResult: EnergyBoundariesFlexOptionsResult,
+          ) =>
+        actualResult.getpMin should equalWithTolerance(expectedResult.getpMin)
+        actualResult.getpMax should equalWithTolerance(expectedResult.getpMax)
+        actualResult.geteState should equalWithTolerance(
+          expectedResult.geteState
+        )
+        actualResult.geteMin should equalWithTolerance(expectedResult.geteMin)
+        actualResult.geteMax should equalWithTolerance(expectedResult.geteMax)
 
-      case (a, e) =>
-        fail(s"Can't compare $a and $e.")
+      case (
+            actualResult: SystemParticipantResult,
+            expectedResult: SystemParticipantResult,
+          ) =>
+        actualResult.getP should equalWithTolerance(expectedResult.getP)
+        actualResult.getQ should equalWithTolerance(expectedResult.getQ)
+
+      case (
+            actualResult: AbstractThermalStorageResult,
+            expectedResult: AbstractThermalStorageResult,
+          ) =>
+        actualResult.getqDot should equalWithTolerance(expectedResult.getqDot)
+        actualResult.getEnergy should equalWithTolerance(
+          expectedResult.getEnergy
+        )
+        actualResult.getFillLevel should equalWithTolerance(
+          expectedResult.getFillLevel
+        )
+
+      case (
+            actualResult: ThermalHouseResult,
+            expectedResult: ThermalHouseResult,
+          ) =>
+        actualResult.getqDot should equalWithTolerance(expectedResult.getqDot)
+        actualResult.getIndoorTemperature should equalWithTolerance(
+          expectedResult.getIndoorTemperature
+        )
+
+      case (actualResult, expectedResult) =>
+        fail(s"Can't compare $actualResult and $expectedResult.")
     }
   }
 
