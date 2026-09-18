@@ -156,10 +156,9 @@ object ParticipantAgentFactory {
               // only include evcs if ev data service is present
               case evcsInput: EvcsInput
                   if environmentRefs.evDataService.isEmpty =>
-                ctx.log.warn(
-                  s"Evcs ${evcsInput.getId} has been removed because no ev movements service is present."
+                throw new CriticalFailureException(
+                  s"EVCS ${evcsInput.getId} requires an external simulation, but no ev data service is present."
                 )
-                (notProcessedElements, availableSystemParticipants)
               case entity =>
                 (notProcessedElements, availableSystemParticipants :+ entity)
             }
