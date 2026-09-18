@@ -9,6 +9,11 @@ package edu.ie3.simona.model.em.opt
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.CommonLossObjectiveFactory.*
 import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.*
+import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.{
+  FixedPowerVarAssetStepSymbols,
+  MinAbsPowerObjective,
+  PowerVarAssetStepSymbols,
+}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroEurPerKWh, zeroKW}
@@ -34,11 +39,11 @@ import java.util.UUID
   * which is kept close to the real absolute value by using a soft constraint.
   */
 abstract class CommonLossObjectiveFactory
-    extends ObjectiveFactory[CommonLossAssetStepSymbols] {
+    extends PowerVariableObjectiveFactory {
 
   override def createAssetSymbols(
       assetParams: AssetStepParameters
-  )(using model: MPModel): CommonLossAssetStepSymbols =
+  )(using model: MPModel): PowerVarAssetStepSymbols =
     assetParams match {
       case fixedPower: FixedPowerStepParameters =>
         FixedCommonLossAssetStepSymbols(fixedPower)
@@ -124,39 +129,6 @@ abstract class CommonLossObjectiveFactory
         )
     }
 
-  /** Creates an absolute variable of the difference between power sum and
-    * target power.
-    *
-    * @param assetSymbols
-    *   The asset symbols to optimize for.
-    * @param target
-    *   The target power for each time step.
-    * @param stepStartTick
-    *   The tick at the start of the interval.
-    * @param model
-    *   The optimization model to add variables and constraints to.
-    * @return
-    *   The absolute difference variable.
-    */
-  protected def createAbsDifference(
-      assetSymbols: Iterable[CommonLossAssetStepSymbols],
-      target: Power,
-      stepStartTick: Long,
-  )(using model: MPModel): Expression = {
-    val difference =
-      createPowerSum(assetSymbols) - Const(target.toKilowatts)
-
-    createAbsoluteVariable(difference, s"differenceAbs_$stepStartTick")
-  }
-
-  protected def createPowerSum(
-      assetSymbols: Iterable[CommonLossAssetStepSymbols]
-  ): Expression =
-    assetSymbols
-      .map(_.getOperationPowerSymbol)
-      .reduceOption[Expression](_ + _)
-      .getOrElse(Zero)
-
 }
 
 object CommonLossObjectiveFactory {
@@ -164,37 +136,9 @@ object CommonLossObjectiveFactory {
   /** Creates an objective that simply minimizes the absolute value of the sum
     * of power by using an epigraph constraint.
     */
-  object MinAbsPowerObjectiveFactory extends CommonLossObjectiveFactory {
-
-    override def getRequiredSecondaryServices: Iterable[ServiceType] =
-      Iterable.empty
-
-    override def build(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[CommonLossAssetStepSymbols]
-        ],
-        target: Power,
-        receivedData: Seq[Data.SecondaryData],
-    )(using model: MPModel): Expression = {
-      sortSymbolsByTick(assetSymbols)
-        // create objective expression for every time step
-        .map { case (stepStartTick, tickAssetSymbols) =>
-          val absDiff =
-            createAbsDifference(tickAssetSymbols, target, stepStartTick)
-          val softConstraint = tickAssetSymbols
-            .flatMap(_.objectiveAddition)
-            .reduceOption[Expression](_ + _)
-            .getOrElse(Zero)
-
-          absDiff + softConstraint
-        }
-        // combine expressions of all time steps
-        .reduceOption[Expression](_ + _)
-        .getOrElse(Zero)
-    }
-
-  }
+  object MinAbsPowerObjectiveFactory
+      extends CommonLossObjectiveFactory
+      with MinAbsPowerObjective
 
   /** Creates an objective that uses a piecewise-linear (over-)approximation of
     * the quadratic function on the sum of power. Effectively, higher power
@@ -210,7 +154,8 @@ object CommonLossObjectiveFactory {
     */
   class LinearizedQuadraticPowerObjectiveFactory(
       segmentCount: Int
-  ) extends CommonLossObjectiveFactory {
+  ) extends CommonLossObjectiveFactory
+      with PowerVariableObjectiveFactory {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
@@ -218,7 +163,7 @@ object CommonLossObjectiveFactory {
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetSymbols: Iterable[
-          AssetSymbolContainer[CommonLossAssetStepSymbols]
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
         ],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
@@ -299,7 +244,9 @@ object CommonLossObjectiveFactory {
     * Since we assume that the buying price is always higher than the selling
     * price, we can use an epigraph to derive a linear objective.
     */
-  object PriceObjectiveFactory extends CommonLossObjectiveFactory {
+  object PriceObjectiveFactory
+      extends CommonLossObjectiveFactory
+      with PowerVariableObjectiveFactory {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable(ServiceType.PriceService)
@@ -307,7 +254,7 @@ object CommonLossObjectiveFactory {
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetSymbols: Iterable[
-          AssetSymbolContainer[CommonLossAssetStepSymbols]
+          AssetSymbolContainer[PowerVarAssetStepSymbols]
         ],
         target: Power,
         receivedData: Seq[Data.SecondaryData],
@@ -391,19 +338,7 @@ object CommonLossObjectiveFactory {
   /** Trait for container that provides symbols for a specific asset and
     * optimization time step, to be used by [[CommonLossObjectiveFactory]].
     */
-  trait CommonLossAssetStepSymbols extends AssetStepSymbols {
-
-    /** An additional expression that can be (but is not required to be) added
-      * to the objective for the given asset and time step.
-      */
-    lazy val objectiveAddition: Option[Expression]
-
-    /** Returns the operation power symbol in kW (variable or constant) for the
-      * given asset and time step.
-      */
-    def getOperationPowerSymbol: Expression
-
-  }
+  private trait CommonLossAssetStepSymbols extends PowerVarAssetStepSymbols
 
   /** Container that provides symbols for a specific asset and for an
     * optimization time step in which power is fixed, to be used by
@@ -414,26 +349,9 @@ object CommonLossObjectiveFactory {
     *   Parameters for the asset at the specific time step.
     */
   private final case class FixedCommonLossAssetStepSymbols(
-      assetParams: FixedPowerStepParameters
-  ) extends CommonLossAssetStepSymbols {
-
-    lazy val objectiveAddition: Option[Expression] = None
-
-    private lazy val power = assetParams.energyChange / assetParams.sampleTime
-
-    override def getOperationPowerSymbol: Expression = Const(power.toKilowatts)
-
-    override def getStateSymbol: Expression = Const(
-      assetParams.stepEndEnergy.toKilowattHours
-    )
-
-    override def getOperatingPowerResult: Power = power
-
-    override def getStateOfEnergyResult: Energy = assetParams.stepEndEnergy
-
-    override def getAccuracyCheck: Option[ResultAccuracyCheck] = None
-
-  }
+      override val assetParams: FixedPowerStepParameters
+  ) extends CommonLossAssetStepSymbols
+      with FixedPowerVarAssetStepSymbols
 
   /** Container that provides symbols for a specific asset and for an
     * optimization time step in which power is variable, to be used by
@@ -466,8 +384,8 @@ object CommonLossObjectiveFactory {
       energyConversionFactor: Double = 1d,
   ) extends CommonLossAssetStepSymbols {
 
-    lazy val objectiveAddition: Option[Expression] = powerAbs.map { pAbs =>
-      pAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
+    override lazy val objectiveAddition: Option[Expression] = powerAbs.map {
+      pAbs => pAbs * Const(1 - etaCommon.toEach + penaltyEpsilon)
     }
 
     override def getOperationPowerSymbol: Expression = power
@@ -493,29 +411,16 @@ object CommonLossObjectiveFactory {
     *   [[power]].
     */
   private final case class PowerAbsVariableAccuracyCheck(
-      power: MPFloatVar,
-      powerAbs: MPFloatVar,
+      power: MPVar,
+      powerAbs: MPVar,
   ) extends ResultAccuracyCheck {
 
-    override def getError: Double = {
-      val (value, absoluteValue) = getVals
-      math.abs(math.abs(value) - absoluteValue)
-    }
+    override def getError: Double =
+      math.abs(math.abs(power.getValue) - powerAbs.getValue)
 
-    override def getWarningMessage: String = {
-      val (value, absoluteValue) = getVals
-      s"Approximated absolute power value $absoluteValue kW" +
-        s"and correct absolute power value ${math.abs(value)} kW are $getError kW apart."
-    }
-
-    private def getVals: (Double, Double) =
-      power.value
-        .zip(powerAbs.value)
-        .getOrElse(
-          throw new CriticalFailureException(
-            "Solution are expected to be determined at this point!"
-          )
-        )
+    override def getWarningMessage: String =
+      s"Approximated absolute power value ${powerAbs.getValue} kW" +
+        s"and correct absolute power value ${math.abs(power.getValue)} kW are $getError kW apart."
 
   }
 
