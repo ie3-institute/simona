@@ -45,7 +45,10 @@ import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
-import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.common.TestSpawnerTyped
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.simona.util.ConfigUtil.{NotifierIdentifier, OutputConfigUtil}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.scala.quantities.Megavars
@@ -58,15 +61,49 @@ import squants.Each
 import squants.electro.Kilovolts
 import squants.energy.Megawatts
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.language.postfixOps
 
 class DBFSAlgorithmParticipantSpec
     extends ScalaTestWithActorTestKit
     with DBFSMockGridAgents
-    with ConfigTestData
     with DbfsTestGridWithParticipants
     with TestSpawnerTyped {
+
+  private val simonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
+      )
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    powerflow = Some(
+      SimonaConfig.Powerflow(
+        maxSweepPowerDeviation = 1e-5,
+        newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
+          epsilon = List(1e-12),
+          iterations = 50,
+        ),
+        stopOnFailure = true,
+      )
+    ),
+    simulationName = "DBFSAlgorithmParticipantSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
+
+  private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+  private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 
   private val scheduler: TestProbe[SchedulerMessage] = TestProbe("scheduler")
   private val runtimeEvents: TestProbe[RuntimeEvent] =
