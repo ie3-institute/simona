@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
+import com.typesafe.config.ConfigFactory
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.input.connector.{
   SwitchInput,
@@ -35,7 +36,7 @@ import edu.ie3.simona.test.common.model.grid.{
   BasicGridWithSwitches,
   DbfsTestGrid,
 }
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
@@ -419,7 +420,31 @@ class PowerFlowSupportSpec
     }
   }
 
-  object TestData extends DbfsTestGrid with ConfigTestData {
+  object TestData extends DbfsTestGrid {
+
+    private val typesafeConfig = ConfigFactory
+      .parseString(
+        """
+        |simona.simulationName = "PowerFlowSupportSpec"
+        |
+        |simona.time.startDateTime = "2011-05-01T00:00:00Z"
+        |simona.time.endDateTime   = "2011-05-01T01:00:00Z"
+        |
+        |simona.input.grid.datasource.id = "csv"
+        |
+        |simona.output.base.dir = "testOutput/"
+        |simona.output.base.addTimestampToOutputDir = false
+        |
+        |simona.powerflow.maxSweepPowerDeviation = 1E-5
+        |simona.powerflow.stopOnFailure = true
+        |simona.powerflow.newtonraphson.epsilon = [1E-12]
+        |simona.powerflow.newtonraphson.iterations = 50
+        |""".stripMargin
+      )
+      .resolve()
+
+    private val simonaConfig: SimonaConfig = SimonaConfig(typesafeConfig)
+
     val time: SimonaConfig.Time = simonaConfig.time
 
     implicit def toZoneDateTime(timeString: String): ZonedDateTime =

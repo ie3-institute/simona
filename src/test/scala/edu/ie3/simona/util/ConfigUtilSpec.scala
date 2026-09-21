@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.util
 
-import com.typesafe.config.ConfigFactory
+import com.typesafe.config.{Config, ConfigFactory}
 import edu.ie3.datamodel.models.result.connector.{
   LineResult,
   SwitchResult,
@@ -26,18 +26,53 @@ import edu.ie3.simona.config.SimonaConfig.apply as _
 import edu.ie3.simona.config.{OutputConfig, SimonaConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.exceptions.InvalidConfigParameterException
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.ConfigUtil.*
 import edu.ie3.simona.util.ConfigUtil.NotifierIdentifier.*
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 
 import java.util
-import java.util.UUID
 
-class ConfigUtilSpec
-    extends UnitSpec
-    with TableDrivenPropertyChecks
-    with ConfigTestData {
+class ConfigUtilSpec extends UnitSpec with TableDrivenPropertyChecks {
+
+  private val typesafeConfig: Config = ConfigFactory
+    .parseString(
+      """
+      |simona {
+      |  simulationName = "ConfigUtilSpec"
+      |
+      |  time {
+      |    startDateTime = "2011-05-01T00:00:00Z"
+      |    endDateTime = "2011-05-01T01:00:00Z"
+      |  }
+      |
+      |  input {
+      |    grid {
+      |      datasource {
+      |        id = "csv"
+      |      }
+      |    }
+      |  }
+      |
+      |  output {
+      |    base {
+      |      dir = "testOutput/"
+      |      addTimestampToOutputDir = false
+      |    }
+      |  }
+      |
+      |  powerflow {
+      |    maxSweepPowerDeviation = 1E-5
+      |    stopOnFailure = true
+      |    newtonraphson {
+      |      epsilon = [1E-12]
+      |      iterations = 50
+      |    }
+      |  }
+      |}
+      |""".stripMargin
+    )
+    .resolve()
 
   "The em config util" should {
     "be created correctly with valid data" in {
