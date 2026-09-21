@@ -442,7 +442,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @param xm
     *   Mutual Reactance per Length.
     * @return
-    *   Loss factor lambda1'.
+    *   Loss factor lambda1.
     */
   private def calcLambda1DashFlatDistance(
       r: ElectricalResistancePerLength,
@@ -876,8 +876,7 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val (acResistanceSheath, sheatAverageDiameter) =
       cableSetup.screenLayer match {
-        case Some(layer) => {
-
+        case Some(layer) =>
           val resistance = calcAcResistanceSheath(
             cableSetup.screenLayer,
             cableSetup.limitTemperature,
@@ -887,7 +886,6 @@ object LineThermalModelCalculations extends LazyLogging {
           )
           val diameter = (layer.innerDiameter + layer.outerDiameter) / 2
           (resistance, diameter)
-        }
 
         case None => (OhmsPerMeter(0d), Millimeters(0d))
       }

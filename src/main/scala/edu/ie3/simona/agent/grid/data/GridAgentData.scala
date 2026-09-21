@@ -265,7 +265,7 @@ object GridAgentData {
         ] // initialization is assumed to be always with no sweep data
 
       val initialGroundTemperature = Celsius(
-        20d
+        10d
       ) // FIXME DF Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
 
       val thermalLineStates =

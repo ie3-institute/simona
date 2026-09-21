@@ -25,7 +25,8 @@ case class SoilType(
   /** Returns the current thermal conductivity based on the ground temperature.
     * This is essential for the iterative calculation of the drying zones.
     */
-  def currentThermalResistitivy(
+  // FIXME DF not used atm
+  def currentThermalResistivity(
       temperature: Temperature
   ): ThermalResistivity = {
     if temperature >= criticalTemperature then thermalResistivityDry

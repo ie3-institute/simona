@@ -93,14 +93,17 @@ final case class LineSegmentThermalModel(
       receivedData: Seq[edu.ie3.simona.service.Data],
   ): LineState = {
 
-    val point = cableSetup.pointA // FIXME DF averaging between pointA and pointB?
+    val point =
+      cableSetup.pointA // FIXME DF averaging between pointA and pointB?
 
     receivedData
       .collectFirst { case weatherData: WeatherData => weatherData }
       .map { newData =>
         val (weightTempLvl3, weightTempLvl4) =
           LineSegmentThermalModel.determineWeightsGroundTemperatures(
-            Meters(cableSetup.pointA.height) // FIXME DF, it is not always pointA
+            Meters(
+              cableSetup.pointA.height
+            ) // FIXME DF, it is not always pointA
           )
 
         val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
@@ -163,29 +166,6 @@ final case class LineStateResult(
 )
 
 object LineSegmentThermalModel {
-  protected def temperatureTolerance: Temperature = Kelvin(0.01d)
-
-  def apply(
-      input: LineModel
-  ): LineSegmentThermalModel = {
-    val cableSetup = ???
-    new LineSegmentThermalModel(
-      UUID.randomUUID(),
-      input.id,
-      input.uuid,
-      cableSetup,
-      KelvinMetersPerWatt(1),
-      KelvinMetersPerWatt(1),
-      KelvinMetersPerWatt(1),
-      KelvinMetersPerWatt(1),
-      JoulesPerCubicMeterKelvin(1),
-      JoulesPerCubicMeterKelvin(1),
-      JoulesPerCubicMeterKelvin(1),
-      JoulesPerCubicMeterKelvin(1),
-      JoulesPerCubicMeterKelvin(1),
-      Celsius(90),
-    )
-  }
 
   /** State of a thermal line segment model.
     *

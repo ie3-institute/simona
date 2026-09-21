@@ -177,8 +177,6 @@ case object LineModel extends LazyLogging {
       b,
     )
 
-    // FIXME DF Build ThermalLineModel here from LineString/Geopositions as well
-
     // if the line input model is in operation, enable the model
     if operationInterval.includes(SimonaConstants.FIRST_TICK_IN_SIMULATION) then
       lineModel.enable()

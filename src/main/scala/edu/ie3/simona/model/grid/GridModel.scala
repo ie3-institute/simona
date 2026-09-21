@@ -10,14 +10,7 @@ import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
-import edu.ie3.datamodel.models.input.connector.`type`.{
-  CableMaterial,
-  CableTypeInput,
-  LineTypeInput,
-  ConductorInput as JConductorInput,
-  LayerInput as JLayerInput,
-  ScreenLayerInput as JScreenLayerInput,
-}
+import edu.ie3.datamodel.models.input.connector.`type`.{CableTypeInput, LineTypeInput, ConductorInput as JConductorInput, LayerInput as JLayerInput, ScreenLayerInput as JScreenLayerInput}
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -25,25 +18,13 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
-  PowerFlowCaseA,
-  PowerFlowCaseB,
-  PowerFlowCaseC,
-}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
 import edu.ie3.simona.model.grid.ampacity.*
-import edu.ie3.simona.util.{CollectionUtils, Coordinate3D}
+import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.{
-  JoulesPerCubicMeterKelvin,
-  KelvinMetersPerWatt,
-}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
-import play.api.libs.json.*
-import squants.Meters
-import squants.space.Millimeters
-import squants.thermal.Celsius
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.time.ZonedDateTime
@@ -535,320 +516,21 @@ object GridModel {
       nodeInput => NodeModel(nodeInput, startDate, endDate)
     }
 
-    // lines and cableTypes
+    // lines
     val lines: Set[LineModel] =
       subGridContainer.getRawGrid.getLines.asScala.map { lineInput =>
         getConnectedNodes(lineInput, nodes)
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
-    // helper: read a CSV from the configured grid csv directory only
-    def readFromConfiguredDir[T](
-        fileName: String,
-        parser: Path => Try[Seq[T]],
-    ): Try[Seq[T]] = {
-      simonaConfig.input.grid.datasource.csvParams.map(_.directoryPath) match {
-        case Some(dir) =>
-          val p = Paths.get(dir).resolve(fileName)
-          if Files.exists(p) then parser(p)
-          else Success(Seq.empty[T])
-        case None => Success(Seq.empty[T])
-      }
-    }
-
-    // Read and add SoilLayers
-    val soilLayersTry: Try[Seq[SoilLayer]] = readFromConfiguredDir[SoilLayer](
-      "soilLayers.csv",
-      SoilDataParser.readSoilLayers,
-    )
-    val soilLayers: Seq[SoilLayer] =
-      soilLayersTry.getOrElse(Seq.empty[SoilLayer])
-
-    // Read and add SoilTypes (needed to map soil layer references)
-    val soilTypesTry: Try[Seq[SoilType]] = readFromConfiguredDir[SoilType](
-      "soilTypes.csv",
-      SoilDataParser.readSoilTypes,
-    )
-    val soilTypes: Seq[SoilType] = soilTypesTry.getOrElse(Seq.empty[SoilType])
-
-    // If ampacity calculation is activated, soil layers/types must be available and readable
-    if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
-      // layers errors
-      soilLayersTry match
-        case Failure(cause) =>
-          throw new GridAgentInitializationException(
-            "Ampacity calculation is activated, but reading soil layers failed. Please ensure 'soilLayers.csv' is present and valid.",
-            cause,
-          )
-        case Success(layers) if layers.isEmpty =>
-          throw new GridAgentInitializationException(
-            "Ampacity calculation is activated, but no soil layers were found. Please provide 'soilLayers.csv' with valid entries."
-          )
-        case _ => // ok
-    // If ampacity calculation is activated, also check types errors
-    if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
-      soilTypesTry match
-        case Failure(cause) =>
-          throw new GridAgentInitializationException(
-            "Ampacity calculation is activated, but reading soil types failed. Please ensure 'soilTypes.csv' is present and valid.",
-            cause,
-          )
-        case Success(types) if types.isEmpty =>
-          throw new GridAgentInitializationException(
-            "Ampacity calculation is activated, but no soil types were found. Please provide 'soilTypes.csv' with valid entries."
-          )
-        case _ => // ok
-    // If both present, check that layers reference existing types
-    if simonaConfig.ampacityCalculation.activateAmpacityCalculation && soilLayers.nonEmpty && soilTypes.nonEmpty
-    then
-      val missingRefs =
-        SoilDataParser.associateLayersWithTypes(soilLayers, soilTypes).collect {
-          case (l, None) => l
-        }
-      if missingRefs.nonEmpty then
-        throw new GridAgentInitializationException(
-          s"Ampacity calculation is activated, but ${missingRefs.size} soil layers reference missing soil types. Please ensure soilTypes.csv contains the referenced UUIDs."
-        )
-
-    val cableDeploymentInput =
-      subGridContainer.getRawGrid.getCableDeploymentsByLine
-
-    if cableDeploymentInput.size > 0 then
-      print(
-        s"Found ${cableDeploymentInput.size} cable deployment entries for lines."
-      )
-
-    // FIXME DF move to ConfigFailFast
-    // If ampacity calculation is activated, ensure required additional inputs are present
-    /*
-  if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
-    // Require at least one cable type available
-    if cableTypeMap.isEmpty then
-     throw new GridAgentInitializationException(
-       "Ampacity calculation is activated, but no cable types are available. Please provide at least one cable type."
-      )
-
-    // Require at least one cable deployment entry
-    val deploymentsByLine = subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
-   if deploymentsByLine.isEmpty then
-     throw new GridAgentInitializationException(
-       "Ampacity calculation is activated, but no cable deployment entries were provided. Please provide at least one cable deployment."
-      )
-     */
-
-    // Build map of available cable types (to resolve references from line types)
-    val cableTypeMap: Map[
-      UUID,
-      edu.ie3.datamodel.models.input.connector.`type`.CableTypeInput,
-    ] =
-      subGridContainer.getRawGridTypes.getCableTypes.asScala
-        .map(ct => ct.getUuid -> ct)
-        .toMap
-
-    // Resolver: resolve cable type UUID from lineType.additionalInformation "cableType" entry
-    def resolveCableType(lineType: LineTypeInput): Option[CableTypeInput] =
-      Option(lineType.getAdditionalInformation).flatMap { ai =>
-        // helper: try to extract a UUID string from different shapes (String, Map, other)
-        def extractUuidFromValue(v: Any): Option[CableTypeInput] = {
-          val asString: Option[String] = Option(v).collect { case s: String =>
-            s
-          }
-
-          val fromMap: Option[String] =
-            try {
-              val m = v.asInstanceOf[java.util.Map[?, ?]]
-              Option(m.get("cableType")).collect { case ss: String => ss }
-            } catch { case _: ClassCastException => None }
-
-          val candidate: Option[String] =
-            asString.orElse(fromMap).orElse(Option(v).map(_.toString))
-
-          candidate.flatMap(s =>
-            Try(UUID.fromString(s)).toOption.flatMap(cableTypeMap.get)
-          )
-        }
-
-        // Try direct "cableType" entry first
-        val direct: Option[CableTypeInput] =
-          Option(ai.get("cableType")).flatMap(extractUuidFromValue)
-
-        // Fallback: look for nested "additionalInformation" that may contain a JSON string or map
-        val fallback: Option[CableTypeInput] =
-          Option(ai.get("additionalInformation")).flatMap {
-            case s: String =>
-              Try {
-                val js = Json.parse(s)
-                (js \\ "cableType").headOption
-                  .flatMap(_.asOpt[String])
-                  .flatMap(str =>
-                    Try(UUID.fromString(str)).toOption.flatMap(cableTypeMap.get)
-                  )
-              }.toOption.flatten
-            case other =>
-              extractUuidFromValue(other)
-          }
-
-        direct.orElse(fallback)
-      }
-
-    // Validate: every line whose line type has a cable_type must also have a
-    // cable deployment (only relevant when ampacity calculation is activated).
-    if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
-      val deploymentsByLine =
-        subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
-      val missingDeployments: Seq[String] =
-        subGridContainer.getRawGrid.getLines.asScala.toSeq.flatMap {
-          lineInput =>
-            // check whether this line's type has a cable type
-            Option(lineInput.getType)
-              .flatMap(resolveCableType)
-              .toSeq
-              .flatMap { cableType =>
-                val hasDeployment =
-                  deploymentsByLine
-                    .get(lineInput.getUuid)
-                    .exists(_.asScala.nonEmpty)
-                if hasDeployment then None
-                else
-                  Some(
-                    s"line ${lineInput.getUuid} (id: ${lineInput.getId}, lineType=${lineInput.getType.getUuid}, cableType=${cableType.getUuid})"
-                  )
-              }
-        }.toSeq
-
-      if missingDeployments.nonEmpty then
-        throw new GridAgentInitializationException(
-          s"Ampacity calculation is activated, but ${missingDeployments.size} line(s) reference a cable_type and do not have a cable deployment in cable_deployment_input.csv:\n" +
-            missingDeployments.mkString("\n") +
-            "\nPlease add a cable deployment entry for each of these lines."
-        )
-
-    // 2. Dynamische Generierung der thermischen Segmente
-    // Collect each generated segment together with the coordinates it was
-    // built from, so they can be written out to the output folder afterwards.
-    val generatedSegments: scala.collection.mutable.ListBuffer[
-      (LineSegmentThermalModel, (Double, Double), (Double, Double))
-    ] = scala.collection.mutable.ListBuffer.empty
-    val thermalLineSegments: Set[LineSegmentThermalModel] =
-      subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
-        // Only build thermal segments if both a cable type and a cable deployment exist
-        Option(lineInput.getType).toSeq.flatMap { lineType =>
-          resolveCableType(lineType).toSeq.flatMap { cableTypeInput =>
-            val deploymentsByLine =
-              subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
-            val deploymentListOpt = deploymentsByLine.get(lineInput.getUuid)
-            val firstDeploymentOpt =
-              deploymentListOpt.map(_.asScala).flatMap(_.headOption)
-
-            // If no deployment, skip this line
-            firstDeploymentOpt.toSeq.flatMap { firstDeployment =>
-              // Geometrische Stützpunkte aus dem GeoJSON extrahieren
-              val jsonStringLineInput = lineInputToJson(lineInput)
-              val json = Json.parse(jsonStringLineInput)
-              val coordinates: Seq[(Double, Double)] =
-                (json \ "coordinates")
-                  .asOpt[JsArray]
-                  .map(_.value.toSeq.collect {
-                    case pair: JsArray if pair.value.size >= 2 =>
-                      (pair.value(0).as[Double], pair.value(1).as[Double])
-                  })
-                  .getOrElse(Seq.empty)
-
-              val conductor: Layer = mapConductor(cableTypeInput.getConductor)
-              val isolation: List[Layer] =
-                cableTypeInput.getIsolation.asScala.map(mapLayer).toList
-              val screen: Option[ScreenLayer] =
-                cableTypeInput.getScreen.toScala.map(mapScreen)
-              val filler: List[Layer] = Option(cableTypeInput.getFiller)
-                .map(_.asScala.map(mapLayer).toList)
-                .getOrElse(List.empty)
-              val armor: List[Layer] = Option(cableTypeInput.getArmor)
-                .map(_.asScala.map(mapLayer).toList)
-                .getOrElse(List.empty)
-              val jack: List[Layer] =
-                cableTypeInput.getJack.asScala.map(mapLayer).toList
-
-              val deploymentPattern: String =
-                Option(firstDeployment.getLayoutFormation).getOrElse(
-                  throw new NoSuchElementException(
-                    "No deployment pattern available"
-                  )
-                )
-
-              val conductorDistance =
-                Option(firstDeployment.getDistanceCables)
-                  .map(_.toSquants)
-                  .getOrElse(Meters(1))
-
-              val cable: CableSetup = CableSetup(
-                cableTypeInput.getUuid,
-                cableTypeInput.getId,
-                Coordinate3D(0.0, 0.0, -1.0),
-                Coordinate3D(1.0, 0.0, -1.0),
-                conductor,
-                isolation,
-                screen,
-                filler,
-                armor,
-                jack,
-                deploymentPattern,
-                conductorDistance,
-                cableTypeInput.getJack.asScala.lastOption
-                  .map(_.outerDiameter().toSquants)
-                  .getOrElse(
-                    throw new NoSuchElementException("No jack available")
-                  ),
-                KelvinMetersPerWatt(1),
-                JoulesPerCubicMeterKelvin(1),
-                cableTypeInput.getLimitTemperature.toSquants,
-                lineType.getvRated().toSquants,
-                cableTypeInput.getFrequency.toSquants,
-                lineType.getR.toResistancePerLength,
-                cableTypeInput.getSkinEffectCoefficient,
-                cableTypeInput.getProximityEffectCoefficient,
-                cableTypeInput.getElectricalCapacitance.toSquants,
-                cableTypeInput.getTanDelta,
-                cableTypeInput.getCirculatingLossFactor,
-                cableTypeInput.getEddyCurrentLossFactor,
-              )
-
-              val segments =
-                if coordinates.size >= 2 then
-                  coordinates
-                    .sliding(2)
-                    .collect { case Seq(start, end) =>
-                      val segment = LineSegmentThermalModel(
-                        UUID.randomUUID(),
-                        s"LineTher_${lineInput.getId}_${start}_${end}",
-                        lineInput.getUuid,
-                        cable,
-                        KelvinMetersPerWatt(1),
-                        KelvinMetersPerWatt(1),
-                        KelvinMetersPerWatt(1),
-                        KelvinMetersPerWatt(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        cableTypeInput.getLimitTemperature.toSquants,
-                      )
-                      val entry: (
-                          LineSegmentThermalModel,
-                          (Double, Double),
-                          (Double, Double),
-                      ) =
-                        (segment, start, end)
-                      generatedSegments += entry
-                      segment
-                    }
-                    .toSet
-                else Set.empty
-              segments
-            }
-          }
-        }
-      }.toSet
+    // Build thermal line segments and soil layers when ampacity calculation
+    // is activated; otherwise no soil layers and no thermal line segments.
+    val (soilLayers, thermalLineSegments) =
+      if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
+        val buildResult =
+          ThermalSegmentBuilder.build(subGridContainer, simonaConfig)
+        (buildResult.soilLayers, buildResult.thermalLineSegments)
+      else (Seq.empty[SoilLayer], Set.empty[LineSegmentThermalModel])
 
 // / transformers
     val transformers: Set[TransformerModel] =
@@ -935,13 +617,6 @@ object GridModel {
       GridControls(transformerControlGroups),
     )
 
-    // Write out the generated thermal line segments to the simulation output folder
-    writeThermalSegmentsToOutput(
-      generatedSegments,
-      subGridContainer.getSubnet,
-      simonaConfig,
-    )
-
     /** Check and validates the grid. Especially the consistency of the grid
       * model the connectivity of the grid model if there is InitData for
       * superior or inferior GridGates if there exists voltage measurements for
@@ -955,134 +630,6 @@ object GridModel {
 
 // return
     gridModel
-  }
-
-  def lineInputToJson(lineInput: LineInput): String = {
-    val lineString = lineInput.getGeoPosition
-
-    val coordinatesJson = lineString.getCoordinates
-      .map { coord =>
-        s"[${coord.x}, ${coord.y}]"
-      }
-      .mkString(",")
-
-    s"""{"type": "LineString", "coordinates": [$coordinatesJson]}"""
-  }
-
-  /** Writes the generated thermal line segments to a CSV file in the simulation
-    * output folder (configured via `simona.output.base.dir`).
-    *
-    * @param segments
-    *   The generated thermal segments, each with the start/end coordinates it
-    *   was built from.
-    * @param subnetNo
-    *   The subnet number, used to name the output file.
-    * @param simonaConfig
-    *   The SIMONA configuration (used to resolve the output base dir).
-    */
-  private def writeThermalSegmentsToOutput(
-      segments: Iterable[
-        (LineSegmentThermalModel, (Double, Double), (Double, Double))
-      ],
-      subnetNo: Int,
-      simonaConfig: SimonaConfig,
-  ): Unit = {
-    // If nothing to write, nothing to do
-    if segments.isEmpty then return
-
-    val baseOutputDir = Paths.get(simonaConfig.output.base.dir)
-    val simulationName = simonaConfig.simulationName
-
-    val runDirOpt: Option[Path] =
-      try
-        val stream = Files.list(baseOutputDir)
-        try
-          val dirs = stream
-            .filter(p =>
-              Files.isDirectory(p) && p.getFileName.toString.startsWith(
-                simulationName
-              )
-            )
-            .iterator()
-            .asScala
-            .toSeq
-          if dirs.nonEmpty then
-            Some(dirs.maxBy(p => Files.getLastModifiedTime(p).toMillis))
-          else None
-        finally stream.close()
-      catch case _: Exception => None
-
-    val runDir = runDirOpt.getOrElse(baseOutputDir.resolve(simulationName))
-    val rawOutputDir = runDir.resolve("rawOutputData")
-    Files.createDirectories(rawOutputDir)
-
-    val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
-
-    val header = "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature"
-    val rows = segments.map { case (segment, (sx, sy), (ex, ey)) =>
-      Seq(
-        segment.uuid.toString,
-        segment.lineUuid.toString,
-        sx.toString,
-        sy.toString,
-        ex.toString,
-        ey.toString,
-        segment.upperBoundaryTemperature.value.toString,
-      ).mkString(",")
-    }.toSeq
-
-    val content = rows.mkString("\n") + "\n"
-
-    // Append if the file already exists, otherwise create it with the header.
-    if Files.exists(outPath) then
-      Files.write(
-        outPath,
-        content.getBytes("UTF-8"),
-        StandardOpenOption.CREATE,
-        StandardOpenOption.APPEND,
-      )
-    else Files.write(outPath, (header +: rows).mkString("\n").getBytes("UTF-8"))
-  }
-  private def mapConductor(jc: JConductorInput): Layer = {
-    val mat = CableMaterial.fromString(jc.material().toString)
-    Layer(
-      jc.name(),
-      mat,
-      Millimeters(0.0),
-      jc.diameter().toSquants,
-      jc.thermalResistivity().toSquants,
-      jc.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
-      jc.area().toScala.map(_.toSquants),
-    )
-  }
-
-  private def mapLayer(jl: JLayerInput): Layer = {
-    val mat = CableMaterial.fromString(jl.material().toString)
-    Layer(
-      jl.name(),
-      mat,
-      jl.innerDiameter().toSquants,
-      jl.outerDiameter().toSquants,
-      jl.thermalResistivity().toSquants,
-      jl.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
-      jl.area().toScala.map(_.toSquants),
-    )
-  }
-
-  private def mapScreen(js: JScreenLayerInput): ScreenLayer = {
-    val mat = CableMaterial.fromString(js.material().toString)
-    ScreenLayer(
-      mat,
-      js.innerDiameter().toSquants,
-      js.outerDiameter().toSquants,
-      js.thermalResistivity().toSquants,
-      js.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
-      js.area().toScala.map(_.toSquants),
-      js.wiresNumber,
-      js.wireDiameter.toSquants,
-      js.lengthOfLay().toScala.map(_.toSquants),
-      js.electricalResistivity.toSquants,
-    )
   }
 
   /** Updates the internal state of the [[GridModel.nodeUuidToIndexMap]] to
