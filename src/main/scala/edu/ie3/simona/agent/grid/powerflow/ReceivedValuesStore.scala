@@ -102,7 +102,7 @@ final case class ReceivedValuesStore(
     }
   }
 
-  def nodeToReceivedPower: Map[UUID, Set[PowerResponse]] = {
+  def nodeToReceivedPower: Map[UUID, Seq[PowerResponse]] = {
     val keys = nodeToReceivedAssetPower.keySet ++ nodeToReceivedGridPower.keySet
 
     keys.map { key =>
@@ -111,7 +111,7 @@ final case class ReceivedValuesStore(
       val gridOption =
         nodeToReceivedGridPower.getOrElse(key, mutable.Set.empty).toSet
 
-      key -> (assetOption ++ gridOption)
+      key -> (assetOption ++ gridOption).toSeq
     }.toMap
   }
 
