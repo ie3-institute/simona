@@ -50,6 +50,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added ground temperatures to weather data [#1818](https://github.com/ie3-institute/simona/issues/1818)
 - Include staging step to Maven Central in CI pipeline [#1834](https://github.com/ie3-institute/simona/issues/1834)
 - Added use cases for SIMONA [#1814](https://github.com/ie3-institute/simona/issues/1814)
+- Added check for data in `RunSimonaStandaloneIT` [#1491](https://github.com/ie3-institute/simona/issues/1491)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
