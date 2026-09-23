@@ -8,12 +8,13 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.service.Data.SecondaryData.CurrentVoltage
+import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import org.scalatest.matchers.should.Matchers
+import squants.electro.Kilovolts
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
 import squants.{Amperes, Energy, Kelvin, Meters, Power, Temperature}
-import squants.electro.Kilovolts
 
 class LineSegmentThermalModelSpec
     extends UnitSpec
@@ -87,25 +88,9 @@ class LineSegmentThermalModelSpec
             defaultSimulationStart,
           )
 
-          updatedState match {
-            case LineState(
-                  tick,
-                  lastTick,
-                  _,
-                  _,
-                  _,
-                  lineTemperatures,
-                  _,
-                ) =>
-              lineTemperatures.currentLineTemp1 should approximate(
-                expectedLineTemp
-              )
-
-            case unexpected =>
-              fail(
-                s"Expected a thermal line model state but got none $unexpected."
-              )
-          }
+          updatedState.lineTemperatures.currentLineTemp1 should approximate(
+            expectedLineTemp
+          )
       }
     }
 
@@ -149,13 +134,18 @@ class LineSegmentThermalModelSpec
         LineSegmentThermalModel.determineWeightsGroundTemperatures(
           Meters(initialState.cableSetup.pointA.height)
         )
+      val groundTempLvl3 = weatherData.groundTempLvl3.getOrElse(
+        fail("Test weather data must provide ground temperature level 3.")
+      )
+      val groundTempLvl4 = weatherData.groundTempLvl4.getOrElse(
+        fail("Test weather data must provide ground temperature level 4.")
+      )
       val expectedGroundTemperature =
-        weatherData.groundTempLvl3.get * weightTempLvl3 +
-          weatherData.groundTempLvl4.get * weightTempLvl4
+        groundTempLvl3 * weightTempLvl3 + groundTempLvl4 * weightTempLvl4
 
-      updatedState.currentVoltage shouldBe receivedVoltage
-      updatedState.groundTemperature should approximate(
-        expectedGroundTemperature
+      updatedState.currentVoltage.shouldBe(receivedVoltage)
+      updatedState.groundTemperature.should(
+        approximate(expectedGroundTemperature)
       )
     }
 

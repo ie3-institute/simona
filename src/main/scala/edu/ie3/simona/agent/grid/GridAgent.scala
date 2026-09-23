@@ -7,7 +7,6 @@
 package edu.ie3.simona.agent.grid
 
 import edu.ie3.simona.actor.SimonaActorNaming
-import edu.ie3.simona.agent.grid.AmpacityCalculationMessages.DoAmpacityCalculation
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.{
   FinishedInitialization,
   PowerFlowResults,
@@ -23,8 +22,8 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
@@ -38,6 +37,7 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 import squants.ElectricCurrent
 import squants.electro.Amperes
+import squants.{Each, Dimensionless}
 
 import java.util.UUID
 
@@ -195,12 +195,12 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       (model, storeOpt)
     }
 
-    val nodeVoltageInSi = lastValueStore
+    val mainRefSystem = gridModel.mainRefSystem
+    val nodeVoltageInPu = lastValueStore
       .map { valueStore =>
-        val mainRefSystem = gridModel.mainRefSystem
         valueStore.sweepData.map { svd =>
-          // Convert the node voltage magnitude in p.u. to SI value
-          svd.nodeUuid -> mainRefSystem.vInSi(svd.stateData.voltage.abs)
+          val pu = Each(svd.stateData.voltage.abs)
+          svd.nodeUuid -> pu
         }.toMap
       }
       .getOrElse(Map.empty)
@@ -231,12 +231,29 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
             if currentFromPFResults >= Amperes(0d) then currentFromPFResults
             else currentFromPFResults * -1
 
+          val nominalVoltage = lineSegment.cableSetup.voltage
+          val nominalVoltagePu = mainRefSystem.vInPu(nominalVoltage)
+
+          val cableVoltage = gridModel.gridComponents.lines
+            .find(_.uuid == lineSegment.lineUuid)
+            .map { line =>
+              val voltageAtNodeAPu =
+                nodeVoltageInPu.getOrElse(line.nodeAUuid, nominalVoltagePu)
+              val voltageAtNodeBPu =
+                nodeVoltageInPu.getOrElse(line.nodeBUuid, nominalVoltagePu)
+
+              val avgPu =
+                Each((voltageAtNodeAPu.toEach + voltageAtNodeBPu.toEach) / 2d)
+              mainRefSystem.vInSi(avgPu)
+            }
+            .getOrElse(nominalVoltage)
+
           val lineStateWithInput = lineSegment.handleInput(
             lastLineState,
             Seq(
-              edu.ie3.simona.service.Data.SecondaryData.CurrentVoltage(
+              SecondaryData.CurrentVoltage(
                 lineSegment.uuid,
-                currentVoltageAtCable(lineSegment),
+                cableVoltage,
               )
             ),
           )
@@ -363,26 +380,4 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     buffer.stash(msg)
   }
 
-  /** Returns the current voltage at the cable, i.e. the average of the voltages
-    * at both connected nodes of the line. Falls back to the nominal cable
-    * voltage, if a node voltage is not available.
-    *
-    * @param lineSegment
-    *   the thermal line segment the voltage is asked for
-    * @return
-    *   the voltage as ElectricPotential
-    */
-  private def currentVoltageAtCable(
-      lineSegment: LineSegmentThermalModel
-  ): ElectricPotential = {
-    val nominalVoltage = lineSegment.cableSetup.voltage
-    gridModel.gridComponents.lines
-      .find(_.uuid == lineSegment.lineUuid)
-      .map { line =>
-        val vA = nodeVoltageInSi.getOrElse(line.nodeAUuid, nominalVoltage)
-        val vB = nodeVoltageInSi.getOrElse(line.nodeBUuid, nominalVoltage)
-        (vA + vB) / 2d
-      }
-      .getOrElse(nominalVoltage)
-  }
 }

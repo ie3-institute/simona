@@ -7,11 +7,11 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
-import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.test.common.input.{
   CigreT880LandCable33kV,
   LineSegmentThermalModelInputData,
 }
+import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.*
 import squants.electro.*
 import squants.energy.{Power, Watts}
@@ -728,5 +728,36 @@ class LineThermalModelCalculationsSpec
       )
 
     actual.currentLineTemp1 should approximate(expected)
+  }
+
+  "use the current cable voltage for dielectric losses in the RC network" in {
+    val tick = 972000L
+    val groundTemperature = Celsius(20)
+    val initialState = LineSegmentThermalModel.initState(
+      cigreT880LandCable33kV,
+      lineSegmentThermalModel,
+      groundTemperature,
+    )
+    val expected = Celsius(20.94639208923625)
+
+    val temperatureAtNominalVoltage =
+      createAndCalcRCNetworkMvCableShortDuration(
+        tick,
+        initialState.copy(currentVoltage = Kilovolts(33)),
+        Amperes(0),
+        groundTemperature,
+      )
+    val temperatureAtDoubleVoltage =
+      createAndCalcRCNetworkMvCableShortDuration(
+        tick,
+        initialState.copy(currentVoltage = Kilovolts(66)),
+        Amperes(0),
+        groundTemperature,
+      )
+
+    temperatureAtDoubleVoltage.currentLineTemp1 should be >
+      temperatureAtNominalVoltage.currentLineTemp1
+
+    temperatureAtDoubleVoltage.currentLineTemp1 should approximate(expected)
   }
 }
