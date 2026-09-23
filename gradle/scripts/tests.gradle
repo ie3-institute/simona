@@ -7,6 +7,9 @@ tasks.named("test", Test) {
     events("skipped", "failed")
     exceptionFormat = "full"
   }
+
+  maxHeapSize = '4g'
+  minHeapSize = '1g'
 }
 
 // test task performance improvements, see -> https://docs.gradle.org/current/userguide/performance.html
