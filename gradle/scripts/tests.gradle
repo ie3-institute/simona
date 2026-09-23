@@ -7,6 +7,9 @@ tasks.named("test", Test) {
     events("skipped", "failed")
     exceptionFormat = "full"
   }
+
+  maxHeapSize = '4g'
+  minHeapSize = '1g'
 }
 
 // test task performance improvements, see -> https://docs.gradle.org/current/userguide/performance.html
@@ -14,7 +17,7 @@ tasks.withType(Test).configureEach {
   // No parallel execution in order to avoid problems with insufficient computation resources/timeouts.
   // Sequential execution might be even faster, as some limited tests have shown.
   maxParallelForks = 1
-  forkEvery = 100
+  forkEvery = 1000
 }
 
 tasks.withType(JavaCompile).configureEach {
