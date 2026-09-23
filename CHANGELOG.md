@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved parsing of runtime parameters via input files [#1875](https://github.com/ie3-institute/simona/issues/1875)
 - Enhanced PvModelITSpec to ensure temporal consistency and validate all expected PV results [#1130](https://github.com/ie3-institute/simona/issues/1130)
 - Throws exception if external simulation is expected but not found [#1263](https://github.com/ie3-institute/simona/issues/1263)
+- Adapted to changes in simonaAPI version 0.16.0 [#1924](https://github.com/ie3-institute/simona/issues/1924)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

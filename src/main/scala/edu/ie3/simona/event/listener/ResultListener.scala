@@ -186,7 +186,7 @@ object ResultListener {
   def external(connection: ExtResultListener): Behavior[Message] =
     Behaviors.receivePartial[Message] {
       case (_, ResultResponse(results)) =>
-        connection.queueExtResponseMsg(
+        connection.handleResponseMsg(
           new ProvideResultEntities(results.asJava)
         )
 
