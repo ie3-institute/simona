@@ -472,6 +472,12 @@ class CommonLossObjectiveFactorySpec
           optimization would overestimate the losses of discharging
           in the first half in order allow for more charging in the
           second half.
+
+          The optimal solution accepts a higher discharging power in
+          the first half in order to charge more in the second half.
+          Here, we do not achieve optimal results, because the soft
+          constraint on pAbs pushes down p as well, so it prefers
+          a lower total amount of power.
          */
 
         val batRes = assetSymbols.res(batUUID)
@@ -605,7 +611,7 @@ class CommonLossObjectiveFactorySpec
       val batFlex = EnergyBoundariesFlexOptions(
         AssetEnergyBoundaries(
           eStorage = KilowattHours(12),
-          currentEnergy = KilowattHours(6),
+          currentEnergy = KilowattHours(5),
           pMax = Kilowatts(10),
           etaCharge = Each(0.8),
           etaDischarge = Each(0.8),
@@ -689,24 +695,24 @@ class CommonLossObjectiveFactorySpec
           evcsRes(0).energyVal should approximate(7)
           // battery is left with 0
           batRes(0).pVal should approximate(0)
-          batRes(0).energyVal should approximate(6)
+          batRes(0).energyVal should approximate(5)
 
           // EV needs to take the 4 kW to reach its target
           evcsRes(1).pVal should approximate(4)
           evcsRes(1).energyVal should approximate(9)
           // battery is left with 0
           batRes(1).pVal should approximate(0)
-          batRes(1).energyVal should approximate(6)
+          batRes(1).energyVal should approximate(5)
 
           // EV is not available from here on
 
           // discharging 5 kWh
           batRes(2).pVal should approximate(-8)
-          batRes(2).energyVal should approximate(1)
+          batRes(2).energyVal should approximate(0)
 
           // charging 3.2 kWh
           batRes(3).pVal should approximate(8)
-          batRes(3).energyVal should approximate(4.2)
+          batRes(3).energyVal should approximate(3.2)
 
         } withClue buildDebugString(assetSymbols)
 
