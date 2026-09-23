@@ -7,16 +7,18 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
-import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
+import edu.ie3.simona.service.Data.SecondaryData.CurrentVoltage
+import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.thermal.Celsius
 import squants.{Amperes, Energy, Kelvin, Meters, Power, Temperature}
+import squants.electro.Kilovolts
 
 class LineSegmentThermalModelSpec
     extends UnitSpec
     with LineSegmentThermalModelInputData
+    with WeatherTestData
     with Matchers {
 
   // Testing tolerances
@@ -93,6 +95,7 @@ class LineSegmentThermalModelSpec
                   _,
                   _,
                   lineTemperatures,
+                  _,
                 ) =>
               lineTemperatures.currentLineTemp1 should approximate(
                 expectedLineTemp
@@ -126,6 +129,34 @@ class LineSegmentThermalModelSpec
         w4 should approximate(expectedW4)
         (w3 + w4) should approximate(1.0)
       }
+    }
+
+    "handle mixed weather and voltage data" in {
+      val initialState = LineSegmentThermalModel.initState(
+        cigreT880LandCable33kV,
+        lineSegmentThermalModel,
+        Celsius(20),
+      )
+      val receivedVoltage = Kilovolts(20)
+      val updatedState = lineSegmentThermalModel.handleInput(
+        initialState,
+        Seq(
+          weatherData,
+          CurrentVoltage(lineSegmentThermalModel.uuid, receivedVoltage),
+        ),
+      )
+      val (weightTempLvl3, weightTempLvl4) =
+        LineSegmentThermalModel.determineWeightsGroundTemperatures(
+          Meters(initialState.cableSetup.pointA.height)
+        )
+      val expectedGroundTemperature =
+        weatherData.groundTempLvl3.get * weightTempLvl3 +
+          weatherData.groundTempLvl4.get * weightTempLvl4
+
+      updatedState.currentVoltage shouldBe receivedVoltage
+      updatedState.groundTemperature should approximate(
+        expectedGroundTemperature
+      )
     }
 
   }

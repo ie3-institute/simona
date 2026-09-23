@@ -23,6 +23,7 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.util.TickUtil.toDateTime
@@ -186,40 +187,67 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val doAmpacityCalc =
       constantData.simonaConfig.ampacityCalculation.activateAmpacityCalculation
 
+    // Get the node voltages of the last power flow result
+    val (gridModel, lastValueStore) = {
+      val model = gridAgentBaseData.gridEnv.gridModel
+      val storeOpt = gridAgentBaseData.sweepValueStores.lastOption
+        .map { case (_, valueStore) => valueStore }
+      (model, storeOpt)
+    }
+
+    val nodeVoltageInSi = lastValueStore
+      .map { valueStore =>
+        val mainRefSystem = gridModel.mainRefSystem
+        valueStore.sweepData.map { svd =>
+          // Convert the node voltage magnitude in p.u. to SI value
+          svd.nodeUuid -> mainRefSystem.vInSi(svd.stateData.voltage.abs)
+        }.toMap
+      }
+      .getOrElse(Map.empty)
+
     val updatedThermalLineStates = {
       if doAmpacityCalc then {
-        gridAgentBaseData.gridEnv.gridModel.gridComponents.thermalLineSegments.map {
-          lineSegment =>
-            val lastLineState =
-              gridAgentBaseData.thermalLineStates.getOrElse(
-                lineSegment.uuid,
+        gridModel.gridComponents.thermalLineSegments.map { lineSegment =>
+          val lastLineState =
+            gridAgentBaseData.thermalLineStates.getOrElse(
+              lineSegment.uuid,
+              throw new RuntimeException(
+                s"No previous state for line ${lineSegment.uuid}"
+              ),
+            )
+
+          val currentFromPFResults: ElectricCurrent =
+            results.toSeq
+              .flatMap(_.lineResults)
+              .find(_.getInputModel == lineSegment.lineUuid)
+              .map(_.getiAMag().toSquants)
+              .getOrElse(
                 throw new RuntimeException(
-                  s"No previous state for line ${lineSegment.uuid}"
-                ),
-              )
-
-            val currentFromPFResults: ElectricCurrent =
-              results.toSeq
-                .flatMap(_.lineResults)
-                .find(_.getInputModel == lineSegment.lineUuid)
-                .map(_.getiAMag().toSquants)
-                .getOrElse(
-                  throw new RuntimeException(
-                    s"No power flow result for line ${lineSegment.lineUuid}"
-                  )
+                  s"No power flow result for line ${lineSegment.lineUuid}"
                 )
-
-            val lineCurrent =
-              if currentFromPFResults >= Amperes(0d) then currentFromPFResults
-              else currentFromPFResults * -1
-
-            lineSegment.uuid ->
-              lineSegment.determineState(
-                currentTick,
-                lastLineState,
-                lineCurrent,
-                gridAgentBaseData.simulationStart,
               )
+
+          val lineCurrent =
+            if currentFromPFResults >= Amperes(0d) then currentFromPFResults
+            else currentFromPFResults * -1
+
+          val lineStateWithInput = lineSegment.handleInput(
+            lastLineState,
+            Seq(
+              edu.ie3.simona.service.Data.SecondaryData.CurrentVoltage(
+                lineSegment.uuid,
+                currentVoltageAtCable(lineSegment),
+              )
+            ),
+          )
+
+          lineSegment.uuid ->
+            lineSegment.determineState(
+              currentTick,
+              lineStateWithInput,
+              lineCurrent,
+              gridAgentBaseData.simulationStart,
+            )
         }.toMap
       } else {
         gridAgentBaseData.thermalLineStates
@@ -333,5 +361,28 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   ): Unit = {
     log.debug(s"Received unsupported msg: $msg. Stash away!")
     buffer.stash(msg)
+  }
+
+  /** Returns the current voltage at the cable, i.e. the average of the voltages
+    * at both connected nodes of the line. Falls back to the nominal cable
+    * voltage, if a node voltage is not available.
+    *
+    * @param lineSegment
+    *   the thermal line segment the voltage is asked for
+    * @return
+    *   the voltage as ElectricPotential
+    */
+  private def currentVoltageAtCable(
+      lineSegment: LineSegmentThermalModel
+  ): ElectricPotential = {
+    val nominalVoltage = lineSegment.cableSetup.voltage
+    gridModel.gridComponents.lines
+      .find(_.uuid == lineSegment.lineUuid)
+      .map { line =>
+        val vA = nodeVoltageInSi.getOrElse(line.nodeAUuid, nominalVoltage)
+        val vB = nodeVoltageInSi.getOrElse(line.nodeBUuid, nominalVoltage)
+        (vA + vB) / 2d
+      }
+      .getOrElse(nominalVoltage)
   }
 }

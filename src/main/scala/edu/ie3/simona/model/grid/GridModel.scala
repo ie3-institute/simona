@@ -10,7 +10,13 @@ import breeze.linalg.DenseMatrix
 import breeze.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
-import edu.ie3.datamodel.models.input.connector.`type`.{CableTypeInput, LineTypeInput, ConductorInput as JConductorInput, LayerInput as JLayerInput, ScreenLayerInput as JScreenLayerInput}
+import edu.ie3.datamodel.models.input.connector.`type`.{
+  CableTypeInput,
+  LineTypeInput,
+  ConductorInput as JConductorInput,
+  LayerInput as JLayerInput,
+  ScreenLayerInput as JScreenLayerInput,
+}
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -18,7 +24,11 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.GridComponents
-import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{PowerFlowCaseA, PowerFlowCaseB, PowerFlowCaseC}
+import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
+  PowerFlowCaseA,
+  PowerFlowCaseB,
+  PowerFlowCaseC,
+}
 import edu.ie3.simona.model.grid.ampacity.*
 import edu.ie3.simona.util.CollectionUtils
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*

@@ -11,14 +11,15 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.service.Data
+import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.util.TickUtil.toDateTime
-import edu.ie3.simona.util.Coordinate
 import edu.ie3.util.scala.quantities.*
 import squants.motion.MetersPerSecond
 import squants.space.{Length, Meters}
 import squants.thermal.Celsius
 import squants.{ElectricCurrent, Kelvin, Temperature}
+import squants.electro.ElectricPotential
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -85,24 +86,42 @@ final case class LineSegmentThermalModel(
     updatedLineState
   }
 
-  /** Handle incoming secondary data (e.g. weather). This must call this method
-    * before determineState for the weather-aware behaviour.
+  /** Handle incoming secondary data (e.g. weather, the current voltage at the
+    * cable). This must be called before determineState for the weather- and
+    * voltage-aware behaviour.
+    *
+    * @param state
+    *   The current line state.
+    * @param receivedData
+    *   The received secondary data (e.g. weather and the current voltage).
+    * @return
+    *   The updated line state.
     */
   def handleInput(
       state: LineState,
-      receivedData: Seq[edu.ie3.simona.service.Data],
+      receivedData: Seq[Data],
   ): LineState = {
 
-    val point =
-      cableSetup.pointA // FIXME DF averaging between pointA and pointB?
+    val (voltage, weather) = receivedData.foldLeft(
+      (Option.empty[ElectricPotential], Option.empty[WeatherData])
+    ) {
+      case ((voltage, weather), CurrentVoltage(_, receivedVoltage)) =>
+        (voltage.orElse(Some(receivedVoltage)), weather)
+      case ((voltage, weather), receivedWeather: WeatherData) =>
+        (voltage, weather.orElse(Some(receivedWeather)))
+      case (inputs, _) => inputs
+    }
 
-    receivedData
-      .collectFirst { case weatherData: WeatherData => weatherData }
+    val stateWithVoltage = voltage
+      .map(receivedVoltage => state.copy(currentVoltage = receivedVoltage))
+      .getOrElse(state)
+
+    weather
       .map { newData =>
         val (weightTempLvl3, weightTempLvl4) =
           LineSegmentThermalModel.determineWeightsGroundTemperatures(
             Meters(
-              cableSetup.pointA.height
+              state.cableSetup.pointA.height
             ) // FIXME DF, it is not always pointA
           )
 
@@ -117,9 +136,9 @@ final case class LineSegmentThermalModel(
             )
           ) * weightTempLvl4
 
-        state.copy(groundTemperature = groundTempCableDepth)
+        stateWithVoltage.copy(groundTemperature = groundTempCableDepth)
       }
-      .getOrElse(state)
+      .getOrElse(stateWithVoltage)
   }
 
   /*
@@ -181,6 +200,9 @@ object LineSegmentThermalModel {
     *   The current ground temperature.
     * @param lineTemperatures
     *   The current temperatures of the cable layers.
+    * @param currentVoltage
+    *   The current voltage at the cable, i.e. the average of the voltages at
+    *   both connected nodes from the last power flow result.
     */
   final case class LineState(
       override val tick: Long,
@@ -189,6 +211,7 @@ object LineSegmentThermalModel {
       currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
       lineTemperatures: LineTemperatures, // FIXME DF Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
+      currentVoltage: ElectricPotential,
   ) extends ModelState
 
   def initState(
@@ -300,6 +323,7 @@ object LineSegmentThermalModel {
       initialLineSegmentThermalModel,
       initialGroundTemperature,
       initLineTemperatures,
+      cableSetup.voltage,
     )
   }
 

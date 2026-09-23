@@ -863,10 +863,8 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
 
-    val phaseToGroundVoltage =
-      cableSetup.voltage / sqrt(
-        3
-      ) // Fixme DF: This should be the currentVoltage at the cable / average of both connected nodes!
+    val phaseToGroundVoltage = state.currentVoltage / sqrt(3)
+
     val dielectricLosses = calcDielectricLosses(
       phaseToGroundVoltage,
       Hertz(50),
