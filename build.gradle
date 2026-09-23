@@ -223,10 +223,19 @@ compileTestScala {
   scalaCompileOptions.additionalParameters = scalaCompileOptions.additionalParameters + [
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/"
   ]
-  scalaCompileOptions.forkOptions.jvmArgs = [
-    '-Xss2m',
-    '-XX:-UseGCOverheadLimit',
-    '-Xmx4g'
+  options.forkOptions.jvmArgs += [
+    '-Xmx4096m',
+    '-Xss4m',
+    '-Xms2048m',
+    '-XX:+UseParallelGC',
+    '-XX:MaxInlineLevel=20'
+  ]
+  options.compilerArgs += [
+    '-Xmx4096m',
+    '-Xss4m',
+    '-Xms2048m',
+    '-XX:+UseParallelGC',
+    '-XX:MaxInlineLevel=20'
   ]
 }
 
