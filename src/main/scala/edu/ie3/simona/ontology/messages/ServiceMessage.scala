@@ -245,6 +245,7 @@ object ServiceMessage {
       override val serviceRef: ActorRef[ServiceMessage],
       data: Data,
       override val nextDataTick: Option[Long],
+      registrantKey: Option[String] = None,
   ) extends DataMessage
 
   /** Providing the information that no data will be provided by the sending
