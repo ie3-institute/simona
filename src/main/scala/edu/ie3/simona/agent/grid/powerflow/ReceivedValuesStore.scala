@@ -192,12 +192,6 @@ object ReceivedValuesStore {
     missing.addAll(assetToNode.keySet)
     missing.addAll(inferiorConnections.keySet)
 
-    val nodeToGridRef = inferiorConnections
-      .flatMap { case (ref, nodes) =>
-        nodes.map(node => (node, ref))
-      }
-      .groupMap(_._1)(_._2)
-
     val slackVoltageMap: NodeToReceivedSlackVoltage = mutable.Map.from {
       superiorNodeUuids.map(n => n -> None)
     }
