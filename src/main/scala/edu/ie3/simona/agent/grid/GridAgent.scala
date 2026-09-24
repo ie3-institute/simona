@@ -23,11 +23,15 @@ import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
+import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
@@ -44,7 +48,7 @@ import java.util.UUID
 object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
   /** All messages, that can be received by a [[GridAgent]]. */
-  final type Message = InternalRequest | InternalReply | Activation
+  final type Message = InternalRequest | InternalReply | Activation | ServiceMessage.Response
 
   /** Necessary because we want to extend messages in other classes, but we do
     * want to keep the messages only available inside this package.
@@ -97,6 +101,23 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         actorName,
       )
 
+      // Register for weather service if thermal segments exist
+      val segmentCoordinates =
+        initData.gridModel.gridComponents.segmentCoordinates
+      if segmentCoordinates.nonEmpty then
+        ctx.log.debug(
+          s"Registering $actorName for weather service with {} segment coordinates",
+          segmentCoordinates.size,
+        )
+        segmentCoordinates.foreach { (segmentUuid, coordinate) =>
+          constantData.environmentRefs.weather !
+            ServiceMessage.SecondaryServiceRegistrationMessage(
+              ctx.self,
+              DataTimeType.Current,
+              WeatherRegistrationData(coordinate, Some(segmentUuid.toString)),
+            )
+        }
+
       constantData.gridAgentCoordinator ! FinishedInitialization(ctx.self)
 
       idle(gridAgentBaseData)
@@ -138,6 +159,33 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         results,
         ctx,
       )
+
+    // Handle weather data provision (sticky last-known semantics)
+    case (ctx, ServiceMessage.DataProvision(_, _, weatherData: WeatherData, _, Some(key))) =>
+      try
+        val segmentUuid = UUID.fromString(key)
+        ctx.log.debug(
+          s"Received weather data for segment $segmentUuid"
+        )
+        idle(
+          gridAgentBaseData.copy(
+            weatherData = gridAgentBaseData.weatherData.updated(segmentUuid, weatherData)
+          )
+        )
+      catch case _: IllegalArgumentException =>
+        // not a segment UUID key, ignore
+        Behaviors.same
+
+    // Handle registration failure (fail-fast)
+    case (_, ServiceMessage.RegistrationFailedMessage(_)) =>
+      throw new GridAgentInitializationException(
+        s"Registration with weather service failed for grid agent ${gridAgentBaseData.actorName}. " +
+          "Please ensure that a weather service is configured and the segment coordinates are within the weather data coverage area."
+      )
+
+    // Handle registration success (no-op, weather data arrives via DataProvision)
+    case (_, ServiceMessage.RegistrationSuccessfulMessage(_, _, _)) =>
+      Behaviors.same
 
     case (_, msg: Message) =>
       // needs to be set here to handle if the messages arrive too early
@@ -207,6 +255,14 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     val updatedThermalLineStates = {
       if doAmpacityCalc then {
+        // Fail-fast: weather data must have been received before the first ampacity calculation
+        if gridAgentBaseData.weatherData.isEmpty then
+          throw new GridAgentInitializationException(
+            s"Ampacity calculation is activated for grid agent ${gridAgentBaseData.actorName}, " +
+              "but no weather data has been received yet. " +
+              "Please ensure that a weather service is configured and provides data for the segment coordinates."
+          )
+
         gridModel.gridComponents.thermalLineSegments.map { lineSegment =>
           val lastLineState =
             gridAgentBaseData.thermalLineStates.getOrElse(
@@ -248,15 +304,18 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
             }
             .getOrElse(nominalVoltage)
 
-          val lineStateWithInput = lineSegment.handleInput(
-            lastLineState,
-            Seq(
-              SecondaryData.CurrentVoltage(
-                lineSegment.uuid,
-                cableVoltage,
-              )
-            ),
-          )
+          val lineStateWithInput = {
+            val inputs =              gridAgentBaseData.weatherData.get(lineSegment.uuid) match {
+                case Some(weather) =>
+                  Seq(
+                    CurrentVoltage(lineSegment.uuid, cableVoltage),
+                    weather,
+                  )
+                case None =>
+                  Seq(CurrentVoltage(lineSegment.uuid, cableVoltage))
+              }
+            lineSegment.handleInput(lastLineState, inputs)
+          }
 
           lineSegment.uuid ->
             lineSegment.determineState(

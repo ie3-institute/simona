@@ -26,6 +26,7 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.model.grid.ampacity.SoilDataParser
 import edu.ie3.simona.model.grid.ampacity.SoilLayer
 import edu.ie3.simona.model.grid.ampacity.SoilType
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
@@ -54,10 +55,14 @@ object ThermalSegmentBuilder {
     *   The validated soil layers read from configuration.
     * @param thermalLineSegments
     *   The generated thermal line segments.
+    * @param segmentCoordinates
+    *   A map from segment UUID to the midpoint coordinate (latitude, longitude)
+    *   used for weather registration.
     */
   final case class BuildResult(
       soilLayers: Seq[SoilLayer],
       thermalLineSegments: Set[LineSegmentThermalModel],
+      segmentCoordinates: Map[UUID, Coordinate] = Map.empty,
   )
 
   /** Builds thermal line segments for the given subgrid.
@@ -90,13 +95,13 @@ object ThermalSegmentBuilder {
     validateCableDeployments(subGridContainer, deploymentsByLine)
 
     // 3. Generate thermal segments
-    val (thermalLineSegments, generatedSegments) =
+    val (thermalLineSegments, generatedSegments, segmentCoordinates) =
       generateThermalSegments(subGridContainer)
 
     // 4. Write generated segments to output
     writeThermalSegmentsToOutput(generatedSegments, simonaConfig)
 
-    BuildResult(soilLayers, thermalLineSegments)
+    BuildResult(soilLayers, thermalLineSegments, segmentCoordinates)
   }
 
   /** Reads soil layers from the configured directory and validates them.
@@ -244,13 +249,15 @@ object ThermalSegmentBuilder {
     * @param subGridContainer
     *   The subgrid container.
     * @return
-    *   A tuple of the generated segments and their coordinates.
+    *   A tuple of the generated segments, their coordinates for output, and
+    *   the midpoint coordinates for weather registration.
     */
   private def generateThermalSegments(
       subGridContainer: SubGridContainer
   ): (
       Set[LineSegmentThermalModel],
       Seq[(LineSegmentThermalModel, (Double, Double), (Double, Double))],
+      Map[UUID, Coordinate],
   ) = {
     val deploymentsByLine =
       subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
@@ -258,6 +265,9 @@ object ThermalSegmentBuilder {
     val generatedSegments: scala.collection.mutable.ListBuffer[
       (LineSegmentThermalModel, (Double, Double), (Double, Double))
     ] = scala.collection.mutable.ListBuffer.empty
+
+    val segmentCoordinatesBuffer: scala.collection.mutable.Map[UUID, Coordinate] =
+      scala.collection.mutable.Map.empty
 
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
@@ -371,6 +381,13 @@ object ThermalSegmentBuilder {
                           (Double, Double),
                       ) = (segment, start, end)
                       generatedSegments += entry
+                      // Store midpoint coordinate for weather registration.
+                      // GeoJSON coordinates are (longitude, latitude),
+                      // Coordinate expects (latitude, longitude).
+                      segmentCoordinatesBuffer(segment.uuid) = Coordinate(
+                        (start._2 + end._2) / 2.0, // latitude
+                        (start._1 + end._1) / 2.0, // longitude
+                      )
                       segment
                     }
                     .toSet
@@ -381,7 +398,7 @@ object ThermalSegmentBuilder {
         }
       }.toSet
 
-    (thermalLineSegments, generatedSegments.toSeq)
+    (thermalLineSegments, generatedSegments.toSeq, segmentCoordinatesBuffer.toMap)
   }
 
   /** Converts a [[LineInput]] to a GeoJSON string representation.

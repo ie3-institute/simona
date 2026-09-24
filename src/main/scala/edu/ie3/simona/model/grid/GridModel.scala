@@ -31,7 +31,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 }
 import edu.ie3.simona.model.grid.ampacity.*
 import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import edu.ie3.simona.util.Coordinate
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
@@ -104,6 +104,7 @@ object GridModel {
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel],
       soilLayers: Seq[SoilLayer],
+      segmentCoordinates: Map[UUID, Coordinate] = Map.empty,
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -535,12 +536,21 @@ object GridModel {
 
     // Build thermal line segments and soil layers when ampacity calculation
     // is activated; otherwise no soil layers and no thermal line segments.
-    val (soilLayers, thermalLineSegments) =
+    val (soilLayers, thermalLineSegments, segmentCoordinates) =
       if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
         val buildResult =
           ThermalSegmentBuilder.build(subGridContainer, simonaConfig)
-        (buildResult.soilLayers, buildResult.thermalLineSegments)
-      else (Seq.empty[SoilLayer], Set.empty[LineSegmentThermalModel])
+        (
+          buildResult.soilLayers,
+          buildResult.thermalLineSegments,
+          buildResult.segmentCoordinates,
+        )
+      else
+        (
+          Seq.empty[SoilLayer],
+          Set.empty[LineSegmentThermalModel],
+          Map.empty[UUID, Coordinate],
+        )
 
 // / transformers
     val transformers: Set[TransformerModel] =
@@ -607,6 +617,7 @@ object GridModel {
         transformer3ws,
         switches,
         soilLayers,
+        segmentCoordinates,
       )
 
     /* Build transformer control groups */

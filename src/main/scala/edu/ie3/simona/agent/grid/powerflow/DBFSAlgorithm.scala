@@ -39,6 +39,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgent.{
 import edu.ie3.simona.event.RuntimeEvent.PowerFlowFailed
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.{NodeModel, RefSystem}
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.SquantsUtils.multiplyWithDimensionless
 import org.apache.pekko.actor.typed.scaladsl.{
@@ -468,10 +469,18 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
           afterPowerFlow(gridAgentBaseData, currentTick, ctx)
 
+        // handles service responses (e.g. weather data) that arrive during power flow
+        case (serviceResponse: ServiceMessage.Response, _) =>
+          log.debug(
+            s"Received service response $serviceResponse during power flow calculation. Stash away!"
+          )
+          buffer.stash(serviceResponse)
+          Behaviors.same
+
         // handles power request that arrive to early
         case (requestGridPower: RequestGridPower, _) =>
           log.debug(
-            s"Received the message $requestGridPower too early. Stash away!"
+            s"Received the message $requestGridPower too early. Stashing away!"
           )
           buffer.stash(requestGridPower)
           Behaviors.same
@@ -742,6 +751,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
           buffer.stash(requestGridPower)
           Behaviors.same
+
+        // handles service responses (e.g. weather data) that arrive during power flow
+        case (serviceResponse: ServiceMessage.Response, _) =>
+          log.debug(
+            s"Received service response $serviceResponse during power flow calculation. Stash away!"
+          )
+          buffer.stash(serviceResponse)
+          Behaviors.same
       }
   }
 
@@ -857,6 +874,14 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           ctx.self ! FinishGridSimulationTrigger(currentTick)
           handlePowerFlowFailure(gridAgentBaseData, currentTick, ctx)
       }
+
+    // handles service responses (e.g. weather data) that arrive during checkPowerDifferences
+    case (ctx, msg: ServiceMessage.Response) =>
+      ctx.log.debug(
+        s"Received service response during checkPowerDifferences. Stash away!"
+      )
+      buffer.stash(msg)
+      Behaviors.same
   }
 
   /** Checks if all data has been received and if yes checks if there are any

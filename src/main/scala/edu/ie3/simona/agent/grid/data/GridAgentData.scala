@@ -13,25 +13,15 @@ import edu.ie3.simona.agent.grid.*
 import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.NodeToReceivedPower
-import edu.ie3.simona.agent.grid.powerflow.{
-  PowerFlowParams,
-  ReceivedValuesStore,
-  SweepValueStore,
-}
+import edu.ie3.simona.agent.grid.powerflow.{PowerFlowParams, ReceivedValuesStore, SweepValueStore}
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.GridModel
-import edu.ie3.simona.model.grid.ampacity.{
-  AmpacityCalculationParams,
-  LineSegmentThermalModel,
-}
+import edu.ie3.simona.model.grid.ampacity.{AmpacityCalculationParams, LineSegmentThermalModel}
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
-import edu.ie3.simona.util.ConfigUtil.{
-  EmConfigUtil,
-  OutputConfigUtil,
-  ParticipantConfigUtil,
-}
+import edu.ie3.simona.service.Data.SecondaryData.WeatherData
+import edu.ie3.simona.util.ConfigUtil.{EmConfigUtil, OutputConfigUtil, ParticipantConfigUtil}
 import edu.ie3.simona.util.{ConfigUtil, ReceiveDataMap}
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
@@ -326,6 +316,7 @@ object GridAgentData {
       thermalLineStates: Map[UUID, LineState],
       simulationStart: ZonedDateTime,
       actorName: String,
+      weatherData: Map[UUID, WeatherData] = Map.empty,
   ) extends GridAgentData {
 
     val assets: Seq[UUID] = {
