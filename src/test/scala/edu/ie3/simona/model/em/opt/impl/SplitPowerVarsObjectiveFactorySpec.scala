@@ -250,7 +250,7 @@ class SplitPowerVarsObjectiveFactorySpec
           The optimal solution accepts a higher discharging power in
           the first half in order to charge more in the second half,
           because a higher total charging/discharging power means
-          more losses that help covering more the feed-in in the
+          more losses that help covering more of the feed-in in the
           second half.
          */
 
