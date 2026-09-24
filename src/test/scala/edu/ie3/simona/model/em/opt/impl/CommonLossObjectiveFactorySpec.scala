@@ -6,9 +6,8 @@
 
 package edu.ie3.simona.model.em.opt.impl
 
-import CommonLossObjectiveFactorySpec.*
-import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant.{
   NoAdditionalConstraints,
   RelaxedConstraints,
@@ -18,6 +17,7 @@ import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.{
   PeakShavingObjectiveFactory,
   PriceObjectiveFactory,
 }
+import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactorySpec.*
 import edu.ie3.simona.test.common.{OptimizingTestLike, UnitSpec}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import optimus.optimization.enums.SolutionStatus
