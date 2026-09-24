@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.sim.setup
 
+import com.typesafe.config.Config
 import edu.ie3.datamodel.models.input.container.{
   JointGridContainer,
   ThermalGrid,
@@ -13,41 +14,62 @@ import edu.ie3.datamodel.models.input.container.{
 import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
 import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentCoordinator
+import edu.ie3.simona.agent.grid.GridAgentCoordinator.RegisterAssets
+import edu.ie3.simona.agent.participant.{
+  ParticipantAgent,
+  ParticipantAgentFactory,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
 import edu.ie3.simona.io.grid.GridProvider
 import edu.ie3.simona.ontology.messages.ResultMessage.ResultResponse
 import edu.ie3.simona.ontology.messages.{SchedulerMessage, ServiceMessage}
-import edu.ie3.simona.scheduler.TimeAdvancer
 import edu.ie3.simona.scheduler.core.Core.CoreFactory
 import edu.ie3.simona.scheduler.core.RegularSchedulerCore
+import edu.ie3.simona.scheduler.{ScheduleLock, Scheduler, TimeAdvancer}
+import edu.ie3.simona.service.load.LoadProfileService
+import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
+import edu.ie3.simona.service.price.EnergyPriceService
+import edu.ie3.simona.service.price.EnergyPriceService.InitPriceServiceStateData
+import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.primary.PrimaryServiceProxy.InitPrimaryServiceProxyStateData
 import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.weather.WeatherService
+import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
+import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
+import edu.ie3.simona.util.ResultFileHierarchy
+import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
+import edu.ie3.simona.util.TickUtil.toTick
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 
 import java.nio.file.Path
 import java.time.ZonedDateTime
+import java.util.UUID
+import java.util.concurrent.LinkedBlockingQueue
+import scala.jdk.CollectionConverters.SetHasAsScala
 
-/** Trait that can be used to set up a customized simona simulation by providing
-  * implementations for all setup information required by a
-  * [[edu.ie3.simona.sim.SimonaSim]]. Most of the time, using or extending
-  * [[SimonaStandaloneSetup]] might be considered instead of providing your own
-  * implementation for all methods.
+/** Class that contains all methods to set up a simulation.
   *
-  * @version 0.1
-  * @since 01.07.20
+  * @param typeSafeConfig
+  *   The parsed config.
+  * @param simonaConfig
+  *   The build SIMONA config.
+  * @param args
+  *   Main arguments of the executable. May be used to pass additional
+  *   configuration parameters to the setup e.g. for external simulation
+  *   configuration.
+  * @param runtimeEventQueue
+  *   An option for a runtime event queue.
   */
-trait SimonaSetup {
-
-  val simonaConfig: SimonaConfig
-
-  /** Main arguments of the executable. May be used to pass additional
-    * configuration parameters to the setup e.g. for external simulation
-    * configuration.
-    */
-  val args: Array[String]
+class SimonaSetup(
+    val typeSafeConfig: Config,
+    val simonaConfig: SimonaConfig,
+    val args: Array[String] = Array.empty[String],
+    val runtimeEventQueue: Option[LinkedBlockingQueue[RuntimeEvent]] = None,
+) {
 
   /** The electrical grid.
     */
@@ -63,9 +85,12 @@ trait SimonaSetup {
 
   lazy val baseInputPath: Path = Path.of(simonaConfig.input.baseInputDir)
 
+  val resultFileHierarchy: ResultFileHierarchy =
+    ResultFileHierarchy(typeSafeConfig, simonaConfig)
+
   /** Directory of the log output.
     */
-  def logOutputDir: Path
+  lazy val logOutputDir: Path = resultFileHierarchy.logOutputDir
 
   /** Creates the runtime event listener.
     *
@@ -76,7 +101,16 @@ trait SimonaSetup {
     */
   def runtimeEventListener(
       context: ActorContext[?]
-  ): ActorRef[RuntimeEventListener.Request]
+  ): ActorRef[RuntimeEventListener.Request] =
+    context
+      .spawn(
+        RuntimeEventListener(
+          simonaConfig.runtime.listener,
+          runtimeEventQueue,
+          startDateTimeString = simonaConfig.time.startDateTime,
+        ),
+        RuntimeEventListener.getClass.getSimpleName,
+      )
 
   /** Creates a sequence of result event listeners.
     *
@@ -87,7 +121,16 @@ trait SimonaSetup {
     */
   def resultEventListener(
       context: ActorContext[?]
-  ): Seq[ActorRef[ResultListener.Message]]
+  ): Seq[ActorRef[ResultListener.Message]] = {
+    // creates a sequence of ResultEventListener to write raw output files
+    Seq(
+      context
+        .spawn(
+          ResultListener(resultFileHierarchy),
+          ResultListener.getClass.getSimpleName,
+        )
+    )
+  }
 
   /** Creates a primary service proxy. The proxy is the first instance to ask
     * for primary data. If necessary, it delegates the registration request to
@@ -107,7 +150,23 @@ trait SimonaSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       extSimSetupData: ExtSimSetupData,
-  ): ActorRef[ServiceMessage]
+  ): ActorRef[ServiceMessage] = {
+    val simulationStart = simonaConfig.time.simStartTime
+
+    val primaryServiceProxy = context.spawn(
+      PrimaryServiceProxy(
+        scheduler,
+        InitPrimaryServiceProxyStateData(
+          simonaConfig.input.primary,
+          simulationStart,
+          extSimSetupData.primaryDataServices,
+        ),
+      ),
+      "primaryServiceProxyAgent",
+    )
+
+    primaryServiceProxy
+  }
 
   /** Creates a result service proxy. The proxy will receive information about
     * the result that should be expected for the current tick and all result
@@ -128,7 +187,11 @@ trait SimonaSetup {
       context: ActorContext[?],
       listeners: Seq[ActorRef[ResultResponse]],
       simStartTime: ZonedDateTime,
-  ): ActorRef[ResultServiceProxy.Message]
+  ): ActorRef[ResultServiceProxy.Message] =
+    context.spawn(
+      ResultServiceProxy(listeners, simStartTime),
+      "resultServiceProxyAgent",
+    )
 
   /** Creates a weather service.
     *
@@ -142,7 +205,19 @@ trait SimonaSetup {
   def weatherService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-  ): ActorRef[ServiceMessage]
+  ): ActorRef[ServiceMessage] =
+    context.spawn(
+      WeatherService(
+        scheduler,
+        InitWeatherServiceStateData(
+          simonaConfig.input.weather.datasource,
+          simonaConfig.time.simStartTime,
+          simonaConfig.time.simEndTime,
+        ),
+        ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+      ),
+      "weatherService",
+    )
 
   /** Creates an energy price service, if such service is configured.
     *
@@ -156,7 +231,20 @@ trait SimonaSetup {
   def priceService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-  ): Option[ActorRef[ServiceMessage]]
+  ): Option[ActorRef[ServiceMessage]] =
+    simonaConfig.input.prices.datasource.map { dataSource =>
+      context.spawn(
+        EnergyPriceService(
+          scheduler,
+          InitPriceServiceStateData(
+            dataSource,
+            simonaConfig.time.simStartTime,
+          ),
+          ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+        ),
+        "priceService",
+      )
+    }
 
   /** Creates a load profile service.
     *
@@ -171,7 +259,18 @@ trait SimonaSetup {
   def loadProfileService(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-  ): ActorRef[ServiceMessage]
+  ): ActorRef[ServiceMessage] =
+    context.spawn(
+      LoadProfileService(
+        scheduler,
+        InitLoadProfileServiceStateData(
+          simonaConfig.input.loadProfile.datasource,
+          simonaConfig.time.simStartTime,
+        ),
+        ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
+      ),
+      "loadProfileService",
+    )
 
   /** Loads external simulations and provides corresponding actors and init
     * data.
@@ -192,7 +291,24 @@ trait SimonaSetup {
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[ResultServiceProxy.Message],
       extSimPath: Option[Path],
-  ): ExtSimSetupData
+  ): ExtSimSetupData = {
+    val jars = ExtSimLoader.scanInputFolder(extSimPath)
+    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
+
+    setupExtSim(
+      extLinks,
+      args,
+      typeSafeConfig,
+      grid,
+      baseInputPath,
+      resultFileHierarchy.runOutputDir,
+    )(using
+      context,
+      scheduler,
+      resultProxy,
+      simonaConfig.time.simStartTime,
+    )
+  }
 
   /** Creates the time advancer.
     *
@@ -209,7 +325,20 @@ trait SimonaSetup {
       context: ActorContext[?],
       simulation: ActorRef[SimonaSim.SimulationEnded.type],
       runtimeEventListener: ActorRef[RuntimeEvent],
-  ): ActorRef[TimeAdvancer.Request]
+  ): ActorRef[TimeAdvancer.Request] = {
+    val startDateTime = simonaConfig.time.simStartTime
+    val endDateTime = simonaConfig.time.simEndTime
+
+    context.spawn(
+      TimeAdvancer(
+        simulation,
+        Some(runtimeEventListener),
+        simonaConfig.time.schedulerReadyCheckWindow,
+        endDateTime.toTick(using startDateTime),
+      ),
+      TimeAdvancer.getClass.getSimpleName,
+    )
+  }
 
   /** Creates a scheduler service.
     *
@@ -227,11 +356,18 @@ trait SimonaSetup {
       context: ActorContext[?],
       parent: ActorRef[SchedulerMessage],
       coreFactory: CoreFactory = RegularSchedulerCore,
-  ): ActorRef[SchedulerMessage]
+  ): ActorRef[SchedulerMessage] =
+    context
+      .spawn(
+        Scheduler(parent, coreFactory),
+        s"${Scheduler.getClass.getSimpleName}_${coreFactory}_${UUID.randomUUID()}",
+      )
 
   /** Creates the grid agent coordinator which will create and coordinate all
     * grid agents.
     *
+    * @param participantRefs
+    *   A map of node uuid to set of participant references.
     * @param context
     *   Actor context to use.
     * @param environmentRefs
@@ -239,8 +375,47 @@ trait SimonaSetup {
     * @return
     *   The reference to the [[GridAgentCoordinator]].
     */
-  def gridAgentCoordinator(using
+  def gridAgentCoordinator(
+      participantRefs: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]]
+  )(using
       context: ActorContext[?],
       environmentRefs: EnvironmentRefs,
-  ): ActorRef[GridAgentCoordinator.Message]
+  ): ActorRef[GridAgentCoordinator.Message] = {
+    // get the subgrids
+    val subgrids = grid.getSubGridTopologyGraph.vertexSet.asScala.toSeq
+
+    /* spawn the grid agent coordinator */
+    val coordinator = context.spawn(
+      GridAgentCoordinator(simonaConfig, subgrids),
+      "GridAgentCoordinator",
+    )
+
+    coordinator ! RegisterAssets(participantRefs)
+
+    coordinator
+  }
+
+  /** Creates the participant agents of the simulation.
+    * @param context
+    *   Actor context to use.
+    * @param environmentRefs
+    *   EnvironmentRefs to use.
+    * @return
+    *   A map of node uuid to set of participant references.
+    */
+  def participantAgents(using
+      context: ActorContext[?],
+      environmentRefs: EnvironmentRefs,
+  ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = {
+    // build participants
+    val thermalIslandGridsByBusId = thermalGridsByThermalBus.map {
+      case (_, thermalGrid) => thermalGrid.bus().getUuid -> thermalGrid
+    }
+
+    ParticipantAgentFactory.buildSystemParticipants(
+      grid.getSystemParticipants,
+      thermalIslandGridsByBusId,
+      simonaConfig,
+    )
+  }
 }

@@ -36,6 +36,7 @@ final case class SimonaConfig(
     runtime: RuntimeConfig = RuntimeConfig(),
     simulationName: String,
     time: Time,
+    simulationTimeout: FiniteDuration = 12.hours,
 ) derives ConfigConvert {
 
   /** Returns the values of this config.

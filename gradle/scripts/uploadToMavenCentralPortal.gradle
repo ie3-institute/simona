@@ -11,7 +11,7 @@ tasks.register("javadocJar", Jar) {
   from { tasks.named("javadoc", Javadoc).get().destinationDir }
 }
 
-if (project.hasProperty('user') && project.hasProperty('password') && project.hasProperty('deployVersion')) {
+if (project.hasProperty('mavenCentralUser') && project.hasProperty('mavenCentralPassword') && project.hasProperty('deployVersion')) {
 
   // snapshot version differs from normal version
   String versionString = project.getProperty('deployVersion')
@@ -73,12 +73,11 @@ if (project.hasProperty('user') && project.hasProperty('password') && project.ha
     }
     repositories {
       maven {
-        def releasesRepoUrl = "https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/"
-        def snapshotsRepoUrl = "https://s01.oss.sonatype.org/content/repositories/snapshots/"
-        url = versionString.endsWith('SNAPSHOT') ? snapshotsRepoUrl : releasesRepoUrl
+        name = "MavenCentral"
+        url = "https://ossrh-staging-api.central.sonatype.com/service/local/staging/deploy/maven2/"
         credentials {
-          username project.getProperty('user')
-          password project.getProperty('password')
+          username = project.findProperty('mavenCentralUser')
+          password = project.findProperty('mavenCentralPassword')
         }
       }
     }

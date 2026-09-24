@@ -45,6 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added external primary service worker [#1545](https://github.com/ie3-institute/simona/issues/1545)
 - Added current SOE to `EnergyBoundariesFlexOptions` [#1815](https://github.com/ie3-institute/simona/issues/1815)
 - Implement convex epigraph optimization [#1602](https://github.com/ie3-institute/simona/issues/1602)
+- Include functionality description of training data generation for neural state estimation [1709](https://github.com/ie3-institute/simona/issues/1709)
+- Implement energy dependent power tolerance for EVCS [#1698](https://github.com/ie3-institute/simona/issues/1698)
+- Added ground temperatures to weather data [#1818](https://github.com/ie3-institute/simona/issues/1818)
+- Include staging step to Maven Central in CI pipeline [#1834](https://github.com/ie3-institute/simona/issues/1834)
+- Added use cases for SIMONA [#1814](https://github.com/ie3-institute/simona/issues/1814)
+- Added check for data in `RunSimonaStandaloneIT` [#1491](https://github.com/ie3-institute/simona/issues/1491)
 - Introduced energy boundaries tightening algorithm [#1835](https://github.com/ie3-institute/simona/issues/1835)
 
 ### Changed
@@ -107,6 +113,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Simplify conversion of flex options and setpoints between SIMONA and its API [#1785](https://github.com/ie3-institute/simona/issues/1785)
 - `CommonLossObjectiveFactory.PriceObjectiveFactory`: Applying soft constraint only when necessary [#1848](https://github.com/ie3-institute/simona/issues/1848)
 - Replaced implicit classes with scala 3 extension methods [#1833](https://github.com/ie3-institute/simona/issues/1833)
+- Refactored simulation setup [#1858](https://github.com/ie3-institute/simona/issues/1858)
+- Improved parsing of runtime parameters via input files [#1875](https://github.com/ie3-institute/simona/issues/1875)
+- Enhanced PvModelITSpec to ensure temporal consistency and validate all expected PV results [#1130](https://github.com/ie3-institute/simona/issues/1130)
+- Throws exception if external simulation is expected but not found [#1263](https://github.com/ie3-institute/simona/issues/1263)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -144,6 +154,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed `ParticipantAgent.isCalculationRequired` to include `changesAtNextActivation` [#1820](https://github.com/ie3-institute/simona/issues/1820)
 - Fixed initialization problems when using `ExtEmDataService` [#1780](https://github.com/ie3-institute/simona/issues/1780)
 - Fixed handling of disconnecting tick of energy boundaries flex options [#1821](https://github.com/ie3-institute/simona/issues/1821)
+- Fixed exception thrown when providing additional main arguments [#1890](https://github.com/ie3-institute/simona/issues/1890)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)
