@@ -182,7 +182,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
         val (updatedCore, msgToExt) = core.handleExtMessage(tick, extMsg)
 
         msgToExt.foreach(
-          serviceStateData.extEmDataConnection.queueExtResponseMsg
+          serviceStateData.extEmDataConnection.handleResponseMsg
         )
 
         (
@@ -224,7 +224,7 @@ object ExtEmDataService extends SimonaService with ExtDataSupport {
       )(using serviceStateData.startTime, ctx.log)
 
     if tick >= FIRST_TICK_IN_SIMULATION then {
-      extMsg.foreach(serviceStateData.extEmDataConnection.queueExtResponseMsg)
+      extMsg.foreach(serviceStateData.extEmDataConnection.handleResponseMsg)
     }
 
     serviceStateData.copy(serviceCore = updatedCore)

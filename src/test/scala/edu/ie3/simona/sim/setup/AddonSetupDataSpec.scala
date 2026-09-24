@@ -28,16 +28,16 @@ import org.slf4j.{Logger, LoggerFactory}
 import java.util.UUID
 import scala.jdk.CollectionConverters.{MapHasAsJava, SeqHasAsJava}
 
-class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
+class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
-  "An ExtSimSetupData" should {
-    given Logger = LoggerFactory.getLogger("ExtSimSetupDataSpec")
+  "An AddonSetupData" should {
+    given Logger = LoggerFactory.getLogger("AddonSetupDataSpec")
 
     val emptyMapInput = Map.empty[UUID, Class[? <: Value]].asJava
     val emptyUuidList = List.empty[UUID].asJava
 
     "be updated with an ExtPrimaryDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData.apply
+      val extSimSetupData = AddonSetupData.apply
 
       val connection = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef =
@@ -57,7 +57,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with multiple ExtPrimaryDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData.apply
+      val extSimSetupData = AddonSetupData.apply
 
       val connection1 = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef1 =
@@ -83,7 +83,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with an ExtInputDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData.apply
+      val extSimSetupData = AddonSetupData.apply
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef =
@@ -129,7 +129,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with an ExtResultDataConnection correctly" in {
-      val extSimSetupData = ExtSimSetupData.apply
+      val extSimSetupData = AddonSetupData.apply
 
       val resultConnection = new ExtResultDataConnection(emptyUuidList)
       val resultServiceProxyRef =
@@ -147,7 +147,7 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
     }
 
     "be updated with multiple different connections correctly" in {
-      val extSimSetupData = ExtSimSetupData.apply
+      val extSimSetupData = AddonSetupData.apply
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef =
@@ -188,8 +188,8 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val cases = Table(
         ("extSimSetupData", "expectedService"),
-        (ExtSimSetupData.apply.update(evConnection, evRef), Some(evRef)),
-        (ExtSimSetupData.apply, None),
+        (AddonSetupData.apply.update(evConnection, evRef), Some(evRef)),
+        (AddonSetupData.apply, None),
       )
 
       forAll(cases) { (extSimSetupData, expectedService) =>
@@ -204,11 +204,11 @@ class ExtSimSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val cases = Table(
         ("extSimSetupData", "expectedConnection", "expectedService"),
         (
-          ExtSimSetupData.apply.update(emConnection, emRef),
+          AddonSetupData.apply.update(emConnection, emRef),
           Some(emConnection),
           Some(emRef),
         ),
-        (ExtSimSetupData.apply, None, None),
+        (AddonSetupData.apply, None, None),
       )
 
       forAll(cases) { (extSimSetupData, expectedConnection, expectedService) =>
