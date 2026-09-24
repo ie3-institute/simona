@@ -619,7 +619,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               )
 
             val receivedSlackVoltages =
-              updatedGridAgentBaseData.receivedValueStore.nodeToReceivedSlackVoltage.values.flatten.toSeq
+              updatedGridAgentBaseData.receivedValueStore.slackVoltages
 
             val (operatingPoint, slackNodeVoltages) =
               composeOperatingPointWithUpdatedSlackVoltages(
@@ -1097,14 +1097,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // handler for the messages provided by `askForAssetPowers` to check if there are any changes in generation/load
     // of assets based on updated nodal voltages
     case (ctx, powerResponse: PowerResponse) =>
-      // only replace power responses from the grid, since asset responses have been cleared out
-      val replace = powerResponse match {
-        case _: (GridPowerResponse | FailedPowerFlow) => true
-        case _                                        => false
-      }
-
-      val updatedGridAgentBaseData = powerFlowDoneData.gridAgentBaseData
-        .updateWithPowerResponse(powerResponse, replace)(using ctx.log)
+      val updatedGridAgentBaseData =
+        powerFlowDoneData.gridAgentBaseData.updateWithPowerResponse(
+          powerResponse
+        )
 
       val updatedPowerFlowDoneData =
         powerFlowDoneData.copy(gridAgentBaseData = updatedGridAgentBaseData)

@@ -22,6 +22,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
+import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse
 import edu.ie3.simona.agent.grid.powerflow.{
   PowerFlowParams,
   PowerFlowSupport,
@@ -75,34 +76,40 @@ class PowerFlowSupportSpec
   val actorRef: ActorRef[GridAgent.Message] =
     TestProbe[GridAgent.Message]("mock_grid_agent").ref
 
+  val supActorRef: ActorRef[GridAgent.Message] =
+    TestProbe[GridAgent.Message]("mock_superior_grid_agent").ref
+
   /** Setting voltage at slack node to 110 kV and introducing a load of 1 MW at
     * node 1
     */
-  private val receivedValuesStore = ReceivedValuesStore
-    .empty(Map.empty, Map.empty, Set.empty)
-    .copy(
-      nodeToReceivedSlackVoltage = Map(
-        node6.uuid -> Some(
-          ExchangeVoltage(
-            node6.uuid,
-            Kilovolts(110d),
-            Kilovolts(0d),
-          )
-        )
-      ),
-      nodeToReceivedGridPower = Map(
-        node1.uuid -> Map(
-          actorRef -> Some(
-            ExchangePower(
-              node1.uuid,
-              actorRef,
-              Megawatts(1d),
-              Megavars(0d),
-            )
-          )
+  private val receivedValuesStore = {
+    val store = ReceivedValuesStore.empty(Map.empty, Map.empty, Set(node6.uuid))
+
+    store.addSlackVoltage(
+      supActorRef,
+      Seq(
+        ExchangeVoltage(
+          node6.uuid,
+          Kilovolts(110d),
+          Kilovolts(0d),
         )
       ),
     )
+
+    store.addGridPower(
+      actorRef,
+      Seq(
+        ExchangePower(
+          node1.uuid,
+          actorRef,
+          Megawatts(1d),
+          Megavars(0d),
+        )
+      ),
+    )
+
+    store
+  }
 
   given currentAnAngleTolerance: Double = 1e-3 // 1 mA, 0.001 deg
 
