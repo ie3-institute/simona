@@ -4,7 +4,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'com.diffplug.spotless' version '8.10.2' // code format
-  id "com.github.ben-manes.versions" version '0.62.0'
+  id "com.github.ben-manes.versions" version '0.64.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.6.1' // fat jar
@@ -223,10 +223,19 @@ compileTestScala {
   scalaCompileOptions.additionalParameters = scalaCompileOptions.additionalParameters + [
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/"
   ]
-  scalaCompileOptions.forkOptions.jvmArgs = [
-    '-Xss2m',
-    '-XX:-UseGCOverheadLimit',
-    '-Xmx4g'
+  options.forkOptions.jvmArgs += [
+    '-Xmx4096m',
+    '-Xss4m',
+    '-Xms2048m',
+    '-XX:+UseParallelGC',
+    '-XX:MaxInlineLevel=20'
+  ]
+  options.compilerArgs += [
+    '-Xmx4096m',
+    '-Xss4m',
+    '-Xms2048m',
+    '-XX:+UseParallelGC',
+    '-XX:MaxInlineLevel=20'
   ]
 }
 

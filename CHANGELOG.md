@@ -49,6 +49,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement energy dependent power tolerance for EVCS [#1698](https://github.com/ie3-institute/simona/issues/1698)
 - Added ground temperatures to weather data [#1818](https://github.com/ie3-institute/simona/issues/1818)
 - Include staging step to Maven Central in CI pipeline [#1834](https://github.com/ie3-institute/simona/issues/1834)
+- Added use cases for SIMONA [#1814](https://github.com/ie3-institute/simona/issues/1814)
+- Added check for data in `RunSimonaStandaloneIT` [#1491](https://github.com/ie3-institute/simona/issues/1491)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -113,6 +115,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Refactored simulation setup [#1858](https://github.com/ie3-institute/simona/issues/1858)
 - Improved parsing of runtime parameters via input files [#1875](https://github.com/ie3-institute/simona/issues/1875)
 - Enhanced PvModelITSpec to ensure temporal consistency and validate all expected PV results [#1130](https://github.com/ie3-institute/simona/issues/1130)
+- Throws exception if external simulation is expected but not found [#1263](https://github.com/ie3-institute/simona/issues/1263)
 - Improved performance of `DBFSAlgorithm` [#1860](https://github.com/ie3-institute/simona/issues/1860)
 
 ### Fixed
