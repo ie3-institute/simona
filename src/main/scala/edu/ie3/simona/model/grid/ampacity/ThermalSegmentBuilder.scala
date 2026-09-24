@@ -83,20 +83,17 @@ object ThermalSegmentBuilder {
     val soilTypes = readAndValidateSoilTypes(simonaConfig)
     validateSoilReferences(soilLayers, soilTypes)
 
-    // 2. Build and validate cable type map
-    val cableTypeMap = buildCableTypeMap(subGridContainer)
-    validateCableTypesPresent(cableTypeMap)
-
-    // 3. Validate cable deployments
+    // 2. Validate cable deployments
     val deploymentsByLine =
       subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
-    validateCableDeployments(subGridContainer, cableTypeMap, deploymentsByLine)
+    validateCableTypesPresent(subGridContainer)
+    validateCableDeployments(subGridContainer, deploymentsByLine)
 
-    // 4. Generate thermal segments
+    // 3. Generate thermal segments
     val (thermalLineSegments, generatedSegments) =
-      generateThermalSegments(subGridContainer, cableTypeMap)
+      generateThermalSegments(subGridContainer)
 
-    // 5. Write generated segments to output
+    // 4. Write generated segments to output
     writeThermalSegmentsToOutput(generatedSegments, simonaConfig)
 
     BuildResult(soilLayers, thermalLineSegments)
@@ -172,21 +169,18 @@ object ThermalSegmentBuilder {
         )
   }
 
-  /** Builds a map of available cable types by UUID.
-    */
-  private def buildCableTypeMap(
-      subGridContainer: SubGridContainer
-  ): Map[UUID, CableTypeInput] =
-    subGridContainer.getRawGridTypes.getCableTypes.asScala
-      .map(ct => ct.getUuid -> ct)
-      .toMap
-
-  /** Validates that at least one cable type is available.
+  /** Validates that at least one line has a cable type attached to its line
+    * type.
     */
   private def validateCableTypesPresent(
-      cableTypeMap: Map[UUID, CableTypeInput]
+      subGridContainer: SubGridContainer
   ): Unit = {
-    if cableTypeMap.isEmpty then
+    val hasCableType =
+      subGridContainer.getRawGrid.getLines.asScala.toSeq
+        .exists(line =>
+          Option(line.getType).exists(_.getCableType.toScala.isDefined)
+        )
+    if !hasCableType then
       throw new GridAgentInitializationException(
         "Ampacity calculation is activated, but no cable types are available. Please provide at least one cable type."
       )
@@ -197,7 +191,6 @@ object ThermalSegmentBuilder {
     */
   private def validateCableDeployments(
       subGridContainer: SubGridContainer,
-      cableTypeMap: Map[UUID, CableTypeInput],
       deploymentsByLine: scala.collection.Map[UUID, java.util.List[
         CableDeploymentInput
       ]],
@@ -210,7 +203,7 @@ object ThermalSegmentBuilder {
     val missingDeployments =
       subGridContainer.getRawGrid.getLines.asScala.toSeq.flatMap { lineInput =>
         Option(lineInput.getType)
-          .flatMap(resolveCableType(_, cableTypeMap))
+          .flatMap(resolveCableType)
           .toSeq
           .flatMap { cableType =>
             val hasDeployment =
@@ -233,76 +226,28 @@ object ThermalSegmentBuilder {
       )
   }
 
-  /** Resolves the cable type UUID from a line type's additional information.
+  /** Resolves the cable type directly attached to a line type.
     *
     * @param lineType
     *   The line type input.
-    * @param cableTypeMap
-    *   The map of available cable types by UUID.
     * @return
     *   An optional [[CableTypeInput]].
     */
   private def resolveCableType(
-      lineType: LineTypeInput,
-      cableTypeMap: Map[UUID, CableTypeInput],
+      lineType: LineTypeInput
   ): Option[CableTypeInput] =
-    Option(lineType.getAdditionalInformation).flatMap { ai =>
-      // helper: try to extract a UUID string from different shapes (String, Map, other)
-      def extractUuidFromValue(v: Any): Option[CableTypeInput] = {
-        val asString: Option[String] = Option(v).collect { case s: String => s }
-
-        val fromMap: Option[String] =
-          try {
-            val m = v.asInstanceOf[java.util.Map[?, ?]]
-            Option(m.get("cableType")).collect { case ss: String => ss }
-          } catch {
-            case _: ClassCastException => None
-          }
-
-        val candidate: Option[String] =
-          asString.orElse(fromMap).orElse(Option(v).map(_.toString))
-
-        candidate.flatMap(s =>
-          Try(UUID.fromString(s)).toOption.flatMap(cableTypeMap.get)
-        )
-      }
-
-      // Try direct "cableType" entry first
-      val direct: Option[CableTypeInput] =
-        Option(ai.get("cableType")).flatMap(extractUuidFromValue)
-
-      // Fallback: look for nested "additionalInformation" that may contain a JSON string or map
-      val fallback: Option[CableTypeInput] =
-        Option(ai.get("additionalInformation")).flatMap {
-          case s: String =>
-            Try {
-              val js = Json.parse(s)
-              (js \\ "cableType").headOption
-                .flatMap(_.asOpt[String])
-                .flatMap(str =>
-                  Try(UUID.fromString(str)).toOption.flatMap(cableTypeMap.get)
-                )
-            }.toOption.flatten
-          case other =>
-            extractUuidFromValue(other)
-        }
-
-      direct.orElse(fallback)
-    }
+    Option(lineType).flatMap(_.getCableType.toScala)
 
   /** Generates thermal line segments for all lines that have both a cable type
     * and a cable deployment.
     *
     * @param subGridContainer
     *   The subgrid container.
-    * @param cableTypeMap
-    *   The map of available cable types by UUID.
     * @return
     *   A tuple of the generated segments and their coordinates.
     */
   private def generateThermalSegments(
-      subGridContainer: SubGridContainer,
-      cableTypeMap: Map[UUID, CableTypeInput],
+      subGridContainer: SubGridContainer
   ): (
       Set[LineSegmentThermalModel],
       Seq[(LineSegmentThermalModel, (Double, Double), (Double, Double))],
@@ -318,121 +263,120 @@ object ThermalSegmentBuilder {
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
         // Only build thermal segments if both a cable type and a cable deployment exist
         Option(lineInput.getType).toSeq.flatMap { lineType =>
-          resolveCableType(lineType, cableTypeMap).toSeq.flatMap {
-            cableTypeInput =>
-              val deploymentListOpt =
-                deploymentsByLine.get(lineInput.getUuid)
-              val firstDeploymentOpt =
-                deploymentListOpt.map(_.asScala).flatMap(_.headOption)
+          resolveCableType(lineType).toSeq.flatMap { cableTypeInput =>
+            val deploymentListOpt =
+              deploymentsByLine.get(lineInput.getUuid)
+            val firstDeploymentOpt =
+              deploymentListOpt.map(_.asScala).flatMap(_.headOption)
 
-              // If no deployment, skip this line
-              firstDeploymentOpt.toSeq.flatMap { firstDeployment =>
-                // Geometrische Stützpunkte aus dem GeoJSON extrahieren
-                val jsonStringLineInput = lineInputToJson(lineInput)
-                val json = Json.parse(jsonStringLineInput)
-                val coordinates: Seq[(Double, Double)] =
-                  (json \ "coordinates")
-                    .asOpt[JsArray]
-                    .map(_.value.toSeq.collect {
-                      case pair: JsArray if pair.value.size >= 2 =>
-                        (pair.value(0).as[Double], pair.value(1).as[Double])
-                    })
-                    .getOrElse(Seq.empty)
+            // If no deployment, skip this line
+            firstDeploymentOpt.toSeq.flatMap { firstDeployment =>
+              // Geometrische Stützpunkte aus dem GeoJSON extrahieren
+              val jsonStringLineInput = lineInputToJson(lineInput)
+              val json = Json.parse(jsonStringLineInput)
+              val coordinates: Seq[(Double, Double)] =
+                (json \ "coordinates")
+                  .asOpt[JsArray]
+                  .map(_.value.toSeq.collect {
+                    case pair: JsArray if pair.value.size >= 2 =>
+                      (pair.value(0).as[Double], pair.value(1).as[Double])
+                  })
+                  .getOrElse(Seq.empty)
 
-                val conductor: Layer =
-                  mapConductor(cableTypeInput.getConductor)
-                val isolation: List[Layer] =
-                  cableTypeInput.getIsolation.asScala
-                    .map(mapLayer)
-                    .toList
-                val screen: Option[ScreenLayer] =
-                  cableTypeInput.getScreen.toScala.map(mapScreen)
-                val filler: List[Layer] = Option(cableTypeInput.getFiller)
-                  .map(_.asScala.map(mapLayer).toList)
-                  .getOrElse(List.empty)
-                val armor: List[Layer] = Option(cableTypeInput.getArmor)
-                  .map(_.asScala.map(mapLayer).toList)
-                  .getOrElse(List.empty)
-                val jack: List[Layer] =
-                  cableTypeInput.getJack.asScala.map(mapLayer).toList
+              val conductor: Layer =
+                mapConductor(cableTypeInput.getConductor)
+              val isolation: List[Layer] =
+                cableTypeInput.getIsolation.asScala
+                  .map(mapLayer)
+                  .toList
+              val screen: Option[ScreenLayer] =
+                cableTypeInput.getScreen.toScala.map(mapScreen)
+              val filler: List[Layer] = Option(cableTypeInput.getFiller)
+                .map(_.asScala.map(mapLayer).toList)
+                .getOrElse(List.empty)
+              val armor: List[Layer] = Option(cableTypeInput.getArmor)
+                .map(_.asScala.map(mapLayer).toList)
+                .getOrElse(List.empty)
+              val jack: List[Layer] =
+                cableTypeInput.getJack.asScala.map(mapLayer).toList
 
-                val deploymentPattern: String =
-                  Option(firstDeployment.getLayoutFormation).getOrElse(
-                    throw new NoSuchElementException(
-                      "No deployment pattern available"
-                    )
+              val deploymentPattern: String =
+                Option(firstDeployment.getLayoutFormation).getOrElse(
+                  throw new NoSuchElementException(
+                    "No deployment pattern available"
                   )
-
-                val conductorDistance =
-                  Option(firstDeployment.getDistanceCables)
-                    .map(_.toSquants)
-                    .getOrElse(Meters(1))
-
-                val cable: CableSetup = CableSetup(
-                  cableTypeInput.getUuid,
-                  cableTypeInput.getId,
-                  Coordinate3D(0.0, 0.0, -1.0),
-                  Coordinate3D(1.0, 0.0, -1.0),
-                  conductor,
-                  isolation,
-                  screen,
-                  filler,
-                  armor,
-                  jack,
-                  deploymentPattern,
-                  conductorDistance,
-                  cableTypeInput.getJack.asScala.lastOption
-                    .map(_.outerDiameter().toSquants)
-                    .getOrElse(
-                      throw new NoSuchElementException("No jack available")
-                    ),
-                  KelvinMetersPerWatt(1),
-                  JoulesPerCubicMeterKelvin(1),
-                  cableTypeInput.getLimitTemperature.toSquants,
-                  lineType.getvRated().toSquants,
-                  cableTypeInput.getFrequency.toSquants,
-                  lineType.getR.toResistancePerLength,
-                  cableTypeInput.getSkinEffectCoefficient,
-                  cableTypeInput.getProximityEffectCoefficient,
-                  cableTypeInput.getElectricalCapacitance.toSquants,
-                  cableTypeInput.getTanDelta,
-                  cableTypeInput.getCirculatingLossFactor,
-                  cableTypeInput.getEddyCurrentLossFactor,
                 )
 
-                val segments =
-                  if coordinates.size >= 2 then
-                    coordinates
-                      .sliding(2)
-                      .collect { case Seq(start, end) =>
-                        val segment = LineSegmentThermalModel(
-                          UUID.randomUUID(),
-                          s"LineTher_${lineInput.getId}_${start}_${end}",
-                          lineInput.getUuid,
-                          cable,
-                          KelvinMetersPerWatt(1),
-                          KelvinMetersPerWatt(1),
-                          KelvinMetersPerWatt(1),
-                          KelvinMetersPerWatt(1),
-                          JoulesPerCubicMeterKelvin(1),
-                          JoulesPerCubicMeterKelvin(1),
-                          JoulesPerCubicMeterKelvin(1),
-                          JoulesPerCubicMeterKelvin(1),
-                          JoulesPerCubicMeterKelvin(1),
-                          cableTypeInput.getLimitTemperature.toSquants,
-                        )
-                        val entry: (
-                            LineSegmentThermalModel,
-                            (Double, Double),
-                            (Double, Double),
-                        ) = (segment, start, end)
-                        generatedSegments += entry
-                        segment
-                      }
-                      .toSet
-                  else Set.empty
-                segments
-              }
+              val conductorDistance =
+                Option(firstDeployment.getDistanceCables)
+                  .map(_.toSquants)
+                  .getOrElse(Meters(1))
+
+              val cable: CableSetup = CableSetup(
+                cableTypeInput.getUuid,
+                cableTypeInput.getId,
+                Coordinate3D(0.0, 0.0, -1.0),
+                Coordinate3D(1.0, 0.0, -1.0),
+                conductor,
+                isolation,
+                screen,
+                filler,
+                armor,
+                jack,
+                deploymentPattern,
+                conductorDistance,
+                cableTypeInput.getJack.asScala.lastOption
+                  .map(_.outerDiameter().toSquants)
+                  .getOrElse(
+                    throw new NoSuchElementException("No jack available")
+                  ),
+                KelvinMetersPerWatt(1),
+                JoulesPerCubicMeterKelvin(1),
+                cableTypeInput.getLimitTemperature.toSquants,
+                lineType.getvRated().toSquants,
+                cableTypeInput.getFrequency.toSquants,
+                lineType.getR.toResistancePerLength,
+                cableTypeInput.getSkinEffectCoefficient,
+                cableTypeInput.getProximityEffectCoefficient,
+                cableTypeInput.getElectricalCapacitance.toSquants,
+                cableTypeInput.getTanDelta,
+                cableTypeInput.getCirculatingLossFactor,
+                cableTypeInput.getEddyCurrentLossFactor,
+              )
+
+              val segments =
+                if coordinates.size >= 2 then
+                  coordinates
+                    .sliding(2)
+                    .collect { case Seq(start, end) =>
+                      val segment = LineSegmentThermalModel(
+                        UUID.randomUUID(),
+                        s"LineTher_${lineInput.getId}_${start}_${end}",
+                        lineInput.getUuid,
+                        cable,
+                        KelvinMetersPerWatt(1),
+                        KelvinMetersPerWatt(1),
+                        KelvinMetersPerWatt(1),
+                        KelvinMetersPerWatt(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        JoulesPerCubicMeterKelvin(1),
+                        cableTypeInput.getLimitTemperature.toSquants,
+                      )
+                      val entry: (
+                          LineSegmentThermalModel,
+                          (Double, Double),
+                          (Double, Double),
+                      ) = (segment, start, end)
+                      generatedSegments += entry
+                      segment
+                    }
+                    .toSet
+                else Set.empty
+              segments
+            }
           }
         }
       }.toSet
