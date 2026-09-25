@@ -316,11 +316,17 @@ object ThermalSegmentBuilder {
                 cableTypeInput.getJack.asScala.map(mapLayer).toList
 
               val deploymentPattern: String =
-                Option(firstDeployment.getLayoutFormation).getOrElse(
-                  throw new NoSuchElementException(
-                    "No deployment pattern available"
+                Option(firstDeployment.getLayoutFormation)
+                  .getOrElse( // FIXME DF: FirstDeployment vs. matching?
+                    throw new NoSuchElementException(
+                      "No deployment pattern available"
+                    )
                   )
-                )
+
+              val cableDepth =
+                Option(firstDeployment.getDepthCables)
+                  .map(_.toSquants)
+                  .getOrElse(Meters(1))
 
               val conductorDistance =
                 Option(firstDeployment.getDistanceCables)
@@ -330,8 +336,8 @@ object ThermalSegmentBuilder {
               val cable: CableSetup = CableSetup(
                 cableTypeInput.getUuid,
                 cableTypeInput.getId,
-                Coordinate3D(0.0, 0.0, -1.0),
-                Coordinate3D(1.0, 0.0, -1.0),
+                Coordinate3D(0.0, 0.0, -1.0), // FIXME DF
+                Coordinate3D(1.0, 0.0, -1.0), // FIXME DF
                 conductor,
                 isolation,
                 screen,
@@ -339,12 +345,8 @@ object ThermalSegmentBuilder {
                 armor,
                 jack,
                 deploymentPattern,
+                cableDepth,
                 conductorDistance,
-                cableTypeInput.getJack.asScala.lastOption
-                  .map(_.outerDiameter().toSquants)
-                  .getOrElse(
-                    throw new NoSuchElementException("No jack available")
-                  ),
                 KelvinMetersPerWatt(1),
                 JoulesPerCubicMeterKelvin(1),
                 cableTypeInput.getLimitTemperature.toSquants,

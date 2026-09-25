@@ -94,15 +94,23 @@ class LineSegmentThermalModelSpec
       }
     }
 
+    "throw an exception for positive cable depth" in {
+      an[IllegalArgumentException] should be thrownBy {
+        LineSegmentThermalModel.determineWeightsGroundTemperatures(
+          Meters(0.5)
+        )
+      }
+    }
+
     "determine temperature level weights based on cable depth" in {
       val cases = Table(
         ("depth", "expectedW3", "expectedW4"),
-        (0.3, 1.0, 0.0), // below lower bound
-        (0.64, 1.0, 0.0), // exactly lower bound
-        (1.0, 0.7251908397, 0.274809160305), // typical cable depth
-        (1.95, 0.0, 1.0), // exactly upper bound
-        (2.5, 0.0, 1.0), // above upper bound
-        ((0.64 + 1.95) / 2.0, 0.5, 0.5), // midpoint interpolation
+        (-0.3, 1.0, 0.0), // below lower bound
+        (-0.64, 1.0, 0.0), // exactly lower bound
+        (-1.0, 0.7251908397, 0.274809160305), // typical cable depth
+        (-1.95, 0.0, 1.0), // exactly upper bound
+        (-2.5, 0.0, 1.0), // above upper bound
+        ((-0.64 - 1.95) / 2.0, 0.5, 0.5), // midpoint interpolation
       )
 
       forAll(cases) { (depth, expectedW3, expectedW4) =>

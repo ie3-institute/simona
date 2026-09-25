@@ -547,11 +547,11 @@ class LineThermalModelCalculationsSpec
           "cableDiameter",
           "expectedResult",
         ),
-        (1.0, 1.0, 1.31695789692),
-        (1.0, 0.0358, 4.716021634569044),
-        (0.7, 0.044, 4.15293803195116),
-        (0.1, 0.01, 3.6882538673612966), // small depth
-        (2.0, 0.01, 6.6846101651642655), // large diameter ratio
+        (-1.0, 1.0, 1.31695789692),
+        (-1.0, 0.0358, 4.716021634569044),
+        (-0.7, 0.044, 4.15293803195116),
+        (-0.1, 0.01, 3.6882538673612966), // small depth
+        (-2.0, 0.01, 6.6846101651642655), // large diameter ratio
       )
 
       forAll(cases) {
@@ -581,13 +581,13 @@ class LineThermalModelCalculationsSpec
       ),
       (
         1.0,
-        1.0,
+        -1.0,
         0.0729,
         0.6373564504421266,
       ), // Anders 1997 Cable No 2 T4 p. 215
       (
         1.0,
-        1.0,
+        -1.0,
         0.055,
         0.6822220147,
       ), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 323
@@ -625,9 +625,9 @@ class LineThermalModelCalculationsSpec
         "lossesCableC",
         "expectedRes",
       ),
-      (1.0, 1.0, 0.098, 0.5, 47.0866497321, 47.5422569285, 46.8820830331,
+      (1.0, -1.0, 0.098, 0.5, 47.0866497321, 47.5422569285, 46.8820830331,
         1.0358516741), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification", TB 880, p 161 T4
-      (1.0, 1.0, 0.0358, 0.0358, 31.0, 33.59, 31.0,
+      (1.0, -1.0, 0.0358, 0.0358, 31.0, 33.59, 31.0,
         1.9324332635), // Anders 2005 p. 310-311
     )
 
@@ -676,7 +676,7 @@ class LineThermalModelCalculationsSpec
       ),
       (
         1.0,
-        1.0,
+        -1.0,
         0.044,
         1.8524966955,
       ), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 161 T4

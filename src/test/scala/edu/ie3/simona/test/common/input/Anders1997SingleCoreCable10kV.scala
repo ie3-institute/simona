@@ -121,7 +121,7 @@ object Anders1997SingleCoreCable10kV {
     List.empty[Layer],
     List(jack),
     "flat-distance",
-    Meters(1),
+    Meters(-1),
     Meters(2 * 0.0358),
     KelvinMetersPerWatt(1.0),
     JoulesPerCubicMeterKelvin(1.0), // FIXME DF check this

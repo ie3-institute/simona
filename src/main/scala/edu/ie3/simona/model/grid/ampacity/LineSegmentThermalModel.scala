@@ -359,14 +359,18 @@ object LineSegmentThermalModel {
   def determineWeightsGroundTemperatures(
       depthCables: Length
   ): (Double, Double) = {
+    require(
+      depthCables <= Meters(0),
+      s"The cable laying depth must be a negative value (depth below ground), but was ${depthCables.toMeters} m.",
+    )
     depthCables match {
-      case x if x >= Meters(1.94) => (0.0, 1.0)
-      case x if x < Meters(1.94) && x > Meters(0.64) =>
-        val min = Meters(0.64)
-        val max = Meters(1.95)
+      case x if x <= Meters(-1.95) => (0.0, 1.0)
+      case x if x > Meters(-1.95) && x <= Meters(-0.64) =>
+        val min = Meters(-0.64)
+        val max = Meters(-1.95)
         val t = (x - min) / (max - min)
         (1.0 - t, t)
-      case x if x <= Meters(0.64) => (1.0, 0.0)
+      case x if x > Meters(-0.64) => (1.0, 0.0)
       case _ =>
         throw new IllegalArgumentException(
           s"This case should not happen when handling input for LineSegmentThermalModel"

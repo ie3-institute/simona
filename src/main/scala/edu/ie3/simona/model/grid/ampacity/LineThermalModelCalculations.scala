@@ -631,7 +631,8 @@ object LineThermalModelCalculations extends LazyLogging {
       depthCable: Length,
       cableDiameter: Length,
   ): Double = {
-    val normalizationFactor = 2d * depthCable.toMeters / cableDiameter.toMeters
+    val normalizationFactor =
+      (2d * depthCable.toMeters * -1) / cableDiameter.toMeters
     log(normalizationFactor + sqrt(pow(normalizationFactor, 2) - 1))
   }
 
@@ -674,7 +675,7 @@ object LineThermalModelCalculations extends LazyLogging {
   ): ThermalResistivity = {
     val distancePtoKDashDividedByDistancePtoK = sqrt(
       (pow(distanceOfCables.toMeters, 2) + pow(
-        2 * depthCables.toMeters,
+        2 * depthCables.toMeters * -1,
         2,
       )) / (pow(distanceOfCables.toMeters, 2) + pow(0, 2))
     )
@@ -744,7 +745,7 @@ object LineThermalModelCalculations extends LazyLogging {
       depthToCenter: Length,
       diameterCable: Length,
   ): ThermalResistivity = {
-    val u = 2 * depthToCenter.toMeters / diameterCable.toMeters
+    val u = 2 * (depthToCenter.toMeters * -1) / diameterCable.toMeters
 
     KelvinMetersPerWatt(
       TREFOIL_COEFFICIENT * specificThermalResistivityGround.toKelvinMetersPerWatt / Pi

@@ -160,7 +160,7 @@ object CigreT880LandCable33kV {
     List.empty[Layer],
     List(jackTape, jack, outerCover),
     "trefoil-touching",
-    Meters(1),
+    Meters(-1),
     Meters(0.044),
     KelvinMetersPerWatt(1.0),
     JoulesPerCubicMeterKelvin(1.0), // FIXME DF check this
