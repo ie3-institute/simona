@@ -22,9 +22,6 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.grid.GridModel
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
@@ -99,6 +96,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         initData.nodeToAssetAgents,
         initData.refToSubgrid,
         initData.simulationStart,
+        initData.ampacityCalculationParams,
         initData.powerFlowParams,
         actorName,
       )
@@ -268,16 +266,10 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     val updatedThermalLineStates = {
       if doAmpacityCalc then {
-        ensureWeatherDataAvailable(gridAgentBaseData, gridModel)
-
-        // Initialize the thermal line states of all segments that have not
-        // been initialized yet, using the first weather data of the
-        // segment's calculation point
-        val lineStates =
-          initializeThermalLineStates(gridAgentBaseData, gridModel)
-
         gridModel.gridComponents.thermalLineSegments.map { lineSegment =>
-          val lastLineState = lineStates(lineSegment.uuid)
+          val lastLineState = gridAgentBaseData.thermalLineStates(
+            lineSegment.uuid
+          )
 
           val currentFromPFResults: ElectricCurrent =
             results.toSeq
@@ -445,73 +437,6 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   ): Unit = {
     log.debug(s"Received unsupported msg: $msg. Stash away!")
     buffer.stash(msg)
-  }
-
-  /** Fails fast if the weather data of a thermal line segment is not yet
-    * available at calculation time.
-    *
-    * @param gridAgentBaseData
-    *   Current state data of the [[GridAgent]].
-    * @param gridModel
-    *   The grid model of the [[GridAgent]].
-    * @throws GridAgentInitializationException
-    *   If weather data is missing for at least one thermal line segment.
-    */
-  private[grid] def ensureWeatherDataAvailable(
-      gridAgentBaseData: GridAgentBaseData,
-      gridModel: GridModel,
-  ): Unit = {
-    val missingWeather =
-      gridModel.gridComponents.thermalLineSegments
-        .map(_.uuid)
-        .filter(segmentUuid =>
-          !gridAgentBaseData.weatherData.contains(segmentUuid)
-        )
-    if missingWeather.nonEmpty then
-      throw new GridAgentInitializationException(
-        s"Ampacity calculation is activated for grid agent ${gridAgentBaseData.actorName}, " +
-          s"but no weather data has been received for line segment(s): " +
-          missingWeather.mkString(", ") +
-          ". Please ensure that a weather service is configured and provides data for the segment coordinates."
-      )
-  }
-
-  /** Initializes the thermal line states of all thermal line segments that have
-    * not been initialized yet, using the weather data of the segment's
-    * calculation point as the initial ground temperature.
-    *
-    * @param gridAgentBaseData
-    *   Current state data of the [[GridAgent]].
-    * @param gridModel
-    *   The grid model of the [[GridAgent]].
-    * @return
-    *   A map of all thermal line states (existing and newly initialized).
-    */
-  private[grid] def initializeThermalLineStates(
-      gridAgentBaseData: GridAgentBaseData,
-      gridModel: GridModel,
-  ): Map[UUID, LineState] = {
-    ensureWeatherDataAvailable(gridAgentBaseData, gridModel)
-
-    val newlyInitializedLineStates =
-      gridModel.gridComponents.thermalLineSegments
-        .filter(lineSegment =>
-          !gridAgentBaseData.thermalLineStates.contains(lineSegment.uuid)
-        )
-        .map { lineSegment =>
-          val weather = gridAgentBaseData.weatherData(lineSegment.uuid)
-          lineSegment.uuid -> LineSegmentThermalModel.initState(
-            lineSegment.cableSetup,
-            lineSegment,
-            LineSegmentThermalModel.groundTemperatureFromWeather(
-              lineSegment.cableSetup,
-              weather,
-            ),
-          )
-        }
-        .toMap
-
-    gridAgentBaseData.thermalLineStates ++ newlyInitializedLineStates
   }
 
 }

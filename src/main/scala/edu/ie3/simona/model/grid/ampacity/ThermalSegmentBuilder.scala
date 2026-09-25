@@ -91,10 +91,12 @@ object ThermalSegmentBuilder {
     validateSoilReferences(soilLayers, soilTypes)
 
     // 2. Validate cable deployments
-    val deploymentsByLine =
-      subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
-    validateCableTypesPresent(subGridContainer)
-    validateCableDeployments(subGridContainer, deploymentsByLine)
+    // NOTE: Validation of cable types and cable deployments on subgrid level
+    // is currently skipped, since not every subgrid is required to have cable
+    // types or cable deployments. This should be validated on a higher level
+    // (e.g., simulation level) in the future.
+    // validateCableTypesPresent(subGridContainer)
+    // validateCableDeployments(subGridContainer, deploymentsByLine)
 
     // 3. Generate thermal segments
     val (thermalLineSegments, generatedSegments, segmentCoordinates) =

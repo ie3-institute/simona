@@ -9,6 +9,7 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.GridAgentCoordinator.FinishedInitialization
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   CompleteInitialization,
+  DoPowerFlowTrigger,
   RegisterSuperiorGrid,
 }
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
@@ -17,7 +18,6 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.powerflow.{DBFSMockGridAgents, PowerFlowParams}
-import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.ampacity.AmpacityCalculationParams
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
@@ -31,6 +31,7 @@ import edu.ie3.simona.service.Data.SecondaryData.CurrentVoltage
 import edu.ie3.simona.service.load.LoadProfileService
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
 import edu.ie3.simona.service.results.ResultServiceProxy
+import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
@@ -48,13 +49,13 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.apache.pekko.actor.typed.ActorRef
 import squants.electro.Kilovolts
 import squants.thermal.{Celsius, Kelvin, Temperature}
-import java.util.UUID
 import scala.concurrent.duration.*
 
 /** Tests the weather data flow for the [[GridAgent]] thermal line segment
-  * ampacity calculation: lazy initialization of the thermal line states from
-  * the first received weather data, and fail-fast behaviour when weather data
-  * is missing at calculation time.
+  * ampacity calculation: eager initialization of the thermal line states with a
+  * fixed ground temperature, per-segment buffering of the received weather
+  * data, and the weather-based ground temperature update via
+  * [[LineSegmentThermalModel.handleInput]].
   */
 class GridAgentWeatherSpec
     extends ScalaTestWithActorTestKit
@@ -101,6 +102,24 @@ class GridAgentWeatherSpec
     startTime,
     endTime,
   )
+
+  /** A [[GridAgentConstantData]] with ampacity calculation activated, used for
+    * tests that exercise the ampacity path of the grid agent.
+    */
+  private val ampacityConstantData: GridAgentConstantData =
+    GridAgentConstantData(
+      gridAgentCoordinator.ref,
+      environmentRefs,
+      simonaConfig.copy(
+        ampacityCalculation =
+          edu.ie3.simona.config.SimonaConfig.AmpacityCalculation(
+            activateAmpacityCalculation = true
+          )
+      ),
+      3600,
+      startTime,
+      endTime,
+    )
 
   /** A [[GridModel]] based on the test grid, augmented with the test thermal
     * line segment and its calculation point.
@@ -211,15 +230,7 @@ class GridAgentWeatherSpec
         Some(lineSegmentThermalModel.uuid.toString),
       )
     }
-    "fail fast if the weather service reports a failed registration" in {
-      val gridAgent = spawnInitializedGridAgent()
-      // Consume the registration message
-      weatherService.expectMessageType[ServiceMessage]
-      gridAgent ! RegistrationFailedMessage(weatherService.ref)
-      val deathWatch = createTestProbe("deathWatch")
-      deathWatch.expectTerminated(gridAgent)
-    }
-    "initialize its thermal line states from the first weather data of the segment" in {
+    "initialize its thermal line states eagerly with a fixed ground temperature" in {
       val baseData =
         GridAgentBaseData.create(
           gridModelWithThermalSegment,
@@ -228,36 +239,16 @@ class GridAgentWeatherSpec
           Map.empty,
           Map.empty,
           startTime,
+          AmpacityCalculationParams(activateAmpacityCalculation = true),
           PowerFlowParams(simonaConfig.powerflow.value),
           "testGridAgent",
         )
-      // No thermal line states yet (lazy initialization)
-      baseData.thermalLineStates shouldBe empty
-      // Without weather data, the initialization fails fast
-      an[GridAgentInitializationException] should be thrownBy {
-        GridAgent.initializeThermalLineStates(
-          baseData,
-          gridModelWithThermalSegment,
-        )
-      }
-      // With the first received weather data, the initial line states are
-      // created using the weighted ground temperature of that weather data
-      val baseDataWithWeather = baseData.copy(
-        weatherData = Map(lineSegmentThermalModel.uuid -> weatherData)
-      )
-      val lineStates = GridAgent.initializeThermalLineStates(
-        baseDataWithWeather,
-        gridModelWithThermalSegment,
-      )
-      val lineState = lineStates(lineSegmentThermalModel.uuid)
-      val expectedGroundTemperature =
-        LineSegmentThermalModel.groundTemperatureFromWeather(
-          lineSegmentThermalModel.cableSetup,
-          weatherData,
-        )
-      lineState.groundTemperature should approximate(expectedGroundTemperature)
-      // Subsequent weather data updates the ground temperature via
-      // handleInput (used in afterPowerFlow)
+      // The thermal line states are initialized eagerly with a fixed ground temperature of 10 °C
+      baseData.thermalLineStates should not be empty
+      val lineState = baseData.thermalLineStates(lineSegmentThermalModel.uuid)
+      lineState.groundTemperature should approximate(Celsius(10d))
+      // The ground temperature is updated from the weather data via
+      // handleInput (used in afterPowerFlow) once weather is available
       val updatedWeather = weatherData.copy(
         groundTempLvl3 = Some(Celsius(15)),
         groundTempLvl4 = Some(Celsius(10)),
@@ -276,60 +267,12 @@ class GridAgentWeatherSpec
         )
       )
     }
-    "throw an exception with segment identification if weather data is missing at calculation time" in {
-      val baseData =
-        GridAgentBaseData.create(
-          gridModelWithThermalSegment,
-          Map.empty,
-          Map.empty,
-          Map.empty,
-          Map.empty,
-          startTime,
-          PowerFlowParams(simonaConfig.powerflow.value),
-          "testGridAgent",
-        )
-      // No weather data at all: exception names the segment
-      val exception =
-        the[GridAgentInitializationException] thrownBy {
-          GridAgent.ensureWeatherDataAvailable(
-            baseData,
-            gridModelWithThermalSegment,
-          )
-        }
-      exception.getMessage should include(
-        lineSegmentThermalModel.uuid.toString
-      )
-      // Weather data for a different segment only: the missing segment is named
-      val otherSegmentUuid = UUID.randomUUID()
-      val baseDataWithOtherWeather = baseData.copy(
-        weatherData = Map(otherSegmentUuid -> weatherData)
-      )
-      val exceptionForMissing =
-        the[GridAgentInitializationException] thrownBy {
-          GridAgent.ensureWeatherDataAvailable(
-            baseDataWithOtherWeather,
-            gridModelWithThermalSegment,
-          )
-        }
-      exceptionForMissing.getMessage should include(
-        lineSegmentThermalModel.uuid.toString
-      )
-      // All segments have weather data: no exception
-      val baseDataWithWeather = baseData.copy(
-        weatherData = Map(lineSegmentThermalModel.uuid -> weatherData)
-      )
-      noException should be thrownBy {
-        GridAgent.ensureWeatherDataAvailable(
-          baseDataWithWeather,
-          gridModelWithThermalSegment,
-        )
-      }
-    }
     "buffer the last received weather data per segment (sticky)" in {
       val gridAgent = spawnInitializedGridAgent()
       // Consume the registration message sent during initialization
       weatherService.expectMessageType[ServiceMessage]
       val segmentUuid = lineSegmentThermalModel.uuid
+
       // First provision is buffered for the segment (latest known wins later).
       gridAgent ! ServiceMessage.DataProvision(
         0L,
