@@ -39,6 +39,8 @@ import squants.space.Millimeters
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.UUID
+import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.Map as MutableMap
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
@@ -249,8 +251,9 @@ object ThermalSegmentBuilder {
     * @param subGridContainer
     *   The subgrid container.
     * @return
-    *   A tuple of the generated segments, their coordinates for output, and
-    *   the midpoint coordinates for weather registration.
+    *   A tuple of the generated segments, their coordinates for output, and the
+    *   midpoint coordinates for weather registration. //FIXME DF not always
+    *   midpoint
     */
   private def generateThermalSegments(
       subGridContainer: SubGridContainer
@@ -262,12 +265,12 @@ object ThermalSegmentBuilder {
     val deploymentsByLine =
       subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
 
-    val generatedSegments: scala.collection.mutable.ListBuffer[
+    val generatedSegments: ListBuffer[
       (LineSegmentThermalModel, (Double, Double), (Double, Double))
-    ] = scala.collection.mutable.ListBuffer.empty
+    ] = ListBuffer.empty
 
-    val segmentCoordinatesBuffer: scala.collection.mutable.Map[UUID, Coordinate] =
-      scala.collection.mutable.Map.empty
+    val segmentCoordinatesBuffer: MutableMap[UUID, Coordinate] =
+      MutableMap.empty
 
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
@@ -398,7 +401,11 @@ object ThermalSegmentBuilder {
         }
       }.toSet
 
-    (thermalLineSegments, generatedSegments.toSeq, segmentCoordinatesBuffer.toMap)
+    (
+      thermalLineSegments,
+      generatedSegments.toSeq,
+      segmentCoordinatesBuffer.toMap,
+    )
   }
 
   /** Converts a [[LineInput]] to a GeoJSON string representation.

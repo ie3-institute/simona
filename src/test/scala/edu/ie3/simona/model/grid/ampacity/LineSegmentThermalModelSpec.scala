@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
-import edu.ie3.simona.service.Data.SecondaryData.CurrentVoltage
+import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import org.scalatest.matchers.should.Matchers
@@ -147,6 +147,44 @@ class LineSegmentThermalModelSpec
       updatedState.groundTemperature.should(
         approximate(expectedGroundTemperature)
       )
+    }
+
+    "derive the ground temperature at cable depth from weather data" in {
+      val (weightTempLvl3, weightTempLvl4) =
+        LineSegmentThermalModel.determineWeightsGroundTemperatures(
+          Meters(cigreT880LandCable33kV.pointA.height)
+        )
+      val groundTempLvl3 = weatherData.groundTempLvl3.getOrElse(
+        fail("Test weather data must provide ground temperature level 3.")
+      )
+      val groundTempLvl4 = weatherData.groundTempLvl4.getOrElse(
+        fail("Test weather data must provide ground temperature level 4.")
+      )
+      val expectedGroundTemperature =
+        groundTempLvl3 * weightTempLvl3 + groundTempLvl4 * weightTempLvl4
+
+      LineSegmentThermalModel
+        .groundTemperatureFromWeather(
+          cigreT880LandCable33kV,
+          weatherData,
+        )
+        .should(approximate(expectedGroundTemperature))
+    }
+
+    "throw an exception if a ground temperature level is missing" in {
+      an[IllegalArgumentException] should be thrownBy {
+        LineSegmentThermalModel.groundTemperatureFromWeather(
+          cigreT880LandCable33kV,
+          weatherData.copy(groundTempLvl3 = None),
+        )
+      }
+
+      an[IllegalArgumentException] should be thrownBy {
+        LineSegmentThermalModel.groundTemperatureFromWeather(
+          cigreT880LandCable33kV,
+          weatherData.copy(groundTempLvl4 = None),
+        )
+      }
     }
 
   }

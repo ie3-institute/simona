@@ -22,6 +22,9 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
+import edu.ie3.simona.model.grid.GridModel
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
@@ -31,7 +34,6 @@ import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
@@ -41,14 +43,15 @@ import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 import squants.ElectricCurrent
 import squants.electro.Amperes
-import squants.{Each, Dimensionless}
+import squants.{Dimensionless, Each}
 
 import java.util.UUID
 
 object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
   /** All messages, that can be received by a [[GridAgent]]. */
-  final type Message = InternalRequest | InternalReply | Activation | ServiceMessage.Response
+  final type Message = InternalRequest | InternalReply | Activation |
+    ServiceMessage.Response
 
   /** Necessary because we want to extend messages in other classes, but we do
     * want to keep the messages only available inside this package.
@@ -89,14 +92,13 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       failFast(initData, actorName, onlyOneSubGrid)
 
       // create the GridAgentBaseData
-      val gridAgentBaseData = GridAgentBaseData(
+      val gridAgentBaseData = GridAgentBaseData.create(
         initData.gridModel,
         initData.inferiorConnections,
         initData.superiorConnections,
         initData.nodeToAssetAgents,
         initData.refToSubgrid,
         initData.simulationStart,
-        initData.ampacityCalculationParams,
         initData.powerFlowParams,
         actorName,
       )
@@ -160,8 +162,17 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         ctx,
       )
 
-    // Handle weather data provision (sticky last-known semantics)
-    case (ctx, ServiceMessage.DataProvision(_, _, weatherData: WeatherData, _, Some(key))) =>
+    // Handle weather data provision
+    case (
+          ctx,
+          ServiceMessage.DataProvision(
+            _,
+            _,
+            weatherData: WeatherData,
+            _,
+            Some(key),
+          ),
+        ) =>
       try
         val segmentUuid = UUID.fromString(key)
         ctx.log.debug(
@@ -169,12 +180,14 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
         )
         idle(
           gridAgentBaseData.copy(
-            weatherData = gridAgentBaseData.weatherData.updated(segmentUuid, weatherData)
+            weatherData =
+              gridAgentBaseData.weatherData.updated(segmentUuid, weatherData)
           )
         )
-      catch case _: IllegalArgumentException =>
-        // not a segment UUID key, ignore
-        Behaviors.same
+      catch
+        case _: IllegalArgumentException =>
+          // not a segment UUID key, ignore
+          Behaviors.same
 
     // Handle registration failure (fail-fast)
     case (_, ServiceMessage.RegistrationFailedMessage(_)) =>
@@ -255,22 +268,16 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
 
     val updatedThermalLineStates = {
       if doAmpacityCalc then {
-        // Fail-fast: weather data must have been received before the first ampacity calculation
-        if gridAgentBaseData.weatherData.isEmpty then
-          throw new GridAgentInitializationException(
-            s"Ampacity calculation is activated for grid agent ${gridAgentBaseData.actorName}, " +
-              "but no weather data has been received yet. " +
-              "Please ensure that a weather service is configured and provides data for the segment coordinates."
-          )
+        ensureWeatherDataAvailable(gridAgentBaseData, gridModel)
+
+        // Initialize the thermal line states of all segments that have not
+        // been initialized yet, using the first weather data of the
+        // segment's calculation point
+        val lineStates =
+          initializeThermalLineStates(gridAgentBaseData, gridModel)
 
         gridModel.gridComponents.thermalLineSegments.map { lineSegment =>
-          val lastLineState =
-            gridAgentBaseData.thermalLineStates.getOrElse(
-              lineSegment.uuid,
-              throw new RuntimeException(
-                s"No previous state for line ${lineSegment.uuid}"
-              ),
-            )
+          val lastLineState = lineStates(lineSegment.uuid)
 
           val currentFromPFResults: ElectricCurrent =
             results.toSeq
@@ -305,7 +312,8 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
             .getOrElse(nominalVoltage)
 
           val lineStateWithInput = {
-            val inputs =              gridAgentBaseData.weatherData.get(lineSegment.uuid) match {
+            val inputs =
+              gridAgentBaseData.weatherData.get(lineSegment.uuid) match {
                 case Some(weather) =>
                   Seq(
                     CurrentVoltage(lineSegment.uuid, cableVoltage),
@@ -437,6 +445,73 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
   ): Unit = {
     log.debug(s"Received unsupported msg: $msg. Stash away!")
     buffer.stash(msg)
+  }
+
+  /** Fails fast if the weather data of a thermal line segment is not yet
+    * available at calculation time.
+    *
+    * @param gridAgentBaseData
+    *   Current state data of the [[GridAgent]].
+    * @param gridModel
+    *   The grid model of the [[GridAgent]].
+    * @throws GridAgentInitializationException
+    *   If weather data is missing for at least one thermal line segment.
+    */
+  private[grid] def ensureWeatherDataAvailable(
+      gridAgentBaseData: GridAgentBaseData,
+      gridModel: GridModel,
+  ): Unit = {
+    val missingWeather =
+      gridModel.gridComponents.thermalLineSegments
+        .map(_.uuid)
+        .filter(segmentUuid =>
+          !gridAgentBaseData.weatherData.contains(segmentUuid)
+        )
+    if missingWeather.nonEmpty then
+      throw new GridAgentInitializationException(
+        s"Ampacity calculation is activated for grid agent ${gridAgentBaseData.actorName}, " +
+          s"but no weather data has been received for line segment(s): " +
+          missingWeather.mkString(", ") +
+          ". Please ensure that a weather service is configured and provides data for the segment coordinates."
+      )
+  }
+
+  /** Initializes the thermal line states of all thermal line segments that have
+    * not been initialized yet, using the weather data of the segment's
+    * calculation point as the initial ground temperature.
+    *
+    * @param gridAgentBaseData
+    *   Current state data of the [[GridAgent]].
+    * @param gridModel
+    *   The grid model of the [[GridAgent]].
+    * @return
+    *   A map of all thermal line states (existing and newly initialized).
+    */
+  private[grid] def initializeThermalLineStates(
+      gridAgentBaseData: GridAgentBaseData,
+      gridModel: GridModel,
+  ): Map[UUID, LineState] = {
+    ensureWeatherDataAvailable(gridAgentBaseData, gridModel)
+
+    val newlyInitializedLineStates =
+      gridModel.gridComponents.thermalLineSegments
+        .filter(lineSegment =>
+          !gridAgentBaseData.thermalLineStates.contains(lineSegment.uuid)
+        )
+        .map { lineSegment =>
+          val weather = gridAgentBaseData.weatherData(lineSegment.uuid)
+          lineSegment.uuid -> LineSegmentThermalModel.initState(
+            lineSegment.cableSetup,
+            lineSegment,
+            LineSegmentThermalModel.groundTemperatureFromWeather(
+              lineSegment.cableSetup,
+              weather,
+            ),
+          )
+        }
+        .toMap
+
+    gridAgentBaseData.thermalLineStates ++ newlyInitializedLineStates
   }
 
 }

@@ -118,25 +118,12 @@ final case class LineSegmentThermalModel(
 
     weather
       .map { newData =>
-        val (weightTempLvl3, weightTempLvl4) =
-          LineSegmentThermalModel.determineWeightsGroundTemperatures(
-            Meters(
-              state.cableSetup.pointA.height
-            ) // FIXME DF, it is not always pointA
-          )
+        val groundTemp = LineSegmentThermalModel.groundTemperatureFromWeather(
+          state.cableSetup,
+          newData,
+        )
 
-        val groundTempCableDepth = newData.groundTempLvl3.getOrElse(
-          throw new IllegalArgumentException(
-            s"Ground Temperature Level 3 expected but not found."
-          )
-        ) * weightTempLvl3 +
-          newData.groundTempLvl4.getOrElse(
-            throw new IllegalArgumentException(
-              s"Ground Temperature Level 4 expected but not found."
-            )
-          ) * weightTempLvl4
-
-        stateWithVoltage.copy(groundTemperature = groundTempCableDepth)
+        stateWithVoltage.copy(groundTemperature = groundTemp)
       }
       .getOrElse(stateWithVoltage)
   }
@@ -186,6 +173,39 @@ final case class LineStateResult(
 
 object LineSegmentThermalModel {
 
+  /** Derives the ground temperature at cable depth from [[WeatherData]] using
+    * weighting of ground temperature level 3 and 4.
+    *
+    * @param cableSetup
+    *   The cable setup of the line segment (provides the laying depth).
+    * @param weather
+    *   The weather data of the segment's calculation point.
+    * @return
+    *   The ground temperature at cable depth.
+    */
+  def groundTemperatureFromWeather(
+      cableSetup: CableSetup,
+      weather: WeatherData,
+  ): Temperature = {
+    val (weightTempLvl3, weightTempLvl4) =
+      determineWeightsGroundTemperatures(
+        Meters(
+          cableSetup.pointA.height
+        ) // FIXME DF, it is not always pointA
+      )
+
+    weather.groundTempLvl3.getOrElse(
+      throw new IllegalArgumentException(
+        s"Ground Temperature Level 3 expected but not found."
+      )
+    ) * weightTempLvl3 +
+      weather.groundTempLvl4.getOrElse(
+        throw new IllegalArgumentException(
+          s"Ground Temperature Level 4 expected but not found."
+        )
+      ) * weightTempLvl4
+  }
+
   /** State of a thermal line segment model.
     *
     * @param tick
@@ -210,7 +230,7 @@ object LineSegmentThermalModel {
       cableSetup: CableSetup,
       currentLineSegmentThermalModel: LineSegmentThermalModel,
       groundTemperature: Temperature,
-      lineTemperatures: LineTemperatures, // FIXME DF Check if weather of first tick can be provided here upfront or adapt this to be maybe 10 Celsius
+      lineTemperatures: LineTemperatures,
       currentVoltage: ElectricPotential,
   ) extends ModelState
 

@@ -60,7 +60,9 @@ object WeatherService extends SimonaService {
     *   Weights mapping surrounding coordinates onto the registered coordinate.
     */
   final case class RegistrantsContainer(
-      registrantsMap: Map[DataTimeType, Map[ActorRef[ServiceMessage.Response], Option[String]]],
+      registrantsMap: Map[DataTimeType, Map[ActorRef[
+        ServiceMessage.Response
+      ], Option[String]]],
       coordinateWeights: WeightedCoordinates,
   )
 
