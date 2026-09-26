@@ -44,16 +44,16 @@ class LineSegmentThermalModelSpec
           cigreT880LandCable33kV,
           20d,
           537d,
-          89.879674069971, // approx 90°C
+          89.52287997644756, // approx 90°C
         ), // CIGRE TB880 S. 205
-        (3600L, cigreT880LandCable33kV, 20d, 537d, 70.54034259413268),
-        (72000L, cigreT880LandCable33kV, 5d, 537d, 74.87967406997072),
+        (3600L, cigreT880LandCable33kV, 20d, 537d, 39.02615786013644),
+        (72000L, cigreT880LandCable33kV, 5d, 537d, 74.52287997644747),
         (
           72000L,
           andersSingleCore10kV,
           15d,
           629d,
-          91.27098,
+          91.25794,
         ), // a bit too much because of overestimated screen ac resistance
       )
 
