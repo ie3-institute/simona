@@ -298,6 +298,7 @@ object ThermalSegmentBuilder {
                   })
                   .getOrElse(Seq.empty)
 
+              // TODO DF: In case some information are missing in the provided input data, these might be filled by data in PSDM (Cable Material Data). Might worth an improvement in PSDM, noted here to keep track.
               val conductor: Layer =
                 mapConductor(cableTypeInput.getConductor)
               val isolation: List[Layer] =
@@ -323,12 +324,11 @@ object ThermalSegmentBuilder {
                     )
                   )
 
-              val cableDepth =
-                Option(firstDeployment.getDepthCables)
-                  .map(_.toSquants)
-                  .getOrElse(Meters(1))
+              val cableDepth = Option(firstDeployment.getDepthCables)
+                .map(_.toSquants)
+                .getOrElse(Meters(1))
 
-              val conductorDistance =
+              val cableDistance =
                 Option(firstDeployment.getDistanceCables)
                   .map(_.toSquants)
                   .getOrElse(Meters(1))
@@ -346,9 +346,9 @@ object ThermalSegmentBuilder {
                 jack,
                 deploymentPattern,
                 cableDepth,
-                conductorDistance,
-                KelvinMetersPerWatt(1),
-                JoulesPerCubicMeterKelvin(1),
+                cableDistance,
+                KelvinMetersPerWatt(1), // FIXME DF
+                JoulesPerCubicMeterKelvin(1), // FIXME DF
                 cableTypeInput.getLimitTemperature.toSquants,
                 lineType.getvRated().toSquants,
                 cableTypeInput.getFrequency.toSquants,
