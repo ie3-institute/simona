@@ -317,9 +317,9 @@ object ThermalSegmentBuilder {
 
               val deploymentPattern: String =
                 Option(firstDeployment.getLayoutFormation)
-                  .getOrElse( // FIXME DF: FirstDeployment vs. matching?
+                  .getOrElse(
                     throw new NoSuchElementException(
-                      "No deployment pattern available"
+                      s"No deployment pattern available for line ${lineInput.getUuid}"
                     )
                   )
 
