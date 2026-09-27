@@ -79,6 +79,7 @@ class LineThermalModelCalculationsSpec
             cableResistance,
             temperatureCorrection,
             cableSetup,
+            Meters(0.044),
           )
 
           actual should approximate(expectedResult)
@@ -712,8 +713,8 @@ class LineThermalModelCalculationsSpec
 
     val startingState =
       LineSegmentThermalModel.initState(
-        cigreT880LandCable33kV,
-        lineSegmentThermalModel,
+        cigreT880LandCable33kVcableSetup,
+        cigreLandCable33kVlineSegmentThermalModel,
         groundTemp,
       )
 
@@ -734,8 +735,8 @@ class LineThermalModelCalculationsSpec
     val tick = 972000L
     val groundTemperature = Celsius(20)
     val initialState = LineSegmentThermalModel.initState(
-      cigreT880LandCable33kV,
-      lineSegmentThermalModel,
+      cigreT880LandCable33kVcableSetup,
+      cigreLandCable33kVlineSegmentThermalModel,
       groundTemperature,
     )
     val expected = Celsius(20.94639208923625)

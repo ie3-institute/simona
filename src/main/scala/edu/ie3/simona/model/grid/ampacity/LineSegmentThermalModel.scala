@@ -13,6 +13,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
+import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.quantities.*
 import squants.motion.MetersPerSecond
@@ -46,6 +47,12 @@ final case class LineSegmentThermalModel(
     id: String,
     lineUuid: UUID,
     cableSetup: CableSetup,
+    pointA: Coordinate3D,
+    pointB: Coordinate3D,
+    depthCables: Length,
+    distanceCables: Length,
+    soilResistivity: ThermalResistivity,
+    soilCapacitance: ThermalCapacitance,
     thermalResistanceT1: ThermalResistivity,
     thermalResistanceT2: ThermalResistivity,
     thermalResistanceT3: ThermalResistivity,
@@ -119,7 +126,7 @@ final case class LineSegmentThermalModel(
     weather
       .map { newData =>
         val groundTemp = LineSegmentThermalModel.groundTemperatureFromWeather(
-          state.cableSetup,
+          depthCables,
           newData,
         )
 
@@ -187,23 +194,19 @@ object LineSegmentThermalModel {
   /** Derives the ground temperature at cable depth from [[WeatherData]] using
     * weighting of ground temperature level 3 and 4.
     *
-    * @param cableSetup
-    *   The cable setup of the line segment (provides the laying depth).
+    * @param depthCables
+    *   The laying depth of the cable (negative below ground level).
     * @param weather
     *   The weather data of the segment's calculation point.
     * @return
     *   The ground temperature at cable depth.
     */
   def groundTemperatureFromWeather(
-      cableSetup: CableSetup,
+      depthCables: Length,
       weather: WeatherData,
   ): Temperature = {
     val (weightTempLvl3, weightTempLvl4) =
-      determineWeightsGroundTemperatures(
-        Meters(
-          cableSetup.pointA.height
-        ) // FIXME DF, it is not always pointA
-      )
+      determineWeightsGroundTemperatures(depthCables)
 
     weather.groundTempLvl3.getOrElse(
       throw new IllegalArgumentException(
@@ -255,8 +258,8 @@ object LineSegmentThermalModel {
     val t2 = calcThermalResistanceT2(cableSetup)
     val t3 = calcThermalResistanceT3(cableSetup)
     val t4 = calcThermalResistanceToSoilSingleCable(
-      cableSetup.soilResistivity,
-      cableSetup.depthCables,
+      lineSegmentModel.soilResistivity,
+      lineSegmentModel.depthCables,
       cableSetup.layersJackElements.last.outerDiameter,
     )
 
@@ -320,13 +323,19 @@ object LineSegmentThermalModel {
     val thermalCapacityCj = thermalCapacityCj1 + thermalCapacityCj2
 
     val thermalCapacityCe =
-      cableSetup.soilCapacitance // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
+      lineSegmentModel.soilCapacitance // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
 
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       lineSegmentModel.uuid,
       lineSegmentModel.id,
       lineSegmentModel.lineUuid,
       cableSetup,
+      lineSegmentModel.pointA,
+      lineSegmentModel.pointB,
+      lineSegmentModel.depthCables,
+      lineSegmentModel.distanceCables,
+      lineSegmentModel.soilResistivity,
+      lineSegmentModel.soilCapacitance,
       t1,
       t2,
       t3,
@@ -336,7 +345,7 @@ object LineSegmentThermalModel {
       thermalCapacityCs,
       thermalCapacityCj,
       thermalCapacityCe,
-      Celsius(90),
+      lineSegmentModel.upperBoundaryTemperature,
     )
 
     val initLineTemperatures = LineTemperatures(

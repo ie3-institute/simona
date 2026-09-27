@@ -35,22 +35,39 @@ class LineSegmentThermalModelSpec
         (
           "tick",
           "cableSetup",
+          "lineSegmentModel",
           "groundTemp",
           "lineCurrent",
           "expectedLineTemperature",
         ),
         (
           72000L,
-          cigreT880LandCable33kV,
+          cigreT880LandCable33kVcableSetup,
+          cigreLandCable33kVlineSegmentThermalModel,
           20d,
           537d,
           89.52287997644756, // approx 90°C
         ), // CIGRE TB880 S. 205
-        (3600L, cigreT880LandCable33kV, 20d, 537d, 39.02615786013644),
-        (72000L, cigreT880LandCable33kV, 5d, 537d, 74.52287997644747),
+        (
+          3600L,
+          cigreT880LandCable33kVcableSetup,
+          cigreLandCable33kVlineSegmentThermalModel,
+          20d,
+          537d,
+          39.02615786013644,
+        ),
         (
           72000L,
-          andersSingleCore10kV,
+          cigreT880LandCable33kVcableSetup,
+          cigreLandCable33kVlineSegmentThermalModel,
+          5d,
+          537d,
+          74.52287997644747,
+        ),
+        (
+          72000L,
+          andersSingleCore10kVcableSetup,
+          andersLineSegmentThermalModel,
           15d,
           629d,
           91.25794,
@@ -61,6 +78,7 @@ class LineSegmentThermalModelSpec
         (
             tick,
             cableSetup,
+            lineSegmentModel,
             initGroundTemp,
             lineCurrent,
             exptLineTemperature,
@@ -70,7 +88,7 @@ class LineSegmentThermalModelSpec
 
           val startingState: LineState = LineSegmentThermalModel.initState(
             cableSetup,
-            lineSegmentThermalModel,
+            lineSegmentModel,
             initialGroundTemperature,
           )
 
@@ -128,26 +146,27 @@ class LineSegmentThermalModelSpec
       val initialGroundTemperature = Celsius(20d)
 
       val state: LineState = LineSegmentThermalModel.initState(
-        cigreT880LandCable33kV,
-        lineSegmentThermalModel,
+        cigreT880LandCable33kVcableSetup,
+        cigreLandCable33kVlineSegmentThermalModel,
         initialGroundTemperature,
       )
 
-      val updatedState = lineSegmentThermalModel.determineState(
-        3600L,
-        state,
-        Amperes(537d),
-        defaultSimulationStart,
-      )
+      val updatedState =
+        cigreLandCable33kVlineSegmentThermalModel.determineState(
+          3600L,
+          state,
+          Amperes(537d),
+          defaultSimulationStart,
+        )
 
-      val results = lineSegmentThermalModel
+      val results = cigreLandCable33kVlineSegmentThermalModel
         .createResults(updatedState, defaultSimulationStart)
         .toList
 
       results should have size 1
       val result = results.head
       result.time shouldBe defaultSimulationStart
-      result.lineSegmentUuid shouldBe lineSegmentThermalModel.uuid
+      result.lineSegmentUuid shouldBe cigreLandCable33kVlineSegmentThermalModel.uuid
       result.lineSegmentTemperature should approximate(
         updatedState.lineTemperatures.currentLineTemp1
       )
@@ -156,21 +175,24 @@ class LineSegmentThermalModelSpec
 
     "handle mixed weather and voltage data" in {
       val initialState = LineSegmentThermalModel.initState(
-        cigreT880LandCable33kV,
-        lineSegmentThermalModel,
+        cigreT880LandCable33kVcableSetup,
+        cigreLandCable33kVlineSegmentThermalModel,
         Celsius(20),
       )
       val receivedVoltage = Kilovolts(20)
-      val updatedState = lineSegmentThermalModel.handleInput(
+      val updatedState = cigreLandCable33kVlineSegmentThermalModel.handleInput(
         initialState,
         Seq(
           weatherData,
-          CurrentVoltage(lineSegmentThermalModel.uuid, receivedVoltage),
+          CurrentVoltage(
+            cigreLandCable33kVlineSegmentThermalModel.uuid,
+            receivedVoltage,
+          ),
         ),
       )
       val (weightTempLvl3, weightTempLvl4) =
         LineSegmentThermalModel.determineWeightsGroundTemperatures(
-          Meters(initialState.cableSetup.pointA.height)
+          cigreLandCable33kVlineSegmentThermalModel.depthCables
         )
       val groundTempLvl3 = weatherData.groundTempLvl3.getOrElse(
         fail("Test weather data must provide ground temperature level 3.")
@@ -190,7 +212,7 @@ class LineSegmentThermalModelSpec
     "derive the ground temperature at cable depth from weather data" in {
       val (weightTempLvl3, weightTempLvl4) =
         LineSegmentThermalModel.determineWeightsGroundTemperatures(
-          Meters(cigreT880LandCable33kV.pointA.height)
+          cigreLandCable33kVlineSegmentThermalModel.depthCables
         )
       val groundTempLvl3 = weatherData.groundTempLvl3.getOrElse(
         fail("Test weather data must provide ground temperature level 3.")
@@ -203,7 +225,7 @@ class LineSegmentThermalModelSpec
 
       LineSegmentThermalModel
         .groundTemperatureFromWeather(
-          cigreT880LandCable33kV,
+          cigreLandCable33kVlineSegmentThermalModel.depthCables,
           weatherData,
         )
         .should(approximate(expectedGroundTemperature))
@@ -212,14 +234,14 @@ class LineSegmentThermalModelSpec
     "throw an exception if a ground temperature level is missing" in {
       an[IllegalArgumentException] should be thrownBy {
         LineSegmentThermalModel.groundTemperatureFromWeather(
-          cigreT880LandCable33kV,
+          cigreLandCable33kVlineSegmentThermalModel.depthCables,
           weatherData.copy(groundTempLvl3 = None),
         )
       }
 
       an[IllegalArgumentException] should be thrownBy {
         LineSegmentThermalModel.groundTemperatureFromWeather(
-          cigreT880LandCable33kV,
+          cigreLandCable33kVlineSegmentThermalModel.depthCables,
           weatherData.copy(groundTempLvl4 = None),
         )
       }

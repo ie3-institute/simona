@@ -211,6 +211,8 @@ object LineThermalModelCalculations extends LazyLogging {
     *   Temperature coefficient for resistance variation.
     * @param cableSetup
     *   The setup of the cable in this line segment.
+    * @param distanceCables
+    *   The distance between the cables.
     * @return
     *   The AC resistance per unit of length.
     */
@@ -218,6 +220,7 @@ object LineThermalModelCalculations extends LazyLogging {
       electricalResistanceCable: ElectricalResistancePerLength,
       temperatureCorrectionFactor: Double,
       cableSetup: CableSetup,
+      distanceCables: Length,
   ): ElectricalResistancePerLength = {
     // ALTERNATIVE 1: Calculate R0 by specific resistivity / conductorArea
     // ALTERNATIVE 2: We are not using the limitTemperature because this overestimates the losses at lower operating temperatures. Therefore, we use the mean value between the limiting temperature and the current line temperature
@@ -235,7 +238,7 @@ object LineThermalModelCalculations extends LazyLogging {
       cableSetup.frequency,
       cableSetup.proximityEffectCoefficient,
       cableSetup.conductor.outerDiameter,
-      cableSetup.distanceCables,
+      distanceCables,
     )
 
     rDc * (1 + factorSkinEffect + factorProximityEffect)
@@ -860,6 +863,7 @@ object LineThermalModelCalculations extends LazyLogging {
       cableSetup.conductor.material
         .getElectricalResistivityTemperatureCoefficient(),
       cableSetup,
+      currentLineModel.distanceCables,
     )
 
     val conductorLosses = calcLossesConductor(acResistance, lineCurrent)
@@ -893,7 +897,7 @@ object LineThermalModelCalculations extends LazyLogging {
       cableSetup.layoutFormation,
       acResistance,
       acResistanceSheath,
-      cableSetup.distanceCables,
+      currentLineModel.distanceCables,
       sheatAverageDiameter,
       "leading",
       cableSetup.eddyCurrentsLossFactorScreen,
@@ -903,7 +907,7 @@ object LineThermalModelCalculations extends LazyLogging {
       cableSetup.layoutFormation,
       acResistance,
       acResistanceSheath,
-      cableSetup.distanceCables,
+      currentLineModel.distanceCables,
       sheatAverageDiameter,
       "middle",
       cableSetup.eddyCurrentsLossFactorScreen,
@@ -913,7 +917,7 @@ object LineThermalModelCalculations extends LazyLogging {
       cableSetup.layoutFormation,
       acResistance,
       acResistanceSheath,
-      cableSetup.distanceCables,
+      currentLineModel.distanceCables,
       sheatAverageDiameter,
       "lagging",
       cableSetup.eddyCurrentsLossFactorScreen,
@@ -943,8 +947,8 @@ object LineThermalModelCalculations extends LazyLogging {
     val t4 = cableSetup.layoutFormation match {
       case "flat-distance" =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance(
-          state.cableSetup.soilResistivity,
-          cableSetup.depthCables,
+          currentLineModel.soilResistivity,
+          currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
             .maxOption
@@ -953,15 +957,15 @@ object LineThermalModelCalculations extends LazyLogging {
                 "Jack layer expected but not found for thermal resistance to soil calculation"
               )
             ),
-          cableSetup.distanceCables,
+          currentLineModel.distanceCables,
           thermalTotalLossesLeadingCable,
           thermalTotalLossesMiddleCable,
           thermalTotalLossesLaggingCable,
         )
       case "flat-touching" =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
-          state.cableSetup.soilResistivity,
-          cableSetup.depthCables,
+          currentLineModel.soilResistivity,
+          currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
             .maxOption
@@ -977,8 +981,8 @@ object LineThermalModelCalculations extends LazyLogging {
         )
       case "trefoil-touching" =>
         calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching(
-          state.cableSetup.soilResistivity,
-          cableSetup.depthCables,
+          currentLineModel.soilResistivity,
+          currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
             .maxOption
@@ -1067,7 +1071,7 @@ object LineThermalModelCalculations extends LazyLogging {
       (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerCubicMeterKelvin
     // Capacitance of the second part of second half of the jack + the capacitance of the soil
     val c5 =
-      (jackThermCapacitanceC22 + state.cableSetup.soilCapacitance).toJoulesPerCubicMeterKelvin
+      (jackThermCapacitanceC22 + currentLineModel.soilCapacitance).toJoulesPerCubicMeterKelvin
 
     // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
     val matrixA = DenseMatrix(

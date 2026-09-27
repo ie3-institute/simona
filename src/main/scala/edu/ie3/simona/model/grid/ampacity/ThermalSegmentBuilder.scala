@@ -35,7 +35,10 @@ import edu.ie3.util.scala.quantities.{
 }
 import play.api.libs.json.*
 import squants.Meters
-import squants.space.Millimeters
+import squants.space.{Length, Millimeters}
+import squants.thermal.Temperature
+import org.locationtech.jts.linearref.LengthIndexedLine
+import org.locationtech.jts.geom.{Coordinate as JtsCoordinate, GeometryFactory}
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.UUID
@@ -100,7 +103,7 @@ object ThermalSegmentBuilder {
 
     // 3. Generate thermal segments
     val (thermalLineSegments, generatedSegments, segmentCoordinates) =
-      generateThermalSegments(subGridContainer)
+      generateThermalSegments(subGridContainer, soilLayers, soilTypes)
 
     // 4. Write generated segments to output
     writeThermalSegmentsToOutput(generatedSegments, simonaConfig)
@@ -258,7 +261,9 @@ object ThermalSegmentBuilder {
     *   midpoint
     */
   private def generateThermalSegments(
-      subGridContainer: SubGridContainer
+      subGridContainer: SubGridContainer,
+      soilLayers: Seq[SoilLayer],
+      soilTypes: Seq[SoilType],
   ): (
       Set[LineSegmentThermalModel],
       Seq[(LineSegmentThermalModel, (Double, Double), (Double, Double))],
@@ -336,8 +341,6 @@ object ThermalSegmentBuilder {
               val cable: CableSetup = CableSetup(
                 cableTypeInput.getUuid,
                 cableTypeInput.getId,
-                Coordinate3D(0.0, 0.0, -1.0), // FIXME DF
-                Coordinate3D(1.0, 0.0, -1.0), // FIXME DF
                 conductor,
                 isolation,
                 screen,
@@ -345,10 +348,6 @@ object ThermalSegmentBuilder {
                 armor,
                 jack,
                 deploymentPattern,
-                cableDepth,
-                cableDistance,
-                KelvinMetersPerWatt(1), // FIXME DF
-                JoulesPerCubicMeterKelvin(1), // FIXME DF
                 cableTypeInput.getLimitTemperature.toSquants,
                 lineType.getvRated().toSquants,
                 cableTypeInput.getFrequency.toSquants,
@@ -361,44 +360,19 @@ object ThermalSegmentBuilder {
                 cableTypeInput.getEddyCurrentLossFactor,
               )
 
-              val segments =
-                if coordinates.size >= 2 then
-                  coordinates
-                    .sliding(2)
-                    .collect { case Seq(start, end) =>
-                      val segment = LineSegmentThermalModel(
-                        UUID.randomUUID(),
-                        s"LineTher_${lineInput.getId}_${start}_${end}",
-                        lineInput.getUuid,
-                        cable,
-                        KelvinMetersPerWatt(1),
-                        KelvinMetersPerWatt(1),
-                        KelvinMetersPerWatt(1),
-                        KelvinMetersPerWatt(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        JoulesPerCubicMeterKelvin(1),
-                        cableTypeInput.getLimitTemperature.toSquants,
-                      )
-                      val entry: (
-                          LineSegmentThermalModel,
-                          (Double, Double),
-                          (Double, Double),
-                      ) = (segment, start, end)
-                      generatedSegments += entry
-                      // Store midpoint coordinate for weather registration.
-                      // GeoJSON coordinates are (longitude, latitude),
-                      // Coordinate expects (latitude, longitude).
-                      segmentCoordinatesBuffer(segment.uuid) = Coordinate(
-                        (start._2 + end._2) / 2.0, // latitude
-                        (start._1 + end._1) / 2.0, // longitude
-                      )
-                      segment
-                    }
-                    .toSet
-                else Set.empty
+              val segments: Set[LineSegmentThermalModel] =
+                splitAndAssignSegments(
+                  lineInput,
+                  cable,
+                  coordinates,
+                  cableDepth,
+                  cableDistance,
+                  soilLayers,
+                  soilTypes,
+                  cableTypeInput.getLimitTemperature.toSquants,
+                  generatedSegments,
+                  segmentCoordinatesBuffer,
+                )
               segments
             }
           }
@@ -410,6 +384,148 @@ object ThermalSegmentBuilder {
       generatedSegments.toSeq,
       segmentCoordinatesBuffer.toMap,
     )
+  }
+
+  private[ampacity] def splitAndAssignSegments(
+      lineInput: LineInput,
+      cable: CableSetup,
+      coordinates: Seq[(Double, Double)],
+      cableDepth: Length,
+      cableDistance: Length,
+      soilLayers: Seq[SoilLayer],
+      soilTypes: Seq[SoilType],
+      limitTemperature: Temperature,
+      generatedSegments: ListBuffer[
+        (LineSegmentThermalModel, (Double, Double), (Double, Double))
+      ],
+      segmentCoordinatesBuffer: MutableMap[UUID, Coordinate],
+  ): Set[LineSegmentThermalModel] = {
+    val geometryFactory = new GeometryFactory()
+    val depthMeters = cableDepth.toMeters
+    val soilTypesById: Map[UUID, SoilType] =
+      soilTypes.map(t => t.uuid -> t).toMap
+    // Default ambient temperature for evaluating the wet/dry switch.
+    val ambientTemp = squants.thermal.Celsius(10.0)
+
+    coordinates
+      .sliding(2)
+      .collect { case Seq(start, end) =>
+        val jtsLine = geometryFactory.createLineString(
+          Array(
+            new JtsCoordinate(start._1, start._2),
+            new JtsCoordinate(end._1, end._2),
+          )
+        )
+        val indexedLine = new LengthIndexedLine(jtsLine)
+
+        // Collect the indices of all intersections of this segment with the
+        // horizontal boundaries of the soil layers.
+        val intersectionIndices: Seq[Double] =
+          soilLayers.flatMap { layer =>
+            val boundary = layer.geometry.getBoundary
+            val intersection = boundary.intersection(jtsLine)
+            if intersection.isEmpty then Seq.empty
+            else
+              intersection.getCoordinates.toSeq
+                .map(c => indexedLine.indexOf(c))
+                .filterNot(_.isNaN)
+          }
+
+        val allIndices: Seq[Double] =
+          (Seq(0.0, jtsLine.getLength) ++ intersectionIndices).distinct.sorted
+
+        allIndices
+          .sliding(2)
+          .collect {
+            case Seq(idxStart, idxEnd) if idxEnd - idxStart > 1e-9 =>
+              val p1 = indexedLine.extractPoint(idxStart)
+              val p2 = indexedLine.extractPoint(idxEnd)
+              val midIdx = (idxStart + idxEnd) / 2.0
+              val midCoord = indexedLine.extractPoint(midIdx)
+              val midPoint = geometryFactory.createPoint(midCoord)
+
+              val coveringLayers =
+                soilLayers.filter(layer => layer.geometry.contains(midPoint))
+              if coveringLayers.isEmpty then
+                throw new GridAgentInitializationException(
+                  s"Ampacity build failed: No soil layer covers the subsegment midpoint " +
+                    s"(${midCoord.x}, ${midCoord.y}) of line ${lineInput.getUuid} " +
+                    s"between ${p1} and ${p2}."
+                )
+
+              val s = (p1.x, p1.y)
+              val e = (p2.x, p2.y)
+
+              // Build the per-segment geometry and soil parameters from the assigned layer.
+              val assignedLayer = coveringLayers
+                .find { layer =>
+                  val minZ = math.min(layer.zFrom.toMeters, layer.zTo.toMeters)
+                  val maxZ = math.max(layer.zFrom.toMeters, layer.zTo.toMeters)
+                  depthMeters >= minZ && depthMeters <= maxZ
+                }
+                .getOrElse(
+                  throw new GridAgentInitializationException(
+                    s"Ampacity build failed: The cable depth of ${depthMeters} m is " +
+                      s"not covered by any soil layer spanning line ${lineInput.getUuid} " +
+                      s"at midpoint (${midCoord.x}, ${midCoord.y})."
+                  )
+                )
+              val assignedSoilType = soilTypesById
+                .get(assignedLayer.soilType)
+                .getOrElse(
+                  throw new GridAgentInitializationException(
+                    s"Ampacity build failed: Soil layer ${assignedLayer.uuid} references " +
+                      s"unknown soil type ${assignedLayer.soilType} for line ${lineInput.getUuid}."
+                  )
+                )
+
+              val segment = LineSegmentThermalModel(
+                UUID.randomUUID(),
+                s"LineTher_${lineInput.getId}_${s}_${e}",
+                lineInput.getUuid,
+                cable,
+                Coordinate3D(
+                  p1.y,
+                  p1.x,
+                  depthMeters,
+                ),
+                Coordinate3D(
+                  p2.y,
+                  p2.x,
+                  depthMeters,
+                ),
+                cableDepth,
+                cableDistance,
+                assignedSoilType.currentThermalResistivity(ambientTemp),
+                assignedSoilType.specificHeatCapacity,
+                KelvinMetersPerWatt(1),
+                KelvinMetersPerWatt(1),
+                KelvinMetersPerWatt(1),
+                KelvinMetersPerWatt(1),
+                JoulesPerCubicMeterKelvin(1),
+                JoulesPerCubicMeterKelvin(1),
+                JoulesPerCubicMeterKelvin(1),
+                JoulesPerCubicMeterKelvin(1),
+                JoulesPerCubicMeterKelvin(1),
+                limitTemperature,
+              )
+              val entry: (
+                  LineSegmentThermalModel,
+                  (Double, Double),
+                  (Double, Double),
+              ) =
+                (segment, s, e)
+              generatedSegments += entry
+              segmentCoordinatesBuffer(segment.uuid) = Coordinate(
+                midCoord.y,
+                midCoord.x,
+              )
+              segment
+          }
+          .toSet
+      }
+      .flatten
+      .toSet
   }
 
   /** Converts a [[LineInput]] to a GeoJSON string representation.

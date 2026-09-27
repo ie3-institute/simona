@@ -7,7 +7,12 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
-import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
+import edu.ie3.simona.model.grid.ampacity.{
+  CableSetup,
+  Layer,
+  LineSegmentThermalModel,
+  ScreenLayer,
+}
 import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
@@ -151,8 +156,6 @@ object CigreT880LandCable33kV {
   val cable: CableSetup = new CableSetup(
     UUID.fromString("b8152c3f-d12f-4857-9746-a30aef6aee08"),
     "CigreT880_33kVLandCable",
-    Coordinate3D(0.0, 0.0, -1.0),
-    Coordinate3D(1.0, 0.0, -1.0),
     conductor,
     List(conductorScreen, insulation, insulationScreen, screenTape),
     Some(screen),
@@ -160,10 +163,6 @@ object CigreT880LandCable33kV {
     List.empty[Layer],
     List(jackTape, jack, outerCover),
     "trefoil-touching",
-    Meters(-1),
-    Meters(0.044),
-    KelvinMetersPerWatt(1.0),
-    JoulesPerCubicMeterKelvin(1.0), // FIXME DF check this
     Celsius(90),
     Kilovolts(33),
     Hertz(50),
@@ -174,5 +173,31 @@ object CigreT880LandCable33kV {
     0.004,
     0.0435122656,
     0.0,
+  )
+
+  /** A [[LineSegmentThermalModel]] for the CIGRE cable, including the segment
+    * geometry (endpoints, depth) and the surrounding soil parameters.
+    */
+  val model: LineSegmentThermalModel = LineSegmentThermalModel(
+    UUID.fromString("9d62d1dd-a5a2-41e0-aaaa-dfd44365224f"),
+    "testModel",
+    UUID.fromString("4be05b08-08a8-49ce-a427-0655a60b5616"),
+    cable,
+    Coordinate3D(0.0, 0.0, -1.0),
+    Coordinate3D(1.0, 0.0, -1.0),
+    Meters(-1),
+    Meters(0.044),
+    KelvinMetersPerWatt(1.0),
+    JoulesPerCubicMeterKelvin(1.0), // FIXME DF check this
+    KelvinMetersPerWatt(1.0),
+    KelvinMetersPerWatt(1.0),
+    KelvinMetersPerWatt(1.0),
+    KelvinMetersPerWatt(1.0),
+    JoulesPerCubicMeterKelvin(1.0),
+    JoulesPerCubicMeterKelvin(1.0),
+    JoulesPerCubicMeterKelvin(1.0),
+    JoulesPerCubicMeterKelvin(1.0),
+    JoulesPerCubicMeterKelvin(1.0),
+    Celsius(90d),
   )
 }

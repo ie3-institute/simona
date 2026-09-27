@@ -135,9 +135,13 @@ class GridAgentWeatherSpec
     )
     baseModel.copy(
       gridComponents = baseModel.gridComponents.copy(
-        thermalLineSegments = Set(lineSegmentThermalModel),
-        segmentCoordinates =
-          Map(lineSegmentThermalModel.uuid -> Coordinate(51.0, 7.0)),
+        thermalLineSegments = Set(cigreLandCable33kVlineSegmentThermalModel),
+        segmentCoordinates = Map(
+          cigreLandCable33kVlineSegmentThermalModel.uuid -> Coordinate(
+            51.0,
+            7.0,
+          )
+        ),
       )
     )
   }
@@ -227,7 +231,7 @@ class GridAgentWeatherSpec
         }
       registration.data shouldBe WeatherRegistrationData(
         Coordinate(51.0, 7.0),
-        Some(lineSegmentThermalModel.uuid.toString),
+        Some(cigreLandCable33kVlineSegmentThermalModel.uuid.toString),
       )
     }
     "initialize its thermal line states eagerly with a fixed ground temperature" in {
@@ -245,7 +249,9 @@ class GridAgentWeatherSpec
         )
       // The thermal line states are initialized eagerly with a fixed ground temperature of 10 °C
       baseData.thermalLineStates should not be empty
-      val lineState = baseData.thermalLineStates(lineSegmentThermalModel.uuid)
+      val lineState = baseData.thermalLineStates(
+        cigreLandCable33kVlineSegmentThermalModel.uuid
+      )
       lineState.groundTemperature should approximate(Celsius(10d))
       // The ground temperature is updated from the weather data via
       // handleInput (used in afterPowerFlow) once weather is available
@@ -253,16 +259,20 @@ class GridAgentWeatherSpec
         groundTempLvl3 = Some(Celsius(15)),
         groundTempLvl4 = Some(Celsius(10)),
       )
-      val lineStateWithInput = lineSegmentThermalModel.handleInput(
-        lineState,
-        Seq(
-          CurrentVoltage(lineSegmentThermalModel.uuid, Kilovolts(20)),
-          updatedWeather,
-        ),
-      )
+      val lineStateWithInput =
+        cigreLandCable33kVlineSegmentThermalModel.handleInput(
+          lineState,
+          Seq(
+            CurrentVoltage(
+              cigreLandCable33kVlineSegmentThermalModel.uuid,
+              Kilovolts(20),
+            ),
+            updatedWeather,
+          ),
+        )
       lineStateWithInput.groundTemperature should approximate(
         LineSegmentThermalModel.groundTemperatureFromWeather(
-          lineSegmentThermalModel.cableSetup,
+          cigreLandCable33kVlineSegmentThermalModel.depthCables,
           updatedWeather,
         )
       )
@@ -271,7 +281,7 @@ class GridAgentWeatherSpec
       val gridAgent = spawnInitializedGridAgent()
       // Consume the registration message sent during initialization
       weatherService.expectMessageType[ServiceMessage]
-      val segmentUuid = lineSegmentThermalModel.uuid
+      val segmentUuid = cigreLandCable33kVlineSegmentThermalModel.uuid
 
       // First provision is buffered for the segment (latest known wins later).
       gridAgent ! ServiceMessage.DataProvision(

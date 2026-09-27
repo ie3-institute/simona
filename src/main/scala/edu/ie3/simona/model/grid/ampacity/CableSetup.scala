@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
-import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.util.scala.quantities.*
 import squants.Temperature
 import squants.electro.{Capacitance, ElectricPotential, Resistivity}
@@ -71,11 +70,6 @@ final case class ScreenLayer(
   * @param layersArmorElements
   * @param layersJackElements
   * @param layoutFormation
-  * @param depthCables
-  *   The laying depth of the cables.
-  * @param distanceCables
-  * @param soilResistivity
-  * @param soilCapacitance
   * @param limitTemperature
   * @param voltage
   * @param frequency
@@ -90,8 +84,6 @@ final case class ScreenLayer(
 final case class CableSetup(
     uuid: UUID,
     id: String,
-    pointA: Coordinate3D,
-    pointB: Coordinate3D,
     conductor: Layer,
     layersIsolationElements: List[Layer],
     screenLayer: Option[ScreenLayer],
@@ -99,10 +91,6 @@ final case class CableSetup(
     layersArmorElements: List[Layer],
     layersJackElements: List[Layer],
     layoutFormation: String,
-    depthCables: Length,
-    distanceCables: Length,
-    soilResistivity: ThermalResistivity,
-    soilCapacitance: ThermalCapacitance,
     limitTemperature: Temperature,
     voltage: ElectricPotential,
     frequency: Frequency,
