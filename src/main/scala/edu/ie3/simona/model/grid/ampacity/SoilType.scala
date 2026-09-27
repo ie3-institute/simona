@@ -12,6 +12,16 @@ import squants.Temperature
 import java.util.UUID
 
 /** Represents the physical properties of a soil type.
+  * @param uuid
+  *   the element's unique identifier
+  * @param id
+  *   the element's human-readable id
+  * @param thermalResistivityWet
+  * @param thermalResistivityDry
+  * @param specificHeatCapacity
+  * @param criticalTemperatureDifference
+  *   The over-temperature at the cable surface above the undisturbed soil
+  *   temperature at which the soil transitions from the wet to the dry state.
   */
 case class SoilType(
     uuid: UUID,
@@ -19,17 +29,25 @@ case class SoilType(
     thermalResistivityWet: ThermalResistivity,
     thermalResistivityDry: ThermalResistivity,
     specificHeatCapacity: ThermalCapacitance, // FIXME DF Check if required per volume or per weight
-    criticalTemperature: Temperature,
+    criticalTemperatureDifference: Temperature,
 ) {
 
-  /** Returns the current thermal conductivity based on the ground temperature.
-    * This is essential for the iterative calculation of the drying zones.
+  /** Returns the current thermal conductivity based on the over-temperature of
+    * the cable surface relative to the undisturbed soil temperature. This is
+    * essential for the iterative calculation of the drying zones.
+    *
+    * @param temperatureDifference
+    *   The difference between the cable outer surface temperature and the
+    *   undisturbed soil temperature.
+    * @return
+    *   The dry thermal resistivity if the critical temperature difference is
+    *   reached or exceeded, otherwise the wet thermal resistivity.
     */
-  // FIXME DF not used atm
   def currentThermalResistivity(
-      temperature: Temperature
+      temperatureDifference: Temperature
   ): ThermalResistivity = {
-    if temperature >= criticalTemperature then thermalResistivityDry
+    if temperatureDifference >= criticalTemperatureDifference then
+      thermalResistivityDry
     else thermalResistivityWet
   }
 

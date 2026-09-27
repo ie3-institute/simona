@@ -8,7 +8,6 @@ package edu.ie3.simona.model.grid.ampacity
 
 import breeze.linalg.{DenseMatrix, DenseVector}
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import edu.ie3.util.scala.quantities.SquantsUtils.{
@@ -858,6 +857,14 @@ object LineThermalModelCalculations extends LazyLogging {
     val currentLineModel = state.currentLineSegmentThermalModel
     val cableSetup = state.cableSetup
 
+    val effectiveSoilResistivity =
+      if state.dryZoneActive then
+        currentLineModel.soilType.thermalResistivityDry
+      else currentLineModel.soilType.thermalResistivityWet
+
+    val soilCapacitance =
+      currentLineModel.soilType.specificHeatCapacity
+
     val acResistance = calcAcResistance(
       cableSetup.electricResistance,
       cableSetup.conductor.material
@@ -947,7 +954,7 @@ object LineThermalModelCalculations extends LazyLogging {
     val t4 = cableSetup.layoutFormation match {
       case "flat-distance" =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance(
-          currentLineModel.soilResistivity,
+          effectiveSoilResistivity,
           currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
@@ -964,7 +971,7 @@ object LineThermalModelCalculations extends LazyLogging {
         )
       case "flat-touching" =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
-          currentLineModel.soilResistivity,
+          effectiveSoilResistivity,
           currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
@@ -981,7 +988,7 @@ object LineThermalModelCalculations extends LazyLogging {
         )
       case "trefoil-touching" =>
         calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching(
-          currentLineModel.soilResistivity,
+          effectiveSoilResistivity,
           currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
@@ -1071,7 +1078,7 @@ object LineThermalModelCalculations extends LazyLogging {
       (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerCubicMeterKelvin
     // Capacitance of the second part of second half of the jack + the capacitance of the soil
     val c5 =
-      (jackThermCapacitanceC22 + currentLineModel.soilCapacitance).toJoulesPerCubicMeterKelvin
+      (jackThermCapacitanceC22 + soilCapacitance).toJoulesPerCubicMeterKelvin
 
     // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
     val matrixA = DenseMatrix(

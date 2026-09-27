@@ -139,7 +139,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     "produce a single segment when one soil layer covers the entire straight segment" in {
       val layer = SoilLayer(
         UUID.randomUUID(),
-        rectangle(0.0, -0.1, 1.0, 0.1),
+        rectangle(-0.5, -0.1, 1.5, 0.1),
         Meters(0.0),
         Meters(-2.0),
         soilTypeUuid,
@@ -153,8 +153,8 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
       segments.size shouldBe 1
       generated.size shouldBe 1
-      generated.head._2 shouldBe ((0.0, 0.0))
-      generated.head._3 shouldBe ((1.0, 0.0))
+      generated.head._2 shouldBe (0.0, 0.0)
+      generated.head._3 shouldBe (1.0, 0.0)
 
       // Midpoint must be stored for weather registration.
       coordinates.size shouldBe 1
@@ -238,15 +238,15 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
       segments.size shouldBe 1
       val segment = segments.head
-      
+
       segment.pointA.longitude shouldBe 0.0
       segment.pointA.latitude shouldBe 0.0
       segment.pointB.longitude shouldBe 1.0
       segment.pointB.latitude shouldBe 0.0
       segment.pointA.height shouldBe -1.0
       segment.pointB.height shouldBe -1.0
-      segment.soilResistivity.value shouldBe 0.5
-      segment.soilCapacitance.value shouldBe 1.5e6
+      segment.soilType.thermalResistivityWet.value shouldBe 0.5
+      segment.soilType.specificHeatCapacity.value shouldBe 1.5e6
     }
 
     "return no segments for lines with fewer than two support points" in {

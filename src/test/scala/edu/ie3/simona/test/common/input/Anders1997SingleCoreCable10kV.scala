@@ -7,21 +7,10 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
-import edu.ie3.simona.model.grid.ampacity.{
-  CableSetup,
-  Layer,
-  LineSegmentThermalModel,
-  ScreenLayer,
-}
-import edu.ie3.simona.util.Coordinate3D
+import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.scala.quantities.{
-  JoulesPerCubicMeterKelvin,
-  KelvinMetersPerWatt,
-  OhmsPerMeter,
-}
-import squants.Meters
+import edu.ie3.util.scala.quantities.OhmsPerMeter
 import squants.electro.{Kilovolts, Nanofarads}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
@@ -134,32 +123,5 @@ object Anders1997SingleCoreCable10kV {
     0.004,
     0.09,
     0.0,
-  )
-
-  /** A [[LineSegmentThermalModel]] for the Anders single-core cable, including
-    * the segment geometry (endpoints, depth) and the surrounding soil
-    * parameters.
-    */
-  val model: LineSegmentThermalModel = LineSegmentThermalModel(
-    UUID.fromString("b8152c3f-d12f-4857-9746-a30aef6aee08"),
-    "AndersSingleCore_10kV",
-    UUID.fromString("4be05b08-08a8-49ce-a427-0655a60b5616"),
-    cable,
-    Coordinate3D(0.0, 0.0, -1.0),
-    Coordinate3D(1.0, 0.0, -1.0),
-    Meters(-1),
-    Meters(2 * 0.0358),
-    KelvinMetersPerWatt(1.0),
-    JoulesPerCubicMeterKelvin(1.0), // FIXME DF check this
-    KelvinMetersPerWatt(1.0),
-    KelvinMetersPerWatt(1.0),
-    KelvinMetersPerWatt(1.0),
-    KelvinMetersPerWatt(1.0),
-    JoulesPerCubicMeterKelvin(1.0),
-    JoulesPerCubicMeterKelvin(1.0),
-    JoulesPerCubicMeterKelvin(1.0),
-    JoulesPerCubicMeterKelvin(1.0),
-    JoulesPerCubicMeterKelvin(1.0),
-    Celsius(90d),
   )
 }

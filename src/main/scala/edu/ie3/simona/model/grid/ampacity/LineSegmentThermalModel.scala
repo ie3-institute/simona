@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.simona.model.grid.LineModel
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
@@ -16,10 +15,8 @@ import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.quantities.*
-import squants.motion.MetersPerSecond
 import squants.space.{Length, Meters}
-import squants.thermal.Celsius
-import squants.{ElectricCurrent, Kelvin, Temperature}
+import squants.{ElectricCurrent, Temperature}
 import squants.electro.ElectricPotential
 
 import java.time.ZonedDateTime
@@ -51,8 +48,6 @@ final case class LineSegmentThermalModel(
     pointB: Coordinate3D,
     depthCables: Length,
     distanceCables: Length,
-    soilResistivity: ThermalResistivity,
-    soilCapacitance: ThermalCapacitance,
     thermalResistanceT1: ThermalResistivity,
     thermalResistanceT2: ThermalResistivity,
     thermalResistanceT3: ThermalResistivity,
@@ -63,7 +58,29 @@ final case class LineSegmentThermalModel(
     thermalCapacityCj: ThermalCapacitance,
     thermalCapacityCe: ThermalCapacitance,
     upperBoundaryTemperature: Temperature,
+    soilType: SoilType,
 ) {
+
+  /** Checks whether a dry zone around the cable is triggered, i.e. whether the
+    * cable outer surface temperature exceeds the undisturbed soil temperature
+    * by the limit over-temperature. Once triggered, a dry zone is assumed to be
+    * formed permanently (no retreat of the dry zone is modeled).
+    *
+    * @param lineTemperatures
+    *   The current temperatures of the cable layers.
+    * @param groundTemperature
+    *   The undisturbed soil temperature at cable depth.
+    * @return
+    *   True if the limit over-temperature is reached or exceeded.
+    */
+  private def dryZoneTriggered(
+      lineTemperatures: LineTemperatures,
+      groundTemperature: Temperature,
+  ): Boolean = {
+    val cableOuterTemperature = lineTemperatures.currentLineTemp4
+    cableOuterTemperature - groundTemperature >=
+      this.soilType.criticalTemperatureDifference
+  }
 
   /** Update the current state of the line segment
     */
@@ -83,10 +100,16 @@ final case class LineSegmentThermalModel(
       groundTemperature,
     )
 
+    // Once the limit over-temperature is exceeded, a dry zone around the
+    // cable is formed and assumed to persist permanently.
+    val dryZoneActive = lastLineState.dryZoneActive ||
+      dryZoneTriggered(updatedLineTemperatures, groundTemperature)
+
     val updatedLineState = lastLineState.copy(
       tick = tick,
       lastTick = lastLineState.tick,
       lineTemperatures = updatedLineTemperatures,
+      dryZoneActive = dryZoneActive,
     )
     createResults(updatedLineState, tick.toDateTime(using simulationStart))
 
@@ -237,6 +260,8 @@ object LineSegmentThermalModel {
     * @param currentVoltage
     *   The current voltage at the cable, i.e. the average of the voltages at
     *   both connected nodes from the last power flow result.
+    * @param dryZoneActive
+    *   True if a dry zone is active around the cable.
     */
   final case class LineState(
       override val tick: Long,
@@ -246,6 +271,7 @@ object LineSegmentThermalModel {
       groundTemperature: Temperature,
       lineTemperatures: LineTemperatures,
       currentVoltage: ElectricPotential,
+      dryZoneActive: Boolean,
   ) extends ModelState
 
   def initState(
@@ -258,7 +284,7 @@ object LineSegmentThermalModel {
     val t2 = calcThermalResistanceT2(cableSetup)
     val t3 = calcThermalResistanceT3(cableSetup)
     val t4 = calcThermalResistanceToSoilSingleCable(
-      lineSegmentModel.soilResistivity,
+      lineSegmentModel.soilType.thermalResistivityWet,
       lineSegmentModel.depthCables,
       cableSetup.layersJackElements.last.outerDiameter,
     )
@@ -323,7 +349,7 @@ object LineSegmentThermalModel {
     val thermalCapacityCj = thermalCapacityCj1 + thermalCapacityCj2
 
     val thermalCapacityCe =
-      lineSegmentModel.soilCapacitance // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
+      lineSegmentModel.soilType.specificHeatCapacity // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
 
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       lineSegmentModel.uuid,
@@ -334,8 +360,6 @@ object LineSegmentThermalModel {
       lineSegmentModel.pointB,
       lineSegmentModel.depthCables,
       lineSegmentModel.distanceCables,
-      lineSegmentModel.soilResistivity,
-      lineSegmentModel.soilCapacitance,
       t1,
       t2,
       t3,
@@ -346,6 +370,7 @@ object LineSegmentThermalModel {
       thermalCapacityCj,
       thermalCapacityCe,
       lineSegmentModel.upperBoundaryTemperature,
+      lineSegmentModel.soilType,
     )
 
     val initLineTemperatures = LineTemperatures(
@@ -364,6 +389,7 @@ object LineSegmentThermalModel {
       initialGroundTemperature,
       initLineTemperatures,
       cableSetup.voltage,
+      dryZoneActive = false,
     )
   }
 

@@ -34,11 +34,10 @@ import edu.ie3.util.scala.quantities.{
   KelvinMetersPerWatt,
 }
 import play.api.libs.json.*
-import squants.Meters
+import squants.{Meters, Temperature}
 import squants.space.{Length, Millimeters}
-import squants.thermal.Temperature
 import org.locationtech.jts.linearref.LengthIndexedLine
-import org.locationtech.jts.geom.{Coordinate as JtsCoordinate, GeometryFactory}
+import org.locationtech.jts.geom.{GeometryFactory, Coordinate as JtsCoordinate}
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.UUID
@@ -404,12 +403,11 @@ object ThermalSegmentBuilder {
     val depthMeters = cableDepth.toMeters
     val soilTypesById: Map[UUID, SoilType] =
       soilTypes.map(t => t.uuid -> t).toMap
-    // Default ambient temperature for evaluating the wet/dry switch.
-    val ambientTemp = squants.thermal.Celsius(10.0)
 
     coordinates
       .sliding(2)
       .collect { case Seq(start, end) =>
+        // Build the JTS LineString of the straight segment (x=longitude, y=latitude)
         val jtsLine = geometryFactory.createLineString(
           Array(
             new JtsCoordinate(start._1, start._2),
@@ -453,51 +451,42 @@ object ThermalSegmentBuilder {
                     s"between ${p1} and ${p2}."
                 )
 
+              val assignedLayer =
+                coveringLayers
+                  .find { layer =>
+                    val minZ =
+                      math.min(layer.zFrom.toMeters, layer.zTo.toMeters)
+                    val maxZ =
+                      math.max(layer.zFrom.toMeters, layer.zTo.toMeters)
+                    depthMeters >= minZ && depthMeters <= maxZ
+                  }
+                  .getOrElse(
+                    throw new GridAgentInitializationException(
+                      s"Ampacity build failed: The cable depth of ${depthMeters} m is " +
+                        s"not covered by any soil layer spanning line ${lineInput.getUuid} " +
+                        s"at midpoint (${midCoord.x}, ${midCoord.y})."
+                    )
+                  )
+              val assignedSoilType = soilTypesById.getOrElse(
+                assignedLayer.soilType,
+                throw new GridAgentInitializationException(
+                  s"Ampacity build failed: Soil layer ${assignedLayer.uuid} references " +
+                    s"unknown soil type ${assignedLayer.soilType} for line ${lineInput.getUuid}."
+                ),
+              )
+
               val s = (p1.x, p1.y)
               val e = (p2.x, p2.y)
-
-              // Build the per-segment geometry and soil parameters from the assigned layer.
-              val assignedLayer = coveringLayers
-                .find { layer =>
-                  val minZ = math.min(layer.zFrom.toMeters, layer.zTo.toMeters)
-                  val maxZ = math.max(layer.zFrom.toMeters, layer.zTo.toMeters)
-                  depthMeters >= minZ && depthMeters <= maxZ
-                }
-                .getOrElse(
-                  throw new GridAgentInitializationException(
-                    s"Ampacity build failed: The cable depth of ${depthMeters} m is " +
-                      s"not covered by any soil layer spanning line ${lineInput.getUuid} " +
-                      s"at midpoint (${midCoord.x}, ${midCoord.y})."
-                  )
-                )
-              val assignedSoilType = soilTypesById
-                .get(assignedLayer.soilType)
-                .getOrElse(
-                  throw new GridAgentInitializationException(
-                    s"Ampacity build failed: Soil layer ${assignedLayer.uuid} references " +
-                      s"unknown soil type ${assignedLayer.soilType} for line ${lineInput.getUuid}."
-                  )
-                )
-
               val segment = LineSegmentThermalModel(
                 UUID.randomUUID(),
                 s"LineTher_${lineInput.getId}_${s}_${e}",
                 lineInput.getUuid,
                 cable,
-                Coordinate3D(
-                  p1.y,
-                  p1.x,
-                  depthMeters,
-                ),
-                Coordinate3D(
-                  p2.y,
-                  p2.x,
-                  depthMeters,
-                ),
+                Coordinate3D(p1.y, p1.x, depthMeters),
+                Coordinate3D(p2.y, p2.x, depthMeters),
                 cableDepth,
                 cableDistance,
-                assignedSoilType.currentThermalResistivity(ambientTemp),
-                assignedSoilType.specificHeatCapacity,
+                // Placeholders, will be recalculated in initState
                 KelvinMetersPerWatt(1),
                 KelvinMetersPerWatt(1),
                 KelvinMetersPerWatt(1),
@@ -508,18 +497,16 @@ object ThermalSegmentBuilder {
                 JoulesPerCubicMeterKelvin(1),
                 JoulesPerCubicMeterKelvin(1),
                 limitTemperature,
+                assignedSoilType,
               )
-              val entry: (
-                  LineSegmentThermalModel,
-                  (Double, Double),
-                  (Double, Double),
-              ) =
-                (segment, s, e)
-              generatedSegments += entry
-              segmentCoordinatesBuffer(segment.uuid) = Coordinate(
-                midCoord.y,
-                midCoord.x,
-              )
+              generatedSegments += ((segment, s, e))
+              segmentCoordinatesBuffer(segment.uuid) =
+                SegmentCalculationPoints.coordinateFor(
+                  segment.uuid,
+                  s,
+                  e,
+                  soilLayers.map(_.geometry.getBoundary),
+                )
               segment
           }
           .toSet
