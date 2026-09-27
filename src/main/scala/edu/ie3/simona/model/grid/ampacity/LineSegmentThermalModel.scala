@@ -150,6 +150,15 @@ final case class LineSegmentThermalModel(
     ???
   }
    */
+  /** Creates the results for the given state.
+    *
+    * @param state
+    *   The current line state.
+    * @param dateTime
+    *   The date time of the current tick.
+    * @return
+    *   The results for the given state.
+    */
   def createResults(
       state: LineState,
       dateTime: ZonedDateTime,
@@ -159,6 +168,7 @@ final case class LineSegmentThermalModel(
         dateTime,
         uuid,
         state.lineTemperatures.currentLineTemp1,
+        state.groundTemperature,
       )
     )
   }
@@ -169,6 +179,7 @@ final case class LineStateResult(
     time: ZonedDateTime,
     lineSegmentUuid: UUID,
     lineSegmentTemperature: Temperature,
+    groundTemperature: Temperature,
 )
 
 object LineSegmentThermalModel {

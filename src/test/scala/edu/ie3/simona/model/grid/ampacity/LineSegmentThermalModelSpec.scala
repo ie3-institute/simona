@@ -124,6 +124,36 @@ class LineSegmentThermalModelSpec
       }
     }
 
+    "create results with the line and ground temperature for the given state" in {
+      val initialGroundTemperature = Celsius(20d)
+
+      val state: LineState = LineSegmentThermalModel.initState(
+        cigreT880LandCable33kV,
+        lineSegmentThermalModel,
+        initialGroundTemperature,
+      )
+
+      val updatedState = lineSegmentThermalModel.determineState(
+        3600L,
+        state,
+        Amperes(537d),
+        defaultSimulationStart,
+      )
+
+      val results = lineSegmentThermalModel
+        .createResults(updatedState, defaultSimulationStart)
+        .toList
+
+      results should have size 1
+      val result = results.head
+      result.time shouldBe defaultSimulationStart
+      result.lineSegmentUuid shouldBe lineSegmentThermalModel.uuid
+      result.lineSegmentTemperature should approximate(
+        updatedState.lineTemperatures.currentLineTemp1
+      )
+      result.groundTemperature should approximate(initialGroundTemperature)
+    }
+
     "handle mixed weather and voltage data" in {
       val initialState = LineSegmentThermalModel.initState(
         cigreT880LandCable33kV,
