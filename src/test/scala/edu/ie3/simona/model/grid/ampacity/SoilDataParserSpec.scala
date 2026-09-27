@@ -48,7 +48,7 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
 
     "read soil types from CSV" in {
       val content =
-        s"uuid,id,thermalResistivityWet,thermalResistivityDry,specificHeatCapacity,criticalTemperature\n${uuid},loam,0.30,0.40,0.0015,35.0\n"
+        s"uuid,id,thermalResistivityWet,thermalResistivityDry,specificHeatCapacity,criticalTemperatureDifference\n${uuid},loam,0.30,0.40,0.0015,15.0\n"
       val tmp = Files.createTempFile("soil_types", ".csv")
       Files.writeString(tmp, content)
 
@@ -59,7 +59,34 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
       val t = types.head
       assert(t.uuid == uuid)
       assert(t.id == "loam")
-      assert(t.criticalTemperature == Celsius(35d))
+      assert(t.criticalTemperatureDifference == Celsius(15d))
+    }
+
+    "select the wet or dry thermal resistivity based on the critical temperature difference" in {
+      val t = SoilType(
+        uuid,
+        "loam",
+        KelvinMetersPerWatt(0.30),
+        KelvinMetersPerWatt(0.40),
+        KilowattHoursPerCubicMeterKelvin(0.0015),
+        Celsius(15d),
+      )
+
+      // Below the critical difference: wet resistivity.
+      t.currentThermalResistivity(Celsius(0.0)) shouldBe KelvinMetersPerWatt(
+        0.30
+      )
+      t.currentThermalResistivity(Celsius(14.9)) shouldBe KelvinMetersPerWatt(
+        0.30
+      )
+      // At the critical difference: dry resistivity.
+      t.currentThermalResistivity(Celsius(15.0)) shouldBe KelvinMetersPerWatt(
+        0.40
+      )
+      // Above the critical difference: dry resistivity.
+      t.currentThermalResistivity(Celsius(50.0)) shouldBe KelvinMetersPerWatt(
+        0.40
+      )
     }
 
     "read soil layers from resources and compute thicknesses" in {

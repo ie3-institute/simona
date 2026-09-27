@@ -858,9 +858,9 @@ object LineThermalModelCalculations extends LazyLogging {
     val cableSetup = state.cableSetup
 
     val effectiveSoilResistivity =
-      if state.dryZoneActive then
-        currentLineModel.soilType.thermalResistivityDry
-      else currentLineModel.soilType.thermalResistivityWet
+      currentLineModel.soilType.currentThermalResistivity(
+        state.lineTemperatures.currentLineTemp4 - groundTemperature
+      )
 
     val soilCapacitance =
       currentLineModel.soilType.specificHeatCapacity
