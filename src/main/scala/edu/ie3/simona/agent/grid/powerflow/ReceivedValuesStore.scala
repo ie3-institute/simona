@@ -22,16 +22,19 @@ import java.util.UUID
 import scala.collection.mutable
 
 /** Value store that contains all data that should be received by the
-  * [[GridAgent]] from other agents. The mapping is structured as the uuid of a
-  * node to a tuple of either a vector of actorRefs to
-  * Option[ProvidePowerMessage] or single
-  * Option[SlackVoltageRequestResponseMessage]. That said, initially all Options
-  * are set to None until the data is updated with received values.
+  * [[GridAgent]] from other agents. For the slack voltages the mapping is
+  * structured as the uuid of a node to an
+  * Option[SlackVoltageRequestResponseMessage], which is initially None. The
+  * mapping for the power values are structured as the uuid of a [[GridAgent]]
+  * to a set of power messages.
   *
-  * If a map is empty this indicates, that there is no value expected from
-  * either assets/grids ([[nodeToReceivedPower]]) or grids
-  * [[nodeToReceivedSlackVoltage]].
+  * The references in [[missing]] are used to keep track if awaited replies.
   *
+  * @param assetToNode
+  *   Mapping of participant and grid refs to the uuid of the node they are
+  *   connected to.
+  * @param missing
+  *   A set of actor references that have no send their information.
   * @param nodeToReceivedAssetPower
   *   Mapping of node uuids to received p/q values from
   *   [[edu.ie3.simona.agent.participant.ParticipantAgent]] (== assets) if any.
@@ -41,6 +44,8 @@ import scala.collection.mutable
   * @param nodeToReceivedSlackVoltage
   *   Mapping of node uuids to received slack voltages from superior
   *   [[GridAgent]] s if any.
+  * @param failedPowerFlows
+  *   Set of [[FailedPowerFlow]] messages.
   */
 final case class ReceivedValuesStore(
     assetToNode: Map[ActorRef[?], UUID],
@@ -164,19 +169,17 @@ object ReceivedValuesStore {
 
   /** Get an empty, ready to be used instance of [[ReceivedValuesStore]]
     * containing an `empty` mapping of [[NodeToReceivedPower]] and
-    * [[NodeToReceivedSlackVoltage]] with all options set to `None` (see
-    * [[ReceivedValuesStore]] for details)
+    * [[NodeToReceivedSlackVoltage]] (see [[ReceivedValuesStore]] for details)
     *
     * @param nodeToAssetAgents
-    *   mapping of node uuids to [[ActorRef]] s of the asset agents that are
-    *   located at the specific node
-    * @param inferiorSubGridGateToActorRef
-    *   mapping of all inferior [[SubGridGate]] s to the [[ActorRef]] of the
-    *   grid agent that is located there
+    *   Mapping of node uuids to [[ActorRef]] s of the asset agents that are
+    *   located at the specific node.
+    * @param inferiorConnections
+    *   Mapping of grid agent references to a set of inferior uuids.
     * @param superiorGridNodeUuids
-    *   node uuids of the superior [[GridAgent]] s
+    *   Node uuids of the superior [[GridAgent]]s
     * @return
-    *   `empty` [[ReceivedValuesStore]] with pre-initialized options as `None`
+    *   `empty` [[ReceivedValuesStore]]
     */
   def empty(
       nodeToAssetAgents: Map[UUID, Set[ActorRef[ParticipantAgent.Request]]],
