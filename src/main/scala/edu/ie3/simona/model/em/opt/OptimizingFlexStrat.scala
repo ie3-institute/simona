@@ -86,7 +86,10 @@ final case class OptimizingFlexStrat(
       Range.Long.inclusive(currentTick, lastPredictedTick, sampleTicks)
 
     val flexOptionsById =
-      flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo }
+      flexOptions.map { case (asset: AssetInput, fo) =>
+        asset.getUuid ->
+          EnergyBoundariesFlexOptions.tighten(fo, ticks)
+      }
 
     val (allAssetSymbols, objectiveContainer) =
       buildModel(
