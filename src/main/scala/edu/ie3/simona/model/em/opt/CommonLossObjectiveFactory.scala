@@ -154,8 +154,7 @@ object CommonLossObjectiveFactory {
     */
   class LinearizedQuadraticPowerObjectiveFactory(
       segmentCount: Int
-  ) extends CommonLossObjectiveFactory
-      with PowerVariableObjectiveFactory {
+  ) extends CommonLossObjectiveFactory {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable.empty
@@ -244,9 +243,7 @@ object CommonLossObjectiveFactory {
     * Since we assume that the buying price is always higher than the selling
     * price, we can use an epigraph to derive a linear objective.
     */
-  object PriceObjectiveFactory
-      extends CommonLossObjectiveFactory
-      with PowerVariableObjectiveFactory {
+  object PriceObjectiveFactory extends CommonLossObjectiveFactory {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
       Iterable(ServiceType.PriceService)
