@@ -76,7 +76,7 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.2') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.3') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -104,7 +104,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.6.3"
+  implementation "ch.qos.logback:logback-classic:1.6.4"
 
   /* testing */
   // scalatest & junit
