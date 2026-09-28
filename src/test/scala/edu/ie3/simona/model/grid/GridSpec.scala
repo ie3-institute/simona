@@ -6,16 +6,15 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.linalg.DenseMatrix
-import breeze.math.Complex
-import breeze.numerics.abs
+import edu.ie3.powerflow.math.DenseMatrix
+import edu.ie3.powerflow.math.Complex
+import scala.math.abs
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.model.control.{GridControls, TransformerControlGroupModel}
 import edu.ie3.simona.model.grid.GridModel.{
   GridComponents,
-  addElementsToAdmittanceMatrix,
   updateUuidToIndexMap,
 }
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
@@ -44,13 +43,11 @@ class GridSpec
           colIdx <- 0 until expectedMatrix.rows
         do {
           if abs(
-              actualMatrix.valueAt(rowIdx, colIdx) - expectedMatrix
-                .valueAt(rowIdx, colIdx)
+              actualMatrix(rowIdx, colIdx).abs - expectedMatrix(rowIdx, colIdx).abs
             ) > 1e-12
           then
             logger.debug(
-              s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix
-                  .valueAt(rowIdx, colIdx)}, expected = ${expectedMatrix.valueAt(rowIdx, colIdx)}"
+              s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix(rowIdx, colIdx)}, expected = ${expectedMatrix(rowIdx, colIdx)}"
             )
         }
       }
@@ -87,7 +84,7 @@ class GridSpec
       // result of method call
       val matrixDimension: Int = nodeUuidToIndexMap.values.toSeq.distinct.size
       val admittanceMatrix: DenseMatrix[Complex] =
-        DenseMatrix.zeros[Complex](matrixDimension, matrixDimension)
+        DenseMatrix.filled(matrixDimension, matrixDimension, Complex.zero)
 
       GridModel invokePrivate addElementsToAdmittanceMatrix(
         admittanceMatrix,
@@ -172,7 +169,7 @@ class GridSpec
             .map { iOpen =>
               jOpenAll
                 .map { jOpen =>
-                  admittanceMatrixOpen.valueAt(iOpen, jOpen)
+                  admittanceMatrixOpen(iOpen, jOpen)
                 }
                 .reduceOption(_ + _)
                 .getOrElse(Complex.zero)
@@ -180,7 +177,7 @@ class GridSpec
             .reduceOption(_ + _)
             .getOrElse(Complex.zero)
 
-          admittanceMatixClosed.valueAt(
+          admittanceMatixClosed(
             iClosed,
             jClosed,
           ) shouldBe sumOfAdmittancesOpenSwitches withClue s" at \n\tposition ($iClosed, $jClosed) of the grid with closed switches/" +
