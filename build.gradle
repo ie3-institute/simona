@@ -3,12 +3,12 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.10.1' // code format
-  id "com.github.ben-manes.versions" version '0.61.0'
+  id 'com.diffplug.spotless' version '8.10.2' // code format
+  id "com.github.ben-manes.versions" version '0.64.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.6.1' // fat jar
-  id "org.sonarqube" version "7.4.0.8496" // sonarqube
+  id "org.sonarqube" version "7.5.0.8588" // sonarqube
   id "org.scoverage" version "9.1" // scala code coverage scoverage
   id 'org.hidetake.ssh' version '2.12.0'
   id 'net.thauvin.erik.gradle.semver' version '1.0.4' // semantic versioning
@@ -58,7 +58,8 @@ apply from: scriptsLocation + 'sonarqube.gradle' // sonarqube config
 apply from: scriptsLocation + 'scoverage.gradle' // scoverage scala code coverage
 apply from: scriptsLocation + 'deploy.gradle'
 apply from: scriptsLocation + 'semVer.gradle'
-apply from: scriptsLocation + 'mavenCentralPublish.gradle'
+apply from: scriptsLocation + 'uploadToMavenCentralPortal.gradle' // upload for deploy
+apply from: scriptsLocation + 'stagingAtMavenCentralPortal.gradle' // stage for deploy
 apply from: scriptsLocation + 'branchName.gradle' // checks naming scheme of branches
 
 configurations {
@@ -75,7 +76,7 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.2') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.3') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -103,7 +104,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.6.3"
+  implementation "ch.qos.logback:logback-classic:1.6.4"
 
   /* testing */
   // scalatest & junit
@@ -113,7 +114,7 @@ dependencies {
   testRuntimeOnly "org.scalatestplus:junit-5-14_${scalaVersion}:3.2.20.0"
 
   // mocking framework
-  testImplementation 'org.mockito:mockito-core:5.23.0'
+  testImplementation 'org.mockito:mockito-core:5.24.0'
   testImplementation "org.scalatestplus:mockito-3-4_${scalaVersion}:3.2.10.0"
 
   // pekko
@@ -222,10 +223,19 @@ compileTestScala {
   scalaCompileOptions.additionalParameters = scalaCompileOptions.additionalParameters + [
     "-P:scapegoat:dataDir:" + project.layout.buildDirectory.get().asFile.absolutePath + "/reports/scapegoat/testsrc/"
   ]
-  scalaCompileOptions.forkOptions.jvmArgs = [
-    '-Xss2m',
-    '-XX:-UseGCOverheadLimit',
-    '-Xmx4g'
+  options.forkOptions.jvmArgs += [
+    '-Xmx4096m',
+    '-Xss4m',
+    '-Xms2048m',
+    '-XX:+UseParallelGC',
+    '-XX:MaxInlineLevel=20'
+  ]
+  options.compilerArgs += [
+    '-Xmx4096m',
+    '-Xss4m',
+    '-Xms2048m',
+    '-XX:+UseParallelGC',
+    '-XX:MaxInlineLevel=20'
   ]
 }
 

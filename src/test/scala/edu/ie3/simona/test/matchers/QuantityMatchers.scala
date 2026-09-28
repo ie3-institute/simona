@@ -19,16 +19,16 @@ import org.scalatest.matchers.{MatchResult, Matcher}
   */
 trait QuantityMatchers {
   def equalWithTolerance[Q <: Quantity[Q]](right: Quantity[Q])(using
-      tolerance: Double | Quantity[Q] = 1e-10
-  ): QuantityEqualityMatcher[Q] = tolerance match {
-    case doubleTolerance: Double =>
-      new QuantityEqualityMatcher(right, doubleTolerance)
-    case quantityTolerance: Quantity[Q] =>
-      new QuantityEqualityMatcher(
-        right,
-        quantityTolerance.to(right.getUnit).getValue.doubleValue,
-      )
-  }
+      tolerance: Double = 1e-10
+  ): QuantityEqualityMatcher[Q] = new QuantityEqualityMatcher(right, tolerance)
+
+  def equalWithTolerance[Q <: Quantity[Q]](
+      right: Quantity[Q],
+      tolerance: Quantity[Q],
+  ): QuantityEqualityMatcher[Q] = new QuantityEqualityMatcher(
+    right,
+    tolerance.to(right.getUnit).getValue.doubleValue,
+  )
 
   def beEquivalentTo[Q <: Quantity[Q]](
       right: Quantity[Q],
