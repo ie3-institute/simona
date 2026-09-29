@@ -37,7 +37,7 @@ ext {
     "-language:existentials",
     "-Wunused:all",
     "-Xmax-inlines:128",
-    "-Xunchecked-java-output-version:25"
+    "-Xunchecked-java-output-version:21"
   ]
 }
 
