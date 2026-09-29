@@ -70,10 +70,7 @@ final case class OptimizingFlexStrat(
   ): Iterable[(UUID, Power)] = {
 
     val flexOptionsById =
-      flexOptions.map { case (asset: AssetInput, fo) =>
-        asset.getUuid ->
-          EnergyBoundariesFlexOptions.tighten(fo, ticks)
-      }
+      flexOptions.map { case (asset: AssetInput, fo) => asset.getUuid -> fo }
 
     val optimizationParams = OptimizationParams(
       flexOptionsById = flexOptionsById,

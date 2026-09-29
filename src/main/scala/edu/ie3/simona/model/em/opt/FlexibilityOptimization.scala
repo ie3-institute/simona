@@ -89,9 +89,16 @@ object FlexibilityOptimization {
 
     val ticks = params.timeParams.ticks
 
+    val adaptedFlexOptionsById =
+      if params.tightenBoundaries then
+        params.flexOptionsById.map { case (uuid, fo) =>
+          uuid -> EnergyBoundariesFlexOptions.tighten(fo, ticks)
+        }
+      else params.flexOptionsById
+
     val (allAssetSymbols, objective) =
       buildModel(
-        params.flexOptionsById,
+        adaptedFlexOptionsById,
         params.timeParams.sampleTime,
         ticks,
         params.target,
@@ -107,7 +114,6 @@ object FlexibilityOptimization {
     val actualObjectiveValue =
       Option.when(model.getStatus == SolutionStatus.OPTIMAL)(
         params.objectiveFactory.getComparableObjectiveValue(
-          params.flexOptionsById,
           allAssetSymbols,
           params.target,
           params.receivedData,

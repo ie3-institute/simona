@@ -86,7 +86,6 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
 
   // todo scaladoc
   def getComparableObjectiveValue(
-      flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       assetSymbols: Iterable[AssetSymbolContainer[AV]],
       target: Power,
       receivedData: Iterable[SecondaryData],
@@ -219,7 +218,6 @@ object ObjectiveFactory {
       extends ObjectiveFactory[AV] {
 
     override def getComparableObjectiveValue(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetSymbols: Iterable[
           AssetSymbolContainer[AV]
         ],
@@ -240,7 +238,6 @@ object ObjectiveFactory {
       extends ObjectiveFactory[AV] {
 
     override def getComparableObjectiveValue(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetSymbols: Iterable[
           AssetSymbolContainer[AV]
         ],
@@ -260,7 +257,6 @@ object ObjectiveFactory {
       extends ObjectiveFactory[AV] {
 
     override def getComparableObjectiveValue(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetSymbols: Iterable[
           AssetSymbolContainer[AV]
         ],
@@ -279,7 +275,6 @@ object ObjectiveFactory {
   trait PriceObjective[AV <: AssetStepSymbols] extends ObjectiveFactory[AV] {
 
     override def getComparableObjectiveValue(
-        flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
         assetSymbols: Iterable[
           AssetSymbolContainer[AV]
         ],
