@@ -32,13 +32,12 @@ ext {
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 
   scala3compilerOptions = [
-    "-print-tasty",
     "-feature",
     "-language:implicitConversions",
     "-language:existentials",
     "-Wunused:all",
     "-Xmax-inlines:128",
-    "-Xunchecked-java-output-version:21"
+    "-Xunchecked-java-output-version:25"
   ]
 }
 
