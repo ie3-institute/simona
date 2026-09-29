@@ -95,8 +95,10 @@ class GridSpec
 
       _printAdmittanceMatrixOnMismatch(admittanceMatrix, lineAdmittanceMatrix)
 
-      admittanceMatrix shouldBe lineAdmittanceMatrix
-
+      admittanceMatrix.rows shouldBe lineAdmittanceMatrix.rows
+      admittanceMatrix.cols shouldBe lineAdmittanceMatrix.cols
+      admittanceMatrix.isTransposed shouldBe lineAdmittanceMatrix.isTransposed
+      admittanceMatrix.asArray2D shouldBe lineAdmittanceMatrix.asArray2D
     }
 
     "be able to build a valid line admittance matrix with switches" in new BasicGridWithSwitches {
