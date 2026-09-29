@@ -542,7 +542,12 @@ trait PowerFlowSupport {
 
         // / execute
         val powerFlow =
-          NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix, sparseSolver)
+          NewtonRaphsonPF(
+            epsilon,
+            maxIterations,
+            admittanceMatrix,
+            sparseSolver,
+          )
 
         Try {
           powerFlow.calculate(

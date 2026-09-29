@@ -43,7 +43,10 @@ class GridSpec
           colIdx <- 0 until expectedMatrix.rows
         do {
           if abs(
-              actualMatrix(rowIdx, colIdx).abs - expectedMatrix(rowIdx, colIdx).abs
+              actualMatrix(rowIdx, colIdx).abs - expectedMatrix(
+                rowIdx,
+                colIdx,
+              ).abs
             ) > 1e-12
           then
             logger.debug(
