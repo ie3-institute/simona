@@ -9,11 +9,9 @@ package edu.ie3.simona.main
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.sim.setup.SimonaSetup
 import edu.ie3.util.scala.quantities.QuantityUtil
-import org.apache.pekko.util.Timeout
 
 import java.nio.file.Path
 import java.util.Locale
-import scala.concurrent.duration.FiniteDuration
 import scala.util.Random
 
 /** Trait to be mixed in all implementations that should be used to run a simona
@@ -23,10 +21,6 @@ import scala.util.Random
   * @since 01.07.20
   */
 trait RunSimona[T <: SimonaSetup] extends LazyLogging {
-
-  // timeout parameter
-  implicit val timeout: Timeout
-  implicit lazy val timeoutDuration: FiniteDuration = timeout.duration
 
   def main(args: Array[String]): Unit = {
     Locale.setDefault(Locale.ENGLISH)

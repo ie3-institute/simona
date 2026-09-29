@@ -23,7 +23,7 @@ import edu.ie3.simona.service.ServiceStateData.{
 }
 import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext

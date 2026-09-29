@@ -36,7 +36,7 @@ import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
@@ -232,6 +232,8 @@ class EmAgentIT
             WattsPerSquareMeter(120d),
             Celsius(0d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(7200),
         )
@@ -277,6 +279,8 @@ class EmAgentIT
             WattsPerSquareMeter(140d),
             Celsius(0d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(14400),
         )
@@ -343,6 +347,8 @@ class EmAgentIT
             WattsPerSquareMeter(2d),
             Celsius(0d),
             MetersPerSecond(0d),
+            None,
+            None,
           ),
           Some(21600),
         )
@@ -528,6 +534,8 @@ class EmAgentIT
               WattsPerSquareMeter(100d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(7200),
           )
@@ -678,6 +686,8 @@ class EmAgentIT
               WattsPerSquareMeter(140d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(10800),
           )
@@ -774,6 +784,8 @@ class EmAgentIT
               WattsPerSquareMeter(140d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(11000),
           )
@@ -845,6 +857,8 @@ class EmAgentIT
               WattsPerSquareMeter(2d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(11500),
           )
@@ -889,6 +903,8 @@ class EmAgentIT
               WattsPerSquareMeter(4d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(28800),
           )
@@ -1046,6 +1062,8 @@ class EmAgentIT
               WattsPerSquareMeter(0d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(3600),
           )
@@ -1082,6 +1100,8 @@ class EmAgentIT
               WattsPerSquareMeter(0d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(7200),
           )
@@ -1121,6 +1141,8 @@ class EmAgentIT
               WattsPerSquareMeter(200d),
               Celsius(0d),
               MetersPerSecond(0d),
+              None,
+              None,
             ),
             Some(21800),
           )

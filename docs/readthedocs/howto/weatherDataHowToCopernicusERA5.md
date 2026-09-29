@@ -16,6 +16,9 @@ The following parameter should be used:
   - Radiation and heat
     - Total sky direct solar radiation at surface (FDIR)
     - Surface solar radiation downwards (SSRD)
+  - Soil
+    - Soil temperature level 3 (28-100cm, measured in the middle of the layer) {cite:cts}`ECMWF.Parameters.stl3`
+    - Soil temperature level 4 (100-289cm, measured in the middle of the layer) {cite:cts}`ECMWF.Parameters.stl4`
 - Data format
   - GRIB or NetCDF4
 
@@ -23,6 +26,7 @@ If exporting in NetCDF4 does not work because of insufficient tokens, choose GRI
 
 For data conversion, our conversion tool [copernicusWeather2psdmWeather](https://github.com/ie3-institute/copernicusWeather2psdmWeather) can be used.
 Both conversions from NetCDF4 and GRIB are supported.
+
 
 ## Pre-Processing solar radiation weather data
 

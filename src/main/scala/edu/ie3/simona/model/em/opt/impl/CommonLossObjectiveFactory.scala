@@ -252,7 +252,6 @@ object CommonLossObjectiveFactory {
       override val variant: CommonLossVariant,
       segmentCount: Int,
   ) extends CommonLossObjectiveFactory
-      with PowerVariableObjectiveFactory
       with QuadraticPowerObjective[PowerVarAssetStepSymbols] {
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =

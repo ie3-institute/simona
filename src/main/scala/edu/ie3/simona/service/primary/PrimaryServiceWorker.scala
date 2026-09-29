@@ -28,13 +28,13 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   WorkerRegistrationMessage,
 }
 import edu.ie3.simona.service.Data.PrimaryData
-import edu.ie3.simona.service.Data.PrimaryData.RichValue
+import edu.ie3.simona.service.Data.PrimaryData.toPrimaryData
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.{SimonaService, TimeSeriesUtil}
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext

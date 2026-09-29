@@ -23,6 +23,8 @@ trait WeatherTestData {
     diffIrr = WattsPerSquareMeter(50),
     temp = Celsius(20),
     windVel = KilometersPerHour(10),
+    groundTempLvl3 = Some(Celsius(8)),
+    groundTempLvl4 = Some(Celsius(-3)),
   )
 
   protected val weatherSeriesData = SecondarySeriesData(
@@ -33,12 +35,16 @@ trait WeatherTestData {
         diffIrr = WattsPerSquareMeter(40),
         temp = Celsius(18),
         windVel = KilometersPerHour(15),
+        groundTempLvl3 = Some(Celsius(15)),
+        groundTempLvl4 = Some(Celsius(10)),
       ),
       7200L -> WeatherData(
         dirIrr = WattsPerSquareMeter(300),
         diffIrr = WattsPerSquareMeter(30),
         temp = Celsius(16),
         windVel = KilometersPerHour(12),
+        groundTempLvl3 = Some(Celsius(5)),
+        groundTempLvl4 = Some(Celsius(-5)),
       ),
     )
   )

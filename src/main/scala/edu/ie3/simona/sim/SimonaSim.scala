@@ -126,9 +126,16 @@ object SimonaSim {
           extSimulationData.evDataService,
         )
 
+        /* start participant agents */
+        val participantAgents =
+          simonaSetup.participantAgents(using ctx, environmentRefs)
+
         /* start grid agents  */
         val gridAgentCoordinator =
-          simonaSetup.gridAgentCoordinator(using ctx, environmentRefs)
+          simonaSetup.gridAgentCoordinator(participantAgents)(using
+            ctx,
+            environmentRefs,
+          )
 
         val otherActors = Iterable[ActorRef[?]](
           timeAdvancer,
@@ -136,7 +143,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
           gridAgentCoordinator,
-        ) ++ extSimulationData.allServiceRefs ++ priceService.toSeq
+        ) ++ extSimulationData.allServiceRefs ++ priceService.toSeq ++ participantAgents.values.flatten
 
         /* watch all actors */
         allResultEventListeners.foreach(ctx.watch)

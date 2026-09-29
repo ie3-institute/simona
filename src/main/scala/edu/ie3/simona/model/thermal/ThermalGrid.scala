@@ -30,7 +30,7 @@ import edu.ie3.simona.model.thermal.ThermalGrid.{
 }
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
-import edu.ie3.simona.util.TickUtil.RichZonedDateTime
+import edu.ie3.simona.util.TickUtil.toTick
 import edu.ie3.util.quantities.QuantityUtils.{
   asKelvin,
   asMegaWatt,

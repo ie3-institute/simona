@@ -15,9 +15,9 @@ tasks.register('deployAndRun') {
     validateProps(props)
 
     // setup session data
-    def sessionData = [name    : props.get('server.name'),
-      host    : props.get('server.host'),
-      user    : props.get('server.user'),
+    def sessionData = [name : props.get('server.name'),
+      host : props.get('server.host'),
+      user : props.get('server.user'),
       identity: file(props.get('server.idFile'))]
 
     def tmp_dir_path = "/home/" + props.get('server.user') + "/00_simona_tmp/"

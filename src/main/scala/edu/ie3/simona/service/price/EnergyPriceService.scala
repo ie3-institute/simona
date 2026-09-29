@@ -33,7 +33,7 @@ import edu.ie3.simona.service.{
   SimonaService,
   TimeSeriesUtil,
 }
-import edu.ie3.simona.util.TickUtil.{RichZonedDateTime, TickLong}
+import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants

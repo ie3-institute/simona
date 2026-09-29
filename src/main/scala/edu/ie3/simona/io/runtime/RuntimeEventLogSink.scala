@@ -9,7 +9,7 @@ package edu.ie3.simona.io.runtime
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.RuntimeEvent.*
 import edu.ie3.simona.io.runtime.RuntimeEventSink.RuntimeStats
-import edu.ie3.simona.util.TickUtil.TickLong
+import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import org.slf4j.Logger
 
