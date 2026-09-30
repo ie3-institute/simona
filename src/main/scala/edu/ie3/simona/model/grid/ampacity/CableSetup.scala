@@ -9,7 +9,7 @@ package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.util.scala.quantities.*
 import squants.Temperature
-import squants.electro.{Capacitance, ElectricPotential, Resistivity}
+import squants.electro.{ElectricPotential, Resistivity}
 import squants.space.{Area, Length}
 import squants.time.Frequency
 
@@ -97,7 +97,7 @@ final case class CableSetup(
     electricResistance: ElectricalResistancePerLength,
     skinEffectCoefficient: Double,
     proximityEffectCoefficient: Double,
-    electricCapacitance: Capacitance,
+    electricCapacitance: SpecificCapacitance,
     tanDelta: Double,
     circulatingLossFactorScreen: Double,
     eddyCurrentsLossFactorScreen: Double,

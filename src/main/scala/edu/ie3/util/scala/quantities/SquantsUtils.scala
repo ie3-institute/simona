@@ -69,6 +69,22 @@ object SquantsUtils {
     )
   }
 
+  implicit class RichSpecificCapacitance(
+      specificCapacity: SpecificCapacitance
+  ) {
+
+    /** Calculates the voltage dependent dielectric losses per unit cable
+      * length.
+      */
+    def calculateSpecificDielectricLosses(
+        voltage: ElectricPotential,
+        frequency: Frequency,
+        tanDelta: Double,
+    ): PowerPerLength = WattsPerMeter(
+      specificCapacity.toFaradsPerMeter * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
+    )
+  }
+
   implicit class RichResistivity(
       electricResistivity: Resistivity
   ) {

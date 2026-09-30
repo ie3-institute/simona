@@ -10,8 +10,8 @@ import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.scala.quantities.OhmsPerMeter
-import squants.electro.{Kilovolts, Nanofarads, OhmMeters}
+import edu.ie3.util.scala.quantities.{FaradsPerMeter, OhmsPerMeter}
+import squants.electro.{Kilovolts, OhmMeters}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.time.Hertz
@@ -22,7 +22,7 @@ object CigreT880LandCable33kV {
   // // CIGRÉ Working Group B1.56, Power cable rating examples for calculation tool verification, TB 880, p 195ff
 
   protected val conductor: Layer = {
-    val mat = CableMaterial.fromString("Copper")
+    val mat = CableMaterial.COPPER
     Layer(
       "conductor",
       mat,
@@ -35,7 +35,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val conductorScreen: Layer = {
-    val mat = CableMaterial.fromString("semicondscreen")
+    val mat = CableMaterial.SEMI_COND_SCREEN
     Layer(
       "conductorScreen",
       mat,
@@ -48,7 +48,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val insulation: Layer = {
-    val mat = CableMaterial.fromString("XLPE")
+    val mat = CableMaterial.XLPE
     Layer(
       "insulation",
       mat,
@@ -61,7 +61,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val insulationScreen: Layer = {
-    val mat = CableMaterial.fromString("semicondscreen")
+    val mat = CableMaterial.SEMI_COND_SCREEN
     Layer(
       "insulationScreen",
       mat,
@@ -74,7 +74,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val screenTape: Layer = {
-    val mat = CableMaterial.fromString("copperwoventape")
+    val mat = CableMaterial.SC_TAPE
     Layer(
       "screenTape",
       mat,
@@ -104,7 +104,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val jackTape: Layer = {
-    val mat = CableMaterial.fromString("copperwoventape")
+    val mat = CableMaterial.SC_TAPE
     Layer(
       "jackTape",
       mat,
@@ -117,7 +117,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val jack: Layer = {
-    val mat = CableMaterial.fromString("XLPE")
+    val mat = CableMaterial.XLPE
     Layer(
       "jack",
       mat,
@@ -130,7 +130,7 @@ object CigreT880LandCable33kV {
   }
 
   protected val outerCover: Layer = {
-    val mat = CableMaterial.fromString("semicondscreen")
+    val mat = CableMaterial.SEMI_COND_SCREEN
     Layer(
       "outerCover",
       mat,
@@ -158,7 +158,7 @@ object CigreT880LandCable33kV {
     OhmsPerMeter(0.0754e-3),
     1.0,
     1.0,
-    Nanofarads(0.237683304),
+    FaradsPerMeter(0.237683304e-9),
     0.004,
     0.0435122656,
     0.0,

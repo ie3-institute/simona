@@ -11,7 +11,6 @@ import edu.ie3.datamodel.models.input.connector.{
   LineInput,
 }
 import edu.ie3.datamodel.models.input.connector.`type`.{
-  CableMaterial,
   CableTypeInput,
   LineTypeInput,
   ConductorInput as JConductorInput,
@@ -623,7 +622,7 @@ object ThermalSegmentBuilder {
   }
 
   private def mapConductor(jc: JConductorInput): Layer = {
-    val mat = CableMaterial.fromString(jc.material().toString)
+    val mat = jc.material()
     Layer(
       jc.name(),
       mat,
@@ -636,7 +635,7 @@ object ThermalSegmentBuilder {
   }
 
   private def mapLayer(jl: JLayerInput): Layer = {
-    val mat = CableMaterial.fromString(jl.material().toString)
+    val mat = jl.material()
     Layer(
       jl.name(),
       mat,
@@ -649,7 +648,7 @@ object ThermalSegmentBuilder {
   }
 
   private def mapScreen(js: JScreenLayerInput): ScreenLayer = {
-    val mat = CableMaterial.fromString(js.material().toString)
+    val mat = js.material()
     ScreenLayer(
       mat,
       js.innerDiameter().toSquants,

@@ -374,4 +374,20 @@ object QuantityConversionUtils {
           .doubleValue
       )
   }
+
+  /** Extension for [[ComparableQuantity]] of type [[SpecificCapacitance]] that
+    * allows conversion into a [[SpecificCapacitance]] squants quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.SpecificCapacitance
+      ]
+  ) {
+
+    def toSquants: edu.ie3.util.scala.quantities.SpecificCapacitance =
+      edu.ie3.util.scala.quantities.SpecificCapacitance(
+        quantity.to(FARAD_PER_KILOMETRE).getValue.doubleValue / 1000,
+        edu.ie3.util.scala.quantities.FaradsPerMeter,
+      )
+  }
 }

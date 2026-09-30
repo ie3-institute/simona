@@ -8,6 +8,7 @@ package edu.ie3.util.quantities
 
 import edu.ie3.util.scala.quantities.SquantsUtils.*
 import edu.ie3.util.scala.quantities.{
+  FaradsPerMeter,
   KilowattHoursPerCubicMeter,
   WattHoursPerSquareMeter,
 }
@@ -19,8 +20,7 @@ import squants.energy.KilowattHours
 import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.space.CubicMeters
 import squants.thermal.JoulesPerKelvin
-import squants.time.Hours
-import squants.time.Hertz
+import squants.time.{Hertz, Hours}
 
 class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
 
@@ -57,5 +57,15 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
       .calculateDielectricLosses(voltage, frequency, tanDelta)
       .toWatts should be(0.10842143752723091)
 
+  }
+
+  it should "calculate the specific dielectric losses of a SpecificCapacitance correctly" in {
+    // Reference: // CIGRÉ Working Group B1.56, "Power cable rating examples for calculation tool verification, TB 880, p 198f
+    val voltage = Kilovolts(19.0525588) // 33kV * sqrt(3)
+    val frequency = Hertz(50)
+    val tanDelta = 0.004
+    FaradsPerMeter(0.237683304e-9)
+      .calculateSpecificDielectricLosses(voltage, frequency, tanDelta)
+      .toWattsPerMeter should be(0.10842143752723088)
   }
 }

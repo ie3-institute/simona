@@ -10,8 +10,8 @@ import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.scala.quantities.OhmsPerMeter
-import squants.electro.{Kilovolts, Nanofarads}
+import edu.ie3.util.scala.quantities.{FaradsPerMeter, OhmsPerMeter}
+import squants.electro.Kilovolts
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.time.Hertz
@@ -22,7 +22,7 @@ object Anders1997SingleCoreCable10kV {
   // // Anders Rating of electric power cables: ampacity computations for transmission, distribution, and industrial applications p 364ff
 
   protected val conductor: Layer = {
-    val mat = CableMaterial.fromString("Copper")
+    val mat = CableMaterial.COPPER
     Layer(
       "conductor",
       mat,
@@ -35,7 +35,7 @@ object Anders1997SingleCoreCable10kV {
   }
 
   protected val conductorScreen: Layer = {
-    val mat = CableMaterial.fromString("XLPE")
+    val mat = CableMaterial.XLPE
     Layer(
       "conductorScreen",
       mat,
@@ -48,7 +48,7 @@ object Anders1997SingleCoreCable10kV {
   }
 
   protected val insulation: Layer = {
-    val mat = CableMaterial.fromString("XLPE")
+    val mat = CableMaterial.XLPE
     Layer(
       "insulation",
       mat,
@@ -61,7 +61,7 @@ object Anders1997SingleCoreCable10kV {
   }
 
   protected val insulationScreen: Layer = {
-    val mat = CableMaterial.fromString("XLPE")
+    val mat = CableMaterial.XLPE
     Layer(
       "insulationScreen",
       mat,
@@ -91,7 +91,7 @@ object Anders1997SingleCoreCable10kV {
   }
 
   protected val jack: Layer = {
-    val mat = CableMaterial.fromString("PVC")
+    val mat = CableMaterial.PVC
     Layer(
       "jack",
       mat,
@@ -119,7 +119,7 @@ object Anders1997SingleCoreCable10kV {
     OhmsPerMeter(0.0601e-3),
     1.0,
     1.0,
-    Nanofarads(0.0), // No capacity provided
+    FaradsPerMeter(0.0), // No capacity provided
     0.004,
     0.09,
     0.0,

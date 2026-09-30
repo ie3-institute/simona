@@ -14,7 +14,6 @@ import edu.ie3.simona.test.common.input.{
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.scala.quantities.*
 import squants.electro.*
-import squants.energy.{Power, Watts}
 import squants.thermal.{Celsius, Temperature}
 import squants.time.Hertz
 import squants.{Amperes, Meters}
@@ -29,7 +28,7 @@ class LineThermalModelCalculationsSpec
   )
   implicit val electricResistancePerLengthTolerance
       : ElectricalResistancePerLength = OhmsPerMeter(1e-10)
-  implicit val powerTolerance: Power = Watts(1e-7)
+  implicit val powerPerLengthTolerance: PowerPerLength = WattsPerMeter(1e-7)
   implicit val tolerance: Double = 1e-10
   implicit val thermalCapacitanceTolerance: ThermalCapacitance =
     JoulesPerCubicMeterKelvin(1e-10)
@@ -107,7 +106,7 @@ class LineThermalModelCalculationsSpec
 
           val current = Amperes(currentInAmps)
           val acRes = OhmsPerMeter(acResistance)
-          val expectedResult = Watts(expected)
+          val expectedResult = WattsPerMeter(expected)
 
           val actual = calcLossesConductor(acRes, current)
 
@@ -140,8 +139,8 @@ class LineThermalModelCalculationsSpec
           val screenLayer = CigreT880LandCable33kV.cable.screenLayer
           val limitTemp = Celsius(limitTemperature)
           val t1 = KelvinMetersPerWatt(thermalResistanceT1)
-          val wC = Watts(conductorLosses)
-          val wD = Watts(dielectricLosses)
+          val wC = WattsPerMeter(conductorLosses)
+          val wD = WattsPerMeter(dielectricLosses)
           val expectedResult = OhmsPerMeter(expected)
 
           val actual = calcAcResistanceSheath(
@@ -194,14 +193,16 @@ class LineThermalModelCalculationsSpec
 
           val voltageU0 = Volts(phaseToGroundVoltage)
           val frequency = Hertz(50)
-          val dielectricCapacity = Nanofarads(dielectricCapaNanoF)
-          val expectedResult = Watts(expected)
+          val dielectricSpecificCapacity =
+            edu.ie3.util.scala.quantities
+              .FaradsPerMeter(dielectricCapaNanoF * 1e-9)
+          val expectedResult = WattsPerMeter(expected)
 
           val actual = calcDielectricLosses(
             voltageU0,
             frequency,
             tanDelta,
-            dielectricCapacity,
+            dielectricSpecificCapacity,
           )
 
           actual should approximate(expectedResult)
@@ -387,8 +388,8 @@ class LineThermalModelCalculationsSpec
           val screenResistance = OhmsPerMeter(screenResist)
           val axialDistanceCables = Meters(axialDistance)
           val averageSheathDiameter = Meters(averageSheathDia)
-          val conductorLossesW = Watts(conductorLosses)
-          val expectedLosses = Watts(expectedSheathLosses)
+          val conductorLossesW = WattsPerMeter(conductorLosses)
+          val expectedLosses = WattsPerMeter(expectedSheathLosses)
 
           val actual = calcLossesSheath(
             layoutFormation,
@@ -426,8 +427,8 @@ class LineThermalModelCalculationsSpec
             conductorLosses,
             expectedArmorLosses,
         ) =>
-          val conductorLossesW = Watts(conductorLosses)
-          val expectedLosses = Watts(expectedArmorLosses)
+          val conductorLossesW = WattsPerMeter(conductorLosses)
+          val expectedLosses = WattsPerMeter(expectedArmorLosses)
 
           val actual = calcLossesArmor(
             circulatingArmorLossFactor,
@@ -647,9 +648,9 @@ class LineThermalModelCalculationsSpec
         val depth = Meters(depthCables)
         val diameterB = Meters(diameterCableB)
         val distance = Meters(distanceOfCables)
-        val lossA = Watts(lossesCableA)
-        val lossB = Watts(lossesCableB)
-        val lossC = Watts(lossesCableC)
+        val lossA = WattsPerMeter(lossesCableA)
+        val lossB = WattsPerMeter(lossesCableB)
+        val lossC = WattsPerMeter(lossesCableC)
         val expectedThermalResistance = KelvinMetersPerWatt(expectedRes)
 
         val actual =

@@ -11,24 +11,26 @@ import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import edu.ie3.util.scala.quantities.SquantsUtils.{
-  RichCapacitance,
   RichResistivity,
+  RichSpecificCapacitance,
 }
 import edu.ie3.util.scala.quantities.{
   ElectricalResistancePerLength,
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
   OhmsPerMeter,
+  PowerPerLength,
+  SpecificCapacitance,
   ThermalCapacitance,
   ThermalResistivity,
   SquantsUtils as RichElectricPotential,
+  WattsPerMeter,
 }
 import squants.electro.*
-import squants.energy.Watts
 import squants.space.{Length, Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
-import squants.{ElectricCurrent, Kelvin, Meters, Power, Temperature}
+import squants.{ElectricCurrent, Kelvin, Meters, Temperature}
 
 import scala.math.*
 
@@ -265,8 +267,8 @@ object LineThermalModelCalculations extends LazyLogging {
       screenLayer: Option[ScreenLayer],
       limitTemperature: Temperature,
       thermalResistanceT1: ThermalResistivity,
-      conductorLosses: Power,
-      dielectricLosses: Power,
+      conductorLosses: PowerPerLength,
+      dielectricLosses: PowerPerLength,
   ): ElectricalResistancePerLength = {
     // Calculation of cross-sectional area of the sheath
     screenLayer match {
@@ -286,11 +288,10 @@ object LineThermalModelCalculations extends LazyLogging {
         val r0Screen = (layer.materialResistivity / area) * layFactor
 
         // calculate operating temperatur of the screen
-        val screenTemp =
-          limitTemperature // this is only limitTemperate if the conductor is at limitTemp
-            - Kelvin(
-              (conductorLosses.toWatts + 0.5 * dielectricLosses.toWatts) * thermalResistanceT1.toKelvinMetersPerWatt
-            )
+        val screenTemp: Temperature =
+          limitTemperature - Kelvin(
+            (conductorLosses.toWattsPerMeter + 0.5 * dielectricLosses.toWattsPerMeter) * thermalResistanceT1.toKelvinMetersPerWatt
+          )
 
         // ac resistance of screen wires at operating temp
         r0Screen * (1 + layer.material.getElectricalResistivityTemperatureCoefficient * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
@@ -376,8 +377,9 @@ object LineThermalModelCalculations extends LazyLogging {
   def calcLossesConductor(
       acResistance: ElectricalResistancePerLength,
       current: ElectricCurrent,
-  ): Power = {
-    Watts(current.toAmperes * current.toAmperes * acResistance.toOhmsPerMeter)
+  ): PowerPerLength = {
+    val currentSquared = current.toAmperes * current.toAmperes
+    WattsPerMeter(currentSquared * acResistance.toOhmsPerMeter)
   }
 
   /** Calculates the losses within the cable sheath. Zero / Not applicable if
@@ -410,8 +412,8 @@ object LineThermalModelCalculations extends LazyLogging {
       averageDiameterSheath: Length,
       phase: String,
       eddyCurrentsSheathLossFactor: Double,
-      conductorLosses: Power,
-  ): Power = {
+      conductorLosses: PowerPerLength,
+  ): PowerPerLength = {
     val (x, xm) =
       calculateReactance(Hertz(50), axialCableDistance, averageDiameterSheath)
     val lambda1Dash = layoutFormation match {
@@ -539,32 +541,33 @@ object LineThermalModelCalculations extends LazyLogging {
   def calcLossesArmor(
       circulatingArmorLossFactor: Double,
       eddyCurrentsArmorLossFactor: Double,
-      conductorLosses: Power,
-  ): Power = {
+      conductorLosses: PowerPerLength,
+  ): PowerPerLength = {
     // lambda_2 = lambda_2_dash + lambda_2_dash_dash
     val lambdaTwo = circulatingArmorLossFactor + eddyCurrentsArmorLossFactor
     conductorLosses * lambdaTwo
   }
 
-  /** Calculates the losses within the cable that are not current-dependent.
+  /** Calculates the losses within the cable that are not current-dependent, per
+    * unit cable length.
     * @param phaseToGroundVoltage
     *   The phase-to-ground voltage U0 of the cable system
     * @param frequency
     *   The frequency of the system (50 Hz) in general.
     * @param tanDelta
     *   The dissipation factor of the cable.
-    * @param dielectricCapacity
-    *   The electric capacity that is formed by the dielectric of the cable.
+    * @param specificDielectricCapacity
+    *   The specific capacitance per unit length of the cable dielectric.
     * @return
-    *   The voltage dependent dielectric losses.
+    *   The voltage dependent dielectric losses per unit cable length.
     */
   def calcDielectricLosses(
       phaseToGroundVoltage: ElectricPotential,
       frequency: Frequency,
       tanDelta: Double,
-      dielectricCapacity: Capacitance,
-  ): Power = {
-    dielectricCapacity.calculateDielectricLosses(
+      specificDielectricCapacity: SpecificCapacitance,
+  ): PowerPerLength = {
+    specificDielectricCapacity.calculateSpecificDielectricLosses(
       phaseToGroundVoltage,
       frequency,
       tanDelta,
@@ -589,11 +592,8 @@ object LineThermalModelCalculations extends LazyLogging {
       specificThermalResistivity: ThermalResistivity,
       innerRadius: Length,
       outerRadius: Length,
-  ): ThermalResistivity = {
-    (specificThermalResistivity / TWO_PI) * log(
-      outerRadius.toMeters / innerRadius.toMeters
-    )
-  }
+  ): ThermalResistivity =
+    (specificThermalResistivity / TWO_PI) * log(outerRadius / innerRadius)
 
   /** Calculates the thermal resistivity between the cable layers and the
     * surrounding soil for a single cable (e.g. Three-Core-Cable)
@@ -612,12 +612,11 @@ object LineThermalModelCalculations extends LazyLogging {
       specificThermalResistivityGround: ThermalResistivity,
       depthCable: Length,
       cableDiameter: Length,
-  ): ThermalResistivity = {
+  ): ThermalResistivity =
     (specificThermalResistivityGround / TWO_PI) * calcGeometricFactor(
       depthCable,
       cableDiameter,
     )
-  }
 
   /** Calculates the geometrical factor of the single core cable to its mirrored
     * (Kennelly method).
@@ -633,8 +632,7 @@ object LineThermalModelCalculations extends LazyLogging {
       depthCable: Length,
       cableDiameter: Length,
   ): Double = {
-    val normalizationFactor =
-      (2d * depthCable.toMeters * -1) / cableDiameter.toMeters
+    val normalizationFactor = (depthCable * -2d) / cableDiameter
     log(normalizationFactor + sqrt(pow(normalizationFactor, 2) - 1))
   }
 
@@ -671,9 +669,9 @@ object LineThermalModelCalculations extends LazyLogging {
       depthCables: Length,
       diameterCableB: Length,
       distanceOfCables: Length,
-      lossesCableA: Power,
-      lossesCableB: Power,
-      lossesCableC: Power,
+      lossesCableA: PowerPerLength,
+      lossesCableB: PowerPerLength,
+      lossesCableC: PowerPerLength,
   ): ThermalResistivity = {
     val distancePtoKDashDividedByDistancePtoK = sqrt(
       (pow(distanceOfCables.toMeters, 2) + pow(
@@ -747,7 +745,7 @@ object LineThermalModelCalculations extends LazyLogging {
       depthToCenter: Length,
       diameterCable: Length,
   ): ThermalResistivity = {
-    val u = 2 * (depthToCenter.toMeters * -1) / diameterCable.toMeters
+    val u = (depthToCenter * -2) / diameterCable
 
     KelvinMetersPerWatt(
       TREFOIL_COEFFICIENT * specificThermalResistivityGround.toKelvinMetersPerWatt / Pi
@@ -1090,9 +1088,9 @@ object LineThermalModelCalculations extends LazyLogging {
     )
 
     val vectorB = DenseVector(
-      (conductorLosses.toWatts + dielectricLosses.toWatts / 2) / c1,
+      (conductorLosses.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c1,
       0d,
-      (sheathLossesMiddlePhase.toWatts + dielectricLosses.toWatts / 2) / c3,
+      (sheathLossesMiddlePhase.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c3,
       0d,
       (g5 * groundTemperature.toCelsiusScale) / c5,
     )
