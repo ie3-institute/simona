@@ -9,29 +9,19 @@ echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
 
 parse_version() {
     local SOURCE=$1
-    local PROPS MAJOR MINOR PATCH PRERELEASE BUILDMETA VERSION
+    local PROPS MAJOR MINOR PATCH VERSION
 
     PROPS=$(tr -d '\r')
     MAJOR=$(sed -n 's/^version\.major=//p' <<< "$PROPS")
     MINOR=$(sed -n 's/^version\.minor=//p' <<< "$PROPS")
     PATCH=$(sed -n 's/^version\.patch=//p' <<< "$PROPS")
-    PRERELEASE=$(sed -n 's/^version\.prerelease=//p' <<< "$PROPS")
-    BUILDMETA=$(sed -n 's/^version\.buildmeta=//p' <<< "$PROPS")
 
     if [[ ! "$MAJOR.$MINOR.$PATCH" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo "ERROR: Invalid version in version.properties of $SOURCE: '$MAJOR.$MINOR.$PATCH'" >&2
         exit 1
     fi
 
-    VERSION="$MAJOR.$MINOR.$PATCH"
-    if [ -n "$PRERELEASE" ]; then
-        VERSION="$VERSION-$PRERELEASE"
-    fi
-    if [ -n "$BUILDMETA" ]; then
-        VERSION="$VERSION+$BUILDMETA"
-    fi
-
-    echo "$VERSION"
+    echo "$MAJOR.$MINOR.$PATCH"
 }
 
 echo "Fetching current version of PR..."
