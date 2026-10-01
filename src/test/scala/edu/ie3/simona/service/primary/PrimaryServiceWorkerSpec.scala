@@ -307,6 +307,7 @@ class PrimaryServiceWorkerSpec
               actualServiceRef,
               actualData,
               actualNextDataTick,
+              _,
             ) =>
           actualTick shouldBe 0L
           actualServiceRef shouldBe serviceRef
@@ -392,6 +393,7 @@ class PrimaryServiceWorkerSpec
               actualServiceRef,
               data,
               nextDataTick,
+              _,
             ) =>
           tick shouldBe 900L
           actualServiceRef shouldBe serviceRef

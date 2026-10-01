@@ -40,8 +40,8 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
-import org.apache.pekko.actor.typed.{ActorRef, PostStop}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
+import org.apache.pekko.actor.typed.{ActorRef, PostStop}
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File

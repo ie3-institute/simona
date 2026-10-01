@@ -8,15 +8,8 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toApparent,
-  toSquants,
-}
-import edu.ie3.util.scala.quantities.{
-  EuroPerKilowattHour,
-  Kilovoltamperes,
-  KilowattHoursPerKelvinCubicMeters,
-}
+import edu.ie3.util.scala.quantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.*
 import squants.energy.{Energy, KilowattHours, Kilowatts}
 import squants.space.{CubicMeters, SquareMeters}
@@ -111,10 +104,10 @@ class QuantityConversionUtilsSpec extends UnitSpec {
     }
 
     "properly convert specific resistance quantities" in {
-      implicit val length: ComparableQuantity[Length] =
+      given length: ComparableQuantity[Length] =
         Quantities.getQuantity(2.5, KILOMETRE)
       val specResistance = Quantities.getQuantity(0.2, OHM_PER_KILOMETRE)
-      specResistance.toSquants shouldBe Ohms(0.5)
+      specResistance.toResistance shouldBe Ohms(0.5)
     }
 
     "properly convert electrical conductance quantities" in {
@@ -157,7 +150,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
         1.15,
         KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE,
       )
-      specHeatCapacity.toSquants shouldBe KilowattHoursPerKelvinCubicMeters(
+      specHeatCapacity.toSquantsKWhPerCubicMeterKelvin shouldBe KilowattHoursPerCubicMeterKelvin(
         1.15
       )
     }
