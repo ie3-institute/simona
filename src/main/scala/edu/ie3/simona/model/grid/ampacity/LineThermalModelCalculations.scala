@@ -23,8 +23,8 @@ import edu.ie3.util.scala.quantities.{
   SpecificCapacitance,
   ThermalCapacitance,
   ThermalResistivity,
-  SquantsUtils as RichElectricPotential,
   WattsPerMeter,
+  SquantsUtils as RichElectricPotential,
 }
 import squants.electro.*
 import squants.space.{Length, Millimeters, SquareMeters}

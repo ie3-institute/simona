@@ -82,16 +82,15 @@ dependencies {
     exclude group: 'com.github.ie3-institute'
   }
   // FIXME DF
-  //implementation('com.github.ie3-institute:PowerSystemDataModel:9.1.0') {
-  //  exclude group: 'org.apache.logging.log4j'
-  //    exclude group: 'org.slf4j'
-  /* Exclude our own nested dependencies */
-  //    exclude group: 'com.github.ie3-institute'
-  //  }
-  implementation files('/home/smdafeis/PowerSystemDataModel/build/libs/PowerSystemDataModel-9.2.0-all.jar')
-  runtimeOnly 'org.postgresql:postgresql:42.7.11' // postgresql jdbc driver required during runtime
-
-  implementation('com.github.ie3-institute:powerflow:0.4.0') {
+  //implementation files('/home/smdafeis/simona/PowerSystemDataModel-9.2.0-all_wo_markov.jar')
+  //runtimeOnly 'org.postgresql:postgresql:42.7.11' // postgresql jdbc driver required during runtime
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.2.0') {
+    exclude group: 'org.apache.logging.log4j'
+    exclude group: 'org.slf4j'
+    /* Exclude our own nested dependencies */
+    exclude group: 'com.github.ie3-institute'
+  }
+  implementation('com.github.ie3-institute:powerflow:0.5.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -166,6 +165,7 @@ dependencies {
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.4' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
+  implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'org.jgrapht:jgrapht-core:1.5.3'
 
   // needed, because scala won't compile otherwise
