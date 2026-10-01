@@ -37,6 +37,7 @@ object SquantsUtils {
     ): ElectricPotential = Volts(
       electricPotential.toVolts * that.toEach
     )
+
   }
 
   extension (

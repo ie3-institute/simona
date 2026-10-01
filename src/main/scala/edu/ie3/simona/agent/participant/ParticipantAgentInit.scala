@@ -93,7 +93,7 @@ object ParticipantAgentInit
     *   The voltage request deviation tolerance, outside which reactive power
     *   has to be recalculated.
     * @param simulationStart
-    *   Date of the very first tick in the simulation.
+    *   The simulation start date and time.
     * @param simulationEnd
     *   The simulation end date and time.
     */
