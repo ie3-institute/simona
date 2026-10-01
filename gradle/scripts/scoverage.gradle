@@ -11,3 +11,9 @@ scoverage {
   minimumRate = 0.5 // minimum code coverage
   coverageDebug = false
 }
+
+// scoverage brings an older scala-library (2.13) that would shadow the project's version in tests
+configurations.named('scoverage') {
+  resolutionStrategy.force "org.scala-lang:scala-library:${scalaBinaryVersion}",
+  "org.scala-lang:scala3-library_3:${scalaBinaryVersion}"
+}

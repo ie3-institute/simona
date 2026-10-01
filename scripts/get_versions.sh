@@ -9,7 +9,7 @@ echo "REPO_URL=$REPO_URL" >> $GITHUB_ENV
 
 parse_version() {
     local SOURCE=$1
-    local PROPS MAJOR MINOR PATCH VERSION
+    local PROPS MAJOR MINOR PATCH
 
     PROPS=$(tr -d '\r')
     MAJOR=$(sed -n 's/^version\.major=//p' <<< "$PROPS")
