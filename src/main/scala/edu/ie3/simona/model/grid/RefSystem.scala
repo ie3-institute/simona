@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.math.Complex
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.{ReactivePower, Vars}
 import squants.electro.*
