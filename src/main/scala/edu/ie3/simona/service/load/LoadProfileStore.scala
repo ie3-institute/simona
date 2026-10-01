@@ -121,9 +121,8 @@ final case class LoadProfileStore(
     val supplier = source.getValueSupplier(new TimeSeriesInputValue(time))
 
     () =>
-      supplier.get.toScala
-        .flatMap(_.getP.toScala)
-        .map(_.toSquants)
+      supplier.get.value.toScala
+        .flatMap(_.getP.map(_.toSquants).toScala)
         .getOrElse(
           throw new CriticalFailureException(
             s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
