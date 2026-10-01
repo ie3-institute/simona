@@ -1,0 +1,3 @@
+uuid,charging_points,cos_phi_rated,id,location_type,node,operates_from,operates_until,operator,q_characteristics,type,v_2g_support
+191c52ee-6384-4e3a-9677-af0183103b98,4,0.9,test_evcs_1,HOME,e30ed9ed-f016-40f6-94fd-c4ad4a0b9713,,,,"cosPhiFixed:{(0.0,1.0)}",ChargingStationType1,true
+f02d6dc7-9022-4221-8f9d-6137048eb929,4,0.9,test_evcs_2,HOME,b72c453b-0940-4209-9620-2e6878db0009,,,,"cosPhiFixed:{(0.0,1.0)}",ChargingStationType1,true
