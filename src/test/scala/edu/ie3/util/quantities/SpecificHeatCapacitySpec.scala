@@ -6,7 +6,7 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.util.scala.quantities.KilowattHoursPerKelvinCubicMeters
+import edu.ie3.util.scala.quantities.KilowattHoursPerCubicMeterKelvin
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.KilowattHours
@@ -15,28 +15,28 @@ import squants.thermal.{Celsius, Kelvin}
 
 class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
 
-  behavior of "SpecificHeatCapacity and its Units of Measure"
+  behavior of "ThermalCapacitance and its Units of Measure"
 
   it should "create values using UOM factories" in {
-    KilowattHoursPerKelvinCubicMeters(
+    KilowattHoursPerCubicMeterKelvin(
       1
     ).toKilowattHoursPerKelvinCubicMeters should be(1)
   }
 
   it should "properly convert to all supported Units of Measure" in {
-    val x = KilowattHoursPerKelvinCubicMeters(1)
+    val x = KilowattHoursPerCubicMeterKelvin(1)
 
     x.toKilowattHoursPerKelvinCubicMeters should be(1)
   }
 
   it should "return properly formatted strings for all supported Units of Measure" in {
-    KilowattHoursPerKelvinCubicMeters(1).toString(
-      KilowattHoursPerKelvinCubicMeters
-    ) should be("1.0 kWh/Km³")
+    KilowattHoursPerCubicMeterKelvin(1).toString(
+      KilowattHoursPerCubicMeterKelvin
+    ) should be("1.0 kWh/m³K")
   }
 
   it should "return Energy when multiplied by Temperature delta of 1 Kelvin and Volume" in {
-    KilowattHoursPerKelvinCubicMeters(1000).calcEnergy(
+    KilowattHoursPerCubicMeterKelvin(1000).calcEnergy(
       Kelvin(10),
       Kelvin(20),
       CubicMeters(5),
@@ -44,7 +44,7 @@ class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
   }
 
   it should "return Energy when multiplied by Temperature delta of 1 degree Celsius and Volume" in {
-    KilowattHoursPerKelvinCubicMeters(1000).calcEnergy(
+    KilowattHoursPerCubicMeterKelvin(1000).calcEnergy(
       Celsius(100),
       Celsius(101),
       CubicMeters(5),

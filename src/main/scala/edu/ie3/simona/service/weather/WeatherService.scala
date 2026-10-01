@@ -31,9 +31,6 @@ import scala.util.{Failure, Success, Try}
 
 /** Weather Service is responsible to register other actors that require weather
   * information and provide weather information when requested
-  *
-  * @version 0.1
-  * @since 2019-07-28
   */
 object WeatherService extends SimonaService {
 
