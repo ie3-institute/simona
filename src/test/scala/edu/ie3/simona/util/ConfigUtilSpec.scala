@@ -13,6 +13,7 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
+import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.datamodel.models.result.system.LoadResult
 import edu.ie3.datamodel.models.result.{
   CongestionResult,
@@ -201,53 +202,62 @@ class ConfigUtilSpec
           ("config", "expected"),
           (
             new GridOutputConfig(
-              false, false, false, false, false, false,
+              false, false, false, false, false, false, false,
             ),
             Set.empty[Class[? <: ResultEntity]],
           ),
           (
             new GridOutputConfig(
-              true, false, false, false, false, false,
+              true, false, false, false, false, false, false,
             ),
             Set(classOf[CongestionResult]),
           ),
           (
             new GridOutputConfig(
-              false, true, false, false, false, false,
+              false, true, false, false, false, false, false,
             ),
             Set(classOf[LineResult]),
           ),
           (
             new GridOutputConfig(
-              false, false, true, false, false, false,
+              false, false, true, false, false, false, false,
             ),
             Set(classOf[NodeResult]),
           ),
           (
             new GridOutputConfig(
-              false, false, false, true, false, false,
+              false, false, false, true, false, false, false,
             ),
             Set(classOf[SwitchResult]),
           ),
           (
             new GridOutputConfig(
-              false, false, false, false, true, false,
+              false, false, false, false, true, false, false,
+            ),
+            Set(classOf[ThermalLineSegmentResult]),
+          ),
+          (
+            new GridOutputConfig(
+              false, false, false, false, false, true, false,
             ),
             Set(classOf[Transformer2WResult]),
           ),
           (
             new GridOutputConfig(
-              false, false, false, false, false, true,
+              false, false, false, false, false, false, true,
             ),
             Set(classOf[Transformer3WResult]),
           ),
           (
-            new GridOutputConfig(true, true, true, true, true, true),
+            new GridOutputConfig(
+              true, true, true, true, true, true, true,
+            ),
             Set(
               classOf[CongestionResult],
               classOf[LineResult],
               classOf[NodeResult],
               classOf[SwitchResult],
+              classOf[ThermalLineSegmentResult],
               classOf[Transformer2WResult],
               classOf[Transformer3WResult],
             ),

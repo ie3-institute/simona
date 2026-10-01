@@ -19,6 +19,7 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
+import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.datamodel.models.result.{
   CongestionResult,
   NodeResult,
@@ -310,6 +311,8 @@ object ConfigUtil {
       if subConfig.nodes then entities += classOf[NodeResult]
       if subConfig.lines then entities += classOf[LineResult]
       if subConfig.switches then entities += classOf[SwitchResult]
+      if subConfig.thermalLineSegments then
+        entities += classOf[ThermalLineSegmentResult]
       if subConfig.transformers2w then entities += classOf[Transformer2WResult]
       if subConfig.transformers3w then entities += classOf[Transformer3WResult]
       if subConfig.congestions then entities += classOf[CongestionResult]

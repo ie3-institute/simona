@@ -6,13 +6,13 @@
 
 package edu.ie3.simona.agent.grid.data
 
+import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentBaseData,
   GridAgentDataInternal,
   GridAgentRef,
 }
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.model.grid.ampacity.LineStateResult
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 
 import java.time.ZonedDateTime
@@ -36,15 +36,15 @@ final case class AmpacityCalculationData(
     powerFlowResults: Option[PowerFlowResultEvent],
 ) extends GridAgentDataInternal {
 
-  /** Builds a [[???]] from the power flow results.
+  /** Builds an [[Iterable]] of [[ThermalLineSegmentResult]].
     * @param startTime
     *   Of the simulation.
     * @return
-    *   An iterable of [[LineStateResult]].
+    *   An iterable of [[ThermalLineSegmentResult]].
     */
   def getLineTemperatures(
       startTime: ZonedDateTime
-  ): Iterable[LineStateResult] = {
+  ): Iterable[ThermalLineSegmentResult] = {
     gridAgentBaseData.thermalLineStates.values.toSeq.flatMap { state =>
       val dateTime = gridAgentBaseData.simulationStart.plusSeconds(state.tick)
       state.currentLineSegmentThermalModel.createResults(state, dateTime)

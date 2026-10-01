@@ -20,6 +20,7 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.datamodel.models.result.thermal.{
   AbstractThermalStorageResult,
   ThermalHouseResult,
+  ThermalLineSegmentResult,
   ThermalUnitResult,
 }
 import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
@@ -90,6 +91,16 @@ object ResultEvent {
     */
   final case class ThermalResultEvent(
       thermalResult: ThermalUnitResult
+  ) extends ResultEvent
+
+  /** Event that holds the calculation results of the thermal line segments of a
+    * grid.
+    *
+    * @param thermalLineSegmentResults
+    *   The thermal line segment results of the grid.
+    */
+  final case class ThermalLineSegmentResultEvent(
+      thermalLineSegmentResults: Iterable[ThermalLineSegmentResult]
   ) extends ResultEvent
 
   object ThermalHouseResult {

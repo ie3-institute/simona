@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
@@ -21,6 +23,8 @@ import squants.electro.ElectricPotential
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import java.lang.Double as JDouble
+import tech.units.indriya.quantity.Quantities
 
 /** A thermal model for a line segment
   *
@@ -192,25 +196,28 @@ final case class LineSegmentThermalModel(
   def createResults(
       state: LineState,
       dateTime: ZonedDateTime,
-  ): Iterable[LineStateResult] = {
+  ): Iterable[ThermalLineSegmentResult] = {
+    val lineSegmentTempC =
+      state.lineTemperatures.currentLineTemp1.inCelsius.value
+    val groundTempC = state.groundTemperature.inCelsius.value
+
     Iterable(
-      LineStateResult(
+      new ThermalLineSegmentResult(
         dateTime,
         uuid,
-        state.lineTemperatures.currentLineTemp1,
-        state.groundTemperature,
+        Quantities.getQuantity(
+          JDouble.valueOf(lineSegmentTempC),
+          StandardUnits.TEMPERATURE,
+        ),
+        Quantities.getQuantity(
+          JDouble.valueOf(groundTempC),
+          StandardUnits.TEMPERATURE,
+        ),
       )
     )
   }
 
 }
-
-final case class LineStateResult(
-    time: ZonedDateTime,
-    lineSegmentUuid: UUID,
-    lineSegmentTemperature: Temperature,
-    groundTemperature: Temperature,
-)
 
 object LineSegmentThermalModel {
 

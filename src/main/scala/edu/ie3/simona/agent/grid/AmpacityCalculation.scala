@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
+import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.simona.agent.grid.AmpacityCalculationMessages.{
   AmpacityCalcRequest,
   AmpacityCalcResponse,
@@ -21,7 +22,6 @@ import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.*
 import edu.ie3.simona.agent.grid.data.AmpacityCalculationData
 import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentConstantData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
-import edu.ie3.simona.model.grid.ampacity.LineStateResult
 import org.apache.pekko.actor.typed.scaladsl.{
   ActorContext,
   Behaviors,
@@ -75,7 +75,7 @@ trait AmpacityCalculation {
       constantData: GridAgentConstantData,
       buffer: StashBuffer[GridAgent.Message],
   ): Behavior[GridAgent.Message] = {
-    val lineTemps: Seq[LineStateResult] =
+    val lineTemps: Seq[ThermalLineSegmentResult] =
       stateData.getLineTemperatures(constantData.simStartTime).toSeq
 
     ampacityCalcRequest.sender ! AmpacityCalcResponse(ctx.self, lineTemps)
@@ -117,8 +117,8 @@ object AmpacityCalculationMessages {
     */
   final case class AmpacityCalcResponse(
       override val sender: ActorRef[GridAgent.Message],
-      override val value: Seq[LineStateResult],
-  ) extends InternalReplyWithSender[Seq[LineStateResult]]
+      override val value: Seq[ThermalLineSegmentResult],
+  ) extends InternalReplyWithSender[Seq[ThermalLineSegmentResult]]
 
   /** Message that informs the grid agent to start with ampacity calculation.
     */

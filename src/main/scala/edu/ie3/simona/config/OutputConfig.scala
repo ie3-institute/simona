@@ -58,6 +58,8 @@ object OutputConfig {
     *   If node results should be written (default: false).
     * @param switches
     *   If switch results should be written (default: false).
+    * @param thermalLineSegments
+    *   If thermal line segment results should be written (default: false).
     * @param transformers2w
     *   If two-winding transformer results should be written (default: false).
     * @param transformers3w
@@ -68,6 +70,7 @@ object OutputConfig {
       lines: Boolean = false,
       nodes: Boolean = false,
       switches: Boolean = false,
+      thermalLineSegments: Boolean = false,
       transformers2w: Boolean = false,
       transformers3w: Boolean = false,
   ) derives ConfigConvert

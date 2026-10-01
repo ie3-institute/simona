@@ -165,12 +165,14 @@ class LineSegmentThermalModelSpec
 
       results should have size 1
       val result = results.head
-      result.time shouldBe defaultSimulationStart
-      result.lineSegmentUuid shouldBe cigreLandCable33kVLineSegmentThermalModel.uuid
-      result.lineSegmentTemperature should approximate(
-        updatedState.lineTemperatures.currentLineTemp1
+      result.getTime shouldBe defaultSimulationStart
+      result.getLineSegmentUuid shouldBe cigreLandCable33kVLineSegmentThermalModel.uuid
+      result.getLineSegmentTemperature.getValue.doubleValue should approximate(
+        updatedState.lineTemperatures.currentLineTemp1.inCelsius.value
       )
-      result.groundTemperature should approximate(initialGroundTemperature)
+      result.getGroundTemperature.getValue.doubleValue should approximate(
+        initialGroundTemperature.inCelsius.value
+      )
     }
 
     "handle mixed weather and voltage data" in {

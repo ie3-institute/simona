@@ -20,7 +20,10 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.powerflow.DBFSAlgorithm
-import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
+import edu.ie3.simona.event.ResultEvent.{
+  PowerFlowResultEvent,
+  ThermalLineSegmentResultEvent,
+}
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.ontology.messages.Activation
 import edu.ie3.simona.ontology.messages.ServiceMessage
@@ -333,18 +336,16 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val updatedBaseData =
       gridAgentBaseData.copy(thermalLineStates = updatedThermalLineStates)
 
-    // Collect ampacity (line temperature) results and forward to ampacity writer if available
+    // Collect ampacity (line temperature) results and forward them to result sink.
     val ampacityResults = updatedThermalLineStates.values.toSeq.flatMap {
       state =>
         val dateTime = gridAgentBaseData.simulationStart.plusSeconds(state.tick)
         state.currentLineSegmentThermalModel.createResults(state, dateTime)
     }
 
-    // send to writer actor when configured
-    constantData.environmentRefs.ampacityWriter.foreach(
-      _ ! edu.ie3.simona.event.listener.AmpacityResultWriter
-        .WriteLineTemps(ampacityResults)
-    )
+    if ampacityResults.nonEmpty then
+      constantData.environmentRefs.resultProxy !
+        ThermalLineSegmentResultEvent(ampacityResults)
 
     // clean up agent and go back to idle
     gotoIdle(updatedBaseData, results, ctx)

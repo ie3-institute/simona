@@ -12,7 +12,10 @@ import edu.ie3.datamodel.models.result.system.{
   FlexOptionsResult,
   SystemParticipantResult,
 }
-import edu.ie3.datamodel.models.result.thermal.ThermalUnitResult
+import edu.ie3.datamodel.models.result.thermal.{
+  ThermalLineSegmentResult,
+  ThermalUnitResult,
+}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.*
@@ -129,6 +132,18 @@ object ResultServiceProxy {
         results: Map[UUID, Iterable[ResultEntity]]
     ): Unit =
       if results.nonEmpty then listeners.foreach(_ ! ResultResponse(results))
+
+    /** Forwards thermal line segment results to all known listeners.
+      *
+      * @param results
+      *   That should be sent.
+      */
+    def notifyThermalLineSegmentResults(
+        results: Iterable[ThermalLineSegmentResult]
+    ): Unit =
+      val grouped: Map[UUID, Iterable[ResultEntity]] =
+        results.groupBy(_.getInputModel)
+      notifyListener(grouped)
 
     /** This method is used to forward one result to all known listeners.
       *
@@ -553,6 +568,14 @@ object ResultServiceProxy {
         stateData.notifyListener(flexOptionsResult)
 
         stateData.addResult(flexOptionsResult)
+
+      case ThermalLineSegmentResultEvent(thermalLineSegmentResults) =>
+        // notify listener
+        stateData.notifyThermalLineSegmentResults(
+          thermalLineSegmentResults
+        )
+
+        stateData
     }
 
   /** Method for handling three-winding results. This is necessary, since a

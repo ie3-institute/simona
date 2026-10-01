@@ -114,9 +114,6 @@ object SimonaSim {
         // load profile service
         val loadProfileService = simonaSetup.loadProfileService(ctx, scheduler)
 
-        // spawn ampacity result writer and include it in environment refs
-        val ampacityWriterRef = simonaSetup.ampacityResultWriter(ctx)
-
         val environmentRefs = EnvironmentRefs(
           scheduler,
           runtimeEventListener,
@@ -127,7 +124,6 @@ object SimonaSim {
           loadProfileService,
           extSimulationData.emDataService,
           extSimulationData.evDataService,
-          Some(ampacityWriterRef),
         )
 
         /* start participant agents */

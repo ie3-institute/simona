@@ -6,9 +6,12 @@
 
 package edu.ie3.simona.service.results
 
+import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent,
+  ThermalLineSegmentResultEvent,
 }
 import edu.ie3.simona.ontology.messages.ResultMessage.{
   RequestResult,
@@ -21,6 +24,8 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+
+import java.util.UUID
 
 class ResultServiceProxySpec
     extends ScalaTestWithActorTestKit
@@ -409,6 +414,44 @@ class ResultServiceProxySpec
       )
     }
 
-  }
+    "forward thermal line segment result events to the listeners" in {
+      val listener = TestProbe[ResultResponse]("listener")
 
+      val resultProxy =
+        spawn(ResultServiceProxy(Seq(listener.ref), startTime, 10))
+
+      val celsius =
+        (value: Double) =>
+          tech.units.indriya.quantity.Quantities
+            .getQuantity(
+              java.lang.Double.valueOf(value),
+              StandardUnits.TEMPERATURE,
+            )
+
+      val segmentUuid1 = UUID.randomUUID()
+      val segmentUuid2 = UUID.randomUUID()
+      val result1 =
+        new ThermalLineSegmentResult(
+          dummyTime,
+          segmentUuid1,
+          celsius(39d),
+          celsius(20d),
+        )
+      val result2 =
+        new ThermalLineSegmentResult(
+          dummyTime,
+          segmentUuid2,
+          celsius(41d),
+          celsius(21d),
+        )
+
+      resultProxy ! ThermalLineSegmentResultEvent(Seq(result1, result2))
+
+      listener.expectMessageType[ResultResponse].results shouldBe Map(
+        segmentUuid1 -> List(result1),
+        segmentUuid2 -> List(result2),
+      )
+    }
+
+  }
 }
