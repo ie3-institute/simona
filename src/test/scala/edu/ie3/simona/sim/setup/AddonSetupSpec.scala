@@ -16,9 +16,9 @@ import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 import scala.util.Try
 
-class ExtSimSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
+class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
-  "An ExtSimSetup" should {
+  "An AddonSetup" should {
     val uuid1 = UUID.fromString("726c40e1-b1cd-4f16-a5b6-3972e852f60b")
     val uuid2 = UUID.fromString("614fa950-53fa-4f5e-8ea1-b51234c4866c")
     val uuid3 = UUID.fromString("7a9cd186-ad23-47b2-912e-1a2c777f46b0")
@@ -39,7 +39,7 @@ class ExtSimSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       )
 
       Try(
-        ExtSimSetup.validatePrimaryData(extPrimaryDataConnection)
+        AddonSetup.validatePrimaryData(extPrimaryDataConnection)
       ).isSuccess shouldBe true
     }
 
@@ -52,7 +52,7 @@ class ExtSimSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       )
 
       intercept[ServiceException](
-        ExtSimSetup.validatePrimaryData(extPrimaryDataConnection)
+        AddonSetup.validatePrimaryData(extPrimaryDataConnection)
       ).getMessage shouldBe s"Multiple data connections provide primary data for assets: $uuid6,$uuid4"
     }
 
