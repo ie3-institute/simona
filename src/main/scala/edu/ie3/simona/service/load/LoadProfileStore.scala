@@ -7,12 +7,16 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
-import edu.ie3.datamodel.io.source.PowerValueSource.TimeSeriesInputValue
+import edu.ie3.datamodel.io.source.PowerValueSource.{
+  MarkovIdentifier,
+  TimeSeriesInputValue,
+}
 import edu.ie3.datamodel.io.source.json.JsonMarkovProfileSource
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
 import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.load.MarkovLoadModel.MarkovLoadFactoryData
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.toTick
@@ -20,7 +24,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
-import java.util.Optional
+import java.util.{Optional, OptionalDouble, OptionalInt}
 import javax.measure.quantity.{Energy, Power}
 import scala.jdk.CollectionConverters.*
 import scala.jdk.FunctionConverters.enrichAsScalaFromSupplier
@@ -160,6 +164,74 @@ final case class LoadProfileStore(
       ProfileLoadFactoryData(
         source.getMaxPower,
         source.getProfileEnergyScaling,
+      )
+    }
+
+  /** Returns the step function of a Markov load profile for the given time. The
+    * function takes the previous state of the Markov chain as well as a seed
+    * and returns the average power consumption of the current interval and the
+    * next state of the chain.
+    *
+    * @param time
+    *   The requested time.
+    * @param powerProfileKey
+    *   The requested Markov load profile.
+    * @return
+    *   A function returning a load in kW and the next state.
+    */
+  def markovEntryFunc(
+      time: ZonedDateTime,
+      powerProfileKey: PowerProfileKey,
+  ): (Int, Long) => (squants.Power, Int) = {
+
+    val source = profileToMarkovSource
+      .getOrElse(
+        powerProfileKey,
+        throw new CriticalFailureException(
+          s"Markov load profile $powerProfileKey is not available."
+        ),
+      )
+
+    (previousState, seed) => {
+      val output = source
+        .getValueSupplier(
+          new MarkovIdentifier(
+            time,
+            OptionalInt.of(previousState),
+            OptionalDouble.empty(),
+            seed,
+          )
+        )
+        .get
+
+      val power = output.value.toScala
+        .flatMap(_.getP.toScala)
+        .map(_.toSquants)
+        .getOrElse(
+          throw new CriticalFailureException(
+            s"Load value cannot be provided for Markov load profile $powerProfileKey at time $time!"
+          )
+        )
+
+      (power, output.nextState)
+    }
+  }
+
+  /** @param powerProfileKey
+    *   Given Markov load profile.
+    * @return
+    *   An option for the [[MarkovLoadFactoryData]] for the given Markov load
+    *   profile.
+    */
+  def getMarkovLoadFactoryData(
+      powerProfileKey: PowerProfileKey
+  ): Option[MarkovLoadFactoryData] =
+    profileToMarkovSource.get(powerProfileKey).map { source =>
+      MarkovLoadFactoryData(
+        source.getMaxPower,
+        source.getProfileEnergyScaling,
+        (time, previousState, seed) =>
+          markovEntryFunc(time, powerProfileKey)(previousState, seed),
       )
     }
 

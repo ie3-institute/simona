@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.load
 
+import edu.ie3.datamodel.io.source.PowerValueSource.MarkovIdentifier
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
 import edu.ie3.datamodel.models.profile.{
   BdewStandardLoadProfile,
@@ -14,12 +15,16 @@ import edu.ie3.datamodel.models.profile.{
 }
 import edu.ie3.simona.config.ConfigParams.BaseCsvParams
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
+import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.load.MarkovLoadModel.MarkovLoadFactoryData
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import squants.energy.*
 
 import java.time.ZonedDateTime
+import java.util.{OptionalDouble, OptionalInt}
 
 class LoadProfileStoreSpec extends UnitSpec with TestResourceHelper {
 
@@ -141,6 +146,76 @@ class LoadProfileStoreSpec extends UnitSpec with TestResourceHelper {
 
       onlyMarkovStore.getNextActivationTick(0L) shouldBe Some(3600L)
       onlyMarkovStore.getNextActivationTick(3600L) shouldBe Some(7200L)
+    }
+
+    "return a step function for a Markov load profile" in {
+      val source = markovStore.profileToMarkovSource(markovKey)
+
+      val cases = Table(
+        ("requestedTime", "previousState", "seed"),
+        (time, 0, 42L),
+        (time, 1, 42L),
+        (time, 1, 7L),
+        (time.plusHours(5), 1, 7L),
+      )
+
+      forAll(cases) { (requestedTime, previousState, seed) =>
+        val expected = source
+          .getValueSupplier(
+            new MarkovIdentifier(
+              requestedTime,
+              OptionalInt.of(previousState),
+              OptionalDouble.empty(),
+              seed,
+            )
+          )
+          .get
+
+        val (power, nextState) =
+          markovStore.markovEntryFunc(requestedTime, markovKey)(
+            previousState,
+            seed,
+          )
+
+        power shouldBe expected.value.get.getP.get.toSquants
+        nextState shouldBe expected.nextState
+      }
+    }
+
+    "throw an exception for a Markov load profile that is not available" in {
+      intercept[CriticalFailureException] {
+        markovStore.markovEntryFunc(
+          time,
+          new PowerProfileKey("other", PowerProfileKey.Type.MARKOV),
+        )
+      }
+    }
+
+    "return Markov load factory data correctly" in {
+      markovStore.getMarkovLoadFactoryData(markovKey) match {
+        case Some(MarkovLoadFactoryData(maxPower, energyScaling, stepFunc)) =>
+          maxPower match {
+            case Some(power) => power should approximate(Kilowatts(4d))
+            case None        => fail("We expect a maximal power here!")
+          }
+          energyScaling shouldBe None
+
+          Seq(time, time.plusHours(5)).foreach { requestedTime =>
+            stepFunc(requestedTime, 1, 7L) shouldBe markovStore.markovEntryFunc(
+              requestedTime,
+              markovKey,
+            )(1, 7L)
+          }
+
+        case None =>
+          fail("We expect factory data here!")
+      }
+
+      // the factory data of the other profile type is not available
+      markovStore.getProfileLoadFactoryData(markovKey) shouldBe None
+      markovStore.getMarkovLoadFactoryData(
+        BdewStandardLoadProfile.G0.getKey
+      ) shouldBe None
     }
   }
 }

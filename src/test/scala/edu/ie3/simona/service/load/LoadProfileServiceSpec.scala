@@ -12,7 +12,9 @@ import edu.ie3.datamodel.models.profile.{
   PowerProfileKey,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
+import edu.ie3.simona.config.ConfigParams.BaseCsvParams
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
+import edu.ie3.simona.model.participant.load.MarkovLoadModel.MarkovLoadFactoryData
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.ProfileLoadFactoryData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -23,11 +25,13 @@ import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.Data.SecondaryData.{
   LoadDataFunction,
+  MarkovDataFunction,
   SecondarySeriesData,
 }
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -46,7 +50,8 @@ class LoadProfileServiceSpec
     with PrivateMethodTester
     with LazyLogging
     with ConfigTestData
-    with TestSpawnerTyped {
+    with TestSpawnerTyped
+    with TestResourceHelper {
 
   private val sourceDefinition: Datasource = Datasource()
 
@@ -206,6 +211,115 @@ class LoadProfileServiceSpec
           nextTick shouldBe Some(1800L)
       }
 
+    }
+  }
+
+  "A load profile service with Markov load profiles" should {
+
+    val markovScheduler = TestProbe[SchedulerMessage]("markovScheduler")
+    val markovAgent = TestProbe[ParticipantAgent.Message]("markovAgent")
+    val forecastAgent = TestProbe[ParticipantAgent.Message]("forecastAgent")
+
+    val markovKey = new PowerProfileKey("test", PowerProfileKey.Type.MARKOV)
+
+    val markovSourceDefinition = Datasource(csvParams =
+      Some(
+        BaseCsvParams(
+          ",",
+          getResourcePath("_it").toString,
+          isHierarchic = false,
+        )
+      )
+    )
+
+    val serviceKey =
+      ScheduleLock.singleKey(TSpawner, markovScheduler.ref, INIT_SIM_TICK)
+    // lock activation scheduled
+    markovScheduler.expectMessageType[ScheduleActivation]
+    val loadProfileService = testKit.spawn(
+      LoadProfileService(
+        markovScheduler.ref,
+        InitLoadProfileServiceStateData(
+          markovSourceDefinition,
+          simonaConfig.time.simStartTime,
+        ),
+        serviceKey,
+      )
+    )
+
+    "send correct schedule message after initialisation" in {
+      markovScheduler.expectMessage(
+        ScheduleActivation(loadProfileService, 0L, Some(serviceKey))
+      )
+    }
+
+    "announce, that a Markov load profile is registered" in {
+      loadProfileService ! SecondaryServiceRegistrationMessage(
+        markovAgent.ref,
+        DataTimeType.Current,
+        markovKey,
+      )
+
+      markovAgent.expectMessageType[RegistrationSuccessfulMessage] match {
+        case RegistrationSuccessfulMessage(
+              serviceRef,
+              firstDataTick,
+              Some(MarkovLoadFactoryData(maxPower, energyScaling, _)),
+            ) =>
+          serviceRef shouldBe loadProfileService
+          firstDataTick shouldBe 0L
+          maxPower shouldBe Some(Kilowatts(4d))
+          energyScaling shouldBe None
+
+        case unexpected =>
+          fail(s"Received unexpected message $unexpected")
+      }
+    }
+
+    "announce failed registration for forecasts of a Markov load profile" in {
+      loadProfileService ! SecondaryServiceRegistrationMessage(
+        forecastAgent.ref,
+        DataTimeType.CurrentAndForecast(
+          forecastLength = Hours(6),
+          forecastResolution = Hours(1),
+        ),
+        markovKey,
+      )
+
+      forecastAgent.expectMessage(RegistrationFailedMessage(loadProfileService))
+    }
+
+    "send out Markov load profile information upon activity start trigger" in {
+      loadProfileService ! Activation(0)
+
+      val activationMsg = markovScheduler.expectMessageType[Completion]
+      activationMsg.newTick shouldBe Some(900)
+
+      markovAgent.expectMessageType[DataProvision] match {
+        case DataProvision(tick, serviceRef, data, nextTick) =>
+          tick shouldBe 0L
+          serviceRef shouldBe loadProfileService
+          data match {
+            case MarkovDataFunction(stepFunction) =>
+              // the function is bound to the time of the current tick
+              val expectedFunction = LoadProfileStore(markovSourceDefinition)
+                .markovEntryFunc(simonaConfig.time.simStartTime, markovKey)
+
+              Seq((0, 42L), (1, 42L), (1, 7L)).foreach {
+                case (previousState, seed) =>
+                  stepFunction(previousState, seed) shouldBe expectedFunction(
+                    previousState,
+                    seed,
+                  )
+              }
+
+            case unexpected =>
+              fail(s"Received unexpected data $unexpected")
+          }
+          nextTick shouldBe Some(900L)
+      }
+
+      forecastAgent.expectNoMessage()
     }
   }
 }
