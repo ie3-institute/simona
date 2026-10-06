@@ -77,8 +77,7 @@ final case class LoadProfileStore(
     profileToSource.contains(powerProfileKey) || profileToMarkovSource
       .contains(powerProfileKey)
 
-  /** Returns a map: [[LoadProfile]] to profile resolution in seconds. The
-    * resolution of a Markov model is given by its sampling interval.
+  /** Returns a map: [[LoadProfile]] to profile resolution in seconds.
     */
   def getProfileResolutions: Map[PowerProfileKey, Long] = {
     val resolutions = profileToSource.keys
@@ -87,11 +86,16 @@ final case class LoadProfileStore(
 
     val markovResolutions = profileToMarkovSource.map {
       case (profile, source) =>
-        profile -> source.getModel.timeModel.samplingIntervalMinutes * 60L
+        profile -> getMarkovResolution(source)
     }
 
     resolutions ++ markovResolutions
   }
+
+  /** Returns the sampling interval of a Markov model in seconds.
+    */
+  private def getMarkovResolution(source: JsonMarkovProfileSource): Long =
+    source.getModel.timeModel.samplingIntervalMinutes * 60L
 
   /** Method to find the next activation tick.
     * @param tick
@@ -167,10 +171,8 @@ final case class LoadProfileStore(
       )
     }
 
-  /** Returns the step function of a Markov load profile for the given time. The
-    * function takes the previous state of the Markov chain as well as a seed
-    * and returns the average power consumption of the current interval and the
-    * next state of the chain.
+  /** Returns the step function of a Markov load profile for given time:
+    * (previous state, seed) => (power, next state).
     *
     * @param time
     *   The requested time.
@@ -230,6 +232,7 @@ final case class LoadProfileStore(
       MarkovLoadFactoryData(
         source.getMaxPower,
         source.getProfileEnergyScaling,
+        getMarkovResolution(source),
         (time, previousState, seed) =>
           markovEntryFunc(time, powerProfileKey)(previousState, seed),
       )

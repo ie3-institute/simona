@@ -264,12 +264,15 @@ class LoadProfileServiceSpec
         case RegistrationSuccessfulMessage(
               serviceRef,
               firstDataTick,
-              Some(MarkovLoadFactoryData(maxPower, energyScaling, _)),
+              Some(
+                MarkovLoadFactoryData(maxPower, energyScaling, resolution, _)
+              ),
             ) =>
           serviceRef shouldBe loadProfileService
           firstDataTick shouldBe 0L
           maxPower shouldBe Some(Kilowatts(4d))
           energyScaling shouldBe None
+          resolution shouldBe 900L
 
         case unexpected =>
           fail(s"Received unexpected message $unexpected")

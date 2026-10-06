@@ -355,8 +355,7 @@ object Data {
       * point in time.
       *
       * @param stepFunction
-      *   A function, that takes the previous state of the Markov chain as well
-      *   as a seed and returns a load value and the next state of the chain.
+      *   Function: (previous state, seed) => (power, next state).
       */
     final case class MarkovDataFunction(
         stepFunction: (Int, Long) => (Power, Int)

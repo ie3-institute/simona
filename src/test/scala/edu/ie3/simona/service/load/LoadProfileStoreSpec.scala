@@ -124,7 +124,7 @@ class LoadProfileStoreSpec extends UnitSpec with TestResourceHelper {
       markovStore.profileToMarkovSource.keySet shouldBe Set(markovKey)
       markovStore.contains(markovKey) shouldBe true
 
-      // a time series based profile with the same name is a different profile
+      // same name, but time series profile
       markovStore.contains(new PowerProfileKey("hourly")) shouldBe false
     }
 
@@ -193,12 +193,20 @@ class LoadProfileStoreSpec extends UnitSpec with TestResourceHelper {
 
     "return Markov load factory data correctly" in {
       markovStore.getMarkovLoadFactoryData(markovKey) match {
-        case Some(MarkovLoadFactoryData(maxPower, energyScaling, stepFunc)) =>
+        case Some(
+              MarkovLoadFactoryData(
+                maxPower,
+                energyScaling,
+                resolution,
+                stepFunc,
+              )
+            ) =>
           maxPower match {
             case Some(power) => power should approximate(Kilowatts(4d))
             case None        => fail("We expect a maximal power here!")
           }
           energyScaling shouldBe None
+          resolution shouldBe 3600L
 
           Seq(time, time.plusHours(5)).foreach { requestedTime =>
             stepFunc(requestedTime, 1, 7L) shouldBe markovStore.markovEntryFunc(
@@ -211,7 +219,7 @@ class LoadProfileStoreSpec extends UnitSpec with TestResourceHelper {
           fail("We expect factory data here!")
       }
 
-      // the factory data of the other profile type is not available
+      // no factory data of the other profile type
       markovStore.getProfileLoadFactoryData(markovKey) shouldBe None
       markovStore.getMarkovLoadFactoryData(
         BdewStandardLoadProfile.G0.getKey

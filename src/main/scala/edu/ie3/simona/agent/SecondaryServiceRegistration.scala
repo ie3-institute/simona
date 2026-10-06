@@ -8,6 +8,7 @@ package edu.ie3.simona.agent
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.ontology.messages.ServiceMessage
@@ -240,6 +241,24 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
           case _ =>
             throw new CriticalFailureException(
               s"${assetInput.identifier} cannot register for load profile service!"
+            )
+        }
+
+      case ServiceType.MarkovLoadProfileService =>
+        assetInput match {
+          case load: LoadInput =>
+            serviceRef ! SecondaryServiceRegistrationMessage(
+              registrantRef,
+              dataTimeType,
+              new PowerProfileKey(
+                load.getLoadProfile.getValue,
+                PowerProfileKey.Type.MARKOV,
+              ),
+            )
+
+          case _ =>
+            throw new CriticalFailureException(
+              s"${assetInput.identifier} cannot register for Markov load profile service!"
             )
         }
     }

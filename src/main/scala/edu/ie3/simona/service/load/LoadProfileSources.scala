@@ -64,8 +64,8 @@ object LoadProfileSources {
     *   The definition of additional sources. If no definition is given, only
     *   the build in load profiles can be used.
     * @return
-    *   A map: load profile to time series based source as well as a map: load
-    *   profile to Markov based source
+    *   Maps: load profile to time series source and load profile to Markov
+    *   source
     */
   def buildSources(
       sourceDefinition: InputConfig.LoadProfile.Datasource
@@ -267,10 +267,8 @@ object LoadProfileSources {
       }
   }
 
-  /** Method to build [[JsonMarkovProfileSource]]s. Markov models are only
-    * supported for file based sources, since they are stored as json files. The
-    * models are loaded directly, so that models that cannot be loaded are
-    * skipped instead of failing the simulation later on.
+  /** Method to build [[JsonMarkovProfileSource]]s for file based sources.
+    * Models that cannot be loaded are skipped.
     * @param definedSources
     *   Option for source parameters.
     * @param markovMetaInformation

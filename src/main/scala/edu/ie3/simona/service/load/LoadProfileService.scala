@@ -221,8 +221,7 @@ object LoadProfileService extends SimonaService {
   }
 
   /** Retrieves or creates the [[RegistrantsContainer]] for given load profile.
-    * Since Markov load profiles depend on the state of each load, they cannot
-    * provide forecasts.
+    * Forecasts are not supported for Markov load profiles.
     */
   private def getRegistrantsContainer(
       loadProfile: PowerProfileKey,
@@ -235,7 +234,7 @@ object LoadProfileService extends SimonaService {
           if loadProfile.getType == PowerProfileKey.Type.MARKOV =>
         Failure(
           InvalidRegistrationRequestException(
-            s"Cannot register an agent for forecasts of Markov load profile $loadProfile, since they are not supported!"
+            s"Forecasts are not supported for Markov load profile $loadProfile!"
           )
         )
       case (None, _) =>
