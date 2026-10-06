@@ -12,13 +12,34 @@ import edu.ie3.datamodel.models.profile.{
   LoadProfile,
   PowerProfileKey,
 }
+import edu.ie3.simona.config.ConfigParams.BaseCsvParams
+import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.util.TimeUtil
 import squants.energy.*
 
-class LoadProfileStoreSpec extends UnitSpec {
+import java.time.ZonedDateTime
+
+class LoadProfileStoreSpec extends UnitSpec with TestResourceHelper {
 
   private val store: LoadProfileStore = LoadProfileStore()
+
+  private val markovStore: LoadProfileStore = LoadProfileStore(
+    Datasource(csvParams =
+      Some(
+        BaseCsvParams(
+          ",",
+          getResourcePath("_markov").toString,
+          isHierarchic = false,
+        )
+      )
+    )
+  )
+
+  // Markov model with a sampling interval of 60 minutes
+  private val markovKey =
+    new PowerProfileKey("hourly", PowerProfileKey.Type.MARKOV)
 
   private implicit val powerTolerance: Power = Watts(1e-6)
   private implicit val energyTolerance: Energy = WattHours(1e-6)
@@ -92,6 +113,34 @@ class LoadProfileStoreSpec extends UnitSpec {
             fail("This should not happen!")
         }
       }
+    }
+
+    "contain Markov profiles of a source definition" in {
+      markovStore.profileToMarkovSource.keySet shouldBe Set(markovKey)
+      markovStore.contains(markovKey) shouldBe true
+
+      // a time series based profile with the same name is a different profile
+      markovStore.contains(new PowerProfileKey("hourly")) shouldBe false
+    }
+
+    "return the profile resolutions including Markov profiles" in {
+      val resolutions = markovStore.getProfileResolutions
+
+      resolutions(BdewStandardLoadProfile.G0.getKey) shouldBe 900L
+      resolutions(markovKey) shouldBe 3600L
+    }
+
+    "find the next activation tick of Markov profiles" in {
+      given ZonedDateTime =
+        TimeUtil.withDefaults.toZonedDateTime("2024-01-03T00:00:00Z")
+
+      val onlyMarkovStore = LoadProfileStore(
+        Map.empty,
+        markovStore.profileToMarkovSource,
+      )
+
+      onlyMarkovStore.getNextActivationTick(0L) shouldBe Some(3600L)
+      onlyMarkovStore.getNextActivationTick(3600L) shouldBe Some(7200L)
     }
   }
 }

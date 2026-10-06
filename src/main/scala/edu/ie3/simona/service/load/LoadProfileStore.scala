@@ -8,6 +8,7 @@ package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.source.LoadProfileSource
 import edu.ie3.datamodel.io.source.PowerValueSource.TimeSeriesInputValue
+import edu.ie3.datamodel.io.source.json.JsonMarkovProfileSource
 import edu.ie3.datamodel.models.profile.LoadProfile.RandomLoadProfile.RANDOM_LOAD_PROFILE
 import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.config.InputConfig.LoadProfile.Datasource
@@ -28,9 +29,13 @@ import scala.jdk.OptionConverters.RichOptional
 /** Container class that stores all loaded load profiles.
   * @param profileToSource
   *   Map: [[PowerProfileKey]] to [[LoadProfileSource]]
+  * @param profileToMarkovSource
+  *   Map: [[PowerProfileKey]] to [[JsonMarkovProfileSource]]
   */
 final case class LoadProfileStore(
-    profileToSource: Map[PowerProfileKey, LoadProfileSource[?]]
+    profileToSource: Map[PowerProfileKey, LoadProfileSource[?]],
+    profileToMarkovSource: Map[PowerProfileKey, JsonMarkovProfileSource] =
+      Map.empty,
 ) {
 
   /** Converts an option for [[ComparableQuantity]] power to an option for
@@ -65,13 +70,24 @@ final case class LoadProfileStore(
     *   True, if this store contain the profile, else false.
     */
   def contains(powerProfileKey: PowerProfileKey): Boolean =
-    profileToSource.contains(powerProfileKey)
+    profileToSource.contains(powerProfileKey) || profileToMarkovSource
+      .contains(powerProfileKey)
 
-  /** Returns a map: [[LoadProfile]] to profile resolution in seconds.
+  /** Returns a map: [[LoadProfile]] to profile resolution in seconds. The
+    * resolution of a Markov model is given by its sampling interval.
     */
-  def getProfileResolutions: Map[PowerProfileKey, Long] = profileToSource.keys
-    .map(profile => profile -> LoadProfileSource.getResolution(profile))
-    .toMap
+  def getProfileResolutions: Map[PowerProfileKey, Long] = {
+    val resolutions = profileToSource.keys
+      .map(profile => profile -> LoadProfileSource.getResolution(profile))
+      .toMap
+
+    val markovResolutions = profileToMarkovSource.map {
+      case (profile, source) =>
+        profile -> source.getModel.timeModel.samplingIntervalMinutes * 60L
+    }
+
+    resolutions ++ markovResolutions
+  }
 
   /** Method to find the next activation tick.
     * @param tick
@@ -89,8 +105,8 @@ final case class LoadProfileStore(
     } else {
       val currentTime = startTime.plusSeconds(tick)
 
-      profileToSource.view.flatMap { case (_, source) =>
-        source.getNextTimeKey(currentTime).toScala.map(_.toTick)
+      (profileToSource.values ++ profileToMarkovSource.values).view.flatMap {
+        source => source.getNextTimeKey(currentTime).toScala.map(_.toTick)
       }.minOption
     }
   }
@@ -153,9 +169,12 @@ object LoadProfileStore {
 
   def apply(
       sourceDefinition: Datasource
-  ): LoadProfileStore = new LoadProfileStore(
-    buildInProfiles ++ LoadProfileSources.buildSources(sourceDefinition)
-  )
+  ): LoadProfileStore = {
+    val (sources, markovSources) =
+      LoadProfileSources.buildSources(sourceDefinition)
+
+    new LoadProfileStore(buildInProfiles ++ sources, markovSources)
+  }
 
   def apply(): LoadProfileStore = new LoadProfileStore(buildInProfiles)
 
