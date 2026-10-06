@@ -120,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved performance of `DBFSAlgorithm` [#1860](https://github.com/ie3-institute/simona/issues/1860)
 - Adapted to changes in `powerflow` v0.5.0 [#1930](https://github.com/ie3-institute/simona/issues/1930)
 - Adapted to changes in `simonaAPI` v0.16.0 [#1924](https://github.com/ie3-institute/simona/issues/1924)
+- Adapt to changes in `PSDM` [#1947](https://github.com/ie3-institute/simona/issues/1947)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
