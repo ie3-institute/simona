@@ -12,6 +12,7 @@ import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
 import edu.ie3.simona.service.results.ExtResultProvider
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -35,7 +36,7 @@ import org.slf4j.Logger
 final case class AddonSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
     primaryDataServices: Seq[
-      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+      (ExtPrimaryDataConnection, ActorRef[ExtPrimaryServiceWorker.Message])
     ],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
@@ -45,7 +46,7 @@ final case class AddonSetupData(
 
   private[setup] def update(
       connection: ExtPrimaryDataConnection,
-      ref: ActorRef[ServiceMessage],
+      ref: ActorRef[ExtPrimaryServiceWorker.Message],
   ): AddonSetupData =
     copy(primaryDataServices = primaryDataServices ++ Seq((connection, ref)))
 
@@ -55,7 +56,7 @@ final case class AddonSetupData(
   )(using log: Logger): AddonSetupData = (connection, ref) match {
     case (
           primaryConnection: ExtPrimaryDataConnection,
-          serviceRef: ActorRef[ServiceMessage],
+          serviceRef: ActorRef[ExtPrimaryServiceWorker.Message],
         ) =>
       update(primaryConnection, serviceRef)
     case (

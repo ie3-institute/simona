@@ -17,7 +17,10 @@ import edu.ie3.simona.api.data.connection.{
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.primary.PrimaryServiceProxy
+import edu.ie3.simona.service.primary.{
+  ExtPrimaryServiceWorker,
+  PrimaryServiceProxy,
+}
 import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -87,7 +90,7 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef =
-        TestProbe[PrimaryServiceProxy.Message]("primary_service").ref
+        TestProbe[ExtPrimaryServiceWorker.Message]("primary_service").ref
 
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ExtEvDataService.Message]("ev_service").ref
