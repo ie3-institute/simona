@@ -21,7 +21,7 @@ ext {
 
   scalaVersion = '3'
   scalaBinaryVersion = '3.9.0'
-  pekkoVersion = '1.7.0'
+  pekkoVersion = '1.7.1'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
   scapegoatVersion = '3.4.0'
@@ -105,7 +105,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.6.4"
+  implementation "ch.qos.logback:logback-classic:1.6.5"
 
   /* testing */
   // scalatest & junit
