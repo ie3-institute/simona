@@ -168,6 +168,50 @@ class ResultEntityCsvSinkSpec extends UnitSpec with IOTestCommons {
 
     }
 
+    "write header and result using the configured delimiter" in {
+
+      createDir(testTmpDir)
+      val outFileName = testTmpDir + File.separator + "test.tmp"
+      val resultEntityProcessor = new ResultEntityProcessor(classOf[PvResult])
+
+      val dummyPvResult = new PvResult(
+        TimeUtil.withDefaults.toZonedDateTime("2020-01-30T17:26:44Z"),
+        UUID.fromString("e5ac84d3-c7a5-4870-a42d-837920aec9bb"),
+        Quantities.getQuantity(10, StandardUnits.ACTIVE_POWER_IN),
+        Quantities.getQuantity(10, StandardUnits.REACTIVE_POWER_IN),
+      )
+
+      val resultEntitySink =
+        ResultEntityCsvSink(
+          outFileName,
+          resultEntityProcessor,
+          outFileName.endsWith(".gz"),
+          delimiter = ";",
+        )
+
+      resultEntitySink.handleResultEntity(dummyPvResult)
+
+      // close sink to ensure that everything is written out
+      resultEntitySink.close()
+
+      val resultFileSource = Source.fromFile(new File(outFileName))
+
+      val resultFileLines = resultFileSource.getLines().toVector
+      resultFileLines.size shouldBe 2
+      resultFileLines.headOption.getOrElse(
+        fail("Cannot get header line that should have been written out by sink!")
+      ) shouldBe "input_model;p;q;time"
+      resultFileLines.lastOption.getOrElse(
+        fail("Cannot get line that should have been written out by sink!")
+      ) shouldBe "e5ac84d3-c7a5-4870-a42d-837920aec9bb;0.01;0.01;2020-01-30T17:26:44Z"
+
+      resultFileSource.close()
+
+      // cleanup
+      FileIOUtils.deleteRecursively(testTmpDir)
+
+    }
+
     "should return a failed future if an invalid ResultEntity is provided" in {
 
       createDir(testTmpDir)
