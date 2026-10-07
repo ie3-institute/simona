@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import breeze.linalg.DenseVector
-import breeze.math.Complex
+import edu.ie3.powerflow.math.DenseVector
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.powerflow.model.FailureCause.CalculationFailed
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult
@@ -619,7 +619,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
               )
 
             val receivedSlackVoltages =
-              updatedGridAgentBaseData.receivedValueStore.nodeToReceivedSlackVoltage.values.flatten.toSeq
+              updatedGridAgentBaseData.receivedValueStore.slackVoltages
 
             val (operatingPoint, slackNodeVoltages) =
               composeOperatingPointWithUpdatedSlackVoltages(
@@ -819,7 +819,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             val allowedDeviation =
               gridAgentBaseData.powerFlowParams.maxSweepPowerDeviation
 
-            (previousSweepNodePower - currentSweepNodePower).toScalaVector
+            (previousSweepNodePower - currentSweepNodePower).toArray
               .find(complex => {
                 Math.abs(complex.real) >= allowedDeviation |
                   Math.abs(complex.imag) >= allowedDeviation
@@ -839,7 +839,7 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
                 ctx.log.debug(
                   "Final deviation: {}",
-                  (previousSweepNodePower - currentSweepNodePower).toScalaVector,
+                  (previousSweepNodePower - currentSweepNodePower).toArray,
                 )
 
                 // go back to SimulateGrid and trigger a finish
@@ -1097,14 +1097,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
     // handler for the messages provided by `askForAssetPowers` to check if there are any changes in generation/load
     // of assets based on updated nodal voltages
     case (ctx, powerResponse: PowerResponse) =>
-      // only replace power responses from the grid, since asset responses have been cleared out
-      val replace = powerResponse match {
-        case _: (GridPowerResponse | FailedPowerFlow) => true
-        case _                                        => false
-      }
-
-      val updatedGridAgentBaseData = powerFlowDoneData.gridAgentBaseData
-        .updateWithPowerResponse(powerResponse, replace)(using ctx.log)
+      val updatedGridAgentBaseData =
+        powerFlowDoneData.gridAgentBaseData.updateWithPowerResponse(
+          powerResponse
+        )
 
       val updatedPowerFlowDoneData =
         powerFlowDoneData.copy(gridAgentBaseData = updatedGridAgentBaseData)

@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import breeze.linalg.DenseMatrix
-import breeze.math.Complex
 import edu.ie3.powerflow.NewtonRaphsonPF
+import edu.ie3.powerflow.libraries.UMFPACK
+import edu.ie3.powerflow.math.{Complex, DenseMatrix, SparseSolver}
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.PowerFlowResult
 import edu.ie3.powerflow.model.PowerFlowResult.SuccessFullPowerFlowResult.ValidNewtonRaphsonPFResult
@@ -18,7 +18,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.ProvidedPowerResponse
 import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.ExchangeVoltage
 import edu.ie3.simona.exceptions.agent.DBFSAlgorithmException
 import edu.ie3.simona.model.grid.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.slf4j.Logger
 import squants.electro.ElectricPotential
 
@@ -30,6 +29,8 @@ import scala.util.{Failure, Success, Try}
   * [[edu.ie3.powerflow]]
   */
 trait PowerFlowSupport {
+
+  private val sparseSolver: Option[SparseSolver] = UMFPACK.get
 
   /** Composes the current operation point needed by
     * [[edu.ie3.powerflow.NewtonRaphsonPF.calculate()]]
@@ -70,6 +71,8 @@ trait PowerFlowSupport {
       targetVoltageFromReceivedData: Boolean = true,
       ignoreTargetVoltage: Boolean = false,
   ): (Array[PresetData], WithForcedStartVoltages) = {
+    val nodeToReceivedPower = receivedValuesStore.nodeToReceivedPower
+
     val (operatingPoints, stateData) = nodes.map { nodeModel =>
       // note: currently we only support pq nodes as we not distinguish between pq/pv nodes -
       // when slack emulators or pv-node assets are added this needs to be considered here
@@ -84,39 +87,26 @@ trait PowerFlowSupport {
       )
 
       val apparentPower: Complex =
-        receivedValuesStore.nodeToReceivedPower
-          .get(nodeModel.uuid) match {
-          case Some(actorRefsWithPower) =>
-            val (p, q) = actorRefsWithPower
-              .map { case (_, powerMsg) => powerMsg }
+        nodeToReceivedPower.get(nodeModel.uuid) match {
+          case Some(powerResponses) =>
+            val (active, reactive) = powerResponses
               .collect {
-                case Some(providePowerMessage: ProvidedPowerResponse) =>
+                case providePowerMessage: ProvidedPowerResponse =>
                   providePowerMessage
-                case Some(message) =>
+                case message =>
                   throw new RuntimeException(
                     s"Received message $message which cannot processed here!"
                   )
-                case None =>
-                  throw new RuntimeException(
-                    s"Did not receive all power values I expected @ node ${nodeModel.id}. This is a fatal and should never happen!"
-                  )
               }
-              .foldLeft(
+              .map { response =>
                 (
-                  zeroKW,
-                  zeroKVAr,
-                )
-              ) { case ((pSum, qSum), powerMessage) =>
-                (
-                  pSum + powerMessage.p,
-                  qSum + powerMessage.q,
+                  gridMainRefSystem.pInPu(response.p).value,
+                  gridMainRefSystem.qInPu(response.q).value,
                 )
               }
+              .unzip
 
-            new Complex(
-              gridMainRefSystem.pInPu(p).value.doubleValue,
-              gridMainRefSystem.qInPu(q).value.doubleValue,
-            )
+            new Complex(active.sum, reactive.sum)
           case None => new Complex(0, 0)
         }
 
@@ -125,9 +115,8 @@ trait PowerFlowSupport {
           /* If the preset voltage is meant to be determined by means of received data and the node is a slack node
            * (only then there is received data), look it up and transform it */
           val receivedSlackVoltage =
-            receivedValuesStore.nodeToReceivedSlackVoltage
-              .get(nodeModel.uuid)
-              .flatten
+            receivedValuesStore
+              .getSlackVoltage(nodeModel.uuid)
               .getOrElse(
                 throw new RuntimeException(
                   s"No slack voltage received for node ${nodeModel.id} [${nodeModel.uuid}]!"
@@ -553,7 +542,12 @@ trait PowerFlowSupport {
 
         // / execute
         val powerFlow =
-          NewtonRaphsonPF(epsilon, maxIterations, admittanceMatrix)
+          NewtonRaphsonPF(
+            epsilon,
+            maxIterations,
+            admittanceMatrix,
+            sparseSolver,
+          )
 
         Try {
           powerFlow.calculate(
@@ -650,7 +644,7 @@ trait PowerFlowSupport {
     gridModel.gridComponents.transformers3w.isEmpty match {
       case true if gridModel.gridComponents.nodes.size == 1 =>
         val nodeData = operationPoint.map(StateData(_))
-        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix(0d, 0d))
+        ValidNewtonRaphsonPFResult(-1, nodeData, DenseMatrix.empty(0, 0))
 
       case true =>
         log.warn(
