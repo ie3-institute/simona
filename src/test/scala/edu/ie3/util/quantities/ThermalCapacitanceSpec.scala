@@ -16,7 +16,7 @@ import squants.energy.KilowattHours
 import squants.space.CubicMeters
 import squants.thermal.{Celsius, Kelvin}
 
-class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
+class ThermalCapacitanceSpec extends AnyFlatSpec with Matchers {
 
   behavior of "ThermalCapacitance and its Units of Measure"
 

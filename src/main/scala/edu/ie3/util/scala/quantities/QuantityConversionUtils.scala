@@ -189,7 +189,8 @@ object QuantityConversionUtils {
     * allows conversion into a [[squants.electro.ElectricalConductance]] squants
     * quantity.
     */
-  extension (quantity: ComparableQuantity[SpecificResistance])
+  extension (quantity: ComparableQuantity[SpecificResistance]) {
+
     /** @param length
       *   Used to convert [[OHM_PER_KILOMETRE]] into [[OHM]].
       * @return
@@ -204,6 +205,7 @@ object QuantityConversionUtils {
         .getValue
         .doubleValue
     )
+  }
 
   /** Extension for [[ComparableQuantity]] of type [[ElectricConductance]] that
     * allows conversion into a [[squants.electro.ElectricalConductance]] squants
