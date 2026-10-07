@@ -65,7 +65,6 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
   private given ActorRef[ControlResponseMessageFromExt] = adapter.ref
   private val resultProxy = TestProbe[ResultServiceProxy.Message]("resultProxy")
   private given ActorRef[ResultServiceProxy.Message] = resultProxy.ref
-  private given ZonedDateTime = ZonedDateTime.now()
 
   "An AddonSetup" should {
     val uuid1 = UUID.fromString("726c40e1-b1cd-4f16-a5b6-3972e852f60b")

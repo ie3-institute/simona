@@ -6,17 +6,13 @@
 
 package edu.ie3.simona.sim.setup
 
-import com.typesafe.config.Config
-import edu.ie3.datamodel.models.input.container.JointGridContainer
-import edu.ie3.simona.api.data.SetupData
+import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.connection.*
-import edu.ie3.simona.api.loading.{AddonLoader, JarLoader, ProvidedData}
+import edu.ie3.simona.api.loading.ProvidedData
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.api.simulation.ExtSimulation
-import edu.ie3.simona.api.{ExtLinkInterface, ExtSimAdapter}
-import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.listener.ResultListener
-import edu.ie3.simona.exceptions.ServiceException
+import edu.ie3.simona.exceptions.{InitializationException, ServiceException}
 import edu.ie3.simona.ontology.messages.SchedulerMessage
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.em.ExtEmDataService
@@ -32,11 +28,8 @@ import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.{Logger, LoggerFactory}
 
-import java.nio.file.Path
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.{ListHasAsScala, SetHasAsScala}
-import scala.util.{Failure, Success, Try}
 
 object AddonSetup {
 
@@ -53,8 +46,6 @@ object AddonSetup {
     *   The scheduler of simona.
     * @param resultProxy
     *   The result service proxy.
-    * @param startTime
-    *   The start time of the simulation.
     * @return
     *   An [[AddonSetupData]] that holds information regarding the external data
     *   connections as well as the actor references of the created services.
@@ -65,7 +56,6 @@ object AddonSetup {
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[ResultServiceProxy.Message],
-      startTime: ZonedDateTime,
   ): AddonSetupData = {
     var index = 0
 
@@ -76,7 +66,7 @@ object AddonSetup {
           given extSimAdapter: ActorRef[ExtSimAdapter.Request] =
             context.spawn(
               ExtSimAdapter(scheduler),
-              s"ExtSimAdapter-$index",
+              s"ExtSimAdapter_$index",
             )
 
           index += 1
@@ -145,7 +135,6 @@ object AddonSetup {
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ActorRef[ControlResponseMessageFromExt],
       resultProxy: ActorRef[ResultServiceProxy.Message],
-      startTime: ZonedDateTime,
   ): AddonSetupData = {
     // the data connections this external simulation provides
     val connections = extSimulation.getDataConnections.asScala
@@ -173,7 +162,6 @@ object AddonSetup {
       scheduler: ActorRef[SchedulerMessage],
       extSimAdapter: ActorRef[ControlResponseMessageFromExt],
       resultProxy: ActorRef[ResultServiceProxy.Message],
-      startTime: ZonedDateTime,
   ): AddonSetupData = dataConnection match {
     case extPrimaryDataConnection: ExtPrimaryDataConnection =>
       val serviceRef = context.spawn(
@@ -208,7 +196,7 @@ object AddonSetup {
         val serviceRef = context.spawn(
           ExtEmDataService(
             scheduler,
-            InitExtEmData(scheduler, extEmDataConnection, startTime),
+            InitExtEmData(scheduler, extEmDataConnection),
             ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
           ),
           "ExtEmDataService",
@@ -274,10 +262,9 @@ object AddonSetup {
       extSimSetupData.update(extResultListener, extResultEventListener)
 
     case otherConnection =>
-      log.warn(
+      throw new InitializationException(
         s"There is currently no implementation for the connection: $otherConnection."
       )
-      extSimSetupData
   }
 
   /** Method for validating the external primary data connections.

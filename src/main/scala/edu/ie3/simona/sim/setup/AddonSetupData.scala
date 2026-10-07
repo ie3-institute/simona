@@ -9,7 +9,6 @@ package edu.ie3.simona.sim.setup
 import edu.ie3.simona.api.ExtSimAdapter
 import edu.ie3.simona.api.data.connection.*
 import edu.ie3.simona.event.listener.ResultListener
-import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
@@ -105,17 +104,6 @@ object AddonSetupData {
     */
   def apply: AddonSetupData = AddonSetupData(
     Iterable.empty,
-    Seq.empty,
-    None,
-    None,
-    Seq.empty,
-    Seq.empty,
-  )
-
-  def withAdapters(
-      adapters: Iterable[ActorRef[ExtSimAdapter.Request]]
-  ): AddonSetupData = AddonSetupData(
-    adapters,
     Seq.empty,
     None,
     None,
