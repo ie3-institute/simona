@@ -21,11 +21,7 @@ import java.util.UUID
   * segment for the weather registration.
   *
   * The calculation point of a segment is the centroid (geometric midpoint) of
-  * the straight segment. If the segment starts or ends at the boundary of a
-  * soil layer (a layer change at the segment edge), the boundary point is used
-  * instead, since the thermal discontinuity is located there. Later special
-  * points (e.g. for crossings or parallel runnings) can be hooked in here
-  * without changing the callers.
+  * the straight segment.
   */
 object SegmentCalculationPoints {
 
@@ -72,22 +68,31 @@ object SegmentCalculationPoints {
       new JtsCoordinate((start._1 + end._1) / 2.0, (start._2 + end._2) / 2.0)
     )
 
-    val calculationPoint: Point =
-      if isAtSoilLayerBoundary(startPoint, soilLayerBoundaries) then startPoint
-      else if isAtSoilLayerBoundary(endPoint, soilLayerBoundaries) then endPoint
-      else centroid
+    val calculationPoint: Point = centroid
 
     Coordinate(calculationPoint.getY, calculationPoint.getX)
   }
 
-  /** Checks whether the given point lies on the boundary of any of the given
-    * soil layers.
+  /** Checks whether the given point lies at or near the boundary of any of
+    * the given soil layers.
+    *
+    * @param point
+    *   The point to check.
+    * @param soilLayerBoundaries
+    *   The boundaries of all soil layers (outer rings of their polygons).
+    * @param tolerance
+    *   The maximum distance from a boundary at which the point is still
+    *     considered to be at the boundary.
+    * @return
+    *   `true` if the point is at or within the given tolerance distance of a
+    *     soil layer boundary, `false` otherwise.
     */
   private def isAtSoilLayerBoundary(
       point: Point,
       soilLayerBoundaries: Seq[Geometry],
+      tolerance: Double,
   ): Boolean =
     soilLayerBoundaries.exists(boundary =>
-      boundary.distance(point) <= equalityTolerance
+      boundary.distance(point) <= tolerance
     )
 }

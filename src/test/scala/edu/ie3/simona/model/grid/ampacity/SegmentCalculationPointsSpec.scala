@@ -76,10 +76,11 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
       )
 
       coordinate.latitude shouldBe 0.0
-      coordinate.longitude shouldBe 1.0
+      // Midpoint policy: expect geometric midpoint even if an endpoint lies on a boundary
+      coordinate.longitude shouldBe 0.5
     }
 
-    "return the boundary point if the segment start lies at a soil layer boundary" in {
+    "return the geometric midpoint when the segment start lies at a soil layer boundary" in {
       // The layer starts at x = 0.0, where the segment starts.
       val layer = rectangle(0.0, -0.1, 0.5, 0.1)
 
@@ -91,12 +92,13 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
       )
 
       coordinate.latitude shouldBe 0.0
-      coordinate.longitude shouldBe 0.0
+      // Midpoint policy: expect geometric midpoint even if an endpoint lies on a boundary
+      coordinate.longitude shouldBe 0.5
     }
 
-    "return the start boundary point if both segment ends lie at soil layer boundaries" in {
+    "return the midpoint if both segment ends lie at soil layer boundaries" in {
       // The layer spans exactly the segment [0, 1]; both ends lie on its
-      // boundary. The start (the side the segment grows from) wins.
+      // boundary. Under the midpoint policy the centre is selected.
       val layer = rectangle(0.0, -0.1, 1.0, 0.1)
 
       val coordinate = SegmentCalculationPoints.coordinateFor(
@@ -107,7 +109,7 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
       )
 
       coordinate.latitude shouldBe 0.0
-      coordinate.longitude shouldBe 0.0
+      coordinate.longitude shouldBe 0.5
     }
 
     "work with diagonal segments" in {
