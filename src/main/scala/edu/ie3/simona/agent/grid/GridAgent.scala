@@ -439,5 +439,4 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     log.debug(s"Received unsupported msg: $msg. Stash away!")
     buffer.stash(msg)
   }
-
 }

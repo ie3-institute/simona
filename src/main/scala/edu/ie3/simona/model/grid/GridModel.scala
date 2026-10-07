@@ -545,7 +545,7 @@ object GridModel {
           Map.empty[UUID, Coordinate],
         )
 
-// / transformers
+    // transformers2w
     val transformers: Set[TransformerModel] =
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
@@ -564,7 +564,7 @@ object GridModel {
           }
       }.toSet
 
-// / transformers3w
+    // transformers3w
     val transformer3ws: Set[Transformer3wModel] =
       subGridContainer.getRawGrid.getTransformer3Ws.asScala.map {
         transformer3wInput =>
@@ -593,14 +593,14 @@ object GridModel {
     val relevantNodes =
       nodes.filterNot(node => nodesToNeglect.contains(node.uuid))
 
-// / switches
+    // switches
     val switches: Set[SwitchModel] =
       subGridContainer.getRawGrid.getSwitches.asScala.map { switchInput =>
         getConnectedNodes(switchInput, nodes)
         SwitchModel(switchInput, startDate, endDate)
       }.toSet
 
-// build
+    // build
     val gridComponents =
       GridComponents(
         relevantNodes,
@@ -637,12 +637,12 @@ object GridModel {
       * transformerControlGroups
       */
 
-// validate
+    // validate
     validateConsistency(gridModel)
     validateConnectivity(gridModel)
     validateControlGroups(subGridContainer, simonaConfig.control)
 
-// return
+    // return
     gridModel
   }
 
@@ -659,8 +659,8 @@ object GridModel {
     val switches = gridModel.gridComponents.switches
     val nodes = gridModel.gridComponents.nodes.distinct
 
-// map for each node that is directly connected to a switch,
-// to all nodes that are directly connected via switch
+    // map for each node that is directly connected to a switch,
+    // to all nodes that are directly connected via switch
     val nodeConnections: Map[UUID, Set[UUID]] =
       switches.filter(_.isClosed).foldLeft(Map.empty[UUID, Set[UUID]]) {
         (acc, switch) =>
@@ -675,13 +675,13 @@ object GridModel {
             )
       }
 
-// create sets of nodes to be fused together and assign common indices
+    // create sets of nodes to be fused together and assign common indices
     val switchConnectedNodes =
       findConnectedNodes(nodeConnections).zipWithIndex.flatMap {
         case (nodes, idx) => nodes.map(_ -> idx)
       }.toMap
 
-// also account for all missing nodes (not connected to a switch)
+    // also account for all missing nodes (not connected to a switch)
     val offset = switchConnectedNodes.values.maxOption.map(_ + 1).getOrElse(0)
     val (updatedNodeToUuidMap, _) = nodes
       .filter(_.isInOperation)

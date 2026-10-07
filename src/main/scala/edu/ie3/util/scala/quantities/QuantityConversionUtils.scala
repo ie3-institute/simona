@@ -192,7 +192,7 @@ object QuantityConversionUtils {
     * allows conversion into a [[squants.electro.ElectricalConductance]] squants
     * quantity.
     */
-  extension (q: ComparableQuantity[SpecificResistance])
+  extension (quantity: ComparableQuantity[SpecificResistance]) {
 
     /** @param length
       *   Used to convert [[OHM_PER_KILOMETRE]] into [[OHM]].
@@ -201,19 +201,20 @@ object QuantityConversionUtils {
       */
     def toResistance(implicit
         length: ComparableQuantity[Length]
-    ): squants.electro.ElectricalResistance =
-      Ohms(
-        q.to(OHM_PER_KILOMETRE)
-          .multiply(length.to(KILOMETRE))
-          .getValue
-          .doubleValue
-      )
+    ): squants.electro.ElectricalResistance = Ohms(
+      quantity
+        .to(OHM_PER_KILOMETRE)
+        .multiply(length.to(KILOMETRE))
+        .getValue
+        .doubleValue
+    )
 
     /** @return
       *   a quantity with unit [[Ohms]].
       */
     def toResistancePerLength: ElectricalResistancePerLength =
-      OhmsPerKilometer(q.to(OHM_PER_KILOMETRE).getValue.doubleValue)
+      OhmsPerKilometer(quantity.to(OHM_PER_KILOMETRE).getValue.doubleValue)
+  }
 
   /** Extension for [[ComparableQuantity]] of type [[ElectricConductance]] that
     * allows conversion into a [[squants.electro.ElectricalConductance]] squants

@@ -82,10 +82,10 @@ object SegmentCalculationPoints {
     *   The boundaries of all soil layers (outer rings of their polygons).
     * @param tolerance
     *   The maximum distance from a boundary at which the point is still
-    *     considered to be at the boundary.
+    *   considered to be at the boundary.
     * @return
     *   `true` if the point is at or within the given tolerance distance of a
-    *     soil layer boundary, `false` otherwise.
+    *   soil layer boundary, `false` otherwise.
     */
   private def isAtSoilLayerBoundary(
       point: Point,

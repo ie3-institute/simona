@@ -17,8 +17,11 @@ import java.util.UUID
   * @param id
   *   the element's human-readable id
   * @param thermalResistivityWet
+  *   The thermal resistivity of the soil in the wet state.
   * @param thermalResistivityDry
+  *   The thermal resistivity of the soil in the dry state.
   * @param specificHeatCapacity
+  *   The volumetric specific heat capacity of the soil in J/(m³·K).
   * @param criticalTemperatureDifference
   *   The over-temperature at the cable surface above the undisturbed soil
   *   temperature at which the soil transitions from the wet to the dry state.

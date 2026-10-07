@@ -418,5 +418,4 @@ class SimonaSetup(
       simonaConfig,
     )
   }
-
 }
