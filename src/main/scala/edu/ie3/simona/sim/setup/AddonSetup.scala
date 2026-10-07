@@ -40,6 +40,10 @@ object AddonSetup {
     * @param providedData
     *   The provided data containing external simulations and external result
     *   listeners.
+    * @param addonSetupData
+    *   The addon setup data.
+    * @param jarName
+    *   The name of the jar that provided the data.
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
@@ -57,19 +61,18 @@ object AddonSetup {
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[ResultServiceProxy.Message],
   ): AddonSetupData = {
-    var index = 0
 
-    val simSetupData =
+    val addonSetupData =
       providedData.extSimulations.asScala.foldLeft(AddonSetupData.apply) {
-        case (extSimSetupData, extSimulation) =>
+        case (data, extSimulation) =>
+          val extSimName = extSimulation.getSimulationName
+
           // external simulation always needs at least an ExtSimAdapter
           given extSimAdapter: ActorRef[ExtSimAdapter.Request] =
             context.spawn(
               ExtSimAdapter(scheduler),
-              s"ExtSimAdapter_$index",
+              s"ExtSimAdapter_$extSimName",
             )
-
-          index += 1
 
           // creating the data connection
           val extSimDataConnection = new ExtSimDataConnection(extSimAdapter)
@@ -84,28 +87,31 @@ object AddonSetup {
           )
 
           // setup data services that belong to this external simulation
-          val updatedSetupData = connect(extSimulation, extSimSetupData, index)
+          val updatedSetupData = connect(extSimulation, data, extSimName)
 
           // starting external simulation
-          new Thread(extSimulation, s"External simulation $index")
+          new Thread(extSimulation, s"External simulation $extSimName")
             .start()
 
           // updating the data with newly connected external simulation
           updatedSetupData.updateAdapter(extSimAdapter)
       }
 
-    providedData.extListeners.asScala.foldLeft(simSetupData) {
-      case (extSimSetupData, extListener) =>
+    var index = 0
+
+    providedData.extListeners.asScala.foldLeft(addonSetupData) {
+      case (data, extListener) =>
         val extResultEventListener = context.spawn(
           ResultListener.external(extListener),
-          s"ExtResultListener_$index",
+          s"ExtResultListener_${extListener.getClass}_$index",
         )
+
         index += 1
 
         // add the external listener to the proxy
         resultProxy ! AddListener(extResultEventListener)
 
-        extSimSetupData.update(extListener, extResultEventListener)
+        data.update(extListener, extResultEventListener)
     }
   }
 
@@ -115,8 +121,8 @@ object AddonSetup {
     *   To connect.
     * @param extSimSetupData
     *   That contains information about all external simulations.
-    * @param index
-    *   Index of the external link interface.
+    * @param extSimName
+    *   Name of the external simulation that provided the connection.
     * @param context
     *   The actor context of this actor system.
     * @param scheduler
@@ -129,7 +135,7 @@ object AddonSetup {
   private[setup] def connect(
       extSimulation: ExtSimulation,
       extSimSetupData: AddonSetupData,
-      index: Int,
+      extSimName: String,
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
@@ -144,7 +150,7 @@ object AddonSetup {
     )
 
     val updatedSetupData = connections.foldLeft(extSimSetupData) {
-      case (setupData, connection) => connect(connection, setupData, index)
+      case (setupData, connection) => connect(connection, setupData, extSimName)
     }
 
     // validate data
@@ -156,7 +162,7 @@ object AddonSetup {
   private[setup] def connect(
       dataConnection: ExtDataConnection,
       extSimSetupData: AddonSetupData,
-      index: Int,
+      extSimName: String,
   )(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
@@ -170,7 +176,7 @@ object AddonSetup {
           InitExtPrimaryData(extPrimaryDataConnection),
           ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
         ),
-        "ExtPrimaryDataService_$index",
+        "ExtPrimaryDataService_$extSimName",
       )
 
       extPrimaryDataConnection.setActorRefs(
@@ -253,7 +259,7 @@ object AddonSetup {
     case extResultListener: ExtResultListener =>
       val extResultEventListener = context.spawn(
         ResultListener.external(extResultListener),
-        s"ExtResultListener_$index",
+        s"ExtResultListener_$extSimName",
       )
 
       // add the external listener to the proxy

@@ -39,7 +39,6 @@ import org.mockito.ArgumentMatchers.{any, anyString}
 import org.mockito.Mockito.doAnswer
 import org.scalatestplus.mockito.MockitoSugar.mock
 
-import java.time.ZonedDateTime
 import java.util
 import java.util.{OptionalLong, UUID}
 import scala.jdk.CollectionConverters.MapHasAsJava
@@ -83,7 +82,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val extDataConnection =
         new ExtPrimaryDataConnection(toMap(Set(uuid1, uuid2, uuid3)))
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 1
       updatedData.primaryDataServices(0)._1 shouldBe extDataConnection
@@ -108,7 +107,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val extDataConnection = new ExtEmDataConnection(controlled, EmMode.BASE)
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 0
       updatedData.emDataService.isDefined shouldBe false
@@ -120,7 +119,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val extDataConnection = new ExtEmDataConnection(controlled, EmMode.BASE)
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 0
       updatedData.emDataService.isDefined shouldBe true
@@ -140,7 +139,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val extDataConnection = new ExtEmDataConnection(controlled, EmMode.BASE)
 
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 0
       updatedData.emDataService.isDefined shouldBe true
@@ -149,14 +148,14 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
         new ExtEmDataConnection(new util.ArrayList[UUID](), EmMode.BASE)
 
       intercept[ServiceException](
-        AddonSetup.connect(secondExtDataConnection, updatedData, 1)
+        AddonSetup.connect(secondExtDataConnection, updatedData, "test2")
       ).getMessage shouldBe s"Trying to connect another EmDataConnection. Currently only one is allowed."
     }
 
     "connect an external ev data connection correctly" in {
       val extDataConnection = new ExtEvDataConnection()
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 0
       updatedData.evDataService.isDefined shouldBe true
@@ -173,7 +172,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val extDataConnection = new ExtEvDataConnection()
 
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 0
       updatedData.evDataService.isDefined shouldBe true
@@ -181,7 +180,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val secondExtDataConnection = new ExtEvDataConnection()
 
       intercept[ServiceException](
-        AddonSetup.connect(secondExtDataConnection, updatedData, 1)
+        AddonSetup.connect(secondExtDataConnection, updatedData, "test2")
       ).getMessage shouldBe s"Trying to connect another EvDataConnection. Currently only one is allowed."
     }
 
@@ -189,7 +188,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       val extDataConnection =
         new ExtResultDataConnection(new util.ArrayList[UUID]())
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 0
       updatedData.resultProviders.size shouldBe 1
@@ -215,7 +214,7 @@ class AddonSetupSpec extends ScalaTestWithActorTestKit with UnitSpec {
       }
 
       val updatedData =
-        AddonSetup.connect(extDataConnection, AddonSetupData.apply, 0)
+        AddonSetup.connect(extDataConnection, AddonSetupData.apply, "test")
 
       updatedData.primaryDataServices.size shouldBe 0
       updatedData.resultProviders.size shouldBe 0
