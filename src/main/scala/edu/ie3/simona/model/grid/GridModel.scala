@@ -10,6 +10,13 @@ import edu.ie3.powerflow.math.DenseMatrix
 import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
+import edu.ie3.datamodel.models.input.connector.`type`.{
+  CableTypeInput,
+  LineTypeInput,
+  ConductorInput as JConductorInput,
+  LayerInput as JLayerInput,
+  ScreenLayerInput as JScreenLayerInput,
+}
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -22,14 +29,19 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
+import edu.ie3.simona.model.grid.ampacity.*
 import edu.ie3.simona.util.CollectionUtils
+import edu.ie3.simona.util.Coordinate
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
+import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
+import scala.jdk.OptionConverters.*
+import scala.util.{Failure, Success, Try}
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
@@ -87,6 +99,7 @@ object GridModel {
   final case class GridComponents(
       nodes: Seq[NodeModel],
       lines: Set[LineModel],
+      thermalLineSegments: Set[LineSegmentThermalModel],
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel],
@@ -505,14 +518,32 @@ object GridModel {
       nodeInput => NodeModel(nodeInput, startDate, endDate)
     }
 
-    // / lines
+    // lines
     val lines: Set[LineModel] =
       subGridContainer.getRawGrid.getLines.asScala.map { lineInput =>
         getConnectedNodes(lineInput, nodes)
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
-    // / transformers
+    // Build thermal line segments and soil layers when ampacity calculation
+    // is activated; otherwise no soil layers and no thermal line segments.
+    val (soilLayers, thermalLineSegments, segmentCoordinates) =
+      if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
+        val buildResult =
+          ThermalSegmentBuilder.build(subGridContainer, simonaConfig)
+        (
+          buildResult.soilLayers,
+          buildResult.thermalLineSegments,
+          buildResult.segmentCoordinates,
+        )
+      else
+        (
+          Seq.empty[SoilLayer],
+          Set.empty[LineSegmentThermalModel],
+          Map.empty[UUID, Coordinate],
+        )
+
+    // transformers2w
     val transformers: Set[TransformerModel] =
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
@@ -531,7 +562,7 @@ object GridModel {
           }
       }.toSet
 
-    // / transformers3w
+    // transformers3w
     val transformer3ws: Set[Transformer3wModel] =
       subGridContainer.getRawGrid.getTransformer3Ws.asScala.map {
         transformer3wInput =>
@@ -560,7 +591,7 @@ object GridModel {
     val relevantNodes =
       nodes.filterNot(node => nodesToNeglect.contains(node.uuid))
 
-    // / switches
+    // switches
     val switches: Set[SwitchModel] =
       subGridContainer.getRawGrid.getSwitches.asScala.map { switchInput =>
         getConnectedNodes(switchInput, nodes)
@@ -572,6 +603,7 @@ object GridModel {
       GridComponents(
         relevantNodes,
         lines,
+        thermalLineSegments,
         transformers,
         transformer3ws,
         switches,

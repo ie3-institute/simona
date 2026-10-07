@@ -15,18 +15,18 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.participant.hp.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
+import edu.ie3.simona.model.thermal.ThermalHouse.*
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
 }
-import edu.ie3.simona.model.thermal.ThermalHouse.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.util.scala.quantities.SquantsUtils.toWattSecondsPerKelvin
 import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerKelvinCubicMeters,
+  KilowattHoursPerCubicMeterKelvin,
   ThermalConductance,
   WattsPerKelvin,
 }
@@ -226,7 +226,7 @@ final case class ThermalHouse(
         s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
       )
 
-    val specificHeatDemandWater = KilowattHoursPerKelvinCubicMeters(
+    val specificHeatDemandWater = KilowattHoursPerCubicMeterKelvin(
       Joules(4184e3).toKilowattHours
     )
 

@@ -6,8 +6,9 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.util.scala.quantities.SpecificHeatCapacity
+import edu.ie3.util.scala.quantities.ThermalCapacitance
 import edu.ie3.util.scala.quantities.SquantsUtils.calcVolume
+import edu.ie3.util.scala.quantities.ThermalCapacitance
 import squants.space.Volume
 import squants.{Energy, Temperature}
 
@@ -18,7 +19,7 @@ trait ThermalStorageCalculations {
     * @param volume
     *   needed/available volume
     * @param c
-    *   Specific heat capacity
+    *   Thermal capacitance (volumetric heat capacity)
     * @param inletTemp
     *   Inlet temperature
     * @param returnTemp
@@ -28,7 +29,7 @@ trait ThermalStorageCalculations {
     */
   def volumeToEnergy(
       volume: Volume,
-      c: SpecificHeatCapacity,
+      c: ThermalCapacitance,
       inletTemp: Temperature,
       returnTemp: Temperature,
   ): Energy = {
@@ -40,7 +41,7 @@ trait ThermalStorageCalculations {
     * @param energy
     *   available energy
     * @param c
-    *   Specific heat capacity
+    *   Thermal capacitance (volumetric heat capacity)
     * @param inletTemp
     *   Inlet temperature
     * @param returnTemp
@@ -50,7 +51,7 @@ trait ThermalStorageCalculations {
     */
   def energyToVolume(
       energy: Energy,
-      c: SpecificHeatCapacity,
+      c: ThermalCapacitance,
       inletTemp: Temperature,
       returnTemp: Temperature,
   ): Volume = {

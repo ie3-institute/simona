@@ -4,7 +4,7 @@ plugins {
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
   id 'com.diffplug.spotless' version '8.10.3' // code format
-  id "com.github.ben-manes.versions" version '0.64.0'
+  id "io.github.ben-manes.versions" version '0.64.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.6.1' // fat jar
@@ -134,6 +134,9 @@ dependencies {
   /* CORE Pekko */
   implementation "org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
+  implementation "org.apache.pekko:pekko-protobuf-v3_${scalaVersion}:${pekkoVersion}"
+  implementation "org.apache.pekko:pekko-serialization-jackson_${scalaVersion}:${pekkoVersion}"
+  implementation "org.apache.pekko:pekko-stream_${scalaVersion}:${pekkoVersion}"
 
   /* config */
   implementation 'com.typesafe:config:1.4.9'
@@ -159,6 +162,7 @@ dependencies {
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.4' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
+  implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'org.jgrapht:jgrapht-core:1.5.3'
 
   // needed, because scala won't compile otherwise
@@ -167,6 +171,9 @@ dependencies {
   // optimization
   implementation "com.github.vagmcs:optimus_${scalaVersion}:3.4.5"
   implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:3.4.5"
+
+  // Parsing line geoCoordinates
+  implementation("org.playframework:play_3:3.1.0-M9")
 }
 
 tasks.withType(JavaCompile).configureEach {

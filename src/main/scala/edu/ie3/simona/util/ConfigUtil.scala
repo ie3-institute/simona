@@ -19,6 +19,7 @@ import edu.ie3.datamodel.models.result.connector.{
   Transformer2WResult,
   Transformer3WResult,
 }
+import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.datamodel.models.result.{
   CongestionResult,
   NodeResult,

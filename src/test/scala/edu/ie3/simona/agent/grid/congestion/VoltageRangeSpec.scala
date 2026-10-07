@@ -97,6 +97,7 @@ class VoltageRangeSpec
         Set.empty,
         Set.empty,
         Set.empty,
+        Set.empty,
       )
 
       val cases = Table(
@@ -149,6 +150,7 @@ class VoltageRangeSpec
         Set.empty,
         Set.empty,
         Set.empty,
+        Set.empty,
       )
 
       val powerFlowResult = buildPowerFlowResultEvent(
@@ -181,6 +183,7 @@ class VoltageRangeSpec
       val gridComponents = GridComponents(
         Seq(node1, node2, node3, node4),
         Set(line12, line13, line34),
+        Set.empty,
         Set.empty,
         Set.empty,
         Set.empty,
