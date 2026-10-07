@@ -134,6 +134,9 @@ dependencies {
   /* CORE Pekko */
   implementation "org.apache.pekko:pekko-actor-typed_3:${pekkoVersion}"
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
+  implementation "org.apache.pekko:pekko-protobuf-v3_${scalaVersion}:${pekkoVersion}"
+  implementation "org.apache.pekko:pekko-serialization-jackson_${scalaVersion}:${pekkoVersion}"
+  implementation "org.apache.pekko:pekko-stream_${scalaVersion}:${pekkoVersion}"
 
   /* config */
   implementation 'com.typesafe:config:1.4.9'
@@ -167,6 +170,9 @@ dependencies {
   // optimization
   implementation "com.github.vagmcs:optimus_${scalaVersion}:3.4.5"
   implementation "com.github.vagmcs:optimus-solver-oj_${scalaVersion}:3.4.5"
+
+  // Parsing line geoCoordinates
+  implementation("org.playframework:play_3:3.1.0-M9")
 }
 
 tasks.withType(JavaCompile).configureEach {

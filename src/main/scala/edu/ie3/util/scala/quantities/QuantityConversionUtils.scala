@@ -7,15 +7,13 @@
 package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.quantities.interfaces.{
-  EnergyPrice,
-  Irradiance,
-  SpecificConductance,
-  SpecificHeatCapacity,
-  SpecificResistance,
-}
+import edu.ie3.util.quantities.interfaces.*
 import edu.ie3.util.scala.quantities
-import squants.electro.{Kilovolts, Ohms, Siemens}
+import edu.ie3.util.scala.quantities.{
+  ThermalCapacitance as ThermalCapacitanceSquants,
+  ThermalResistivity as ThermalResistivitySquants,
+}
+import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
 import squants.radio.WattsPerSquareMeter
@@ -62,7 +60,9 @@ object QuantityConversionUtils {
     * allows conversion into a [[squants.electro.ElectricPotential]] squants
     * quantity.
     */
-  extension (quantity: ComparableQuantity[ElectricPotential]) {
+  extension (
+      quantity: ComparableQuantity[javax.measure.quantity.ElectricPotential]
+  ) {
 
     def toSquants: squants.electro.ElectricPotential = Kilovolts(
       quantity.to(KILOVOLT).getValue.doubleValue
@@ -72,7 +72,9 @@ object QuantityConversionUtils {
   /** Extension for [[ComparableQuantity]] of type [[ElectricCurrent]] that
     * allows conversion into a [[squants.ElectricCurrent]] squants quantity.
     */
-  extension (quantity: ComparableQuantity[ElectricCurrent]) {
+  extension (
+      quantity: ComparableQuantity[javax.measure.quantity.ElectricCurrent]
+  ) {
 
     def toSquants: squants.ElectricCurrent = Amperes(
       quantity.to(AMPERE).getValue.doubleValue
@@ -193,8 +195,8 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Extension for [[ComparableQuantity]] of type [[Temperature]] that allows
-    * conversion into a [[squants.Temperature]] squants quantity.
+  /** Extension for [[ComparableQuantity]] of type [[Angle]] that allows
+    * conversion into a [[squants.Angle]] squants quantity.
     */
   extension (quantity: ComparableQuantity[Angle]) {
 
@@ -225,12 +227,12 @@ object QuantityConversionUtils {
 
   /** Extension for [[ComparableQuantity]] of type [[SpecificHeatCapacity]] that
     * allows conversion into a
-    * [[edu.ie3.util.scala.quantities.SpecificHeatCapacity]] squants quantity.
+    * [[edu.ie3.util.scala.quantities.ThermalCapacitance]] squants quantity.
     */
   extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
 
-    def toSquants: edu.ie3.util.scala.quantities.SpecificHeatCapacity =
-      KilowattHoursPerKelvinCubicMeters(
+    def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitanceSquants =
+      KilowattHoursPerCubicMeterKelvin(
         quantity
           .to(KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
           .getValue
