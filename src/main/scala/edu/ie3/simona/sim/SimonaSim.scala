@@ -92,17 +92,17 @@ object SimonaSim {
         val extSimDir =
           simonaSetup.simonaConfig.input.extSimDir.map(Path.of(_))
 
-        val extSimulationData =
-          simonaSetup.extSimulations(ctx, scheduler, resultProxy, extSimDir)
+        val addonData =
+          simonaSetup.addons(using ctx, scheduler, resultProxy, extSimDir)
 
         val allResultEventListeners =
-          resultEventListeners ++ extSimulationData.resultListeners
-        val resultProviders = extSimulationData.resultProviders
+          resultEventListeners ++ addonData.resultListeners
+        val resultProviders = addonData.resultProviders
 
         /* start services */
         // primary service proxy
         val primaryServiceProxy =
-          simonaSetup.primaryServiceProxy(ctx, scheduler, extSimulationData)
+          simonaSetup.primaryServiceProxy(ctx, scheduler, addonData)
 
         // weather service
         val weatherService =
@@ -122,8 +122,8 @@ object SimonaSim {
           weatherService,
           priceService,
           loadProfileService,
-          extSimulationData.emDataService,
-          extSimulationData.evDataService,
+          addonData.emDataService,
+          addonData.evDataService,
         )
 
         /* start participant agents */
@@ -143,7 +143,7 @@ object SimonaSim {
           primaryServiceProxy,
           weatherService,
           gridAgentCoordinator,
-        ) ++ extSimulationData.allServiceRefs ++ priceService.toSeq ++ participantAgents.values.flatten
+        ) ++ addonData.allServiceRefs ++ priceService.toSeq ++ participantAgents.values.flatten
 
         /* watch all actors */
         allResultEventListeners.foreach(ctx.watch)
@@ -151,7 +151,7 @@ object SimonaSim {
         ctx.watch(runtimeEventListener)
         ctx.watch(resultProxy)
         otherActors.foreach(ctx.watch)
-        extSimulationData.extSimAdapters.foreach(ctx.watch)
+        addonData.extSimAdapters.foreach(ctx.watch)
 
         // End pre-initialization phase
         preInitKey.unlock()
@@ -168,7 +168,7 @@ object SimonaSim {
         idle(
           ActorData(
             starter,
-            extSimulationData.extSimAdapters,
+            addonData.extSimAdapters,
             runtimeEventListener,
             delayedActors,
             otherActors,

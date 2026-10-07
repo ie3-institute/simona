@@ -12,6 +12,7 @@ import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
 import edu.ie3.simona.service.results.ExtResultProvider
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
@@ -32,10 +33,10 @@ import org.slf4j.Logger
   * @param resultProviders
   *   Seq: external result providers.
   */
-final case class ExtSimSetupData(
+final case class AddonSetupData(
     extSimAdapters: Iterable[ActorRef[ExtSimAdapter.Request]],
     primaryDataServices: Seq[
-      (ExtPrimaryDataConnection, ActorRef[ServiceMessage])
+      (ExtPrimaryDataConnection, ActorRef[ExtPrimaryServiceWorker.Message])
     ],
     emDataService: Option[ActorRef[ExtEmDataService.Message]],
     evDataService: Option[ActorRef[ExtEvDataService.Message]],
@@ -45,17 +46,17 @@ final case class ExtSimSetupData(
 
   private[setup] def update(
       connection: ExtPrimaryDataConnection,
-      ref: ActorRef[ServiceMessage],
-  ): ExtSimSetupData =
+      ref: ActorRef[ExtPrimaryServiceWorker.Message],
+  ): AddonSetupData =
     copy(primaryDataServices = primaryDataServices ++ Seq((connection, ref)))
 
   private[setup] def update(
       connection: ExtDataConnection,
       ref: ActorRef[?],
-  )(using log: Logger): ExtSimSetupData = (connection, ref) match {
+  )(using log: Logger): AddonSetupData = (connection, ref) match {
     case (
           primaryConnection: ExtPrimaryDataConnection,
-          serviceRef: ActorRef[ServiceMessage],
+          serviceRef: ActorRef[ExtPrimaryServiceWorker.Message],
         ) =>
       update(primaryConnection, serviceRef)
     case (
@@ -82,7 +83,7 @@ final case class ExtSimSetupData(
 
   private[setup] def updateAdapter(
       extSimAdapter: ActorRef[ExtSimAdapter.Request]
-  ): ExtSimSetupData =
+  ): AddonSetupData =
     copy(extSimAdapters = extSimAdapters ++ Set(extSimAdapter))
 
   def primaryDataConnections: Seq[ExtPrimaryDataConnection] =
@@ -98,12 +99,23 @@ final case class ExtSimSetupData(
       .map(_._2)
 }
 
-object ExtSimSetupData {
+object AddonSetupData {
 
-  /** Returns an empty [[ExtSimSetupData]].
+  /** Returns an empty [[AddonSetupData]].
     */
-  def apply: ExtSimSetupData = ExtSimSetupData(
+  def apply: AddonSetupData = AddonSetupData(
     Iterable.empty,
+    Seq.empty,
+    None,
+    None,
+    Seq.empty,
+    Seq.empty,
+  )
+
+  def withAdapters(
+      adapters: Iterable[ActorRef[ExtSimAdapter.Request]]
+  ): AddonSetupData = AddonSetupData(
+    adapters,
     Seq.empty,
     None,
     None,
