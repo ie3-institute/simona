@@ -323,8 +323,13 @@ class ParticipantAgentInitSpec
       given ParticipantRefs = ParticipantRefs(
         primaryServiceProxy = primaryService.ref,
         resultServiceProxy = resultServiceProxy.ref,
-        services = Map(ServiceType.MarkovLoadProfileService -> service.ref),
+        services = Map(ServiceType.LoadProfileService -> service.ref),
       )
+
+      val markovLoadInput = loadInput
+        .copy()
+        .loadProfile(new PowerProfileKey("h0", PowerProfileKey.Type.MARKOV))
+        .build()
 
       val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
       // lock activation scheduled
@@ -332,7 +337,7 @@ class ParticipantAgentInitSpec
 
       val participantAgent = spawn(
         ParticipantAgentInit(
-          SimpleInputContainer(loadInput),
+          SimpleInputContainer(markovLoadInput),
           LoadRuntimeConfig(modelBehaviour = "markov"),
           mock[NotifierConfig],
           Left(scheduler.ref),
@@ -352,15 +357,11 @@ class ParticipantAgentInitSpec
 
       participantAgent ! RegistrationFailedMessage(primaryService.ref)
 
-      // the load profile is requested as Markov load profile
       service.expectMessage(
         SecondaryServiceRegistrationMessage(
           participantAgent,
           DataTimeType.Current,
-          new PowerProfileKey(
-            loadInput.getLoadProfile.getValue,
-            PowerProfileKey.Type.MARKOV,
-          ),
+          markovLoadInput.getLoadProfile,
         )
       )
 

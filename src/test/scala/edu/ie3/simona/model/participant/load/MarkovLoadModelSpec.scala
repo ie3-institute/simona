@@ -81,7 +81,7 @@ class MarkovLoadModelSpec
       factory match {
         case markovFactory: MarkovLoadModel.Factory =>
           markovFactory.getRequiredSecondaryServices shouldBe Iterable(
-            ServiceType.MarkovLoadProfileService
+            ServiceType.LoadProfileService
           )
         case unexpected =>
           fail(s"Received unexpected factory $unexpected")
@@ -241,6 +241,19 @@ class MarkovLoadModelSpec
       intercept[CriticalFailureException] {
         factory.getInitialState(0L, simulationStartDate)
       }
+    }
+
+    "fail for a load profile that is no Markov load profile" in {
+      val factory = MarkovLoadModel.Factory(
+        loadInput,
+        LoadRuntimeConfig(modelBehaviour = "markov"),
+      )
+
+      intercept[CriticalFailureException] {
+        factory.update(
+          ProfileLoadModel.ProfileLoadFactoryData(Some(Kilowatts(4d)), None)
+        )
+      }.getMessage should include("markov_")
     }
 
     "advance the Markov chain with received data" in {

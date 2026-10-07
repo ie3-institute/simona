@@ -17,6 +17,4 @@ object ServiceType {
   case object EvMovementService extends ServiceType
 
   case object LoadProfileService extends ServiceType
-
-  case object MarkovLoadProfileService extends ServiceType
 }

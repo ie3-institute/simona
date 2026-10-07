@@ -174,7 +174,7 @@ The models are stored as json files in the directory of the load profile source:
     }
 ```
 
-A file is named ``markov_<name>.json``, where ``<name>`` consists of up to 11 letters followed by up to 3 digits. A load uses the model, if its ``modelBehaviour`` is *"markov"* and its load profile is ``<name>``. Markov load profiles are only supported for file based sources (``csvParams``), not for sql sources.
+A file is named ``markov_<name>.json``, where ``<name>`` consists of up to 11 letters followed by up to 3 digits. A load uses the model, if its ``modelBehaviour`` is *"markov"* and its load profile is ``markov_<name>``, e.g. ``markov_h0``. Markov load profiles are only supported for file based sources (``csvParams``), not for sql sources.
 
 ### Model
 

@@ -46,6 +46,7 @@ import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
+import java.nio.file.{Files, Path}
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
@@ -316,6 +317,30 @@ class RunSimonaStandaloneIT
 
   "A simona standalone simulation with Markov load models" must {
 
+    // copy of the grid, whose loads reference the Markov load profile
+    lazy val markovGridDirectory: String = {
+      val gridDirectory = Path.of(
+        ConfigFactory
+          .parseFile(new File(configFile))
+          .getString("simona.input.grid.datasource.csvParams.directoryPath")
+      )
+      val copyDirectory =
+        Files.createDirectories(Path.of(testTmpDir, "markov_grid"))
+
+      gridDirectory.toFile.listFiles.foreach { file =>
+        val content = Files.readString(file.toPath)
+
+        Files.writeString(
+          copyDirectory.resolve(file.getName),
+          if file.getName == "load_input.csv" then
+            content.replace(",h0,", ",markov_h0,")
+          else content,
+        )
+      }
+
+      copyDirectory.toString.replace("\\", "/")
+    }
+
     def runSimulation(
         simulationName: String
     ): Map[(UUID, ZonedDateTime), Double] = {
@@ -341,6 +366,10 @@ class RunSimonaStandaloneIT
           .withValue(
             "simona.time.endDateTime",
             ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
+          )
+          .withValue(
+            "simona.input.grid.datasource.csvParams.directoryPath",
+            ConfigValueFactory.fromAnyRef(markovGridDirectory),
           )
           .withValue(
             "simona.runtime.participant.load.modelBehaviour",

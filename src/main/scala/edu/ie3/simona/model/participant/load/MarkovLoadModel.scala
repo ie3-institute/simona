@@ -140,6 +140,11 @@ object MarkovLoadModel {
       case markovData: MarkovLoadFactoryData =>
         copy(factoryData = Some(markovData))
 
+      case _: ProfileLoadModel.ProfileLoadFactoryData =>
+        throw new CriticalFailureException(
+          s"Load profile '${input.getLoadProfile.getValue}' of load ${input.getId} is no Markov load profile. Markov load profiles are referenced with the prefix 'markov_'."
+        )
+
       case unexpected =>
         throw new CriticalFailureException(
           s"Received unexpected data '$unexpected', while updating the Markov load model factory."
@@ -147,7 +152,7 @@ object MarkovLoadModel {
     }
 
     override def getRequiredSecondaryServices: Iterable[ServiceType] =
-      Iterable(ServiceType.MarkovLoadProfileService)
+      Iterable(ServiceType.LoadProfileService)
 
     /** Runs the Markov chain for the warm-up period before the simulation start
       * or, if later, the start of operation.

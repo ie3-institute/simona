@@ -9,6 +9,7 @@ package edu.ie3.simona.service.load
 import edu.ie3.datamodel.io.source.LoadProfileSource
 import edu.ie3.datamodel.io.source.PowerValueSource.{
   MarkovIdentifier,
+  PowerOutputValue,
   TimeSeriesInputValue,
 }
 import edu.ie3.datamodel.io.source.json.JsonMarkovProfileSource
@@ -65,6 +66,16 @@ final case class LoadProfileStore(
       energy: Optional[ComparableQuantity[Energy]]
   ): Option[squants.Energy] =
     energy.toScala.map(_.toSquants)
+
+  /** Extension method to retrieve the active power of a [[PowerOutputValue]].
+    */
+  extension (output: PowerOutputValue) {
+    private def toPower(errorMsg: => String): squants.Power =
+      output.value.toScala
+        .flatMap(_.getP.toScala)
+        .map(_.toSquants)
+        .getOrElse(throw new CriticalFailureException(errorMsg))
+  }
 
   /** Method to check whether this [[LoadProfileStore]] contains a load profile
     * for given [[PowerProfileKey]].
@@ -145,14 +156,9 @@ final case class LoadProfileStore(
     val supplier = source.getValueSupplier(new TimeSeriesInputValue(time))
 
     () =>
-      supplier.get.value.toScala
-        .flatMap(_.getP.toScala)
-        .map(_.toSquants)
-        .getOrElse(
-          throw new CriticalFailureException(
-            s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
-          )
-        )
+      supplier.get.toPower(
+        s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
+      )
   }
 
   /** @param powerProfileKey
@@ -206,14 +212,9 @@ final case class LoadProfileStore(
         )
         .get
 
-      val power = output.value.toScala
-        .flatMap(_.getP.toScala)
-        .map(_.toSquants)
-        .getOrElse(
-          throw new CriticalFailureException(
-            s"Load value cannot be provided for Markov load profile $powerProfileKey at time $time!"
-          )
-        )
+      val power = output.toPower(
+        s"Load value cannot be provided for Markov load profile $powerProfileKey at time $time!"
+      )
 
       (power, output.nextState)
     }

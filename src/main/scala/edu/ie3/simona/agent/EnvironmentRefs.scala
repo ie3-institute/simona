@@ -55,7 +55,6 @@ final case class EnvironmentRefs(
       Some(ServiceType.WeatherService -> weather),
       price.map(ServiceType.PriceService -> _),
       Some(ServiceType.LoadProfileService -> loadProfiles),
-      Some(ServiceType.MarkovLoadProfileService -> loadProfiles),
       evDataService.map(ref => ServiceType.EvMovementService -> ref),
     ).flatten.toMap
 }
