@@ -454,7 +454,7 @@ simona.time.schedulerReadyCheckWindow = None
 ```
 simona.input = {
     baseInputDir = ./input
-    extSimDir = None
+    addonDir = None
     
     loadProfile = {
         csvParams = None
