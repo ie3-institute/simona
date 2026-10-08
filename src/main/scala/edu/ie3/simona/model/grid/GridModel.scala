@@ -6,8 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import edu.ie3.powerflow.math.DenseMatrix
-import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
 import edu.ie3.datamodel.models.input.connector.`type`.{
@@ -18,6 +16,7 @@ import edu.ie3.datamodel.models.input.connector.`type`.{
   ScreenLayerInput as JScreenLayerInput,
 }
 import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.powerflow.math.{Complex, DenseMatrix}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -30,8 +29,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseC,
 }
 import edu.ie3.simona.model.grid.ampacity.*
-import edu.ie3.simona.util.CollectionUtils
-import edu.ie3.simona.util.Coordinate
+import edu.ie3.simona.util.{CollectionUtils, Coordinate}
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}

@@ -11,9 +11,8 @@ import squants.energy.{Energy, Power, Watts}
 import squants.radio.Irradiance
 import squants.space.{Area, CubicMeters, Volume}
 import squants.thermal.ThermalCapacity
-import squants.time.Hours
+import squants.time.{Frequency, Hours}
 import squants.{Dimensionless, Each, Time}
-import squants.time.Frequency
 
 import scala.math.Pi
 

@@ -17,14 +17,14 @@ import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.quantities.*
+import squants.electro.ElectricPotential
 import squants.space.{Length, Meters}
 import squants.{ElectricCurrent, Temperature}
-import squants.electro.ElectricPotential
+import tech.units.indriya.quantity.Quantities
 
+import java.lang.Double as JDouble
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.lang.Double as JDouble
-import tech.units.indriya.quantity.Quantities
 
 /** A thermal model for a line segment
   *

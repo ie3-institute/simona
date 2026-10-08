@@ -8,20 +8,19 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.QuantityMatchers
-import squants.thermal.Celsius
-import squants.{Kelvin, Meters, Temperature}
 import edu.ie3.util.scala.quantities.{
   KelvinMetersPerWatt,
   KilowattHoursPerCubicMeterKelvin,
   ThermalCapacitance,
   ThermalResistivity,
 }
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory}
 import org.scalatest.matchers.should.Matchers
-import org.locationtech.jts.geom.Geometry
+import squants.thermal.Celsius
+import squants.{Kelvin, Meters, Temperature}
 
 import java.nio.file.{Files, Paths}
 import java.util.UUID
-import org.locationtech.jts.geom.{Coordinate, GeometryFactory}
 
 class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
 

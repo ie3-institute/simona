@@ -8,6 +8,8 @@ package edu.ie3.simona.model.grid.ampacity
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.util.scala.quantities.*
+import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory}
+import play.api.libs.json.*
 import squants.Meters
 import squants.space.Length
 import squants.thermal.Celsius
@@ -15,8 +17,6 @@ import squants.thermal.Celsius
 import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
-import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory}
-import play.api.libs.json.*
 
 /** Utilities to parse soil related data from simple CSV files and provide
   * helpers to further process the parsed data.

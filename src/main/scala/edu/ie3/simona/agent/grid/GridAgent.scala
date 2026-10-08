@@ -25,8 +25,7 @@ import edu.ie3.simona.event.ResultEvent.{
   ThermalLineSegmentResultEvent,
 }
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.ontology.messages.Activation
-import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
@@ -41,9 +40,8 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
-import squants.ElectricCurrent
 import squants.electro.Amperes
-import squants.{Dimensionless, Each}
+import squants.{Dimensionless, Each, ElectricCurrent}
 
 import java.util.UUID
 

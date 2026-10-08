@@ -22,8 +22,10 @@ import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.grid.GridModel
-import edu.ie3.simona.model.grid.ampacity.AmpacityCalculationParams
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
+import edu.ie3.simona.model.grid.ampacity.{
+  AmpacityCalculationParams,
+  LineSegmentThermalModel,
+}
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.util.ConfigUtil.{

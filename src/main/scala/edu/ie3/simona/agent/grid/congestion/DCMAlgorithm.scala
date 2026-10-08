@@ -28,8 +28,11 @@ import edu.ie3.simona.agent.grid.{AmpacityCalculation, GridAgent}
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.util.ReceiveDataMap
 import org.apache.pekko.actor.typed.Behavior
-import org.apache.pekko.actor.typed.scaladsl.Behaviors
-import org.apache.pekko.actor.typed.scaladsl.{ActorContext, StashBuffer}
+import org.apache.pekko.actor.typed.scaladsl.{
+  ActorContext,
+  Behaviors,
+  StashBuffer,
+}
 
 /** Trait that is normally mixed into every [[GridAgent]] to enable distributed
   * congestion management (DCM) algorithm execution. It is considered to be the

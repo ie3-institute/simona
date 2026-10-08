@@ -9,10 +9,10 @@ package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.util.Coordinate
 import org.locationtech.jts.geom.{
-  Coordinate as JtsCoordinate,
   Geometry,
   GeometryFactory,
   Point,
+  Coordinate as JtsCoordinate,
 }
 
 import java.util.UUID
@@ -73,8 +73,8 @@ object SegmentCalculationPoints {
     Coordinate(calculationPoint.getY, calculationPoint.getX)
   }
 
-  /** Checks whether the given point lies at or near the boundary of any of
-    * the given soil layers.
+  /** Checks whether the given point lies at or near the boundary of any of the
+    * given soil layers.
     *
     * @param point
     *   The point to check.
