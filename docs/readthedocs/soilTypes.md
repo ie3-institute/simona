@@ -47,7 +47,7 @@ This document describes the expected CSV format for soil types used by SoilDataP
 
 ## Example CSV
 
-```csv
+```text
 uuid,name,tr_wet,tr_dry,shc,crit_temp_diff
 78b72d1d-9d05-446b-a072-426eb4d3807e,loam,0.30,0.40,0.0015,15.0
 ```
