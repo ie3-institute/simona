@@ -16,12 +16,11 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
+import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.util.TickUtil.toTick
 import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
-import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
@@ -40,20 +39,26 @@ object WeatherService extends SimonaService {
     *
     * @param coordinate
     *   The coordinate to register weather data for.
+    * @param registrantKey
+    *   An optional key that is echoed back in [[DataProvision]] messages,
+    *   allowing the registrant to attribute data to a specific registration.
     */
   final case class WeatherRegistrationData(
-      coordinate: Coordinate
+      coordinate: Coordinate,
+      registrantKey: Option[String] = None,
   )
 
   /** Container storing registered actors for a coordinate.
     *
     * @param registrantsMap
-    *   A map of data time type to registered actors.
+    *   A map of data time type to registered actors and their optional keys.
     * @param coordinateWeights
     *   Weights mapping surrounding coordinates onto the registered coordinate.
     */
   final case class RegistrantsContainer(
-      registrantsMap: Map[DataTimeType, Set[ActorRef[ServiceMessage.Response]]],
+      registrantsMap: Map[DataTimeType, Map[ActorRef[
+        ServiceMessage.Response
+      ], Option[String]]],
       coordinateWeights: WeightedCoordinates,
   )
 
@@ -141,13 +146,14 @@ object WeatherService extends SimonaService {
       case SecondaryServiceRegistrationMessage(
             agentToBeRegistered,
             dataTimeType,
-            WeatherRegistrationData(coordinate),
+            WeatherRegistrationData(coordinate, registrantKey),
           ) =>
         Success(
           handleRegistrationRequest(
             agentToBeRegistered,
             coordinate,
             dataTimeType,
+            registrantKey,
           )
         )
       case invalidMessage =>
@@ -168,6 +174,8 @@ object WeatherService extends SimonaService {
     *   The coordinate of the agent to be registered.
     * @param dataTimeType
     *   The data time type that the agent wants to receive data for.
+    * @param registrantKey
+    *   Optional key for per-registration attribution in DataProvision.
     * @param serviceStateData
     *   The current service state data of this service.
     * @param ctx
@@ -180,6 +188,7 @@ object WeatherService extends SimonaService {
       agentToBeRegistered: ActorRef[ServiceMessage.Response],
       coordinate: Coordinate,
       dataTimeType: DataTimeType,
+      registrantKey: Option[String] = None,
   )(using
       serviceStateData: WeatherBaseStateData,
       ctx: ActorContext[Message],
@@ -193,10 +202,9 @@ object WeatherService extends SimonaService {
 
     getRegistrantsContainer(coordinate) match {
       case Success(registrants) =>
-        if registrants.registrantsMap.contains(
-            dataTimeType,
-            agentToBeRegistered,
-          )
+        val existingAgents =
+          registrants.registrantsMap.getOrElse(dataTimeType, Map.empty)
+        if existingAgents.contains(agentToBeRegistered)
         then
           ctx.log.warn(
             "Sending actor {} is already registered",
@@ -212,7 +220,10 @@ object WeatherService extends SimonaService {
 
         val updatedRegistrants =
           registrants.copy(registrantsMap =
-            registrants.registrantsMap.added(dataTimeType, agentToBeRegistered)
+            registrants.registrantsMap.updated(
+              dataTimeType,
+              existingAgents + (agentToBeRegistered -> registrantKey),
+            )
           )
 
         serviceStateData.copy(registeredAgents =
@@ -298,12 +309,13 @@ object WeatherService extends SimonaService {
             SecondarySeriesData(reduceTimeSeriesResolution(series, resolution))
         }
 
-        actors.foreach {
-          _ ! DataProvision(
+        actors.foreach { case (actor, key) =>
+          actor ! DataProvision(
             tick,
             ctx.self,
             weatherData,
             maybeNextTick,
+            key,
           )
         }
       }
