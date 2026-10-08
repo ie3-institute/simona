@@ -26,9 +26,9 @@ import edu.ie3.datamodel.models.input.thermal.ThermalBusInput
   *   Thermal bus input
   */
 abstract class ThermalSink(
-    uuid: UUID,
-    id: String,
-    operatorInput: OperatorInput,
-    operationTime: OperationTime,
-    bus: ThermalBusInput,
+    val uuid: UUID,
+    val id: String,
+    val operatorInput: OperatorInput,
+    val operationTime: OperationTime,
+    val bus: ThermalBusInput,
 )
