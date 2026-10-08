@@ -22,7 +22,6 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangePower,
   ExchangeVoltage,
 }
-import edu.ie3.simona.agent.grid.GridAgentMessages.SlackVoltageResponse
 import edu.ie3.simona.agent.grid.powerflow.{
   PowerFlowParams,
   PowerFlowSupport,

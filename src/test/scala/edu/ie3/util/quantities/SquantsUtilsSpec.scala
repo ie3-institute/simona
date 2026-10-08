@@ -17,7 +17,7 @@ import org.scalatest.matchers.should.Matchers
 import squants.Each
 import squants.electro.{Kilovolts, Nanofarads}
 import squants.energy.KilowattHours
-import squants.radio.{Irradiance, WattsPerSquareMeter}
+import squants.radio.WattsPerSquareMeter
 import squants.space.CubicMeters
 import squants.thermal.JoulesPerKelvin
 import squants.time.{Hertz, Hours}

@@ -37,7 +37,8 @@ import scala.jdk.CollectionConverters.*
   */
 object ExtResultProvider {
 
-  type Message = ResultResponse | DelayedStopHelper.StoppingMsg
+  type Message = ResultResponse | DataMessageFromExt |
+    DelayedStopHelper.StoppingMsg
 
   /** State data for a result [[provider]].
     *
@@ -76,7 +77,7 @@ object ExtResultProvider {
       connection: ExtResultDataConnection,
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[RequestResult],
-  ): Behavior[Message | DataMessageFromExt | Activation] = {
+  ): Behavior[Message | Activation] = {
     val stateData =
       ProviderState(scheduler, resultProxy, connection, INIT_SIM_TICK)
 
@@ -92,11 +93,11 @@ object ExtResultProvider {
     */
   private def provider(
       stateData: ProviderState
-  ): Behavior[Message | DataMessageFromExt | Activation] =
-    Behaviors.receivePartial[Message | DataMessageFromExt | Activation] {
+  ): Behavior[Message | Activation] =
+    Behaviors.receivePartial[Message | Activation] {
       case (ctx, ResultResponse(results)) =>
         // send result to external simulation
-        stateData.connection.queueExtResponseMsg(
+        stateData.connection.handleResponseMsg(
           new ProvideResultEntities(results.asJava)
         )
 
