@@ -122,7 +122,8 @@ final case class LoadProfileStore(
 
     () =>
       supplier.get.value.toScala
-        .flatMap(_.getP.map(_.toSquants).toScala)
+        .flatMap(_.getP.toScala)
+        .map(_.toSquants)
         .getOrElse(
           throw new CriticalFailureException(
             s"Load value function cannot be provided for load profile $powerProfileKey at time $time!"
