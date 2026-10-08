@@ -1,0 +1,16 @@
+uuid,geo_position,id,operates_from,operates_until,operator,slack,subnet,v_rated,v_target,volt_lvl
+ae28a289-0bfd-4d5f-93b3-8fdd228de2cd,"{""type"":""Point"",""coordinates"":[7.4098,51.4919],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 8,,,,false,2,0.4,1.0,Niederspannung
+e30ed9ed-f016-40f6-94fd-c4ad4a0b9713,"{""type"":""Point"",""coordinates"":[7.4098,51.4909],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 10,,,,false,2,0.4,1.0,Niederspannung
+b72c453b-0940-4209-9620-2e6878db0009,"{""type"":""Point"",""coordinates"":[7.4098,51.4919],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",MV1.101 Bus 4,,,,true,1,20.0,1.025,Mittelspannung
+cdae595f-99b6-46e1-8164-bc0a8f3ce03d,"{""type"":""Point"",""coordinates"":[7.4106,51.4919],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 7,,,,false,2,0.4,1.0,Niederspannung
+97ec3c60-0934-472b-8ba1-68e7ecdb51dc,"{""type"":""Point"",""coordinates"":[7.4123,51.4919],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 1,,,,false,2,0.4,1.0,Niederspannung
+d9acbdee-b64b-41da-bde4-6161a7420958,"{""type"":""Point"",""coordinates"":[7.4098,51.4914],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 11,,,,false,2,0.4,1.0,Niederspannung
+927da381-2441-4931-89f0-67fc2062230f,"{""type"":""Point"",""coordinates"":[7.4106,51.4901],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 5,,,,false,2,0.4,1.0,Niederspannung
+de43d034-e302-4bdb-9cad-1ced99bbe42d,"{""type"":""Point"",""coordinates"":[7.4098,51.4919],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 4,,,,false,2,0.4,1.0,Niederspannung
+0837da71-6144-45f3-af99-ffa813069500,"{""type"":""Point"",""coordinates"":[7.4115,51.4914],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 9,,,,false,2,0.4,1.0,Niederspannung
+76410fde-3a71-47ef-9830-86bc2ca39864,"{""type"":""Point"",""coordinates"":[7.4098,51.4904],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 3,,,,false,2,0.4,1.0,Niederspannung
+5f5115e6-4b12-4fb4-ad05-1de237b58e7e,"{""type"":""Point"",""coordinates"":[7.4116,51.4909],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 13,,,,false,2,0.4,1.0,Niederspannung
+d6c092a3-f403-4579-8748-1c3300c90347,"{""type"":""Point"",""coordinates"":[7.4106,51.4909],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 14,,,,false,2,0.4,1.0,Niederspannung
+25014f41-7e8d-4eca-9c47-ca0bd19965ed,"{""type"":""Point"",""coordinates"":[7.4106,51.4915],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 12,,,,false,2,0.4,1.0,Niederspannung
+ea0847bf-bea2-473e-a717-9cb9524efe4e,"{""type"":""Point"",""coordinates"":[7.4106,51.4904],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 6,,,,false,2,0.4,1.0,Niederspannung
+3137f920-6da9-45d6-89f3-fa1cab80ea7c,"{""type"":""Point"",""coordinates"":[7.4115,51.4919],""crs"":{""type"":""name"",""properties"":{""name"":""EPSG:4326""}}}",LV1.101 Bus 2,,,,false,2,0.4,1.0,Niederspannung
