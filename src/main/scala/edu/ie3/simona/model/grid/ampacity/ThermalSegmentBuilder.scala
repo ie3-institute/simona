@@ -349,7 +349,7 @@ object ThermalSegmentBuilder {
                 cableTypeInput.getLimitTemperature.toSquants,
                 lineType.getvRated().toSquants,
                 cableTypeInput.getFrequency.toSquants,
-                lineType.getR.toSquants,
+                lineType.getR.toResistancePerLength,
                 cableTypeInput.getSkinEffectCoefficient,
                 cableTypeInput.getProximityEffectCoefficient,
                 cableTypeInput.getElectricalCapacitance.toSquants,
