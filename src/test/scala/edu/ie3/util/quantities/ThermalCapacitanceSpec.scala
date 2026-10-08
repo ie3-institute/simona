@@ -6,14 +6,17 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.util.scala.quantities.KilowattHoursPerCubicMeterKelvin
+import edu.ie3.util.scala.quantities.{
+  KilowattHoursPerCubicMeter,
+  KilowattHoursPerCubicMeterKelvin,
+}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.KilowattHours
 import squants.space.CubicMeters
 import squants.thermal.{Celsius, Kelvin}
 
-class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
+class ThermalCapacitanceSpec extends AnyFlatSpec with Matchers {
 
   behavior of "ThermalCapacitance and its Units of Measure"
 
@@ -32,7 +35,7 @@ class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
   it should "return properly formatted strings for all supported Units of Measure" in {
     KilowattHoursPerCubicMeterKelvin(1).toString(
       KilowattHoursPerCubicMeterKelvin
-    ) should be("1.0 kWh/m³K")
+    ) should be("1.0 kWh/(m³K)")
   }
 
   it should "return Energy when multiplied by Temperature delta of 1 Kelvin and Volume" in {
@@ -49,5 +52,12 @@ class SpecificHeatCapacitySpec extends AnyFlatSpec with Matchers {
       Celsius(101),
       CubicMeters(5),
     ) should be(KilowattHours(5000))
+  }
+
+  it should "return EnergyDensity when multiplied by Temperature delta of 1 Kelvin" in {
+    KilowattHoursPerCubicMeterKelvin(1000).calcEnergyDensity(
+      Kelvin(10),
+      Kelvin(20),
+    ) should be(KilowattHoursPerCubicMeter(10000.0))
   }
 }

@@ -120,6 +120,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Throws exception if external simulation is expected but not found [#1263](https://github.com/ie3-institute/simona/issues/1263)
 - Improved performance of `DBFSAlgorithm` [#1860](https://github.com/ie3-institute/simona/issues/1860)
 - Adapt to changes in `powerflow` v0.5.0 [#1930](https://github.com/ie3-institute/simona/issues/1930)
+- Adapt to changes in `PSDM` [#1947](https://github.com/ie3-institute/simona/issues/1947)
+- Enhancement of `QuantityConversionUtils` and some fixes and clean up [#1940](https://github.com/ie3-institute/simona/issues/1940)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)

@@ -125,6 +125,16 @@ object QuantityConversionUtils {
     )
   }
 
+  /** Extension for [[ComparableQuantity]] of type [[Frequency]] that allows
+    * conversion into a [[squants.time.Frequency]] squants quantity.
+    */
+  extension (quantity: ComparableQuantity[Frequency]) {
+
+    def toSquants: squants.time.Frequency = Hertz(
+      quantity.to(HERTZ).getValue.doubleValue
+    )
+  }
+
   /** Extension for [[ComparableQuantity]] of type [[ElectricResistance]] that
     * allows conversion into a [[squants.electro.ElectricalResistance]] squants
     * quantity.
@@ -151,16 +161,6 @@ object QuantityConversionUtils {
   extension (quantity: ComparableQuantity[Length]) {
     def toSquants: squants.space.Length = Millimeters(
       quantity.to(MILLIMETRE).getValue.doubleValue
-    )
-  }
-
-  /** Extension for [[ComparableQuantity]] of type [[EnergyPrice]] that allows
-    * conversion into a [[quantities.EnergyPrice]] squants quantity.
-    */
-  extension (quantity: ComparableQuantity[EnergyPrice]) {
-
-    def toSquants: quantities.EnergyPrice = EuroPerKilowattHour(
-      quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
     )
   }
 
@@ -299,6 +299,25 @@ object QuantityConversionUtils {
       KilowattHoursPerCubicMeterKelvin(
         quantity
           .to(KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+          .getValue
+          .doubleValue
+      )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[ThermalCapacitance]] that
+    * allows conversion into a
+    * [[edu.ie3.util.scala.quantities.ThermalCapacitance]] squants quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.ThermalCapacitance
+      ]
+  ) {
+    def toSquantsJoulePerCubicMeterKelvin
+        : edu.ie3.util.scala.quantities.ThermalCapacitance =
+      JoulesPerCubicMeterKelvin(
+        quantity
+          .to(JOULE_PER_CUBIC_METRE_KELVIN)
           .getValue
           .doubleValue
       )
