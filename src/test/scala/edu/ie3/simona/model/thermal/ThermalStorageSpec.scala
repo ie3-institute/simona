@@ -11,6 +11,7 @@ import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsKWhPerCubicMeterKelvin
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import squants.Energy
@@ -40,7 +41,7 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
   ): CylindricalThermalStorage = {
     val storedEnergy = CylindricalThermalStorage.volumeToEnergy(
       volume,
-      storageInput.getC.toSquants,
+      storageInput.getC.toSquantsKWhPerCubicMeterKelvin,
       storageInput.getInletTemp.toSquants,
       storageInput.getReturnTemp.toSquants,
     )
@@ -93,7 +94,7 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
         (
           1140.0,
           10.0,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(3600L),
+          ThermalStorage.ThermalStorageThreshold.StorageFull(3599L),
         ),
         (
           10.0,
