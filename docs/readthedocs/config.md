@@ -636,3 +636,13 @@ simona.control = {
     transformer = []
 }
 ```
+
+### Ampacity calculations (experimental)
+
+Ampacity calculation support is under active development. The initial configuration parameter that appears in the example scenario is listed below. The feature is not yet usable and remains disabled by default.
+
+- simona.ampacityCalculation.activateAmpacityCalculation (boolean)
+  - Default: false
+  - Description: master switch to enable ampacity calculations. Currently non-functional; keep set to `false` until the ampacity subsystem is implemented.
+
+Further ampacity-related configuration will be documented in the dedicated ampacity section of the documentation once the implementation is available.

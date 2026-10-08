@@ -239,6 +239,8 @@ object ServiceMessage {
     *
     * @param data
     *   The data.
+    * @param registrantKey
+    *   Optional key for per-registration attribution in DataProvision.
     */
   final case class DataProvision(
       override val tick: Long,
