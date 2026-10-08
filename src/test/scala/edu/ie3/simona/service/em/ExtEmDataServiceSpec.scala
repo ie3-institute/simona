@@ -53,8 +53,6 @@ class ExtEmDataServiceSpec
     with EmInputTestData
     with TestSpawnerTyped {
 
-  implicit val simulationStart: ZonedDateTime = ZonedDateTime.now()
-
   private val emptyControlled = List.empty[UUID].asJava
 
   private val emAgent1UUID =
@@ -77,7 +75,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection),
           serviceKey,
         )
       )
@@ -111,7 +109,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection),
           serviceKey,
         )
       )
@@ -160,7 +158,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection),
           serviceKey,
         )
       )
@@ -272,7 +270,7 @@ class ExtEmDataServiceSpec
       val emService = spawn(
         ExtEmDataService(
           scheduler.ref,
-          InitExtEmData(scheduler.ref, extEmDataConnection, simulationStart),
+          InitExtEmData(scheduler.ref, extEmDataConnection),
           serviceKey,
         )
       )

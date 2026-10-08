@@ -35,7 +35,7 @@ class ThermalCapacitanceSpec extends AnyFlatSpec with Matchers {
   it should "return properly formatted strings for all supported Units of Measure" in {
     KilowattHoursPerCubicMeterKelvin(1).toString(
       KilowattHoursPerCubicMeterKelvin
-    ) should be("1.0 kWh/m³K")
+    ) should be("1.0 kWh/(m³K)")
   }
 
   it should "return Energy when multiplied by Temperature delta of 1 Kelvin and Volume" in {

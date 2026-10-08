@@ -27,7 +27,7 @@ import edu.ie3.simona.scheduler.core.RegularSchedulerCore
 import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.sim.SimonaSim.SimulationEnded
 import edu.ie3.simona.sim.SimonaSimSpec.*
-import edu.ie3.simona.sim.setup.{ExtSimSetupData, SimonaSetup}
+import edu.ie3.simona.sim.setup.{AddonSetupData, SimonaSetup}
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -62,19 +62,19 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               Some(resultListener.ref),
               Some(timeAdvancer.ref),
             ) {
-              override def extSimulations(
+              override def addons(using
                   context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
                   resultProxy: ActorRef[ResultServiceProxy.Message],
                   extSimPath: Option[Path],
-              ): ExtSimSetupData = {
+              ): AddonSetupData = {
                 // We cannot return a TestProbe ref here,
                 // needs to be a proper actor created by context
                 val extSim = context.spawn(
                   forwardMessage(Some(extSimAdapter.ref)),
                   uniqueName("extSimAdapterForwarder"),
                 )
-                ExtSimSetupData(
+                AddonSetupData(
                   Iterable(extSim),
                   Seq.empty,
                   None,
@@ -137,7 +137,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               override def primaryServiceProxy(
                   context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
-                  extSimSetupData: ExtSimSetupData,
+                  extSimSetupData: AddonSetupData,
               ): ActorRef[ServiceMessage] = {
                 val throwingActor = context
                   .spawn[Any](
@@ -203,7 +203,7 @@ class SimonaSimSpec extends ScalaTestWithActorTestKit with UnitSpec {
               override def primaryServiceProxy(
                   context: ActorContext[?],
                   scheduler: ActorRef[SchedulerMessage],
-                  extSimSetupData: ExtSimSetupData,
+                  extSimSetupData: AddonSetupData,
               ): ActorRef[ServiceMessage] = {
                 val stoppingActor =
                   context.spawn[Any](
@@ -428,7 +428,7 @@ object SimonaSimSpec extends ConfigTestData {
     override def primaryServiceProxy(
         context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
-        extSimSetupData: ExtSimSetupData,
+        extSimSetupData: AddonSetupData,
     ): ActorRef[ServiceMessage] =
       context.spawn(empty, uniqueName("primaryService"))
 
@@ -487,12 +487,12 @@ object SimonaSimSpec extends ConfigTestData {
         environmentRefs: EnvironmentRefs,
     ): Map[UUID, Set[ActorRef[ParticipantAgent.Request]]] = Map.empty
 
-    override def extSimulations(
+    override def addons(using
         context: ActorContext[?],
         scheduler: ActorRef[SchedulerMessage],
         resultProxy: ActorRef[ResultServiceProxy.Message],
         extSimPath: Option[Path],
-    ): ExtSimSetupData =
-      ExtSimSetupData.apply
+    ): AddonSetupData =
+      AddonSetupData.apply
   }
 }

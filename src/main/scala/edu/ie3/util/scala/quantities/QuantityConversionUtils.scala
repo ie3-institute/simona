@@ -9,15 +9,7 @@ package edu.ie3.util.scala.quantities
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.*
 import edu.ie3.util.scala.quantities
-import edu.ie3.util.scala.quantities.{
-  ThermalCapacitance as ThermalCapacitanceSquants,
-  ThermalResistivity as ThermalResistivitySquants,
-}
-import squants.electro.*
-import edu.ie3.util.scala.quantities.{
-  ThermalCapacitance as ThermalCapacitanceSquants,
-  ThermalResistivity as ThermalResistivitySquants,
-}
+import edu.ie3.util.scala.quantities.ThermalCapacitance as ThermalCapacitanceSquants
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
@@ -123,6 +115,16 @@ object QuantityConversionUtils {
     )
   }
 
+  /** Extension for [[ComparableQuantity]] of type [[EnergyPrice]] that allows
+    * conversion into a [[quantities.EnergyPrice]] squants quantity.
+    */
+  extension (quantity: ComparableQuantity[EnergyPrice]) {
+
+    def toSquants: quantities.EnergyPrice = EuroPerKilowattHour(
+      quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
+    )
+  }
+
   /** Extension for [[ComparableQuantity]] of type [[Frequency]] that allows
     * conversion into a [[squants.time.Frequency]] squants quantity.
     */
@@ -162,16 +164,6 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Extension for [[ComparableQuantity]] of type [[EnergyPrice]] that allows
-    * conversion into a [[quantities.EnergyPrice]] squants quantity.
-    */
-  extension (quantity: ComparableQuantity[EnergyPrice]) {
-
-    def toSquants: quantities.EnergyPrice = EuroPerKilowattHour(
-      quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
-    )
-  }
-
   /** Extension for [[ComparableQuantity]] of type [[ElectricCapacitance]] that
     * allows conversion into a [[squants.electro.Capacitance]] squants quantity.
     */
@@ -204,7 +196,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Ohms]].
       */
-    def toResistance(implicit
+    def toSquants(implicit
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalResistance = Ohms(
       quantity
@@ -315,6 +307,25 @@ object QuantityConversionUtils {
       KilowattHoursPerCubicMeterKelvin(
         quantity
           .to(KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
+          .getValue
+          .doubleValue
+      )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[ThermalCapacitance]] that
+    * allows conversion into a
+    * [[edu.ie3.util.scala.quantities.ThermalCapacitance]] squants quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.ThermalCapacitance
+      ]
+  ) {
+    def toSquantsJoulePerCubicMeterKelvin
+        : edu.ie3.util.scala.quantities.ThermalCapacitance =
+      JoulesPerCubicMeterKelvin(
+        quantity
+          .to(JOULE_PER_CUBIC_METRE_KELVIN)
           .getValue
           .doubleValue
       )

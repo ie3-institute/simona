@@ -10,10 +10,8 @@ import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.thermal.CylindricalStorageInput
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toSquants,
-  toSquantsKWhPerCubicMeterKelvin,
-}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsKWhPerCubicMeterKelvin
 import org.scalatest.BeforeAndAfterAll
 import org.scalatest.matchers.should.Matchers
 import squants.Energy
