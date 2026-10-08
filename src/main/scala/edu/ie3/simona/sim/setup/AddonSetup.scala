@@ -97,16 +97,12 @@ object AddonSetup {
           updatedSetupData.updateAdapter(extSimAdapter)
       }
 
-    var index = 0
-
-    providedData.extListeners.asScala.foldLeft(addonSetupData) {
-      case (data, extListener) =>
+    providedData.extListeners.asScala.zipWithIndex.foldLeft(addonSetupData) {
+      case (data, (extListener, idx)) =>
         val extResultEventListener = context.spawn(
           ResultListener.external(extListener),
-          s"ExtResultListener_${extListener.getClass}_$index",
+          s"ExtResultListener_${extListener.getClass}_$idx",
         )
-
-        index += 1
 
         // add the external listener to the proxy
         resultProxy ! AddListener(extResultEventListener)
