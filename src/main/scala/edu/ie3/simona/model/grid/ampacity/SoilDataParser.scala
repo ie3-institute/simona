@@ -16,7 +16,7 @@ import squants.Meters
 import squants.space.Length
 import squants.thermal.Celsius
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
@@ -89,120 +89,141 @@ object SoilDataParser extends LazyLogging {
 
   /** Parse a CSV of soil types. Returns Try[Seq[SoilType]] with parsing errors
     * bubbled up as Failure.
+    *
+    * Expected header names (case-sensitive): `uuid`, `id`,
+    * `thermal_resistivity_wet`, `thermal_resistivity_dry`,
+    * `specific_heat_capacity`, `critical_temperature_difference`.
     */
-  def readSoilTypes(path: Path): Try[Seq[SoilType]] =
-    Try {
-      val csv = new CsvDataSource(",", path.getParent, new FileNamingStrategy())
+  def readSoilTypes(path: Path): Try[Seq[SoilType]] = Try {
+    val baseDir =
+      if path.getParent != null then path.getParent else Paths.get(".")
+    val csvDs = new CsvDataSource(",", baseDir, new FileNamingStrategy())
 
-      val headersOpt = csv.getSourceFields(path)
-      if !headersOpt.isPresent then
-        throw new IllegalArgumentException(
-          s"Unable to determine headers for file: $path"
-        )
-      val headers = headersOpt.get().asScala.toSeq
+    val headersOpt = csvDs.getSourceFields(path)
+    if !headersOpt.isPresent then
+      throw new IllegalArgumentException(
+        s"Unable to determine headers for file: $path"
+      )
+    val headers = headersOpt.get().asScala.toSeq
 
-      val required =
-        Seq("uuid", "name", "tr_wet", "tr_dry", "shc", "crit_temp_diff")
-      val missing = required.filterNot(h => headers.contains(h))
-      if missing.nonEmpty then
-        throw new IllegalArgumentException(
-          s"Missing required columns in $path: ${missing
-              .mkString(", ")}. Available: ${headers.mkString(", ")}"
-        )
+    val required = Seq(
+      "uuid",
+      "id",
+      "thermal_resistivity_wet",
+      "thermal_resistivity_dry",
+      "specific_heat_capacity",
+      "critical_temperature_difference",
+    )
+    val missing = required.filterNot(h => headers.contains(h))
+    if missing.nonEmpty then
+      throw new IllegalArgumentException(
+        s"Missing required columns in $path: ${missing
+            .mkString(", ")}. Available: ${headers.mkString(", ")}"
+      )
 
-      val stream = csv.getSourceData(path)
-      val javaRows =
-        try stream.collect(java.util.stream.Collectors.toList())
-        finally stream.close()
+    val stream = csvDs.getSourceData(path)
+    val rows = stream.iterator().asScala.map(_.asScala.toMap).toList
+    if rows.isEmpty then
+      throw new IllegalArgumentException(s"Empty file: $path")
 
-      val parsed = javaRows.asScala.toSeq.zipWithIndex.map { case (m, idx) =>
-        val mScala = m.asScala.toMap
-
+    val parsed = rows.zipWithIndex.map { case (row, idx) =>
+      Try {
         def getVal(key: String): String =
-          mScala.getOrElse(
+          row.getOrElse(
             key,
             throw new IllegalArgumentException(
               s"Missing value for column '$key' in row ${idx + 1} (file: $path)"
             ),
           )
 
-        Try {
-          val uuid = UUID.fromString(getVal("uuid"))
-          val name = getVal("name")
-          val trWet = KelvinMetersPerWatt(getVal("tr_wet").toDouble)
-          val trDry = KelvinMetersPerWatt(getVal("tr_dry").toDouble)
-          val shc = KilowattHoursPerCubicMeterKelvin(getVal("shc").toDouble)
-          val critTempDiff = Celsius(getVal("crit_temp_diff").toDouble)
-
-          SoilType(uuid, name, trWet, trDry, shc, critTempDiff)
-        }
-      }
-
-      val failures = parsed.collect { case Failure(e) => e }
-      if failures.nonEmpty then
-        throw new Exception(
-          s"Errors parsing soil types: ${failures.map(_.getMessage).mkString(", ")}"
+        val uuid = UUID.fromString(getVal("uuid"))
+        val name = getVal("id")
+        val trWet =
+          KelvinMetersPerWatt(getVal("thermalResistivityWet").trim.toDouble)
+        val trDry =
+          KelvinMetersPerWatt(getVal("thermalResistivityDry").trim.toDouble)
+        val shc = KilowattHoursPerCubicMeterKelvin(
+          getVal("specificHeatCapacity").trim.toDouble
         )
+        val critTempDiff =
+          Celsius(getVal("criticalTemperatureDifference").trim.toDouble)
 
-      parsed.collect { case Success(v) => v }
+        SoilType(uuid, name, trWet, trDry, shc, critTempDiff)
+      }
     }
 
-  /** Parse a CSV of soil layers. */
-  def readSoilLayers(path: Path): Try[Seq[SoilLayer]] =
-    Try {
-      val csv = new CsvDataSource(",", path.getParent, new FileNamingStrategy())
+    val failures = parsed.collect { case Failure(e) => e }
+    if failures.nonEmpty then
+      throw new RuntimeException(
+        s"Errors parsing soil types: ${failures.map(_.getMessage).mkString(", ")}"
+      )
 
-      val headersOpt = csv.getSourceFields(path)
-      if !headersOpt.isPresent then
-        throw new IllegalArgumentException(
-          s"Unable to determine headers for file: $path"
-        )
-      val headers = headersOpt.get().asScala.toSeq
+    parsed.collect { case Success(v) => v }
+  }
 
-      val required = Seq("uuid", "geometry", "z_from", "z_to", "soil_type")
-      val missing = required.filterNot(h => headers.contains(h))
-      if missing.nonEmpty then
-        throw new IllegalArgumentException(
-          s"Missing required columns in $path: ${missing
-              .mkString(", ")}. Available: ${headers.mkString(", ")}"
-        )
+  /** Parse a CSV of soil layers. Returns Try[Seq[SoilLayer]] with parsing
+    * errors.
+    *
+    * Expected header names (case-sensitive): `uuid`, `geometry`, `z_from`,
+    * `z_to`, `soil_type`.
+    *
+    * The `geometry` field is expected to contain a GeoJSON Polygon or
+    * MultiPolygon as a single CSV cell.
+    */
+  def readSoilLayers(path: Path): Try[Seq[SoilLayer]] = Try {
+    val baseDir =
+      if path.getParent != null then path.getParent else Paths.get(".")
+    val csvDs = new CsvDataSource(",", baseDir, new FileNamingStrategy())
 
-      val stream = csv.getSourceData(path)
-      val javaRows =
-        try stream.collect(java.util.stream.Collectors.toList())
-        finally stream.close()
+    val headersOpt = csvDs.getSourceFields(path)
+    if !headersOpt.isPresent then
+      throw new IllegalArgumentException(
+        s"Unable to determine headers for file: $path"
+      )
+    val headers = headersOpt.get().asScala.toSeq
 
-      val parsed = javaRows.asScala.toSeq.zipWithIndex.map { case (m, idx) =>
-        val mScala = m.asScala.toMap
+    val required = Seq("uuid", "geometry", "z_from", "z_to", "soil_type")
+    val missing = required.filterNot(h => headers.contains(h))
+    if missing.nonEmpty then
+      throw new IllegalArgumentException(
+        s"Missing required columns in $path: ${missing
+            .mkString(", ")}. Available: ${headers.mkString(", ")}"
+      )
 
+    val stream = csvDs.getSourceData(path)
+    val rows = stream.iterator().asScala.map(_.asScala.toMap).toList
+    if rows.isEmpty then
+      throw new IllegalArgumentException(s"Empty file: $path")
+
+    val parsed = rows.zipWithIndex.map { case (row, idx) =>
+      Try {
         def getVal(key: String): String =
-          mScala.getOrElse(
+          row.getOrElse(
             key,
             throw new IllegalArgumentException(
               s"Missing value for column '$key' in row ${idx + 1} (file: $path)"
             ),
           )
 
-        Try {
-          val uuid = UUID.fromString(getVal("uuid"))
-          val geoColRaw = getVal("geometry")
-          val geoCol = unquoteCsvField(geoColRaw)
-          val geometry = parseGeoJsonToGeometry(geoCol)
-          val zFrom = Meters(getVal("z_from").toDouble)
-          val zTo = Meters(getVal("z_to").toDouble)
-          val soilType = UUID.fromString(getVal("soil_type"))
+        val uuid = UUID.fromString(getVal("uuid"))
+        val geoCol = getVal("geometry")
+        val geometry = parseGeoJsonToGeometry(geoCol)
+        val zFrom = Meters(getVal("zFrom").trim.toDouble)
+        val zTo = Meters(getVal("zTo").trim.toDouble)
+        val soilType = UUID.fromString(getVal("soilType"))
 
-          SoilLayer(uuid, geometry, zFrom, zTo, soilType)
-        }
+        SoilLayer(uuid, geometry, zFrom, zTo, soilType)
       }
-
-      val failures = parsed.collect { case Failure(e) => e }
-      if failures.nonEmpty then
-        throw new RuntimeException(
-          s"Errors parsing soil layers: ${failures.map(_.getMessage).mkString(", ")}."
-        )
-      parsed.collect { case Success(v) => v }
     }
+
+    val failures = parsed.collect { case Failure(e) => e }
+    if failures.nonEmpty then
+      throw new RuntimeException(
+        s"Errors parsing soil layers: ${failures.map(_.getMessage).mkString(", ")}."
+      )
+
+    parsed.collect { case Success(v) => v }
+  }
 
   private val geometryFactory = new GeometryFactory()
 
