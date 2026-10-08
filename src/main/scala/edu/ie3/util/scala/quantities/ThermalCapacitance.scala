@@ -9,7 +9,6 @@ package edu.ie3.util.scala.quantities
 import squants.*
 import squants.energy.{Joules, KilowattHours}
 import squants.space.CubicMeters
-import squants.energy.KilowattHours
 
 import scala.util.Try
 
