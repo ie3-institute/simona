@@ -196,6 +196,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Ohms]].
       */
+    @targetName("specificResistanceToElectricalResistanceSquants")
     def toSquants(implicit
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalResistance = Ohms(
@@ -207,9 +208,10 @@ object QuantityConversionUtils {
     )
 
     /** @return
-      *   a quantity with unit [[Ohms]].
+      *   a quantity with unit [[OhmsPerKilometer]].
       */
-    def toResistancePerLength: ElectricalResistancePerLength =
+    @targetName("specificResistanceSquants")
+    def toSquants: ElectricalResistancePerLength =
       OhmsPerKilometer(quantity.to(OHM_PER_KILOMETRE).getValue.doubleValue)
   }
 

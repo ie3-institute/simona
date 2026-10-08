@@ -7,9 +7,9 @@
 package edu.ie3.simona.test.common.model.grid
 
 import edu.ie3.simona.model.control.GridControls
+import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.model.grid.GridModel.GridComponents
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
-import edu.ie3.simona.model.grid.*
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import tech.units.indriya.quantity.Quantities
 
