@@ -7,6 +7,7 @@
 package edu.ie3.simona.service.load
 
 import edu.ie3.datamodel.io.connectors.SqlConnector
+import edu.ie3.datamodel.io.file.FileType
 import edu.ie3.datamodel.io.factory.timeseries.{
   BdewLoadProfileFactory,
   LoadProfileFactory,
@@ -19,6 +20,10 @@ import edu.ie3.datamodel.io.naming.timeseries.{
 import edu.ie3.datamodel.io.naming.{DatabaseNamingStrategy, FileNamingStrategy}
 import edu.ie3.datamodel.io.source.csv.{CsvDataSource, CsvLoadProfileSource}
 import edu.ie3.datamodel.io.source.file.FileTimeSeriesMetaInformationSource
+import edu.ie3.datamodel.io.source.json.{
+  JsonDataSource,
+  JsonMarkovProfileSource,
+}
 import edu.ie3.datamodel.io.source.sql.{
   SqlDataSource,
   SqlLoadProfileSource,
@@ -45,6 +50,7 @@ import org.slf4j.{Logger, LoggerFactory}
 
 import java.nio.file.Path
 import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.util.{Failure, Success, Try}
 
 /** Utility methods for loading csv and sql load profile sources.
   */
@@ -58,12 +64,15 @@ object LoadProfileSources {
     *   The definition of additional sources. If no definition is given, only
     *   the build in load profiles can be used.
     * @return
-    *   The option for the build in [[LoadProfileTimeSeries]] as well as a map:
-    *   load profile to source
+    *   Maps: load profile to time series source and load profile to Markov
+    *   source
     */
   def buildSources(
       sourceDefinition: InputConfig.LoadProfile.Datasource
-  ): Map[PowerProfileKey, LoadProfileSource[?]] = {
+  ): (
+      Map[PowerProfileKey, LoadProfileSource[?]],
+      Map[PowerProfileKey, JsonMarkovProfileSource],
+  ) = {
     val definedSources = Vector(
       sourceDefinition.csvParams,
       sourceDefinition.sqlParams,
@@ -110,12 +119,21 @@ object LoadProfileSources {
         )
         val allSources = bdew ++ random
 
-        // check if all sources are build
-        checkSources(allSources.keySet, metaInformation.keySet)
+        val markovMetaInformation = metaInformation.filter {
+          case (profileKey, _) =>
+            profileKey.getType == PowerProfileKey.Type.MARKOV
+        }
+        val markov = buildMarkovSources(definedSources, markovMetaInformation)
 
-        allSources
+        // check if all sources are build
+        checkSources(
+          allSources.keySet ++ markov.keySet,
+          metaInformation.keySet,
+        )
+
+        (allSources, markov)
       case _ =>
-        Map.empty
+        (Map.empty, Map.empty)
     }
   }
 
@@ -248,5 +266,50 @@ object LoadProfileSources {
         }
       }
   }
+
+  /** Method to build [[JsonMarkovProfileSource]]s for file based sources.
+    * Models that cannot be loaded are skipped.
+    * @param definedSources
+    *   Option for source parameters.
+    * @param markovMetaInformation
+    *   The meta information of all Markov models.
+    * @return
+    *   A map: [[PowerProfileKey]] to [[JsonMarkovProfileSource]].
+    */
+  private def buildMarkovSources(
+      definedSources: Option[Any],
+      markovMetaInformation: Map[PowerProfileKey, LoadProfileMetaInformation],
+  ): Map[PowerProfileKey, JsonMarkovProfileSource] =
+    definedSources match {
+      case Some(BaseCsvParams(_, directoryPath, _)) =>
+        val jsonDataSource = new JsonDataSource(
+          Path.of(directoryPath),
+          new FileNamingStrategy(),
+        )
+
+        markovMetaInformation.flatMap {
+          case (profile, metaInformation: FileLoadProfileMetaInformation)
+              if metaInformation.getFileType == FileType.JSON =>
+            val source =
+              new JsonMarkovProfileSource(jsonDataSource, metaInformation)
+
+            Try(source.getModel) match {
+              case Success(_) =>
+                Some(profile -> source)
+              case Failure(exception) =>
+                log.error(
+                  s"Unable to load Markov model for profile $profile!",
+                  exception,
+                )
+                None
+            }
+
+          case _ =>
+            None
+        }
+
+      case _ =>
+        Map.empty
+    }
 
 }

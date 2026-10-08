@@ -40,11 +40,13 @@ import edu.ie3.simona.test.common.{IOTestCommons, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.util.io.FileIOUtils
+import edu.ie3.util.quantities.PowerSystemUnits
 import org.apache.pekko.actor.typed.{ActorRef, PostStop}
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.scalatest.BeforeAndAfterAll
 
 import java.io.File
+import java.nio.file.{Files, Path}
 import java.time.ZonedDateTime
 import java.util.UUID
 import java.util.concurrent.LinkedBlockingQueue
@@ -311,6 +313,176 @@ class RunSimonaStandaloneIT
       }
 
     }
+  }
+
+  "A simona standalone simulation with Markov load models" must {
+
+    // copy of the grid, whose loads reference the Markov load profile
+    lazy val markovGridDirectory: String = {
+      val gridDirectory = Path.of(
+        ConfigFactory
+          .parseFile(new File(configFile))
+          .getString("simona.input.grid.datasource.csvParams.directoryPath")
+      )
+      val copyDirectory =
+        Files.createDirectories(Path.of(testTmpDir, "markov_grid"))
+
+      gridDirectory.toFile.listFiles.foreach { file =>
+        val content = Files.readString(file.toPath)
+
+        Files.writeString(
+          copyDirectory.resolve(file.getName),
+          if file.getName == "load_input.csv" then
+            content.replace(",h0,", ",markov_h0,")
+          else content,
+        )
+      }
+
+      copyDirectory.toString.replace("\\", "/")
+    }
+
+    def runSimulation(
+        simulationName: String
+    ): Map[(UUID, ZonedDateTime), Double] = {
+      val markovDirectory =
+        getResourcePath("markov").toString.replace("\\", "/")
+
+      /* setup config */
+      val parsedConfig =
+        ConfigFactory
+          .empty()
+          .withValue(
+            "simona.simulationName",
+            ConfigValueFactory.fromAnyRef(simulationName),
+          )
+          .withValue(
+            "simona.output.base.dir",
+            ConfigValueFactory.fromAnyRef(testTmpDir),
+          )
+          .withValue(
+            "simona.time.startDateTime",
+            ConfigValueFactory.fromAnyRef("2011-01-01T00:00:00Z"),
+          )
+          .withValue(
+            "simona.time.endDateTime",
+            ConfigValueFactory.fromAnyRef("2011-01-01T02:00:00Z"),
+          )
+          .withValue(
+            "simona.input.grid.datasource.csvParams.directoryPath",
+            ConfigValueFactory.fromAnyRef(markovGridDirectory),
+          )
+          .withValue(
+            "simona.runtime.participant.load.modelBehaviour",
+            ConfigValueFactory.fromAnyRef("markov"),
+          )
+          .withValue(
+            "simona.runtime.participant.load.reference",
+            ConfigValueFactory.fromAnyRef("power"),
+          )
+          .withFallback(
+            ConfigFactory.parseString(s"""
+                |simona.input.loadProfile.datasource.csvParams = {
+                |  csvSep = ","
+                |  directoryPath = "$markovDirectory"
+                |  isHierarchic = false
+                |}
+                |simona.output.log.level = "INFO"
+                |simona.output.log.consoleLevel = "ERROR"
+                |""".stripMargin)
+          )
+          .withFallback(
+            ConfigFactory
+              .parseString("""
+                  |pekko.loggers =["org.apache.pekko.event.slf4j.Slf4jLogger"]
+                  |pekko.loglevel="OFF"
+                  |""".stripMargin)
+          )
+          .withFallback(ConfigFactory.parseFile(new File(configFile)))
+          .withFallback(ConfigFactory.parseString(s"config=$configFile"))
+          .resolve()
+
+      /* validate config */
+      val simonaConfig = SimonaConfig(parsedConfig)
+      ConfigFailFast.check(simonaConfig)
+
+      val runtimeEventQueue = new LinkedBlockingQueue[RuntimeEvent]()
+
+      val simonaSetup = Setup(
+        parsedConfig,
+        simonaConfig,
+        runtimeEventQueue = Some(runtimeEventQueue),
+      )
+
+      /* run simulation */
+      RunSimonaStandalone.run(simonaSetup) shouldBe true
+
+      checkRuntimeEvents(runtimeEventQueue.asScala)
+
+      simonaSetup.actualResults.collect {
+        case ((uuid, time, _), result: LoadResult) =>
+          (uuid, time) -> result.getP
+            .to(PowerSystemUnits.KILOWATT)
+            .getValue
+            .doubleValue
+      }.toMap
+    }
+
+    "run and produce reproducible load results" in {
+      val loadResults = runSimulation("vn_simona_markov_1")
+
+      // all loads of the grid provide results
+      val expectedLoads = expectedLoadResults.keySet.map(_._1)
+      loadResults.keySet.map(_._1) shouldBe expectedLoads
+
+      // loads with primary data (see time_series_mapping.csv) or an individual
+      // model behaviour (see load_input.csv) keep their previous results
+      val loadsWithoutMarkov = loadResults
+        .groupBy { case ((uuid, _), _) => uuid }
+        .collect {
+          case (uuid, results) if results.forall { case (key, power) =>
+                expectedLoadResults
+                  .get(key)
+                  .exists(expected => math.abs(expected - power) < tolerance)
+              } =>
+            uuid
+        }
+        .toSet
+
+      loadsWithoutMarkov shouldBe Set(
+        "4642d648-b0dd-4597-a3bd-2cc1fce74f27",
+        "50c89980-8da2-4e98-8602-e2f0b560e7c4",
+        "ff5bf65c-e880-4a49-a286-fd51ce1f48b7",
+      ).map(UUID.fromString)
+
+      // the Markov model is normalized between 0 kW and 1.5 kW
+      loadResults.foreach {
+        case ((uuid, _), power) if !loadsWithoutMarkov.contains(uuid) =>
+          power should (be >= -tolerance and be <= 1.5 + tolerance)
+        case _ =>
+      }
+
+      // the same seeds lead to the same results
+      runSimulation("vn_simona_markov_2") shouldBe loadResults
+    }
+  }
+
+  /** Load results of the simulation with standard load profiles.
+    */
+  private lazy val expectedLoadResults: Map[(UUID, ZonedDateTime), Double] = {
+    val source = new ResultEntitySource(
+      new CsvDataSource(
+        ",",
+        getResourcePath("vn_simona"),
+        new FileNamingStrategy(),
+      )
+    )
+
+    source.getLoadResults.asScala.map { result =>
+      (result.getInputModel, result.getTime) -> result.getP
+        .to(PowerSystemUnits.KILOWATT)
+        .getValue
+        .doubleValue
+    }.toMap
   }
 
   private def checkRuntimeEvents(

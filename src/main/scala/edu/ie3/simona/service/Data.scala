@@ -351,6 +351,16 @@ object Data {
         powerSupplier: () => Power
     ) extends SecondaryData
 
+    /** Container class for the Markov load profile information at a certain
+      * point in time.
+      *
+      * @param stepFunction
+      *   Function: (previous state, seed) => (power, next state).
+      */
+    final case class MarkovDataFunction(
+        stepFunction: (Int, Long) => (Power, Int)
+    ) extends SecondaryData
+
     /** Container class for the entirety of weather information at a certain
       * point in time and at a certain coordinate
       *

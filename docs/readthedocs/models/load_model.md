@@ -38,6 +38,7 @@ Defining the model implementation to use:
 - *"profile"*: It will set up a standard load profile model according to the ``standardLoadProfile`` field of the input model.
 - *"fix"*: The model will provide a fixed active power consumption
 - *"random"*: The model will randomly draw the active power consumption from sampled probability functions of household load measurements
+- *"markov"*: The model will draw the active power consumption from a Markov chain based load profile (see {ref}`markov_load_profiles`)
 
 #### ``reference``
 
@@ -45,6 +46,8 @@ Gives information, to what input information the model output will be scaled. Ev
 
 - *"power"*: The maximum active power consumption throughout a year will meet the rated active power of the model. In the case of ``modelBehaviour = "random"``, the 95 % quantile will meet the rated apparent power.
 - *"energy"*: The annual energy consumption of the model will meet ``eConsAnnual`` of the input model
+
+For ``modelBehaviour = "markov"``, *"power"* means that the model is not scaled, see {ref}`markov_load_profiles`.
 
 ### Applying configuration
 
@@ -153,3 +156,31 @@ Both model and data stem from [BDEW](https://www.bdew.de/energie/standardlastpro
 The model in its entirety is described here: [Application Remarks](https://www.bdew.de/media/documents/2000131_Anwendung-repraesentativen_Lastprofile-Step-by-step.pdf)
 
 The data sources are taken from [Profile.zip](https://www.bdew.de/media/documents/Profile.zip), which includes file *Repräsentative Profile VDEW.xls*. The tabs H0, G0 and L0 contain the values that make up Lastprofile.csv in the SIMONA project.
+
+(markov_load_profiles)=
+## Markov Load Profiles
+
+Markov load profiles describe the load of a single household with a Markov chain. They are trained with [simonaMarkovLoad](https://github.com/ie3-institute/simonaMarkovLoad) and read by the {doc}`PowerSystemDataModel <psdm:io/markov>`.
+
+### Input
+
+The models are stored as json files in the directory of the load profile source:
+
+```{code-block}
+    simona.input.loadProfile.datasource.csvParams = {
+        csvSep = ","
+        directoryPath = "input/loadProfiles"
+        isHierarchic = false
+    }
+```
+
+A file is named ``markov_<name>.json``, where ``<name>`` consists of up to 11 letters followed by up to 3 digits. A load uses the model, if its ``modelBehaviour`` is *"markov"* and its load profile is ``markov_<name>``, e.g. ``markov_h0``. Markov load profiles are only supported for file based sources (``csvParams``), not for sql sources.
+
+### Model
+
+- Each load keeps the state of its Markov chain. In every time step, the next state and the power are drawn from the model.
+- The seed of each load is derived from its uuid, so that simulations are reproducible.
+- Before the simulation start, or a later start of operation, the chain is run for one day to get an initial state.
+- With reference *"power"*, the model is not scaled, since its maximal power is the maximum of all training data. Only the configured ``scaling`` is applied.
+- With reference *"energy"*, the model is scaled to ``eConsAnnual``. This is not supported yet, since the PowerSystemDataModel does not provide an energy scaling for Markov models so far. The simulation fails at model creation.
+- Forecasts are not supported. Therefore, Markov load models only provide power limit flexibility.
