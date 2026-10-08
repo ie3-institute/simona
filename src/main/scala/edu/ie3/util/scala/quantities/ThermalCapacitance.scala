@@ -9,6 +9,7 @@ package edu.ie3.util.scala.quantities
 import squants.*
 import squants.energy.{Joules, KilowattHours}
 import squants.space.CubicMeters
+import squants.energy.KilowattHours
 
 import scala.util.Try
 
@@ -80,12 +81,13 @@ object JoulesPerCubicMeterKelvin
     with PrimaryUnit
     with SiUnit {
   val symbol: String =
-    Joules.symbol + "/(" + CubicMeters.symbol + "*" + Kelvin.symbol + ")"
+    Joules.symbol + "/(" + CubicMeters.symbol + Kelvin.symbol + ")"
 }
 
 object KilowattHoursPerCubicMeterKelvin
     extends ThermalCapacitanceUnit
     with SiUnit {
   val conversionFactor: Double = 3600000.0
-  val symbol: String = "kWh/m³K"
+  val symbol: String =
+    KilowattHours.symbol + "/(" + CubicMeters.symbol + Kelvin.symbol + ")"
 }

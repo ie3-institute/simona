@@ -93,7 +93,7 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'edu.ie3'
   }
-  implementation('com.github.ie3-institute:simonaAPI:0.15.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.16.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -140,7 +140,7 @@ dependencies {
 
   /* config */
   implementation 'com.typesafe:config:1.4.9'
-  implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
+  implementation "com.github.scopt:scopt_${scalaVersion}:4.2.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
 
