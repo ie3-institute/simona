@@ -6,6 +6,8 @@
 
 package edu.ie3.util.scala.quantities
 
+import squants.electro.Farads
+import squants.space.Meters
 import squants.{
   AbstractQuantityNumeric,
   Dimension,

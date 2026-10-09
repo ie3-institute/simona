@@ -9,7 +9,10 @@ package edu.ie3.util.scala.quantities
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.*
 import edu.ie3.util.scala.quantities
-import edu.ie3.util.scala.quantities.ThermalCapacitance as ThermalCapacitanceSquants
+import edu.ie3.util.scala.quantities.{
+  ThermalCapacitance as ThermalCapacitanceSquants,
+  ThermalResistivity as ThermalResistivitySquants,
+}
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
