@@ -199,7 +199,9 @@ class ResultEntityCsvSinkSpec extends UnitSpec with IOTestCommons {
       val resultFileLines = resultFileSource.getLines().toVector
       resultFileLines.size shouldBe 2
       resultFileLines.headOption.getOrElse(
-        fail("Cannot get header line that should have been written out by sink!")
+        fail(
+          "Cannot get header line that should have been written out by sink!"
+        )
       ) shouldBe "input_model;p;q;time"
       resultFileLines.lastOption.getOrElse(
         fail("Cannot get line that should have been written out by sink!")
