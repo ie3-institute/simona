@@ -9,7 +9,8 @@ package edu.ie3.util.scala.quantities
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.*
 import edu.ie3.util.scala.quantities
-import edu.ie3.util.scala.quantities.ThermalCapacitance as ThermalCapacitanceSquants
+import edu.ie3.util.scala.quantities.ThermalCapacitance
+import edu.ie3.util.scala.quantities.ThermalResistivity
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
@@ -297,7 +298,7 @@ object QuantityConversionUtils {
     */
   extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
 
-    def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitanceSquants =
+    def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitance =
       KilowattHoursPerCubicMeterKelvin(
         quantity
           .to(KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)

@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added use cases for SIMONA [#1814](https://github.com/ie3-institute/simona/issues/1814)
 - Added check for data in `RunSimonaStandaloneIT` [#1491](https://github.com/ie3-institute/simona/issues/1491)
 - Introduced energy boundaries tightening algorithm [#1835](https://github.com/ie3-institute/simona/issues/1835)
+- Include Soils and `SoilParser` for thermal rating calculations [#1912](https://github.com/ie3-institute/simona/issues/1912)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
