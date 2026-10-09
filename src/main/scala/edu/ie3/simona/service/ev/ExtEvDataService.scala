@@ -200,7 +200,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
     val prices = serviceStateData.uuidToActorRef.map { case (evcs, _) =>
       evcs -> dummyPrice
     }
-    serviceStateData.extEvData.queueExtResponseMsg(
+    serviceStateData.extEvData.handleResponseMsg(
       new ProvideCurrentPrices(prices.asJava)
     )
 
@@ -226,7 +226,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
 
     // if there are no evcs, we're sending response right away
     if freeLots.isEmpty then
-      serviceStateData.extEvData.queueExtResponseMsg(new ProvideEvcsFreeLots())
+      serviceStateData.extEvData.handleResponseMsg(new ProvideEvcsFreeLots())
 
     (
       serviceStateData.copy(
@@ -266,7 +266,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
     // if there are no departing evs during this tick,
     // we're sending response right away
     if departingEvResponses.isEmpty then
-      serviceStateData.extEvData.queueExtResponseMsg(new ProvideDepartingEvs())
+      serviceStateData.extEvData.handleResponseMsg(new ProvideDepartingEvs())
 
     (
       serviceStateData.copy(
@@ -355,7 +355,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
           val departingEvs =
             updatedResponses.receivedData.values.flatten.map(_.unwrap())
 
-          serviceStateData.extEvData.queueExtResponseMsg(
+          serviceStateData.extEvData.handleResponseMsg(
             new ProvideDepartingEvs(departingEvs.toList.asJava)
           )
 
@@ -381,7 +381,7 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
               evcs -> int2Integer(freeLotsCount)
             }
 
-          serviceStateData.extEvData.queueExtResponseMsg(
+          serviceStateData.extEvData.handleResponseMsg(
             new ProvideEvcsFreeLots(freeLotsResponse.asJava)
           )
 
