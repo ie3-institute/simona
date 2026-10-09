@@ -8,6 +8,7 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.{Config, ConfigValue}
 import edu.ie3.simona.config.SimonaConfig.{
+  AmpacityCalculation,
   CongestionManagement,
   Control,
   GridConfig,
@@ -17,16 +18,17 @@ import edu.ie3.simona.config.SimonaConfig.{
 }
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.util.TimeUtil
+import pureconfig.*
 import pureconfig.error.*
 import pureconfig.generic.*
 import pureconfig.generic.semiauto.deriveConvert
-import pureconfig.*
 
 import java.time.ZonedDateTime
 import scala.concurrent.duration.{DurationInt, FiniteDuration}
 import scala.deriving.Mirror
 
 final case class SimonaConfig(
+    ampacityCalculation: AmpacityCalculation = AmpacityCalculation(),
     congestionManagement: CongestionManagement = CongestionManagement(),
     control: Option[Control] = None,
     gridConfig: GridConfig = GridConfig(),
@@ -121,6 +123,10 @@ object SimonaConfig {
       override val voltLvls: Option[List[VoltLvlConfig]] = None,
   ) extends GridConfigParams
       derives ConfigConvert
+
+  final case class AmpacityCalculation(
+      activateAmpacityCalculation: Boolean = false
+  ) derives ConfigConvert
 
   final case class CongestionManagement(
       enableDetection: Boolean = false,

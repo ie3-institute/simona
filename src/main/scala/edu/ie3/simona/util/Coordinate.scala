@@ -25,3 +25,24 @@ final case class Coordinate(
       new org.locationtech.jts.geom.Coordinate(longitude, latitude)
     )
 }
+
+/** A simple coordinate class.
+  *
+  * @param latitude
+  *   The latitude of the coordinate.
+  * @param longitude
+  *   The longitude of the coordinate.
+  * @param height
+  *   The height above ground level longitude of the coordinate. Negative values
+  *   refer to depth accordingly.
+  */
+final case class Coordinate3D(
+    latitude: Double,
+    longitude: Double,
+    height: Double,
+) {
+  def toPoint: Point =
+    GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
+      new org.locationtech.jts.geom.Coordinate(longitude, latitude, height)
+    )
+}
