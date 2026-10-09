@@ -221,8 +221,6 @@ object SoilDataParser extends LazyLogging {
       throw new RuntimeException(
         s"Errors parsing soil layers: ${failures.map(_.getMessage).mkString(", ")}."
       )
-      else Success(parsed.collect { case Success(v) => v })
-    }
 
     parsed.collect { case Success(v) => v }
   }
