@@ -6,10 +6,6 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.datamodel.models.input.connector.{
-  CableDeploymentInput,
-  LineInput,
-}
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
   LineTypeInput,
@@ -17,31 +13,34 @@ import edu.ie3.datamodel.models.input.connector.`type`.{
   LayerInput as JLayerInput,
   ScreenLayerInput as JScreenLayerInput,
 }
+import edu.ie3.datamodel.models.input.connector.{
+  CableDeploymentInput,
+  LineInput,
+}
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.grid.ampacity.CableSetup
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
-import edu.ie3.simona.model.grid.ampacity.SoilDataParser
-import edu.ie3.simona.model.grid.ampacity.SoilLayer
-import edu.ie3.simona.model.grid.ampacity.SoilType
-import edu.ie3.simona.util.Coordinate
-import edu.ie3.simona.util.Coordinate3D
+import edu.ie3.simona.model.grid.ampacity.{
+  CableSetup,
+  LineSegmentThermalModel,
+  SoilDataParser,
+  SoilLayer,
+  SoilType,
+}
+import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
 }
-import play.api.libs.json.*
-import squants.{Meters, Temperature}
-import squants.space.{Length, Millimeters}
-import org.locationtech.jts.linearref.LengthIndexedLine
 import org.locationtech.jts.geom.{GeometryFactory, Coordinate as JtsCoordinate}
+import org.locationtech.jts.linearref.LengthIndexedLine
+import squants.space.{Length, Millimeters}
+import squants.{Meters, Temperature}
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.UUID
-import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map as MutableMap
+import scala.collection.mutable.{ListBuffer, Map as MutableMap}
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
@@ -182,7 +181,7 @@ object ThermalSegmentBuilder {
   /** Validates that at least one line has a cable type attached to its line
     * type.
     */
-  private def validateCableTypesPresent(
+  private[ampacity] def validateCableTypesPresent(
       subGridContainer: SubGridContainer
   ): Unit = {
     val hasCableType =
@@ -199,7 +198,7 @@ object ThermalSegmentBuilder {
   /** Validates that cable deployment entries exist and that every line with a
     * cable type also has a cable deployment.
     */
-  private def validateCableDeployments(
+  private[ampacity] def validateCableDeployments(
       subGridContainer: SubGridContainer,
       deploymentsByLine: scala.collection.Map[UUID, java.util.List[
         CableDeploymentInput
@@ -289,16 +288,10 @@ object ThermalSegmentBuilder {
 
             // If no deployment, skip this line
             firstDeploymentOpt.toSeq.flatMap { firstDeployment =>
-              // Geometrische Stützpunkte aus dem GeoJSON extrahieren
-              val jsonStringLineInput = lineInputToJson(lineInput)
-              val json = Json.parse(jsonStringLineInput)
+              // Extract line points from geoposition
               val coordinates: Seq[(Double, Double)] =
-                (json \ "coordinates")
-                  .asOpt[JsArray]
-                  .map(_.value.toSeq.collect {
-                    case pair: JsArray if pair.value.size >= 2 =>
-                      (pair.value(0).as[Double], pair.value(1).as[Double])
-                  })
+                Option(lineInput.getGeoPosition)
+                  .map(_.getCoordinates.toSeq.map(c => (c.x, c.y)))
                   .getOrElse(Seq.empty)
 
               // TODO DF: In case some information are missing in the provided input data, these might be filled by data in PSDM (Cable Material Data). Might worth an improvement in PSDM, noted here to keep track.
@@ -512,20 +505,6 @@ object ThermalSegmentBuilder {
       }
       .flatten
       .toSet
-  }
-
-  /** Converts a [[LineInput]] to a GeoJSON string representation.
-    */
-  private def lineInputToJson(lineInput: LineInput): String = {
-    val lineString = lineInput.getGeoPosition
-
-    val coordinatesJson = lineString.getCoordinates
-      .map { coord =>
-        s"[${coord.x}, ${coord.y}]"
-      }
-      .mkString(",")
-
-    s"""{"type": "LineString", "coordinates": [$coordinatesJson]}"""
   }
 
   /** Reads a CSV file from the configured grid CSV directory.

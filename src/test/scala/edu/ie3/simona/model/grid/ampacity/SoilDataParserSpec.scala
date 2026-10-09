@@ -61,6 +61,16 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
       assert(t.criticalTemperatureDifference == Celsius(15d))
     }
 
+    "reject soil types file with incorrect header case" in {
+      val content =
+        s"UUID,id,thermal_resistivity_wet,thermal_resistivity_dry,specific_heat_capacity,critical_temperature_difference\n${uuid},loam,0.30,0.40,0.0015,15.0\n"
+      val tmp = Files.createTempFile("soil_types_bad_header", ".csv")
+      Files.writeString(tmp, content)
+
+      val res = SoilDataParser.readSoilTypes(tmp)
+      assert(res.isFailure)
+    }
+
     "select the wet or dry thermal resistivity based on the critical temperature difference" in {
       val t = SoilType(
         uuid,
@@ -135,6 +145,16 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
       assert(layers.size == 1)
 
       layers.head.thickness shouldBe Meters(0.4)
+    }
+
+    "reject soil layers file with incorrect header case" in {
+      val content =
+        "UUID,geometry,z_from,z_to,soil_type\nf07aa67c-43f5-4706-967a-5d0613a94701,\"{\"\"type\"\":\"\"Polygon\"\",\"\"coordinates\"\":[[[7.40383,51.49129],[7.40562,51.49130],[7.40560,51.49106],[7.40377,51.49105],[7.40383,51.49129]]]]}\",0.0,-0.4,32b43a78-7721-431d-b1c2-56975a123670"
+      val tmp = Files.createTempFile("soilLayers_bad_header", ".csv")
+      Files.writeString(tmp, content)
+
+      val res = SoilDataParser.readSoilLayers(tmp)
+      assert(res.isFailure)
     }
 
     "check for overlaps of soil layers" in {
