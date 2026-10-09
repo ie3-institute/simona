@@ -8,13 +8,6 @@ package edu.ie3.simona.model.grid
 
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
-import edu.ie3.datamodel.models.input.connector.`type`.{
-  CableTypeInput,
-  LineTypeInput,
-  ConductorInput as JConductorInput,
-  LayerInput as JLayerInput,
-  ScreenLayerInput as JScreenLayerInput,
-}
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.powerflow.math.{Complex, DenseMatrix}
 import edu.ie3.simona.config.SimonaConfig
@@ -34,12 +27,9 @@ import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
 import org.jgrapht.graph.{DefaultEdge, SimpleGraph}
 
-import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
-import scala.jdk.OptionConverters.*
-import scala.util.{Failure, Success, Try}
 
 /** Representation of one physical electrical grid. It holds the references to
   * nodes, lines, switches and transformers and fundamental properties (like
