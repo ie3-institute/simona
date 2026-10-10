@@ -95,18 +95,10 @@ object ThermalSegmentBuilder extends LazyLogging {
     *   The validated soil layers read from configuration.
     * @param thermalLineSegments
     *   The generated thermal line segments.
-    * @param segmentCoordinates
-    *   A map from segment UUID to the midpoint coordinate (latitude, longitude)
-    *   used for weather registration.
-    * @param parallelInfluence
-    *   A map from segment UUID to the list of (neighbour line UUID, minimum
-    *   lateral distance in meters) for each proximate neighbour.
     */
   final case class BuildResult(
       soilLayers: Seq[SoilLayer],
       thermalLineSegments: Set[LineSegmentThermalModel],
-      segmentCoordinates: Map[UUID, Coordinate] = Map.empty,
-      parallelInfluence: Map[UUID, Seq[(UUID, Double)]] = Map.empty,
   )
 
   /** Builds thermal line segments for the given subgrid.
@@ -152,8 +144,6 @@ object ThermalSegmentBuilder extends LazyLogging {
     val (
       lineSegmentThermalModels,
       generatedSegments,
-      segmentCoordinates,
-      parallelInfluence,
     ) = generateThermalSegments(
       subGridContainer,
       soilLayers,
@@ -162,12 +152,13 @@ object ThermalSegmentBuilder extends LazyLogging {
       ppThreshold,
     )
     // 4. Write generated segments to output
-    writeThermalSegmentsToOutput(generatedSegments, simonaConfig)
+    writeThermalSegmentsToOutput(
+      generatedSegments,
+      simonaConfig,
+    )
     BuildResult(
       soilLayers,
       lineSegmentThermalModels,
-      segmentCoordinates,
-      parallelInfluence,
     )
   }
 
@@ -336,18 +327,12 @@ object ThermalSegmentBuilder extends LazyLogging {
   ): (
       Set[LineSegmentThermalModel],
       Seq[(LineSegmentThermalModel, (Double, Double), (Double, Double))],
-      Map[UUID, Coordinate],
-      Map[UUID, Seq[(UUID, Double)]],
   ) = {
     val deploymentsByLine =
       subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
     val generatedSegments: ListBuffer[
       (LineSegmentThermalModel, (Double, Double), (Double, Double))
     ] = ListBuffer.empty
-    val segmentCoordinatesBuffer: MutableMap[UUID, Coordinate] =
-      MutableMap.empty
-    val parallelInfluenceBuffer: MutableMap[UUID, Seq[(UUID, Double)]] =
-      MutableMap.empty
     val warnedPairs: MutableSet[(UUID, UUID)] = MutableSet.empty
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
@@ -428,10 +413,8 @@ object ThermalSegmentBuilder extends LazyLogging {
                   soilTypes,
                   cableTypeInput.getLimitTemperature.toSquants,
                   generatedSegments,
-                  segmentCoordinatesBuffer,
                   neighbourLines,
                   ppThreshold,
-                  parallelInfluenceBuffer,
                   warnedPairs,
                 )
               segments
@@ -442,8 +425,6 @@ object ThermalSegmentBuilder extends LazyLogging {
     (
       thermalLineSegments,
       generatedSegments.toSeq,
-      segmentCoordinatesBuffer.toMap,
-      parallelInfluenceBuffer.toMap,
     )
   }
 
@@ -493,10 +474,8 @@ object ThermalSegmentBuilder extends LazyLogging {
       generatedSegments: ListBuffer[
         (LineSegmentThermalModel, (Double, Double), (Double, Double))
       ],
-      segmentCoordinatesBuffer: MutableMap[UUID, Coordinate],
       neighbourLines: Seq[NeighbourLineInfo],
       ppThreshold: Option[Double],
-      parallelInfluenceBuffer: MutableMap[UUID, Seq[(UUID, Double)]],
       warnedPairs: MutableSet[(UUID, UUID)],
   ): Set[LineSegmentThermalModel] = {
     val geometryFactory = new GeometryFactory()
@@ -643,8 +622,36 @@ object ThermalSegmentBuilder extends LazyLogging {
               )
               val s = (p1.x, p1.y)
               val e = (p2.x, p2.y)
+              val segmentUuid = UUID.randomUUID()
+              val calculationPoint = SegmentCalculationPoints.coordinateFor(
+                segmentUuid,
+                s,
+                e,
+                soilLayers.map(_.geometry.getBoundary),
+              )
+              val influence: Seq[(UUID, Double)] =
+                ppThreshold match {
+                  case Some(thresholdMeters) =>
+                    neighbourLineStrings
+                      .filter(_._1.hasDeployment)
+                      .filterNot(n =>
+                        rejectedNeighbours.contains(n._1.lineUuid)
+                      )
+                      .flatMap { case (neighbour, _) =>
+                        val distMeters =
+                          neighborLineDistanceMeters(
+                            neighbour.geoPosition,
+                            midPoint,
+                            geometryFactory,
+                          )
+                        if distMeters < thresholdMeters
+                        then Some((neighbour.lineUuid, distMeters))
+                        else None
+                      }
+                  case None => Seq.empty
+                }
               val segment = LineSegmentThermalModel(
-                UUID.randomUUID(),
+                segmentUuid,
                 s"LineTher_${lineInput.getId}_${s}_${e}",
                 lineInput.getUuid,
                 cable,
@@ -663,34 +670,10 @@ object ThermalSegmentBuilder extends LazyLogging {
                 JoulesPerCubicMeterKelvin(1),
                 limitTemperature,
                 assignedSoilType,
+                calculationPoint,
+                influence,
               )
               generatedSegments += ((segment, s, e))
-              segmentCoordinatesBuffer(segment.uuid) =
-                SegmentCalculationPoints.coordinateFor(
-                  segment.uuid,
-                  s,
-                  e,
-                  soilLayers.map(_.geometry.getBoundary),
-                )
-              // Record parallel-proximity influence
-              ppThreshold.foreach { thresholdMeters =>
-                val influence: Seq[(UUID, Double)] = neighbourLineStrings
-                  .filter(_._1.hasDeployment)
-                  .filterNot(n => rejectedNeighbours.contains(n._1.lineUuid))
-                  .flatMap { case (neighbour, neighbourLine) =>
-                    val distMeters =
-                      neighborLineDistanceMeters(
-                        neighbour.geoPosition,
-                        midPoint,
-                        geometryFactory,
-                      )
-                    if distMeters < thresholdMeters
-                    then Some((neighbour.lineUuid, distMeters))
-                    else None
-                  }
-                if influence.nonEmpty then
-                  parallelInfluenceBuffer(segment.uuid) = influence
-              }
               segment
           }
           .toSet
@@ -806,7 +789,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param simonaConfig
     *   The SIMONA configuration (used to resolve the output base dir).
     */
-  private def writeThermalSegmentsToOutput(
+  private[ampacity] def writeThermalSegmentsToOutput(
       segments: Iterable[
         (LineSegmentThermalModel, (Double, Double), (Double, Double))
       ],
@@ -844,8 +827,12 @@ object ThermalSegmentBuilder extends LazyLogging {
     val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
 
     val header =
-      "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature"
+      "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature,hasParallelInfluence,neighbourLineUuids,minLateralDistanceMeters"
     val rows = segments.map { case (segment, (sx, sy), (ex, ey)) =>
+      val influence = segment.parallelInfluence
+      val hasInfluence = influence.nonEmpty
+      val neighbourUuids = influence.map(_._1.toString).mkString(";")
+      val distances = influence.map(_._2.toString).mkString(";")
       Seq(
         segment.uuid.toString,
         segment.lineUuid.toString,
@@ -854,6 +841,9 @@ object ThermalSegmentBuilder extends LazyLogging {
         ex.toString,
         ey.toString,
         segment.upperBoundaryTemperature.value.toString,
+        hasInfluence.toString,
+        neighbourUuids,
+        distances,
       ).mkString(",")
     }.toSeq
 

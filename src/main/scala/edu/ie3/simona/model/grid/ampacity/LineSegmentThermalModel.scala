@@ -8,21 +8,22 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
+import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
-import edu.ie3.simona.util.Coordinate3D
 import edu.ie3.simona.util.TickUtil.toDateTime
+import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.scala.quantities.*
+import squants.electro.ElectricPotential
 import squants.space.{Length, Meters}
 import squants.{ElectricCurrent, Temperature}
-import squants.electro.ElectricPotential
+import tech.units.indriya.quantity.Quantities
 
+import java.lang.Double as JDouble
 import java.time.ZonedDateTime
 import java.util.UUID
-import java.lang.Double as JDouble
-import tech.units.indriya.quantity.Quantities
 
 /** A thermal model for a line segment
   *
@@ -61,6 +62,8 @@ final case class LineSegmentThermalModel(
     thermalCapacityCe: ThermalCapacitance,
     upperBoundaryTemperature: Temperature,
     soilType: SoilType,
+    calculationPoint: Coordinate,
+    parallelInfluence: Seq[(UUID, Double)] = Seq.empty,
 ) {}
 
 object LineSegmentThermalModel {
@@ -75,7 +78,7 @@ object LineSegmentThermalModel {
     * @return
     *   The ground temperature at cable depth.
     */
-  private def groundTemperatureFromWeather(
+  def groundTemperatureFromWeather(
       depthCables: Length,
       weather: WeatherData,
   ): Temperature = {
@@ -103,7 +106,7 @@ object LineSegmentThermalModel {
     *   A tuple of the weights for the ground temperature at level 3 and level
     *   4, respectively.
     */
-  private def determineWeightsGroundTemperatures(
+  def determineWeightsGroundTemperatures(
       depthCables: Length
   ): (Double, Double) = {
     require(

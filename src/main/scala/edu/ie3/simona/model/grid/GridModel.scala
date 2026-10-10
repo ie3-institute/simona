@@ -505,6 +505,7 @@ object GridModel {
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
+      neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] = Seq.empty,
   ): GridModel = {
 
     // build
@@ -525,20 +526,22 @@ object GridModel {
 
     // Build thermal line segments and soil layers when ampacity calculation
     // is activated; otherwise no soil layers and no thermal line segments.
-    val (soilLayers, thermalLineSegments, segmentCoordinates) =
+    val (soilLayers, thermalLineSegments) =
       if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
         val buildResult =
-          ThermalSegmentBuilder.build(subGridContainer, simonaConfig)
+          ThermalSegmentBuilder.build(
+            subGridContainer,
+            simonaConfig,
+            neighbourLines,
+          )
         (
           buildResult.soilLayers,
           buildResult.thermalLineSegments,
-          buildResult.segmentCoordinates,
         )
       else
         (
           Seq.empty[SoilLayer],
           Set.empty[LineSegmentThermalModel],
-          Map.empty[UUID, Coordinate],
         )
 
     // transformers2w

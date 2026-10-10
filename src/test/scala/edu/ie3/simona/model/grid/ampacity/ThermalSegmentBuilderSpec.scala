@@ -7,10 +7,11 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.connector.LineInput
+import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.CigreT880LandCable33kV
-import edu.ie3.simona.util.Coordinate
+import com.typesafe.config.ConfigFactory
 import org.locationtech.jts.geom.{Coordinate as JtsCoordinate, GeometryFactory}
 import org.locationtech.jts.linearref.LengthIndexedLine
 import org.mockito.Mockito.{mock, when}
@@ -22,27 +23,23 @@ import edu.ie3.util.scala.quantities.{
   KelvinMetersPerWatt,
   JoulesPerCubicMeterKelvin,
 }
-
+import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
-import scala.collection.mutable.Map as MutableMap
+import scala.jdk.CollectionConverters.*
 
 class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
-
   private val geometryFactory = new GeometryFactory()
   private val lineUuid = UUID.randomUUID()
   private val soilTypeUuid = UUID.randomUUID()
-
   private val lineInput: LineInput = {
     val li = mock(classOf[LineInput])
     when(li.getUuid).thenReturn(lineUuid)
     when(li.getId).thenReturn("testLine")
     li
   }
-
   private val cable = CigreT880LandCable33kV.cable
   private val limitTemperature = Celsius(90d)
-
   private val soilType = SoilType(
     soilTypeUuid,
     "testLoam",
@@ -80,15 +77,10 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       ListBuffer[
         (LineSegmentThermalModel, (Double, Double), (Double, Double))
       ],
-      MutableMap[UUID, Coordinate],
-      scala.collection.mutable.Map[UUID, Seq[(UUID, Double)]],
   ) = {
     val generatedSegments = ListBuffer.empty[
       (LineSegmentThermalModel, (Double, Double), (Double, Double))
     ]
-    val coordinatesBuffer = MutableMap.empty[UUID, Coordinate]
-    val parallelInfluenceBuffer =
-      scala.collection.mutable.Map.empty[UUID, Seq[(UUID, Double)]]
     val warnedPairs = scala.collection.mutable.Set.empty[(UUID, UUID)]
     val segments = ThermalSegmentBuilder.splitAndAssignSegments(
       lineInput,
@@ -100,17 +92,57 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       soilTypes,
       limitTemperature,
       generatedSegments,
-      coordinatesBuffer,
       neighbourLines,
       ppThreshold,
-      parallelInfluenceBuffer,
       warnedPairs,
     )
-    (segments, generatedSegments, coordinatesBuffer, parallelInfluenceBuffer)
+    (segments, generatedSegments)
   }
-
+  private def makeSegment(
+  ): (LineSegmentThermalModel, (Double, Double), (Double, Double)) = {
+    val layer = SoilLayer(
+      UUID.randomUUID(),
+      rectangle(0.0, -0.1, 1.0, 0.1),
+      Meters(0.0),
+      Meters(-2.0),
+      soilTypeUuid,
+    )
+    val (_, generated) = run(
+      Seq((0.0, 0.0), (1.0, 0.0)),
+      Meters(-1.0),
+      Seq(layer),
+    )
+    generated.head
+  }
+  private def makeSegmentWithInfluence(
+      influence: Seq[(UUID, Double)]
+  ): (LineSegmentThermalModel, (Double, Double), (Double, Double)) = {
+    val (segment, s, e) = makeSegment()
+    (segment.copy(parallelInfluence = influence), s, e)
+  }
+  private def buildTestConfig(outputDir: String): SimonaConfig = {
+    val config = ConfigFactory.parseString(
+      s"""
+        |simona.simulationName = "TestSim"
+        |
+        |simona.time.startDateTime = "2011-05-01T00:00:00Z"
+        |simona.time.endDateTime = "2011-05-01T01:00:00Z"
+        |
+        |simona.input.grid.datasource.id = "csv"
+        |simona.input.grid.datasource.csvParams = {
+        |  directoryPath: "input/samples/vn_simona/fullGrid"
+        |  isHierarchic: false
+        |  csvSep: ","
+        |}
+        |
+        |simona.output.base.dir = "$outputDir"
+        |simona.output.sink.csv.csvSep = ","
+        |simona.powerflow.newtonraphson.epsilon = [1E-12]
+        |""".stripMargin
+    )
+    SimonaConfig(config)
+  }
   "ThermalSegmentBuilder.splitAndAssignSegments" should {
-
     "split a straight segment at the boundary of two horizontally adjacent soil layers" in {
       val leftLayer = SoilLayer(
         UUID.randomUUID(),
@@ -127,7 +159,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         soilTypeUuid,
       )
 
-      val (segments, generated, _, _) = run(
+      val (segments, generated) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(leftLayer, rightLayer),
@@ -156,7 +188,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         soilTypeUuid,
       )
 
-      val (segments, _, _, _) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -186,7 +218,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         soilTypeUuid,
       )
 
-      val (segments, generated, _, _) = run(
+      val (segments, generated) = run(
         Seq((0.0, 0.0), (1.0, 0.0), (2.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -242,7 +274,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         soilTypeUuid,
       )
 
-      val (segments, _, _, _) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -270,7 +302,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         soilTypeUuid,
       )
 
-      val (segments, generated, _, _) = run(
+      val (segments, generated) = run(
         Seq((0.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -295,7 +327,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -304,9 +336,9 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 3
-      parallelInfluence.size shouldBe 1
-      val markedSegment = parallelInfluence.keys.head
-      val influence = parallelInfluence(markedSegment)
+      val markedSegments = segments.filter(_.parallelInfluence.nonEmpty)
+      markedSegments.size shouldBe 1
+      val influence = markedSegments.head.parallelInfluence
       influence.exists(_._1 == neighbourUuid) shouldBe true
       val dist =
         influence
@@ -331,7 +363,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -340,8 +372,9 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 3
-      parallelInfluence.size shouldBe 1
-      val influence = parallelInfluence.values.head
+      val markedSegments = segments.filter(_.parallelInfluence.nonEmpty)
+      markedSegments.size shouldBe 1
+      val influence = markedSegments.head.parallelInfluence
       influence.map(_._1) should contain(neighbourUuid)
     }
 
@@ -360,7 +393,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -369,7 +402,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 1
-      parallelInfluence shouldBe empty
+      segments.forall(_.parallelInfluence.isEmpty) shouldBe true
     }
 
     "mark a crossing neighbour without distinguishing from parallel" in {
@@ -387,7 +420,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -395,8 +428,10 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         ppThreshold = Some(10.0),
       )
 
-      parallelInfluence should not be empty
-      val allNeighbourUuids = parallelInfluence.values.flatten.map(_._1).toSet
+      val markedSegments = segments.filter(_.parallelInfluence.nonEmpty)
+      markedSegments should not be empty
+      val allNeighbourUuids =
+        markedSegments.flatMap(_.parallelInfluence).map(_._1).toSet
       allNeighbourUuids should contain(neighbourUuid)
     }
 
@@ -415,7 +450,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -424,7 +459,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 1
-      parallelInfluence shouldBe empty
+      segments.forall(_.parallelInfluence.isEmpty) shouldBe true
     }
 
     "produce identical segments when the parallel-proximity flag is disabled" in {
@@ -442,7 +477,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -451,7 +486,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 1
-      parallelInfluence shouldBe empty
+      segments.forall(_.parallelInfluence.isEmpty) shouldBe true
     }
 
     "produce no split or mark for an undeployed neighbour within threshold" in {
@@ -469,7 +504,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = false,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -478,7 +513,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 1
-      parallelInfluence shouldBe empty
+      segments.forall(_.parallelInfluence.isEmpty) shouldBe true
     }
 
     "mark a segment with multiple neighbour UUIDs when several are within threshold" in {
@@ -502,7 +537,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -511,9 +546,9 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 3
-      parallelInfluence should not be empty
-      val markedSegment = parallelInfluence.keys.head
-      val influence = parallelInfluence(markedSegment)
+      val markedSegments = segments.filter(_.parallelInfluence.nonEmpty)
+      markedSegments should not be empty
+      val influence = markedSegments.head.parallelInfluence
       influence.map(_._1) should contain(neighbour1Uuid)
       influence.map(_._1) should contain(neighbour2Uuid)
     }
@@ -532,7 +567,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         hasDeployment = true,
       )
 
-      val (segments, _, _, parallelInfluence) = run(
+      val (segments, _) = run(
         Seq((0.0, 0.0), (1.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
@@ -541,12 +576,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       segments.size shouldBe 1
-      parallelInfluence shouldBe empty
+      segments.forall(_.parallelInfluence.isEmpty) shouldBe true
     }
   }
 
   "ThermalSegmentBuilder.sampledProximityIndices" should {
-
     "return two in/out transition indices for a nearby parallel neighbour" in {
       val candidate = geometryFactory.createLineString(
         Array(
@@ -606,6 +640,103 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
 
       idxs shouldBe empty
+    }
+  }
+  "ThermalSegmentBuilder.writeThermalSegmentsToOutput" should {
+    "include the parallel-influence columns in the CSV header and rows" in {
+      val tempDir = Files.createTempDirectory("test_thermal_out")
+      try {
+        val simonaConfig = buildTestConfig(tempDir.toString)
+        val neighbourUuid = UUID.randomUUID()
+        val (segment, s, e) =
+          makeSegmentWithInfluence(Seq(neighbourUuid -> 3.5))
+        val segments = Seq((segment, s, e))
+        ThermalSegmentBuilder.writeThermalSegmentsToOutput(
+          segments,
+          simonaConfig,
+        )
+        val outPath = tempDir
+          .resolve("TestSim")
+          .resolve("rawOutputData")
+          .resolve("thermal_line_segments.csv")
+        val lines: Seq[String] =
+          Files.readAllLines(outPath).asScala.toSeq
+        val header = lines.head
+        header should include("hasParallelInfluence")
+        header should include("neighbourLineUuids")
+        header should include("minLateralDistanceMeters")
+        val row = lines(1)
+        val fields = row.split(",", -1)
+        fields(7) shouldBe "true"
+        fields(8) shouldBe neighbourUuid.toString
+        fields(9) shouldBe "3.5"
+      } finally {
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
+      }
+    }
+    "show false and empty neighbour columns when no parallel influence is present" in {
+      val tempDir = Files.createTempDirectory("test_thermal_out")
+      try {
+        val simonaConfig = buildTestConfig(tempDir.toString)
+        val (segment, s, e) = makeSegment()
+        val segments = Seq((segment, s, e))
+        ThermalSegmentBuilder.writeThermalSegmentsToOutput(
+          segments,
+          simonaConfig,
+        )
+        val outPath = tempDir
+          .resolve("TestSim")
+          .resolve("rawOutputData")
+          .resolve("thermal_line_segments.csv")
+        val lines: Seq[String] =
+          Files.readAllLines(outPath).asScala.toSeq
+        val row = lines(1)
+        val fields = row.split(",", -1)
+        fields(7) shouldBe "false"
+        fields(8) shouldBe ""
+        fields(9) shouldBe ""
+      } finally {
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
+      }
+    }
+    "write multiple neighbour UUIDs and distances in semicolon-separated order" in {
+      val tempDir = Files.createTempDirectory("test_thermal_out")
+      try {
+        val simonaConfig = buildTestConfig(tempDir.toString)
+        val neighbour1Uuid = UUID.randomUUID()
+        val neighbour2Uuid = UUID.randomUUID()
+        val (segment, s, e) =
+          makeSegmentWithInfluence(
+            Seq(neighbour1Uuid -> 2.0, neighbour2Uuid -> 5.5)
+          )
+        val segments = Seq((segment, s, e))
+        ThermalSegmentBuilder.writeThermalSegmentsToOutput(
+          segments,
+          simonaConfig,
+        )
+        val outPath = tempDir
+          .resolve("TestSim")
+          .resolve("rawOutputData")
+          .resolve("thermal_line_segments.csv")
+        val lines: Seq[String] =
+          Files.readAllLines(outPath).asScala.toSeq
+        val row = lines(1)
+        val fields = row.split(",", -1)
+        fields(7) shouldBe "true"
+        fields(8) shouldBe s"$neighbour1Uuid;$neighbour2Uuid"
+        fields(9) shouldBe "2.0;5.5"
+      } finally {
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
+      }
     }
   }
 }
