@@ -14,7 +14,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
-import edu.ie3.simona.util.Coordinate3D
+import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.quantities.*
 import squants.electro.ElectricPotential
@@ -63,6 +63,8 @@ final case class LineSegmentThermalModel(
     thermalCapacityCe: ThermalCapacitance,
     upperBoundaryTemperature: Temperature,
     soilType: SoilType,
+    calculationPoint: Coordinate,
+    parallelInfluence: Seq[(UUID, Double)] = Seq.empty,
 ) {
 
   /** Checks whether a dry zone around the cable is triggered, i.e. whether the
@@ -378,6 +380,8 @@ object LineSegmentThermalModel {
       thermalCapacityCe,
       lineSegmentModel.upperBoundaryTemperature,
       lineSegmentModel.soilType,
+      lineSegmentModel.calculationPoint,
+      lineSegmentModel.parallelInfluence,
     )
 
     val initLineTemperatures = LineTemperatures(

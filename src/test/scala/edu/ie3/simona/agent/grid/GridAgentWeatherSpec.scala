@@ -136,12 +136,6 @@ class GridAgentWeatherSpec
     baseModel.copy(
       gridComponents = baseModel.gridComponents.copy(
         thermalLineSegments = Set(cigreLandCable33kVLineSegmentThermalModel),
-        segmentCoordinates = Map(
-          cigreLandCable33kVLineSegmentThermalModel.uuid -> Coordinate(
-            51.0,
-            7.0,
-          )
-        ),
       )
     )
   }

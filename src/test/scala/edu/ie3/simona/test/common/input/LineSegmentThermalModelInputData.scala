@@ -8,7 +8,7 @@ package edu.ie3.simona.test.common.input
 
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, LineSegmentThermalModel}
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.simona.util.Coordinate3D
+import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.scala.quantities.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
@@ -50,6 +50,7 @@ trait LineSegmentThermalModelInputData
     JoulesPerCubicMeterKelvin(1.0),
     Celsius(90d),
     defaultSoilType,
+    Coordinate(51.0, 7.0),
   )
 
   /** A [[LineSegmentThermalModel]] for the Anders single-core cable, including
@@ -77,5 +78,6 @@ trait LineSegmentThermalModelInputData
       JoulesPerCubicMeterKelvin(1.0),
       Celsius(90d),
       defaultSoilType,
+      Coordinate(51.0, 7.0),
     )
 }

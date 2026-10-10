@@ -25,11 +25,13 @@ import edu.ie3.simona.event.ResultEvent.{
   ThermalLineSegmentResultEvent,
 }
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.ontology.messages.{Activation, ServiceMessage}
+import edu.ie3.simona.ontology.messages.Activation
+import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.results.ResultServiceProxy.ExpectResult
 import edu.ie3.simona.service.weather.WeatherService.WeatherRegistrationData
+import edu.ie3.simona.util.Coordinate
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
@@ -40,8 +42,9 @@ import org.apache.pekko.actor.typed.scaladsl.{
 }
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
+import squants.ElectricCurrent
 import squants.electro.Amperes
-import squants.{Dimensionless, Each, ElectricCurrent}
+import squants.{Dimensionless, Each}
 
 import java.util.UUID
 
@@ -103,8 +106,10 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
       )
 
       // Register for weather service if thermal segments exist
-      val segmentCoordinates =
-        initData.gridModel.gridComponents.segmentCoordinates
+      val segmentCoordinates: Map[UUID, Coordinate] =
+        initData.gridModel.gridComponents.thermalLineSegments
+          .map(seg => seg.uuid -> seg.calculationPoint)
+          .toMap
       if segmentCoordinates.nonEmpty then
         ctx.log.debug(
           s"Registering $actorName for weather service with {} segment coordinates",
@@ -334,7 +339,7 @@ object GridAgent extends DBFSAlgorithm with DCMAlgorithm {
     val updatedBaseData =
       gridAgentBaseData.copy(thermalLineStates = updatedThermalLineStates)
 
-    // Collect ampacity (line temperature) results and forward them to result sink.
+    // Collect ampacity (line temperature) results and forward to ampacity writer if available
     val ampacityResults = updatedThermalLineStates.values.toSeq.flatMap {
       state =>
         val dateTime = gridAgentBaseData.simulationStart.plusSeconds(state.tick)
