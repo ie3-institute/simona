@@ -3,6 +3,7 @@
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
+
 package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
@@ -26,12 +27,14 @@ import edu.ie3.simona.model.grid.ampacity.{
   SoilType,
 }
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
+import edu.ie3.util.geo.RichGeometries.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
 }
 import com.typesafe.scalalogging.LazyLogging
+import org.locationtech.jts.operation.distance.DistanceOp
 import org.locationtech.jts.geom.{
   Geometry,
   GeometryFactory,
@@ -50,11 +53,13 @@ import scala.collection.mutable.{
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
+
 /** Builder responsible for constructing [[LineSegmentThermalModel]] instances
   * from a [[SubGridContainer]], including validation of soil layers, cable
   * types, and cable deployments required for the ampacity calculation.
   */
 object ThermalSegmentBuilder extends LazyLogging {
+
   /** Information about a neighbour line used for parallel-proximity detection.
     *
     * @param lineUuid
@@ -69,13 +74,20 @@ object ThermalSegmentBuilder extends LazyLogging {
       geoPosition: Seq[(Double, Double)],
       hasDeployment: Boolean,
   )
+
   /** Minimum parallel-stretch length in meters below which a split is skipped.
     */
   private val minOverlapLengthMeters: Double = 5.0
-  /** Approximate meters per degree for converting between degrees and meters
-    * in the planar (lon, lat) coordinate system.
+
+  /** Maximum sampling step in degrees for parallel-proximity detection along a
+    * straight segment (about one meter).
     */
-  private val metersPerDegree: Double = 111000.0 // TODO DF Check if this is valid in the usual coordinate system for all lat and lon.
+  private val minSampleStepDegrees: Double = 1e-5
+
+  /** Upper bound on the number of samples used for parallel-proximity detection
+    * along a single straight segment.
+    */
+  private val maxSamples: Int = 200000 // 200km at 1m, unreasonable long
   /** Result of building thermal segments.
     *
     * @param soilLayers
@@ -95,6 +107,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       segmentCoordinates: Map[UUID, Coordinate] = Map.empty,
       parallelInfluence: Map[UUID, Seq[(UUID, Double)]] = Map.empty,
   )
+
   /** Builds thermal line segments for the given subgrid.
     *
     * Validates soil data, cable types, and cable deployments when ampacity
@@ -300,10 +313,10 @@ object ThermalSegmentBuilder extends LazyLogging {
     *
     * @param subGridContainer
     *   The subgrid container.
-   *  @soilLayers
-   *  @soilTypes
-   *  @neighbourLines
-   *  @ppThreshold
+    * @soilLayers
+    * @soilTypes
+    * @neighbourLines
+    * @ppThreshold
     * @return
     *   A tuple of the generated segments, their coordinates for output, and the
     *   midpoint coordinates for weather registration. //FIXME DF not always
@@ -428,8 +441,9 @@ object ThermalSegmentBuilder extends LazyLogging {
       parallelInfluenceBuffer.toMap,
     )
   }
-  /** Splits a line into thermal segments at soil boundaries and, optionally,
-    * at parallel-proximity stretch boundaries.
+
+  /** Splits a line into thermal segments at soil boundaries and, optionally, at
+    * parallel-proximity stretch boundaries.
     *
     * @param lineInput
     *   The candidate line.
@@ -484,12 +498,16 @@ object ThermalSegmentBuilder extends LazyLogging {
     val depthMeters = cableDepth.toMeters
     val soilTypesById: Map[UUID, SoilType] =
       soilTypes.map(t => t.uuid -> t).toMap
-    // Pre-compute neighbour buffers for parallel-proximity detection
-    val ppThresholdDeg: Option[Double] =
-      ppThreshold.map(_ / metersPerDegree)
-    val neighbourBuffers: Seq[(NeighbourLineInfo, Geometry)] =
-      ppThresholdDeg match {
-        case Some(thresholdDeg) =>
+    // Pre-compute neighbour centerlines for parallel-proximity detection.
+    // NOTE: The haversine-on-sampled-points approach is geodesically consistent
+    // but still relies on planar (lon, lat) sampling and a coarse per-sample
+    // resolution. For full geometric coverage (exact metric proximity and
+    // boundary placement at any latitude and segment heading), the geometries
+    // should be projected into a metric coordinate reference system (e.g., UTM
+    // or Mercator) before proximity evaluation. This is not yet implemented.
+    val neighbourLineStrings: Seq[(NeighbourLineInfo, Geometry)] =
+      ppThreshold match {
+        case Some(_) =>
           neighbourLines
             .filter(_.lineUuid != lineInput.getUuid)
             .filter(_.geoPosition.size >= 2)
@@ -499,7 +517,7 @@ object ThermalSegmentBuilder extends LazyLogging {
                   .map(c => new JtsCoordinate(c._1, c._2))
                   .toArray
               )
-              neighbour -> neighbourLine.buffer(thresholdDeg)
+              neighbour -> neighbourLine
             }
         case None => Seq.empty
       }
@@ -530,15 +548,15 @@ object ThermalSegmentBuilder extends LazyLogging {
         val ppIndices: Seq[Double] =
           ppThreshold match {
             case Some(thresholdMeters) =>
-              neighbourBuffers.flatMap { case (neighbour, buffer) =>
+              neighbourLineStrings.flatMap { case (neighbour, neighbourLine) =>
                 if !neighbour.hasDeployment then
                   // Undeployed neighbour: warn and skip
                   val minDist =
-                    neighborLineDistance(
+                    neighborLineDistanceMeters(
                       neighbour.geoPosition,
                       jtsLine,
                       geometryFactory,
-                    ) * metersPerDegree
+                    )
                   if minDist < thresholdMeters then
                     val pairKey =
                       (lineInput.getUuid, neighbour.lineUuid)
@@ -548,27 +566,31 @@ object ThermalSegmentBuilder extends LazyLogging {
                       )
                   Seq.empty
                 else
-                  val intersection = buffer.intersection(jtsLine)
-                  if intersection.isEmpty then Seq.empty
-                  else
-                    val idxs =
-                      intersection.getCoordinates.toSeq
-                        .map(c => indexedLine.indexOf(c))
-                        .filterNot(_.isNaN)
-                        .filter(idx => idx > 1e-9 && idx < segLength - 1e-9)
-                    if idxs.size >= 2 then
-                      val overlapMeters =
-                        (idxs.max - idxs.min) * metersPerDegree
-                      if overlapMeters < minOverlapLengthMeters then
-                        logger.warn(
-                          s"Parallel stretch between line ${lineInput.getUuid} (id: ${lineInput.getId}) " +
-                            s"and neighbour ${neighbour.lineUuid} is only ${overlapMeters}m " +
-                            s"(< ${minOverlapLengthMeters}m minimum). No split performed for this stretch."
-                        )
-                        rejectedNeighbours += neighbour.lineUuid
-                        Seq.empty
-                      else idxs
+                  val idxs = sampledProximityIndices(
+                    indexedLine,
+                    segLength,
+                    neighbourLine,
+                    thresholdMeters,
+                    geometryFactory,
+                  )
+                  if idxs.size >= 2 then
+                    val overlapStart = indexedLine.extractPoint(idxs.min)
+                    val overlapEnd = indexedLine.extractPoint(idxs.max)
+                    val overlapMeters =
+                      overlapStart
+                        .haversineDistance(overlapEnd)
+                        .getValue
+                        .doubleValue()
+                    if overlapMeters < minOverlapLengthMeters then
+                      logger.warn(
+                        s"Parallel stretch between line ${lineInput.getUuid} (id: ${lineInput.getId}) " +
+                          s"and neighbour ${neighbour.lineUuid} is only ${overlapMeters}m " +
+                          s"(< ${minOverlapLengthMeters}m minimum). No split performed for this stretch."
+                      )
+                      rejectedNeighbours += neighbour.lineUuid
+                      Seq.empty
                     else idxs
+                  else idxs
               }
             case None => Seq.empty
           }
@@ -646,21 +668,20 @@ object ThermalSegmentBuilder extends LazyLogging {
                   soilLayers.map(_.geometry.getBoundary),
                 )
               // Record parallel-proximity influence
-              ppThreshold.foreach { _ =>
-                val influence: Seq[(UUID, Double)] = neighbourBuffers
+              ppThreshold.foreach { thresholdMeters =>
+                val influence: Seq[(UUID, Double)] = neighbourLineStrings
                   .filter(_._1.hasDeployment)
                   .filterNot(n => rejectedNeighbours.contains(n._1.lineUuid))
-                  .collect {
-                    case (neighbour, buffer)
-                        if buffer.contains(midPoint) =>
-                      val distDeg =
-                        neighborLineDistance(
-                          neighbour.geoPosition,
-                          midPoint,
-                          geometryFactory,
-                        )
-                      val distMeters = distDeg * metersPerDegree
-                      (neighbour.lineUuid, distMeters)
+                  .flatMap { case (neighbour, neighbourLine) =>
+                    val distMeters =
+                      neighborLineDistanceMeters(
+                        neighbour.geoPosition,
+                        midPoint,
+                        geometryFactory,
+                      )
+                    if distMeters < thresholdMeters
+                    then Some((neighbour.lineUuid, distMeters))
+                    else None
                   }
                 if influence.nonEmpty then
                   parallelInfluenceBuffer(segment.uuid) = influence
@@ -672,10 +693,24 @@ object ThermalSegmentBuilder extends LazyLogging {
       .flatten
       .toSet
   }
-  /** Computes the minimum distance in degrees between a neighbour line's
-    * geoPosition and a JTS geometry (line segment or point).
+
+  /** Computes the minimum geodesic distance in meters between a neighbour
+    * line's geoPosition and a JTS geometry (line segment or point). The closest
+    * pair of points is located with JTS [[DistanceOp]] in the planar (lon, lat)
+    * space, and their true distance is then measured with the haversine
+    * formula.
+    *
+    * @param geoPosition
+    *   The neighbour line's centreline coordinates as (lon, lat) pairs.
+    * @param geom
+    *   The candidate geometry (line segment or point).
+    * @param geometryFactory
+    *   The JTS geometry factory.
+    * @return
+    *   The minimum distance in meters, or [[Double.MaxValue]] if the neighbour
+    *   line has fewer than two support points.
     */
-  private def neighborLineDistance(
+  private def neighborLineDistanceMeters(
       geoPosition: Seq[(Double, Double)],
       geom: Geometry,
       geometryFactory: GeometryFactory,
@@ -685,8 +720,62 @@ object ThermalSegmentBuilder extends LazyLogging {
       val line = geometryFactory.createLineString(
         geoPosition.map(c => new JtsCoordinate(c._1, c._2)).toArray
       )
-      line.distance(geom)
+      val nearest = DistanceOp.nearestPoints(line, geom)
+      nearest(0).haversineDistance(nearest(1)).getValue.doubleValue()
   }
+
+  /** Locates the parallel-proximity stretch boundaries of a straight segment
+    * relative to a neighbour line by sampling the segment and measuring the
+    * haversine distance of each sample to the neighbour centerline.
+    *
+    * The neighbour line is a plain centerline, so proximity is measured
+    * geodesically via the haversine formula.
+    *
+    * @param indexedLine
+    *   The length-indexed line of the candidate straight segment.
+    * @param segLength
+    *   The planar length of the candidate straight segment.
+    * @param neighbourLine
+    *   The neighbour centerline.
+    * @param thresholdMeters
+    *   The parallel-proximity threshold in meters.
+    * @param geometryFactory
+    *   The JTS geometry factory.
+    * @return
+    *   The in/out transition indices within the open segment, sorted. An empty
+    *   sequence when no sample lies within the threshold.
+    */
+  private[ampacity] def sampledProximityIndices(
+      indexedLine: LengthIndexedLine,
+      segLength: Double,
+      neighbourLine: Geometry,
+      thresholdMeters: Double,
+      geometryFactory: GeometryFactory,
+  ): Seq[Double] = {
+    val n = math.max(
+      2,
+      math.min(maxSamples, (segLength / minSampleStepDegrees).toInt + 1),
+    )
+    val sampleIdxs: Seq[Double] =
+      (0 to n).map(i => segLength * i / n)
+    val flags: Seq[Boolean] =
+      sampleIdxs.map { idx =>
+        val samplePoint = geometryFactory.createPoint(
+          indexedLine.extractPoint(idx)
+        )
+        neighborLineDistanceMeters(
+          neighbourLine.getCoordinates.toSeq.map(c => (c.x, c.y)),
+          samplePoint,
+          geometryFactory,
+        ) < thresholdMeters
+      }
+    sampleIdxs.zipWithIndex.collect {
+      case (idx, i)
+          if i > 0 && i < sampleIdxs.size && flags(i) != flags(i - 1) =>
+        idx
+    }.sorted
+  }
+
   /** Reads a CSV file from the configured grid CSV directory.
     */
   private def readFromConfiguredDir[T](
@@ -702,6 +791,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       case None => Success(Seq.empty[T])
     }
   }
+
   /** Writes the generated thermal line segments to a CSV file in the simulation
     * output folder (configured via `simona.output.base.dir`).
     *

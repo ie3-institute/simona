@@ -1441,7 +1441,9 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             )
           )
         }
-        ex.getMessage should include("no parallelProximityThreshold is provided")
+        ex.getMessage should include(
+          "no parallelProximityThreshold is provided"
+        )
       }
 
       "throw an exception when threshold is zero" in {

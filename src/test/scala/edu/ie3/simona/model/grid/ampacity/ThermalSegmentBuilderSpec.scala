@@ -12,6 +12,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.CigreT880LandCable33kV
 import edu.ie3.simona.util.Coordinate
 import org.locationtech.jts.geom.{Coordinate as JtsCoordinate, GeometryFactory}
+import org.locationtech.jts.linearref.LengthIndexedLine
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import squants.Meters
@@ -541,6 +542,70 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
       segments.size shouldBe 1
       parallelInfluence shouldBe empty
+    }
+  }
+
+  "ThermalSegmentBuilder.sampledProximityIndices" should {
+
+    "return two in/out transition indices for a nearby parallel neighbour" in {
+      val candidate = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.0, 0.0),
+          new JtsCoordinate(1.0, 0.0),
+        )
+      )
+      val indexedLine = new LengthIndexedLine(candidate)
+      val segLength = candidate.getLength
+      val neighbour = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.3, 0.00005),
+          new JtsCoordinate(0.7, 0.00005),
+        )
+      )
+
+      val idxs = ThermalSegmentBuilder.sampledProximityIndices(
+        indexedLine,
+        segLength,
+        neighbour,
+        10.0,
+        geometryFactory,
+      )
+
+      // A mid-segment parallel stretch yields exactly an entry and an exit.
+      idxs.size shouldBe 2
+      idxs.head should be > 0.0
+      idxs.head should be < segLength
+      idxs.last should be > 0.0
+      idxs.last should be < segLength
+      // The stretch is roughly centred on the candidate line.
+      idxs.head should be < idxs.last
+    }
+
+    "return no transitions when the neighbour is outside the threshold" in {
+      val candidate = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.0, 0.0),
+          new JtsCoordinate(1.0, 0.0),
+        )
+      )
+      val indexedLine = new LengthIndexedLine(candidate)
+      val segLength = candidate.getLength
+      val neighbour = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.3, 0.0005),
+          new JtsCoordinate(0.7, 0.0005),
+        )
+      )
+
+      val idxs = ThermalSegmentBuilder.sampledProximityIndices(
+        indexedLine,
+        segLength,
+        neighbour,
+        10.0,
+        geometryFactory,
+      )
+
+      idxs shouldBe empty
     }
   }
 }
