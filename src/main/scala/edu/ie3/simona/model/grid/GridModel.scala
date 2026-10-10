@@ -72,6 +72,8 @@ object GridModel {
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
+      neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] =
+        Seq.empty,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
@@ -79,6 +81,7 @@ object GridModel {
     startDate,
     endDate,
     simonaConfig,
+    neighbourLines,
   )
 
   /** structure that represents all grid components that are needed by a grid
@@ -497,6 +500,8 @@ object GridModel {
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
+      neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] =
+        Seq.empty,
   ): GridModel = {
 
     // build
@@ -520,7 +525,7 @@ object GridModel {
     val (soilLayers, thermalLineSegments, segmentCoordinates) =
       if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
         val buildResult =
-          ThermalSegmentBuilder.build(subGridContainer, simonaConfig)
+          ThermalSegmentBuilder.build(subGridContainer, simonaConfig, neighbourLines)
         (
           buildResult.soilLayers,
           buildResult.thermalLineSegments,

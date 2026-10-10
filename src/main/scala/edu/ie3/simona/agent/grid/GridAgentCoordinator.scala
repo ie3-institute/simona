@@ -37,7 +37,10 @@ import edu.ie3.simona.config.{GridConfigParser, SimonaConfig}
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.exceptions.InitializationException
-import edu.ie3.simona.model.grid.ampacity.AmpacityCalculationParams
+import edu.ie3.simona.model.grid.ampacity.{
+  AmpacityCalculationParams,
+  ThermalSegmentBuilder,
+}
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
@@ -613,6 +616,32 @@ object GridAgentCoordinator {
     val (configRefSystems, configVoltageLimits) =
       GridConfigParser.parse(cfg.gridConfig)
 
+    // Extract neighbour line geometries from all subgrids for parallel-proximity detection
+    val neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] =
+      if cfg.ampacityCalculation.activateParallelProximitySplitting then
+        subgrids.flatMap { sg =>
+          val deploymentsByLine = sg.getRawGrid.getCableDeploymentsByLine
+          sg.getRawGrid.getLines.asScala.toSeq.flatMap { lineInput =>
+            Option(lineInput.getGeoPosition)
+              .map(_.getCoordinates.toSeq.map(c => (c.x, c.y)))
+              .toSeq
+              .filter(_.size >= 2)
+              .headOption
+              .map { geoPosition =>
+                val deploymentList =
+                  deploymentsByLine.get(lineInput.getUuid)
+                val hasDeployment =
+                  deploymentList != null && !deploymentList.isEmpty
+                ThermalSegmentBuilder.NeighbourLineInfo(
+                  lineInput.getUuid,
+                  geoPosition,
+                  hasDeployment,
+                )
+              }
+          }
+        }
+      else Seq.empty
+
     val (numberToRef, refToCouplingNodes) = subgrids.map { subGridContainer =>
       /* Prepare the subgrid container for the agents by adapting the transformer high voltage nodes to be slacks */
       val updatedSubGridContainer =
@@ -637,6 +666,7 @@ object GridAgentCoordinator {
         constantData.simStartTime,
         constantData.simEndTime,
         cfg,
+        neighbourLines,
       )
 
       // create the GridAgentInitData

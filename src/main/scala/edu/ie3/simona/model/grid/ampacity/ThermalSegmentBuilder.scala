@@ -3,9 +3,7 @@
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
-
 package edu.ie3.simona.model.grid.ampacity
-
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
   LineTypeInput,
@@ -33,24 +31,51 @@ import edu.ie3.util.scala.quantities.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
 }
-import org.locationtech.jts.geom.{GeometryFactory, Coordinate as JtsCoordinate}
+import com.typesafe.scalalogging.LazyLogging
+import org.locationtech.jts.geom.{
+  Geometry,
+  GeometryFactory,
+  Coordinate as JtsCoordinate,
+}
 import org.locationtech.jts.linearref.LengthIndexedLine
 import squants.space.{Length, Millimeters}
 import squants.{Meters, Temperature}
-
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.UUID
-import scala.collection.mutable.{ListBuffer, Map as MutableMap}
+import scala.collection.mutable.{
+  ListBuffer,
+  Map as MutableMap,
+  Set as MutableSet,
+}
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
-
 /** Builder responsible for constructing [[LineSegmentThermalModel]] instances
   * from a [[SubGridContainer]], including validation of soil layers, cable
   * types, and cable deployments required for the ampacity calculation.
   */
-object ThermalSegmentBuilder {
-
+object ThermalSegmentBuilder extends LazyLogging {
+  /** Information about a neighbour line used for parallel-proximity detection.
+    *
+    * @param lineUuid
+    *   The UUID of the neighbour line.
+    * @param geoPosition
+    *   The centreline coordinates as (longitude, latitude) pairs.
+    * @param hasDeployment
+    *   Whether the line has a [[CableDeploymentInput]] (buried line).
+    */
+  final case class NeighbourLineInfo(
+      lineUuid: UUID,
+      geoPosition: Seq[(Double, Double)],
+      hasDeployment: Boolean,
+  )
+  /** Minimum parallel-stretch length in meters below which a split is skipped.
+    */
+  private val minOverlapLengthMeters: Double = 5.0
+  /** Approximate meters per degree for converting between degrees and meters
+    * in the planar (lon, lat) coordinate system.
+    */
+  private val metersPerDegree: Double = 111000.0 // TODO DF Check if this is valid in the usual coordinate system for all lat and lon.
   /** Result of building thermal segments.
     *
     * @param soilLayers
@@ -60,13 +85,16 @@ object ThermalSegmentBuilder {
     * @param segmentCoordinates
     *   A map from segment UUID to the midpoint coordinate (latitude, longitude)
     *   used for weather registration.
+    * @param parallelInfluence
+    *   A map from segment UUID to the list of (neighbour line UUID, minimum
+    *   lateral distance in meters) for each proximate neighbour.
     */
   final case class BuildResult(
       soilLayers: Seq[SoilLayer],
       thermalLineSegments: Set[LineSegmentThermalModel],
       segmentCoordinates: Map[UUID, Coordinate] = Map.empty,
+      parallelInfluence: Map[UUID, Seq[(UUID, Double)]] = Map.empty,
   )
-
   /** Builds thermal line segments for the given subgrid.
     *
     * Validates soil data, cable types, and cable deployments when ampacity
@@ -78,12 +106,16 @@ object ThermalSegmentBuilder {
     *   The subgrid container with all input models.
     * @param simonaConfig
     *   The SIMONA configuration.
+    * @param neighbourLines
+    *   Neighbour line geometries from all subgrids, used for parallel-proximity
+    *   detection. Empty when the feature is not activated.
     * @return
     *   A [[BuildResult]] containing the soil layers and thermal line segments.
     */
   def build(
       subGridContainer: SubGridContainer,
       simonaConfig: SimonaConfig,
+      neighbourLines: Seq[NeighbourLineInfo] = Seq.empty,
   ): BuildResult = {
     // 1. Read and validate soil data
     val soilLayers = readAndValidateSoilLayers(simonaConfig)
@@ -98,14 +130,31 @@ object ThermalSegmentBuilder {
     // validateCableTypesPresent(subGridContainer)
     // validateCableDeployments(subGridContainer, deploymentsByLine)
 
-    // 3. Generate thermal segments
-    val (thermalLineSegments, generatedSegments, segmentCoordinates) =
-      generateThermalSegments(subGridContainer, soilLayers, soilTypes)
-
+    // 3. Generate line segments thermal model
+    val ppThreshold =
+      if simonaConfig.ampacityCalculation.activateParallelProximitySplitting
+      then simonaConfig.ampacityCalculation.parallelProximityThreshold
+      else None
+    val (
+      lineSegmentThermalModels,
+      generatedSegments,
+      segmentCoordinates,
+      parallelInfluence,
+    ) = generateThermalSegments(
+      subGridContainer,
+      soilLayers,
+      soilTypes,
+      neighbourLines,
+      ppThreshold,
+    )
     // 4. Write generated segments to output
     writeThermalSegmentsToOutput(generatedSegments, simonaConfig)
-
-    BuildResult(soilLayers, thermalLineSegments, segmentCoordinates)
+    BuildResult(
+      soilLayers,
+      lineSegmentThermalModels,
+      segmentCoordinates,
+      parallelInfluence,
+    )
   }
 
   /** Reads soil layers from the configured directory and validates them.
@@ -146,7 +195,6 @@ object ThermalSegmentBuilder {
       simonaConfig,
     )
     val soilTypes: Seq[SoilType] = soilTypesTry.getOrElse(Seq.empty[SoilType])
-
     soilTypesTry match
       case Failure(cause) =>
         throw new GridAgentInitializationException(
@@ -252,6 +300,10 @@ object ThermalSegmentBuilder {
     *
     * @param subGridContainer
     *   The subgrid container.
+   *  @soilLayers
+   *  @soilTypes
+   *  @neighbourLines
+   *  @ppThreshold
     * @return
     *   A tuple of the generated segments, their coordinates for output, and the
     *   midpoint coordinates for weather registration. //FIXME DF not always
@@ -261,21 +313,24 @@ object ThermalSegmentBuilder {
       subGridContainer: SubGridContainer,
       soilLayers: Seq[SoilLayer],
       soilTypes: Seq[SoilType],
+      neighbourLines: Seq[NeighbourLineInfo],
+      ppThreshold: Option[Double],
   ): (
       Set[LineSegmentThermalModel],
       Seq[(LineSegmentThermalModel, (Double, Double), (Double, Double))],
       Map[UUID, Coordinate],
+      Map[UUID, Seq[(UUID, Double)]],
   ) = {
     val deploymentsByLine =
       subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
-
     val generatedSegments: ListBuffer[
       (LineSegmentThermalModel, (Double, Double), (Double, Double))
     ] = ListBuffer.empty
-
     val segmentCoordinatesBuffer: MutableMap[UUID, Coordinate] =
       MutableMap.empty
-
+    val parallelInfluenceBuffer: MutableMap[UUID, Seq[(UUID, Double)]] =
+      MutableMap.empty
+    val warnedPairs: MutableSet[(UUID, UUID)] = MutableSet.empty
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
         // Only build thermal segments if both a cable type and a cable deployment exist
@@ -285,7 +340,6 @@ object ThermalSegmentBuilder {
               deploymentsByLine.get(lineInput.getUuid)
             val firstDeploymentOpt =
               deploymentListOpt.map(_.asScala).flatMap(_.headOption)
-
             // If no deployment, skip this line
             firstDeploymentOpt.toSeq.flatMap { firstDeployment =>
               // Extract line points from geoposition
@@ -293,7 +347,6 @@ object ThermalSegmentBuilder {
                 Option(lineInput.getGeoPosition)
                   .map(_.getCoordinates.toSeq.map(c => (c.x, c.y)))
                   .getOrElse(Seq.empty)
-
               // TODO DF: In case some information are missing in the provided input data, these might be filled by data in PSDM (Cable Material Data). Might worth an improvement in PSDM, noted here to keep track.
               val conductor: Layer =
                 mapConductor(cableTypeInput.getConductor)
@@ -311,7 +364,6 @@ object ThermalSegmentBuilder {
                 .getOrElse(List.empty)
               val jack: List[Layer] =
                 cableTypeInput.getJack.asScala.map(mapLayer).toList
-
               val deploymentPattern: String =
                 Option(firstDeployment.getLayoutFormation)
                   .getOrElse(
@@ -319,16 +371,13 @@ object ThermalSegmentBuilder {
                       s"No deployment pattern available for line ${lineInput.getUuid}"
                     )
                   )
-
               val cableDepth = Option(firstDeployment.getDepthCables)
                 .map(_.toSquants)
                 .getOrElse(Meters(1))
-
               val cableDistance =
                 Option(firstDeployment.getDistanceCables)
                   .map(_.toSquants)
                   .getOrElse(Meters(1))
-
               val cable: CableSetup = CableSetup(
                 cableTypeInput.getUuid,
                 cableTypeInput.getId,
@@ -350,7 +399,6 @@ object ThermalSegmentBuilder {
                 cableTypeInput.getCirculatingLossFactor,
                 cableTypeInput.getEddyCurrentLossFactor,
               )
-
               val segments: Set[LineSegmentThermalModel] =
                 splitAndAssignSegments(
                   lineInput,
@@ -363,20 +411,57 @@ object ThermalSegmentBuilder {
                   cableTypeInput.getLimitTemperature.toSquants,
                   generatedSegments,
                   segmentCoordinatesBuffer,
+                  neighbourLines,
+                  ppThreshold,
+                  parallelInfluenceBuffer,
+                  warnedPairs,
                 )
               segments
             }
           }
         }
       }.toSet
-
     (
       thermalLineSegments,
       generatedSegments.toSeq,
       segmentCoordinatesBuffer.toMap,
+      parallelInfluenceBuffer.toMap,
     )
   }
-
+  /** Splits a line into thermal segments at soil boundaries and, optionally,
+    * at parallel-proximity stretch boundaries.
+    *
+    * @param lineInput
+    *   The candidate line.
+    * @param cable
+    *   The cable setup.
+    * @param coordinates
+    *   The line's support-point coordinates as (lon, lat) pairs.
+    * @param cableDepth
+    *   The cable burial depth.
+    * @param cableDistance
+    *   The distance between cables in a multi-cable deployment.
+    * @param soilLayers
+    *   The validated soil layers.
+    * @param soilTypes
+    *   The validated soil types.
+    * @param limitTemperature
+    *   The cable's limit temperature.
+    * @param generatedSegments
+    *   A mutable buffer to collect generated segments.
+    * @param segmentCoordinatesBuffer
+    *   A mutable map to collect segment coordinates.
+    * @param neighbourLines
+    *   Neighbour lines for parallel-proximity detection.
+    * @param ppThreshold
+    *   The parallel-proximity threshold in meters, if activated.
+    * @param parallelInfluenceBuffer
+    *   A mutable map to collect parallel-influence marks per segment.
+    * @param warnedPairs
+    *   A set of already-warned (candidate, neighbour) UUID pairs.
+    * @return
+    *   The set of generated [[LineSegmentThermalModel]] instances.
+    */
   private[ampacity] def splitAndAssignSegments(
       lineInput: LineInput,
       cable: CableSetup,
@@ -390,16 +475,37 @@ object ThermalSegmentBuilder {
         (LineSegmentThermalModel, (Double, Double), (Double, Double))
       ],
       segmentCoordinatesBuffer: MutableMap[UUID, Coordinate],
+      neighbourLines: Seq[NeighbourLineInfo],
+      ppThreshold: Option[Double],
+      parallelInfluenceBuffer: MutableMap[UUID, Seq[(UUID, Double)]],
+      warnedPairs: MutableSet[(UUID, UUID)],
   ): Set[LineSegmentThermalModel] = {
     val geometryFactory = new GeometryFactory()
     val depthMeters = cableDepth.toMeters
     val soilTypesById: Map[UUID, SoilType] =
       soilTypes.map(t => t.uuid -> t).toMap
-
+    // Pre-compute neighbour buffers for parallel-proximity detection
+    val ppThresholdDeg: Option[Double] =
+      ppThreshold.map(_ / metersPerDegree)
+    val neighbourBuffers: Seq[(NeighbourLineInfo, Geometry)] =
+      ppThresholdDeg match {
+        case Some(thresholdDeg) =>
+          neighbourLines
+            .filter(_.lineUuid != lineInput.getUuid)
+            .filter(_.geoPosition.size >= 2)
+            .map { neighbour =>
+              val neighbourLine = geometryFactory.createLineString(
+                neighbour.geoPosition
+                  .map(c => new JtsCoordinate(c._1, c._2))
+                  .toArray
+              )
+              neighbour -> neighbourLine.buffer(thresholdDeg)
+            }
+        case None => Seq.empty
+      }
     coordinates
       .sliding(2)
       .collect { case Seq(start, end) =>
-        // Build the JTS LineString of the straight segment (x=longitude, y=latitude)
         val jtsLine = geometryFactory.createLineString(
           Array(
             new JtsCoordinate(start._1, start._2),
@@ -407,10 +513,10 @@ object ThermalSegmentBuilder {
           )
         )
         val indexedLine = new LengthIndexedLine(jtsLine)
-
-        // Collect the indices of all intersections of this segment with the
-        // horizontal boundaries of the soil layers.
-        val intersectionIndices: Seq[Double] =
+        val segLength = jtsLine.getLength
+        val rejectedNeighbours: MutableSet[UUID] = MutableSet.empty
+        // Soil boundary intersection indices
+        val soilIndices: Seq[Double] =
           soilLayers.flatMap { layer =>
             val boundary = layer.geometry.getBoundary
             val intersection = boundary.intersection(jtsLine)
@@ -420,10 +526,54 @@ object ThermalSegmentBuilder {
                 .map(c => indexedLine.indexOf(c))
                 .filterNot(_.isNaN)
           }
-
+        // Parallel-proximity split indices for this straight segment
+        val ppIndices: Seq[Double] =
+          ppThreshold match {
+            case Some(thresholdMeters) =>
+              neighbourBuffers.flatMap { case (neighbour, buffer) =>
+                if !neighbour.hasDeployment then
+                  // Undeployed neighbour: warn and skip
+                  val minDist =
+                    neighborLineDistance(
+                      neighbour.geoPosition,
+                      jtsLine,
+                      geometryFactory,
+                    ) * metersPerDegree
+                  if minDist < thresholdMeters then
+                    val pairKey =
+                      (lineInput.getUuid, neighbour.lineUuid)
+                    if warnedPairs.add(pairKey) then
+                      logger.warn(
+                        s"Undeployed line ${neighbour.lineUuid} is within ${minDist}m of line ${lineInput.getUuid} (id: ${lineInput.getId}). No parallel-proximity split performed."
+                      )
+                  Seq.empty
+                else
+                  val intersection = buffer.intersection(jtsLine)
+                  if intersection.isEmpty then Seq.empty
+                  else
+                    val idxs =
+                      intersection.getCoordinates.toSeq
+                        .map(c => indexedLine.indexOf(c))
+                        .filterNot(_.isNaN)
+                        .filter(idx => idx > 1e-9 && idx < segLength - 1e-9)
+                    if idxs.size >= 2 then
+                      val overlapMeters =
+                        (idxs.max - idxs.min) * metersPerDegree
+                      if overlapMeters < minOverlapLengthMeters then
+                        logger.warn(
+                          s"Parallel stretch between line ${lineInput.getUuid} (id: ${lineInput.getId}) " +
+                            s"and neighbour ${neighbour.lineUuid} is only ${overlapMeters}m " +
+                            s"(< ${minOverlapLengthMeters}m minimum). No split performed for this stretch."
+                        )
+                        rejectedNeighbours += neighbour.lineUuid
+                        Seq.empty
+                      else idxs
+                    else idxs
+              }
+            case None => Seq.empty
+          }
         val allIndices: Seq[Double] =
-          (Seq(0.0, jtsLine.getLength) ++ intersectionIndices).distinct.sorted
-
+          (Seq(0.0, segLength) ++ soilIndices ++ ppIndices).distinct.sorted
         allIndices
           .sliding(2)
           .collect {
@@ -433,7 +583,6 @@ object ThermalSegmentBuilder {
               val midIdx = (idxStart + idxEnd) / 2.0
               val midCoord = indexedLine.extractPoint(midIdx)
               val midPoint = geometryFactory.createPoint(midCoord)
-
               val coveringLayers =
                 soilLayers.filter(layer => layer.geometry.contains(midPoint))
               if coveringLayers.isEmpty then
@@ -442,7 +591,6 @@ object ThermalSegmentBuilder {
                     s"(${midCoord.x}, ${midCoord.y}) of line ${lineInput.getUuid} " +
                     s"between ${p1} and ${p2}."
                 )
-
               val assignedLayer =
                 coveringLayers
                   .find { layer =>
@@ -466,7 +614,6 @@ object ThermalSegmentBuilder {
                     s"unknown soil type ${assignedLayer.soilType} for line ${lineInput.getUuid}."
                 ),
               )
-
               val s = (p1.x, p1.y)
               val e = (p2.x, p2.y)
               val segment = LineSegmentThermalModel(
@@ -478,7 +625,6 @@ object ThermalSegmentBuilder {
                 Coordinate3D(p2.y, p2.x, depthMeters),
                 cableDepth,
                 cableDistance,
-                // Placeholders, will be recalculated in initState
                 KelvinMetersPerWatt(1),
                 KelvinMetersPerWatt(1),
                 KelvinMetersPerWatt(1),
@@ -499,6 +645,26 @@ object ThermalSegmentBuilder {
                   e,
                   soilLayers.map(_.geometry.getBoundary),
                 )
+              // Record parallel-proximity influence
+              ppThreshold.foreach { _ =>
+                val influence: Seq[(UUID, Double)] = neighbourBuffers
+                  .filter(_._1.hasDeployment)
+                  .filterNot(n => rejectedNeighbours.contains(n._1.lineUuid))
+                  .collect {
+                    case (neighbour, buffer)
+                        if buffer.contains(midPoint) =>
+                      val distDeg =
+                        neighborLineDistance(
+                          neighbour.geoPosition,
+                          midPoint,
+                          geometryFactory,
+                        )
+                      val distMeters = distDeg * metersPerDegree
+                      (neighbour.lineUuid, distMeters)
+                  }
+                if influence.nonEmpty then
+                  parallelInfluenceBuffer(segment.uuid) = influence
+              }
               segment
           }
           .toSet
@@ -506,7 +672,21 @@ object ThermalSegmentBuilder {
       .flatten
       .toSet
   }
-
+  /** Computes the minimum distance in degrees between a neighbour line's
+    * geoPosition and a JTS geometry (line segment or point).
+    */
+  private def neighborLineDistance(
+      geoPosition: Seq[(Double, Double)],
+      geom: Geometry,
+      geometryFactory: GeometryFactory,
+  ): Double = {
+    if geoPosition.size < 2 then Double.MaxValue
+    else
+      val line = geometryFactory.createLineString(
+        geoPosition.map(c => new JtsCoordinate(c._1, c._2)).toArray
+      )
+      line.distance(geom)
+  }
   /** Reads a CSV file from the configured grid CSV directory.
     */
   private def readFromConfiguredDir[T](
@@ -522,7 +702,6 @@ object ThermalSegmentBuilder {
       case None => Success(Seq.empty[T])
     }
   }
-
   /** Writes the generated thermal line segments to a CSV file in the simulation
     * output folder (configured via `simona.output.base.dir`).
     *
@@ -540,10 +719,8 @@ object ThermalSegmentBuilder {
   ): Unit = {
     // If nothing to write, nothing to do
     if segments.isEmpty then return
-
     val baseOutputDir = Paths.get(simonaConfig.output.base.dir)
     val simulationName = simonaConfig.simulationName
-
     val runDirOpt: Option[Path] =
       try
         val stream = Files.list(baseOutputDir)
@@ -562,13 +739,10 @@ object ThermalSegmentBuilder {
           else None
         finally stream.close()
       catch case _: Exception => None
-
     val runDir = runDirOpt.getOrElse(baseOutputDir.resolve(simulationName))
     val rawOutputDir = runDir.resolve("rawOutputData")
     Files.createDirectories(rawOutputDir)
-
     val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
-
     val header =
       "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature"
     val rows = segments.map { case (segment, (sx, sy), (ex, ey)) =>
@@ -582,9 +756,7 @@ object ThermalSegmentBuilder {
         segment.upperBoundaryTemperature.value.toString,
       ).mkString(",")
     }.toSeq
-
     val content = rows.mkString("\n") + "\n"
-
     // Append if the file already exists, otherwise create it with the header.
     if Files.exists(outPath) then
       Files.write(
@@ -599,7 +771,6 @@ object ThermalSegmentBuilder {
         (header +: rows).mkString("\n").getBytes("UTF-8"),
       )
   }
-
   private def mapConductor(jc: JConductorInput): Layer = {
     val mat = jc.material()
     Layer(
