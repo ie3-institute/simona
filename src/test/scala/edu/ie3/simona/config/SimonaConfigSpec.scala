@@ -68,7 +68,9 @@ class SimonaConfigSpec extends UnitSpec {
 
       // ampacity config
       simonaConfig.ampacityCalculation shouldBe AmpacityCalculation(
-        activateAmpacityCalculation = false
+        activateAmpacityCalculation = false,
+        activateParallelProximitySplitting = false,
+        parallelProximityThreshold = None,
       )
 
       // congestion management config
@@ -220,6 +222,40 @@ class SimonaConfigSpec extends UnitSpec {
         ),
         selectedSubgrids = None,
         selectedVoltLvls = None,
+      )
+    }
+
+    "parse parallel proximity splitting config values correctly" in {
+      val config = ConfigFactory.parseString(
+        """
+          |simona.simulationName = "ConfigTestDataSimulation"
+          |
+          |simona.time.startDateTime = "2011-05-01T00:00:00Z"
+          |simona.time.endDateTime = "2011-05-01T01:00:00Z"
+          |
+          |simona.input.grid.datasource.id = "csv"
+          |simona.input.grid.datasource.csvParams = {
+          |  directoryPath: "input/samples/vn_simona/fullGrid"
+          |  isHierarchic: false
+          |  csvSep: ","
+          |}
+          |
+          |simona.output.base.dir = "testOutput/"
+          |simona.output.sink.csv.csvSep = ","
+          |simona.powerflow.newtonraphson.epsilon = [1E-12]
+          |
+          |simona.ampacityCalculation.activateAmpacityCalculation = true
+          |simona.ampacityCalculation.activateParallelProximitySplitting = true
+          |simona.ampacityCalculation.parallelProximityThreshold = 15.5
+          |""".stripMargin
+      )
+
+      val simonaConfig = SimonaConfig(config)
+
+      simonaConfig.ampacityCalculation shouldBe AmpacityCalculation(
+        activateAmpacityCalculation = true,
+        activateParallelProximitySplitting = true,
+        parallelProximityThreshold = Some(15.5),
       )
     }
 

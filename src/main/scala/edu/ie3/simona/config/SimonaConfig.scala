@@ -125,7 +125,9 @@ object SimonaConfig {
       derives ConfigConvert
 
   final case class AmpacityCalculation(
-      activateAmpacityCalculation: Boolean = false
+      activateAmpacityCalculation: Boolean = false,
+      activateParallelProximitySplitting: Boolean = false,
+      parallelProximityThreshold: Option[Double] = None,
   ) derives ConfigConvert
 
   final case class CongestionManagement(

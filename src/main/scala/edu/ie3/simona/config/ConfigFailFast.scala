@@ -145,6 +145,9 @@ object ConfigFailFast extends LazyLogging {
 
     /* Check correct parameterization of storages */
     checkStoragesConfig(simonaConfig.runtime.participant.storage)
+
+    /* Check ampacity calculation configuration */
+    checkAmpacityCalculation(simonaConfig.ampacityCalculation)
   }
 
   /** Checks for valid output configuration
@@ -891,4 +894,27 @@ object ConfigFailFast extends LazyLogging {
     }
   }
 
+  /** Checks the ampacity calculation configuration for consistency.
+    *
+    * @param ampacityCalculation
+    *   the ampacity calculation configuration that should be checked
+    */
+  private def checkAmpacityCalculation(
+      ampacityCalculation: AmpacityCalculation
+  ): Unit = {
+    if ampacityCalculation.activateParallelProximitySplitting then
+      ampacityCalculation.parallelProximityThreshold match {
+        case None =>
+          throw new InvalidConfigParameterException(
+            "Parallel proximity splitting is activated, but no parallelProximityThreshold is provided. " +
+              "Please set simona.ampacityCalculation.parallelProximityThreshold to a positive value in meters."
+          )
+        case Some(threshold) if threshold <= 0 =>
+          throw new InvalidConfigParameterException(
+            s"Parallel proximity splitting is activated, but parallelProximityThreshold is $threshold. " +
+              "The threshold must be a positive value in meters."
+          )
+        case _ => // valid
+      }
+  }
 }

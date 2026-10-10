@@ -15,16 +15,25 @@ import edu.ie3.simona.config.SimonaConfig.AmpacityCalculation
   *
   * @param activateAmpacityCalculation
   *   Defines whether the ampacity calculation is active.
+  * @param activateParallelProximitySplitting
+  *   Defines whether parallel-proximity splitting of thermal segments is active.
+  * @param parallelProximityThreshold
+  *   The lateral distance threshold in meters below which a neighbouring line
+  *   is considered a parallel-proximity neighbour.
   */
 final case class AmpacityCalculationParams(
-    activateAmpacityCalculation: Boolean
+    activateAmpacityCalculation: Boolean,
+    activateParallelProximitySplitting: Boolean = false,
+    parallelProximityThreshold: Option[Double] = None,
 )
 
 object AmpacityCalculationParams {
 
   def apply(cfg: AmpacityCalculation): AmpacityCalculationParams =
     AmpacityCalculationParams(
-      cfg.activateAmpacityCalculation
+      cfg.activateAmpacityCalculation,
+      cfg.activateParallelProximitySplitting,
+      cfg.parallelProximityThreshold,
     )
 
 }
