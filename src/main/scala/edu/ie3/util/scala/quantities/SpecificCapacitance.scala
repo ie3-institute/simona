@@ -6,8 +6,6 @@
 
 package edu.ie3.util.scala.quantities
 
-import squants.electro.Farads
-import squants.space.Meters
 import squants.{
   AbstractQuantityNumeric,
   Dimension,
@@ -18,6 +16,8 @@ import squants.{
   UnitConverter,
   UnitOfMeasure,
 }
+import squants.electro.{Capacitance, Farads}
+import squants.space.{Length, Meters}
 
 /** Represents the specific capacitance per unit length, e.g. of a cable
   * dielectric.
@@ -37,7 +37,7 @@ final class SpecificCapacitance private (
   /** Multiplies this specific capacitance by a length to obtain a total
     * capacitance.
     */
-  def *(that: squants.space.Length): squants.electro.Capacitance = Farads(
+  def *(that: Length): Capacitance = Farads(
     this.toFaradsPerMeter * that.toMeters
   )
 }

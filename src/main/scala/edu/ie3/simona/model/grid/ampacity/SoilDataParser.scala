@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.util.scala.quantities.*
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory}
 import play.api.libs.json.*
@@ -21,7 +21,7 @@ import scala.util.{Failure, Success, Try}
 /** Utilities to parse soil related data from simple CSV files and provide
   * helpers to further process the parsed data.
   */
-object SoilDataParser extends LazyLogging {
+object SoilDataParser {
 
   private val soilTypeHeader = List(
     "uuid",
@@ -61,23 +61,13 @@ object SoilDataParser extends LazyLogging {
     val types = readOrFail(readSoilTypes(typesPath), "soil types")
     val layers = readOrFail(readSoilLayers(layersPath), "soil layers")
 
-    val missing =
-      associateLayersWithTypes(layers, types).collect { case (l, None) =>
-        l
-      }.length
-    if missing > 0 then
-      throw new RuntimeException(
-        s"Warning: $missing layers reference missing soil types."
-      )
-
     val expectedRanges = layers
       .map(l => l.geometry)
       .distinct
       .map(g => g -> expectedDepthRange)
       .toMap
 
-    try validateAll(layers, expectedRanges, tolerance = 1e-6, types = types)
-    catch case e: IllegalArgumentException => logger.error(e.getMessage)
+    validateAll(layers, expectedRanges, tolerance = 1e-6, types = types)
   }
 
   private def readOrFail[A](
@@ -290,7 +280,15 @@ object SoilDataParser extends LazyLogging {
       validateCoverageAgainstRanges(layers, expectedRanges, tolerance)
 
     if types.nonEmpty then
-      associateLayersWithTypes(layers, types).collect { case (l, None) => l }
+      val missing = associateLayersWithTypes(layers, types).collect {
+        case (l, None) => l
+      }
+      if missing.nonEmpty then
+        throw new GridInconsistencyException(
+          s"${missing.length} layers reference missing soil types: ${missing
+              .map(_.uuid)
+              .mkString(", ")}."
+        )
 
     totalThicknessBySoilType(layers)
   }
@@ -315,7 +313,7 @@ object SoilDataParser extends LazyLogging {
     } yield s"Overlap between layers ${a.uuid} and ${b.uuid}"
 
     if errors.nonEmpty then
-      throw new RuntimeException(
+      throw new GridInconsistencyException(
         s"Soil validation failed for non overlapping layers: ${errors.mkString(", ")}"
       )
   }
@@ -355,7 +353,7 @@ object SoilDataParser extends LazyLogging {
       }
 
     if errors.nonEmpty then
-      throw new RuntimeException(
+      throw new GridInconsistencyException(
         s"Validation of soil layers for gaps failed. ${errors.mkString(", ")}"
       )
   }
@@ -407,7 +405,7 @@ object SoilDataParser extends LazyLogging {
     }
 
     if errors.nonEmpty then
-      throw new RuntimeException(
+      throw new GridInconsistencyException(
         s"Validation of soil layers for coverage against expected ranges failed. ${errors.mkString(", ")}"
       )
   }

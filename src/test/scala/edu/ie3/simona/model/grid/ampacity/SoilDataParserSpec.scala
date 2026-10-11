@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.scala.quantities.{
@@ -162,7 +163,7 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
         SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
         SoilLayer(uuid, g, Meters(-0.5), Meters(-2.0), uuid), // overlap
       )
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateNonOverlappingPerCoordinate(layers)
       }
 
@@ -172,7 +173,7 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
         SoilLayer(uuid, g, Meters(0.0), Meters(-0.5), uuid),
         SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), uuid), // gap
       )
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateNoGapsPerCoordinate(layers)
       }
     }
@@ -190,9 +191,9 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
           uuid,
         ), // missing coverage to -2.0 m
       )
-      val expected: Map[org.locationtech.jts.geom.Geometry, (Double, Double)] =
+      val expected: Map[Geometry, (Double, Double)] =
         Map(g -> (-2.0, 0.0), g2 -> (-2.0, 0.0))
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateCoverageAgainstRanges(layers, expected)
       }
     }
@@ -205,7 +206,7 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
       val expected: Map[Geometry, (Double, Double)] =
         Map(g -> (-2.0, 0.0))
 
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateAll(layers, expectedRanges = expected)
       }
     }
