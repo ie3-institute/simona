@@ -924,7 +924,7 @@ object ThermalSegmentBuilder extends LazyLogging {
 
   /** Maps a list of PSDM layer inputs to cable layers.
     */
-  private def layersList(jl: List[JLayerInput]): List[Layer] =
+  private def layersList(jl: java.util.List[JLayerInput]): List[Layer] =
     jl.asScala.map(mapLayer).toList
 
   private def mapLayer(jl: JLayerInput): Layer = {
