@@ -100,7 +100,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       thermalLineSegments: Set[LineSegmentThermalModel],
   )
 
-  /** Builds thermal line segments for the given subgrid.
+  /** Builds thermal line segments for the given subgrid and writes them to the results.
     *
     * Validates soil data, cable types, and cable deployments when ampacity
     * calculation is activated. Generates thermal segments for all lines that
@@ -336,8 +336,10 @@ object ThermalSegmentBuilder extends LazyLogging {
           resolveCableType(lineType).toSeq.flatMap { cableTypeInput =>
             val deploymentListOpt =
               deploymentsByLine.get(lineInput.getUuid)
-            val firstDeploymentOpt =
-              deploymentListOpt.map(_.asScala).flatMap(_.headOption)
+            val firstDeploymentOpt = singleDeploymentFor(
+              lineInput,
+              deploymentListOpt,
+            )
             // If no deployment, skip this line
             firstDeploymentOpt.toSeq.flatMap { firstDeployment =>
               // Extract line points from geoposition
@@ -916,5 +918,32 @@ object ThermalSegmentBuilder extends LazyLogging {
       js.electricalResistivity.toSquants,
     )
   }
+
+  /** Validates that a line has at most one cable deployment and returns the
+    * single deployment if present.
+    *
+    * @param lineInput
+    *   The candidate line.
+    * @param deploymentListOpt
+    *   The cable deployments assigned to the line, if any.
+    * @return
+    *   The single deployment, or `None` if the line has no deployment.
+    */
+  private[ampacity] def singleDeploymentFor(
+      lineInput: LineInput,
+      deploymentListOpt: Option[java.util.List[CableDeploymentInput]],
+  ): Option[CableDeploymentInput] =
+    deploymentListOpt match {
+      case Some(deployments) =>
+        val deploymentList = deployments.asScala.toSeq
+        if deploymentList.size > 1 then
+          throw new GridAgentInitializationException(
+            s"Ampacity build failed: line ${lineInput.getUuid} (id: ${lineInput.getId}) " +
+              s"has ${deploymentList.size} cable deployments. Only one cable deployment per line " +
+              s"is supported. Please remove the surplus entries in cable_deployment_input.csv."
+          )
+        deploymentList.headOption
+      case None => None
+    }
 
 }

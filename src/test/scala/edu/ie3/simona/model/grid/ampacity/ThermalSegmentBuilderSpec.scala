@@ -5,7 +5,7 @@
  */
 
 package edu.ie3.simona.model.grid.ampacity
-import edu.ie3.datamodel.models.input.connector.LineInput
+import edu.ie3.datamodel.models.input.connector.{CableDeploymentInput, LineInput}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.test.common.UnitSpec
@@ -523,6 +523,35 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
       segments.size shouldBe 1
       segments.forall(_.parallelInfluence.isEmpty) shouldBe true
+    }
+  }
+  "ThermalSegmentBuilder.singleDeploymentFor" should {
+    "return the single deployment if the line has exactly one" in {
+      val deployment = mock(classOf[CableDeploymentInput])
+      val result = ThermalSegmentBuilder.singleDeploymentFor(
+        lineInput,
+        Some(java.util.List.of(deployment)),
+      )
+      result should be(Some(deployment))
+    }
+    "return None if the line has no deployment" in {
+      val result = ThermalSegmentBuilder.singleDeploymentFor(
+        lineInput,
+        None,
+      )
+      result shouldBe None
+    }
+    "throw an exception if the line has multiple deployments" in {
+      val deployment1 = mock(classOf[CableDeploymentInput])
+      val deployment2 = mock(classOf[CableDeploymentInput])
+      val thrown = the[GridAgentInitializationException] thrownBy {
+        ThermalSegmentBuilder.singleDeploymentFor(
+          lineInput,
+          Some(java.util.List.of(deployment1, deployment2)),
+        )
+      }
+      thrown.getMessage should include(lineUuid.toString)
+      thrown.getMessage should include("2")
     }
   }
   "ThermalSegmentBuilder.sampledProximityIndices" should {
