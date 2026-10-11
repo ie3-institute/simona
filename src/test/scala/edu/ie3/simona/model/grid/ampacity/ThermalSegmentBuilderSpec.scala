@@ -5,7 +5,10 @@
  */
 
 package edu.ie3.simona.model.grid.ampacity
-import edu.ie3.datamodel.models.input.connector.{CableDeploymentInput, LineInput}
+import edu.ie3.datamodel.models.input.connector.{
+  CableDeploymentInput,
+  LineInput,
+}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.test.common.UnitSpec
@@ -71,15 +74,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       ppThreshold: Option[Double] = None,
   ): (
       Set[LineSegmentThermalModel],
-      ListBuffer[
-        (LineSegmentThermalModel, (Double, Double), (Double, Double))
-      ],
+      ListBuffer[ThermalSegmentBuilder.BuiltSegment],
   ) = {
-    val generatedSegments = ListBuffer.empty[
-      (LineSegmentThermalModel, (Double, Double), (Double, Double))
-    ]
+    val generatedSegments = ListBuffer.empty[ThermalSegmentBuilder.BuiltSegment]
     val warnedPairs = scala.collection.mutable.Set.empty[(UUID, UUID)]
-    val segments = ThermalSegmentBuilder.splitAndAssignSegments(
+    val context = ThermalSegmentBuilder.SegmentBuildContext(
       lineInput,
       cable,
       coordinates,
@@ -93,10 +92,10 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       ppThreshold,
       warnedPairs,
     )
+    val segments = ThermalSegmentBuilder.splitAndAssignSegments(context)
     (segments, generatedSegments)
   }
-  private def makeSegment(
-  ): (LineSegmentThermalModel, (Double, Double), (Double, Double)) = {
+  private def makeSegment(): ThermalSegmentBuilder.BuiltSegment = {
     val layer = SoilLayer(
       UUID.randomUUID(),
       rectangle(0.0, -0.1, 1.0, 0.1),
@@ -113,9 +112,9 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
   }
   private def makeSegmentWithInfluence(
       influence: Seq[(UUID, Double)]
-  ): (LineSegmentThermalModel, (Double, Double), (Double, Double)) = {
-    val (segment, s, e) = makeSegment()
-    (segment.copy(parallelInfluence = influence), s, e)
+  ): ThermalSegmentBuilder.BuiltSegment = {
+    val built = makeSegment()
+    built.copy(segment = built.segment.copy(parallelInfluence = influence))
   }
   private def buildTestConfig(outputDir: String): SimonaConfig = {
     val config = ConfigFactory.parseString(
@@ -162,12 +161,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
       segments.size shouldBe 2
       generated.size shouldBe 2
-      val sorted = generated.sortBy(_._2._1)
-      sorted.head._2._1 shouldBe 0.0
-      sorted.head._3._1 shouldBe 0.5
-      sorted.last._2._1 shouldBe 0.5
-      sorted.last._3._1 shouldBe 1.0
-      generated.forall(_._1.lineUuid == lineUuid) shouldBe true
+      val sorted = generated.sortBy(_.start.longitude)
+      sorted.head.start.longitude shouldBe 0.0
+      sorted.head.end.longitude shouldBe 0.5
+      sorted.last.start.longitude shouldBe 0.5
+      sorted.last.end.longitude shouldBe 1.0
+      generated.forall(_.segment.lineUuid == lineUuid) shouldBe true
     }
     "produce a single segment when one soil layer covers the entire straight segment" in {
       val layer = SoilLayer(
@@ -668,9 +667,8 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       try {
         val simonaConfig = buildTestConfig(tempDir.toString)
         val neighbourUuid = UUID.randomUUID()
-        val (segment, s, e) =
-          makeSegmentWithInfluence(Seq(neighbourUuid -> 3.5))
-        val segments = Seq((segment, s, e))
+        val built = makeSegmentWithInfluence(Seq(neighbourUuid -> 3.5))
+        val segments = Seq(built)
         ThermalSegmentBuilder.writeThermalSegmentsToOutput(
           segments,
           simonaConfig,
@@ -701,8 +699,8 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val tempDir = Files.createTempDirectory("test_thermal_out")
       try {
         val simonaConfig = buildTestConfig(tempDir.toString)
-        val (segment, s, e) = makeSegment()
-        val segments = Seq((segment, s, e))
+        val built = makeSegment()
+        val segments = Seq(built)
         ThermalSegmentBuilder.writeThermalSegmentsToOutput(
           segments,
           simonaConfig,
@@ -731,11 +729,10 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         val simonaConfig = buildTestConfig(tempDir.toString)
         val neighbour1Uuid = UUID.randomUUID()
         val neighbour2Uuid = UUID.randomUUID()
-        val (segment, s, e) =
-          makeSegmentWithInfluence(
-            Seq(neighbour1Uuid -> 2.0, neighbour2Uuid -> 5.5)
-          )
-        val segments = Seq((segment, s, e))
+        val built = makeSegmentWithInfluence(
+          Seq(neighbour1Uuid -> 2.0, neighbour2Uuid -> 5.5)
+        )
+        val segments = Seq(built)
         ThermalSegmentBuilder.writeThermalSegmentsToOutput(
           segments,
           simonaConfig,

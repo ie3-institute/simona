@@ -100,7 +100,66 @@ object ThermalSegmentBuilder extends LazyLogging {
       thermalLineSegments: Set[LineSegmentThermalModel],
   )
 
-  /** Builds thermal line segments for the given subgrid and writes them to the results.
+  /** A generated thermal line segment together with the geographic start and
+    * end coordinates it was built from.
+    *
+    * @param segment
+    *   The generated thermal line segment.
+    * @param start
+    *   The segment start coordinate.
+    * @param end
+    *   The segment end coordinate.
+    */
+  final case class BuiltSegment(
+      segment: LineSegmentThermalModel,
+      start: Coordinate,
+      end: Coordinate,
+  )
+
+  /** Context with everything required to split a line into thermal segments.
+    *
+    * @param lineInput
+    *   The candidate line.
+    * @param cable
+    *   The cable setup.
+    * @param coordinates
+    *   The line's support-point coordinates as (lon, lat) pairs.
+    * @param cableDepth
+    *   The cable burial depth.
+    * @param cableDistance
+    *   The distance between cables in a multi-cable deployment.
+    * @param soilLayers
+    *   The validated soil layers.
+    * @param soilTypes
+    *   The validated soil types.
+    * @param limitTemperature
+    *   The cable's limit temperature.
+    * @param generatedSegments
+    *   A mutable buffer to collect the generated segments.
+    * @param neighbourLines
+    *   Neighbour lines for parallel-proximity detection.
+    * @param ppThreshold
+    *   The parallel-proximity threshold in meters, if activated.
+    * @param warnedPairs
+    *   A set of already-warned (candidate, neighbour) UUID pairs.
+    */
+  final case class SegmentBuildContext(
+      lineInput: LineInput,
+      cable: CableSetup,
+      coordinates: Seq[(Double, Double)],
+      cableDepth: Length,
+      cableDistance: Length,
+      soilLayers: Seq[SoilLayer],
+      soilTypes: Seq[SoilType],
+      limitTemperature: Temperature,
+      generatedSegments: ListBuffer[BuiltSegment],
+      neighbourLines: Seq[NeighbourLineInfo],
+      ppThreshold: Option[Double],
+      warnedPairs: MutableSet[(UUID, UUID)],
+  )
+
+  /** Builds thermal line segments for the given subgrid and writes them to the
+    * results.
     *
     * Validates soil data, cable types, and cable deployments when ampacity
     * calculation is activated. Generates thermal segments for all lines that
@@ -161,57 +220,66 @@ object ThermalSegmentBuilder extends LazyLogging {
     )
   }
 
+  /** Reads a CSV file from the configured directory, validates the result and
+    * fails with an actionable error when reading failed or no entries were
+    * found.
+    *
+    * @param fileName
+    *   The name of the CSV file to read.
+    * @param description
+    *   A short description of the file, used in the error messages.
+    * @param parser
+    *   The parser for the CSV file.
+    * @param simonaConfig
+    *   The SIMONA configuration.
+    * @return
+    *   The parsed entries.
+    */
+  private def readAndValidate[T](
+      fileName: String,
+      description: String,
+      parser: Path => Try[Seq[T]],
+      simonaConfig: SimonaConfig,
+  ): Seq[T] = {
+    val entriesTry: Try[Seq[T]] =
+      readFromConfiguredDir[T](fileName, parser, simonaConfig)
+    entriesTry match
+      case Failure(cause) =>
+        throw new GridAgentInitializationException(
+          s"Ampacity calculation is activated, but reading ${description} failed. Please ensure '$fileName' is present and valid.",
+          cause,
+        )
+      case Success(entries) if entries.isEmpty =>
+        throw new GridAgentInitializationException(
+          s"Ampacity calculation is activated, but no ${description} were found. Please provide '$fileName' with valid entries."
+        )
+      case _ => // ok
+    entriesTry.get
+  }
+
   /** Reads soil layers from the configured directory and validates them.
     */
   private def readAndValidateSoilLayers(
       simonaConfig: SimonaConfig
-  ): Seq[SoilLayer] = {
-    val soilLayersTry: Try[Seq[SoilLayer]] = readFromConfiguredDir[SoilLayer](
+  ): Seq[SoilLayer] =
+    readAndValidate(
       "soilLayers.csv",
+      "soil layers",
       SoilDataParser.readSoilLayers,
       simonaConfig,
     )
-    val soilLayers: Seq[SoilLayer] =
-      soilLayersTry.getOrElse(Seq.empty[SoilLayer])
-
-    soilLayersTry match
-      case Failure(cause) =>
-        throw new GridAgentInitializationException(
-          "Ampacity calculation is activated, but reading soil layers failed. Please ensure 'soilLayers.csv' is present and valid.",
-          cause,
-        )
-      case Success(layers) if layers.isEmpty =>
-        throw new GridAgentInitializationException(
-          "Ampacity calculation is activated, but no soil layers were found. Please provide 'soilLayers.csv' with valid entries."
-        )
-      case _ => // ok
-    soilLayers
-  }
 
   /** Reads soil types from the configured directory and validates them.
     */
   private def readAndValidateSoilTypes(
       simonaConfig: SimonaConfig
-  ): Seq[SoilType] = {
-    val soilTypesTry: Try[Seq[SoilType]] = readFromConfiguredDir[SoilType](
+  ): Seq[SoilType] =
+    readAndValidate(
       "soilTypes.csv",
+      "soil types",
       SoilDataParser.readSoilTypes,
       simonaConfig,
     )
-    val soilTypes: Seq[SoilType] = soilTypesTry.getOrElse(Seq.empty[SoilType])
-    soilTypesTry match
-      case Failure(cause) =>
-        throw new GridAgentInitializationException(
-          "Ampacity calculation is activated, but reading soil types failed. Please ensure 'soilTypes.csv' is present and valid.",
-          cause,
-        )
-      case Success(types) if types.isEmpty =>
-        throw new GridAgentInitializationException(
-          "Ampacity calculation is activated, but no soil types were found. Please provide 'soilTypes.csv' with valid entries."
-        )
-      case _ => // ok
-    soilTypes
-  }
 
   /** Validates that all soil layers reference existing soil types.
     */
@@ -304,14 +372,17 @@ object ThermalSegmentBuilder extends LazyLogging {
     *
     * @param subGridContainer
     *   The subgrid container.
-    * @soilLayers
-    * @soilTypes
-    * @neighbourLines
-    * @ppThreshold
+    * @param soilLayers
+    *   The validated soil layers.
+    * @param soilTypes
+    *   The validated soil types.
+    * @param neighbourLines
+    *   Neighbour lines for parallel-proximity detection.
+    * @param ppThreshold
+    *   The parallel-proximity threshold in meters, if activated.
     * @return
-    *   A tuple of the generated segments, their coordinates for output, and the
-    *   midpoint coordinates for weather registration. //FIXME DF not always
-    *   midpoint
+    *   A tuple of the generated segments and the generated [[BuiltSegment]]s
+    *   with their start and end coordinates for output.
     */
   private def generateThermalSegments(
       subGridContainer: SubGridContainer,
@@ -319,15 +390,10 @@ object ThermalSegmentBuilder extends LazyLogging {
       soilTypes: Seq[SoilType],
       neighbourLines: Seq[NeighbourLineInfo],
       ppThreshold: Option[Double],
-  ): (
-      Set[LineSegmentThermalModel],
-      Seq[(LineSegmentThermalModel, (Double, Double), (Double, Double))],
-  ) = {
+  ): (Set[LineSegmentThermalModel], ListBuffer[BuiltSegment]) = {
     val deploymentsByLine =
       subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
-    val generatedSegments: ListBuffer[
-      (LineSegmentThermalModel, (Double, Double), (Double, Double))
-    ] = ListBuffer.empty
+    val generatedSegments: ListBuffer[BuiltSegment] = ListBuffer.empty
     val warnedPairs: MutableSet[(UUID, UUID)] = MutableSet.empty
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
@@ -350,20 +416,16 @@ object ThermalSegmentBuilder extends LazyLogging {
               // TODO DF: In case some information are missing in the provided input data, these might be filled by data in PSDM (Cable Material Data). Might worth an improvement in PSDM, noted here to keep track.
               val conductor: Layer =
                 mapConductor(cableTypeInput.getConductor)
-              val isolation: List[Layer] =
-                cableTypeInput.getIsolation.asScala
-                  .map(mapLayer)
-                  .toList
+              val isolation = layersList(cableTypeInput.getIsolation)
               val screen: Option[ScreenLayer] =
                 cableTypeInput.getScreen.toScala.map(mapScreen)
-              val filler: List[Layer] = Option(cableTypeInput.getFiller)
-                .map(_.asScala.map(mapLayer).toList)
+              val filler = Option(cableTypeInput.getFiller)
+                .map(layersList)
                 .getOrElse(List.empty)
-              val armor: List[Layer] = Option(cableTypeInput.getArmor)
-                .map(_.asScala.map(mapLayer).toList)
+              val armor = Option(cableTypeInput.getArmor)
+                .map(layersList)
                 .getOrElse(List.empty)
-              val jack: List[Layer] =
-                cableTypeInput.getJack.asScala.map(mapLayer).toList
+              val jack = layersList(cableTypeInput.getJack)
               val deploymentPattern: String =
                 Option(firstDeployment.getLayoutFormation)
                   .getOrElse(
@@ -386,6 +448,8 @@ object ThermalSegmentBuilder extends LazyLogging {
                       s"Ampacity build failed: No cable distance available for line ${lineInput.getUuid}"
                     )
                   )
+              val limitTemperature =
+                cableTypeInput.getLimitTemperature.toSquants
               val cable: CableSetup = CableSetup(
                 cableTypeInput.getUuid,
                 cableTypeInput.getId,
@@ -396,7 +460,7 @@ object ThermalSegmentBuilder extends LazyLogging {
                 armor,
                 jack,
                 deploymentPattern,
-                cableTypeInput.getLimitTemperature.toSquants,
+                limitTemperature,
                 lineType.getvRated().toSquants,
                 cableTypeInput.getFrequency.toSquants,
                 lineType.getR.toResistancePerLength,
@@ -407,86 +471,47 @@ object ThermalSegmentBuilder extends LazyLogging {
                 cableTypeInput.getCirculatingLossFactor,
                 cableTypeInput.getEddyCurrentLossFactor,
               )
-              val segments: Set[LineSegmentThermalModel] =
-                splitAndAssignSegments(
-                  lineInput,
-                  cable,
-                  coordinates,
-                  cableDepth,
-                  cableDistance,
-                  soilLayers,
-                  soilTypes,
-                  cableTypeInput.getLimitTemperature.toSquants,
-                  generatedSegments,
-                  neighbourLines,
-                  ppThreshold,
-                  warnedPairs,
-                )
-              segments
+              val context = SegmentBuildContext(
+                lineInput,
+                cable,
+                coordinates,
+                cableDepth,
+                cableDistance,
+                soilLayers,
+                soilTypes,
+                limitTemperature,
+                generatedSegments,
+                neighbourLines,
+                ppThreshold,
+                warnedPairs,
+              )
+              splitAndAssignSegments(context)
             }
           }
         }
       }.toSet
     (
       thermalLineSegments,
-      generatedSegments.toSeq,
+      generatedSegments,
     )
   }
 
   /** Splits a line into thermal segments at soil boundaries and, optionally, at
-    * parallel-proximity stretch boundaries.
+    * parallel-proximity stretch boundaries. The generated segments are
+    * collected in the context's generated segments buffer.
     *
-    * @param lineInput
-    *   The candidate line.
-    * @param cable
-    *   The cable setup.
-    * @param coordinates
-    *   The line's support-point coordinates as (lon, lat) pairs.
-    * @param cableDepth
-    *   The cable burial depth.
-    * @param cableDistance
-    *   The distance between cables in a multi-cable deployment.
-    * @param soilLayers
-    *   The validated soil layers.
-    * @param soilTypes
-    *   The validated soil types.
-    * @param limitTemperature
-    *   The cable's limit temperature.
-    * @param generatedSegments
-    *   A mutable buffer to collect generated segments.
-    * @param segmentCoordinatesBuffer
-    *   A mutable map to collect segment coordinates.
-    * @param neighbourLines
-    *   Neighbour lines for parallel-proximity detection.
-    * @param ppThreshold
-    *   The parallel-proximity threshold in meters, if activated.
-    * @param parallelInfluenceBuffer
-    *   A mutable map to collect parallel-influence marks per segment.
-    * @param warnedPairs
-    *   A set of already-warned (candidate, neighbour) UUID pairs.
+    * @param context
+    *   The context with everything required to split the line.
     * @return
     *   The set of generated [[LineSegmentThermalModel]] instances.
     */
   private[ampacity] def splitAndAssignSegments(
-      lineInput: LineInput,
-      cable: CableSetup,
-      coordinates: Seq[(Double, Double)],
-      cableDepth: Length,
-      cableDistance: Length,
-      soilLayers: Seq[SoilLayer],
-      soilTypes: Seq[SoilType],
-      limitTemperature: Temperature,
-      generatedSegments: ListBuffer[
-        (LineSegmentThermalModel, (Double, Double), (Double, Double))
-      ],
-      neighbourLines: Seq[NeighbourLineInfo],
-      ppThreshold: Option[Double],
-      warnedPairs: MutableSet[(UUID, UUID)],
+      context: SegmentBuildContext
   ): Set[LineSegmentThermalModel] = {
     val geometryFactory = new GeometryFactory()
-    val depthMeters = cableDepth.toMeters
+    val depthMeters = context.cableDepth.toMeters
     val soilTypesById: Map[UUID, SoilType] =
-      soilTypes.map(t => t.uuid -> t).toMap
+      context.soilTypes.map(t => t.uuid -> t).toMap
     // Pre-compute neighbour centerlines for parallel-proximity detection.
     // NOTE: The haversine-on-sampled-points approach is geodesically consistent
     // but still relies on planar (lon, lat) sampling and a coarse per-sample
@@ -495,10 +520,10 @@ object ThermalSegmentBuilder extends LazyLogging {
     // should be projected into a metric coordinate reference system (e.g., UTM
     // or Mercator) before proximity evaluation. This is not yet implemented.
     val neighbourLineStrings: Seq[(NeighbourLineInfo, Geometry)] =
-      ppThreshold match {
+      context.ppThreshold match {
         case Some(_) =>
-          neighbourLines
-            .filter(_.lineUuid != lineInput.getUuid)
+          context.neighbourLines
+            .filter(_.lineUuid != context.lineInput.getUuid)
             .filter(_.geoPosition.size >= 2)
             .map { neighbour =>
               val neighbourLine = geometryFactory.createLineString(
@@ -510,7 +535,7 @@ object ThermalSegmentBuilder extends LazyLogging {
             }
         case None => Seq.empty
       }
-    coordinates
+    context.coordinates
       .sliding(2)
       .collect { case Seq(start, end) =>
         val jtsLine = geometryFactory.createLineString(
@@ -524,7 +549,7 @@ object ThermalSegmentBuilder extends LazyLogging {
         val rejectedNeighbours: MutableSet[UUID] = MutableSet.empty
         // Soil boundary intersection indices
         val soilIndices: Seq[Double] =
-          soilLayers.flatMap { layer =>
+          context.soilLayers.flatMap { layer =>
             val boundary = layer.geometry.getBoundary
             val intersection = boundary.intersection(jtsLine)
             if intersection.isEmpty then Seq.empty
@@ -535,23 +560,23 @@ object ThermalSegmentBuilder extends LazyLogging {
           }
         // Parallel-proximity split indices for this straight segment
         val ppIndices: Seq[Double] =
-          ppThreshold match {
+          context.ppThreshold match {
             case Some(thresholdMeters) =>
               neighbourLineStrings.flatMap { case (neighbour, neighbourLine) =>
                 if !neighbour.hasDeployment then
                   // Undeployed neighbour: warn and skip
                   val minDist =
-                    neighborLineDistanceMeters(
+                    neighbourLineDistanceMeters(
                       neighbour.geoPosition,
                       jtsLine,
                       geometryFactory,
                     )
                   if minDist < thresholdMeters then
                     val pairKey =
-                      (lineInput.getUuid, neighbour.lineUuid)
-                    if warnedPairs.add(pairKey) then
+                      (context.lineInput.getUuid, neighbour.lineUuid)
+                    if context.warnedPairs.add(pairKey) then
                       logger.warn(
-                        s"Undeployed line ${neighbour.lineUuid} is within ${minDist}m of line ${lineInput.getUuid} (id: ${lineInput.getId}). No parallel-proximity split performed."
+                        s"Undeployed line ${neighbour.lineUuid} is within ${minDist}m of line ${context.lineInput.getUuid} (id: ${context.lineInput.getId}). No parallel-proximity split performed."
                       )
                   Seq.empty
                 else
@@ -572,7 +597,7 @@ object ThermalSegmentBuilder extends LazyLogging {
                         .doubleValue()
                     if overlapMeters < minOverlapLengthMeters then
                       logger.warn(
-                        s"Parallel stretch between line ${lineInput.getUuid} (id: ${lineInput.getId}) " +
+                        s"Parallel stretch between line ${context.lineInput.getUuid} (id: ${context.lineInput.getId}) " +
                           s"and neighbour ${neighbour.lineUuid} is only ${overlapMeters}m " +
                           s"(< ${minOverlapLengthMeters}m minimum). No split performed for this stretch."
                       )
@@ -595,11 +620,13 @@ object ThermalSegmentBuilder extends LazyLogging {
               val midCoord = indexedLine.extractPoint(midIdx)
               val midPoint = geometryFactory.createPoint(midCoord)
               val coveringLayers =
-                soilLayers.filter(layer => layer.geometry.contains(midPoint))
+                context.soilLayers.filter(layer =>
+                  layer.geometry.contains(midPoint)
+                )
               if coveringLayers.isEmpty then
                 throw new GridAgentInitializationException(
                   s"Ampacity build failed: No soil layer covers the subsegment midpoint " +
-                    s"(${midCoord.x}, ${midCoord.y}) of line ${lineInput.getUuid} " +
+                    s"(${midCoord.x}, ${midCoord.y}) of line ${context.lineInput.getUuid} " +
                     s"between ${p1} and ${p2}."
                 )
               val assignedLayer =
@@ -614,7 +641,7 @@ object ThermalSegmentBuilder extends LazyLogging {
                   .getOrElse(
                     throw new GridAgentInitializationException(
                       s"Ampacity build failed: The cable depth of ${depthMeters} m is " +
-                        s"not covered by any soil layer spanning line ${lineInput.getUuid} " +
+                        s"not covered by any soil layer spanning line ${context.lineInput.getUuid} " +
                         s"at midpoint (${midCoord.x}, ${midCoord.y})."
                     )
                   )
@@ -622,20 +649,20 @@ object ThermalSegmentBuilder extends LazyLogging {
                 assignedLayer.soilType,
                 throw new GridAgentInitializationException(
                   s"Ampacity build failed: Soil layer ${assignedLayer.uuid} references " +
-                    s"unknown soil type ${assignedLayer.soilType} for line ${lineInput.getUuid}."
+                    s"unknown soil type ${assignedLayer.soilType} for line ${context.lineInput.getUuid}."
                 ),
               )
-              val s = (p1.x, p1.y)
-              val e = (p2.x, p2.y)
+              val sCoord = toCoordinate(p1)
+              val eCoord = toCoordinate(p2)
               val segmentUuid = UUID.randomUUID()
               val calculationPoint = SegmentCalculationPoints.coordinateFor(
                 segmentUuid,
-                s,
-                e,
-                soilLayers.map(_.geometry.getBoundary),
+                sCoord,
+                eCoord,
+                context.soilLayers.map(_.geometry.getBoundary),
               )
               val influence: Seq[(UUID, Double)] =
-                ppThreshold match {
+                context.ppThreshold match {
                   case Some(thresholdMeters) =>
                     neighbourLineStrings
                       .filter(_._1.hasDeployment)
@@ -644,7 +671,7 @@ object ThermalSegmentBuilder extends LazyLogging {
                       )
                       .flatMap { case (neighbour, _) =>
                         val distMeters =
-                          neighborLineDistanceMeters(
+                          neighbourLineDistanceMeters(
                             neighbour.geoPosition,
                             midPoint,
                             geometryFactory,
@@ -657,13 +684,13 @@ object ThermalSegmentBuilder extends LazyLogging {
                 }
               val segment = LineSegmentThermalModel(
                 segmentUuid,
-                s"LineTher_${lineInput.getId}_${s}_${e}",
-                lineInput.getUuid,
-                cable,
-                Coordinate3D(p1.y, p1.x, depthMeters),
-                Coordinate3D(p2.y, p2.x, depthMeters),
-                cableDepth,
-                cableDistance,
+                s"LineTher_${context.lineInput.getId}_${sCoord.longitude}_${sCoord.latitude}_${eCoord.longitude}_${eCoord.latitude}",
+                context.lineInput.getUuid,
+                context.cable,
+                Coordinate3D(sCoord.latitude, sCoord.longitude, depthMeters),
+                Coordinate3D(eCoord.latitude, eCoord.longitude, depthMeters),
+                context.cableDepth,
+                context.cableDistance,
                 KelvinMetersPerWatt(1), // Placeholder
                 KelvinMetersPerWatt(1), // Placeholder
                 KelvinMetersPerWatt(1), // Placeholder
@@ -673,12 +700,13 @@ object ThermalSegmentBuilder extends LazyLogging {
                 JoulesPerCubicMeterKelvin(1), // Placeholder
                 JoulesPerCubicMeterKelvin(1), // Placeholder
                 JoulesPerCubicMeterKelvin(1), // Placeholder
-                limitTemperature,
+                context.limitTemperature,
                 assignedSoilType,
                 calculationPoint,
                 influence,
               )
-              generatedSegments += ((segment, s, e))
+              context.generatedSegments +=
+                BuiltSegment(segment, sCoord, eCoord)
               segment
           }
           .toSet
@@ -686,6 +714,12 @@ object ThermalSegmentBuilder extends LazyLogging {
       .flatten
       .toSet
   }
+
+  /** Converts a JTS coordinate (x = longitude, y = latitude) to a
+    * [[Coordinate]].
+    */
+  private def toCoordinate(c: JtsCoordinate): Coordinate =
+    Coordinate(c.y, c.x)
 
   /** Computes the minimum geodesic distance in meters between a neighbour
     * line's geoPosition and a JTS geometry (line segment or point). The closest
@@ -703,7 +737,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     *   The minimum distance in meters, or [[Double.MaxValue]] if the neighbour
     *   line has fewer than two support points.
     */
-  private def neighborLineDistanceMeters(
+  private def neighbourLineDistanceMeters(
       geoPosition: Seq[(Double, Double)],
       geom: Geometry,
       geometryFactory: GeometryFactory,
@@ -771,7 +805,7 @@ object ThermalSegmentBuilder extends LazyLogging {
         val samplePoint = geometryFactory.createPoint(
           indexedLine.extractPoint(idx)
         )
-        neighborLineDistanceMeters(
+        neighbourLineDistanceMeters(
           neighbourLine.getCoordinates.toSeq.map(c => (c.x, c.y)),
           samplePoint,
           geometryFactory,
@@ -810,9 +844,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     *   The SIMONA configuration (used to resolve the output base dir).
     */
   private[ampacity] def writeThermalSegmentsToOutput(
-      segments: Iterable[
-        (LineSegmentThermalModel, (Double, Double), (Double, Double))
-      ],
+      segments: Iterable[BuiltSegment],
       simonaConfig: SimonaConfig,
   ): Unit = {
 
@@ -844,7 +876,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
     val header =
       "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature,hasParallelInfluence,neighbourLineUuids,minLateralDistanceMeters"
-    val rows = segments.map { case (segment, (sx, sy), (ex, ey)) =>
+    val rows = segments.map { case BuiltSegment(segment, start, end) =>
       val influence = segment.parallelInfluence
       val hasInfluence = influence.nonEmpty
       val neighbourUuids = influence.map(_._1.toString).mkString(";")
@@ -852,10 +884,10 @@ object ThermalSegmentBuilder extends LazyLogging {
       Seq(
         segment.uuid.toString,
         segment.lineUuid.toString,
-        sx.toString,
-        sy.toString,
-        ex.toString,
-        ey.toString,
+        start.longitude.toString,
+        start.latitude.toString,
+        end.longitude.toString,
+        end.latitude.toString,
         segment.upperBoundaryTemperature.value.toString,
         hasInfluence.toString,
         neighbourUuids,
@@ -889,6 +921,11 @@ object ThermalSegmentBuilder extends LazyLogging {
       jc.area().toScala.map(_.toSquants),
     )
   }
+
+  /** Maps a list of PSDM layer inputs to cable layers.
+    */
+  private def layersList(jl: List[JLayerInput]): List[Layer] =
+    jl.asScala.map(mapLayer).toList
 
   private def mapLayer(jl: JLayerInput): Layer = {
     val mat = jl.material()

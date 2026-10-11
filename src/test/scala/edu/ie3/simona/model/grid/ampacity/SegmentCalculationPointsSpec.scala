@@ -8,6 +8,7 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.util.Coordinate
 import org.locationtech.jts.geom.{Coordinate as JtsCoordinate, GeometryFactory}
 import org.scalatest.matchers.should.Matchers
 
@@ -39,8 +40,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
     "return the geometric midpoint for an undisturbed segment" in {
       val coordinate = SegmentCalculationPoints.coordinateFor(
         segmentUuid,
-        (0.0, 0.0),
-        (1.0, 0.0),
+        Coordinate(0.0, 0.0),
+        Coordinate(0.0, 1.0),
         Seq.empty,
       )
 
@@ -55,8 +56,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
 
       val coordinate = SegmentCalculationPoints.coordinateFor(
         segmentUuid,
-        (0.0, 0.0),
-        (1.0, 0.0),
+        Coordinate(0.0, 0.0),
+        Coordinate(0.0, 1.0),
         Seq(layer),
       )
 
@@ -70,8 +71,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
 
       val coordinate = SegmentCalculationPoints.coordinateFor(
         segmentUuid,
-        (0.0, 0.0),
-        (1.0, 0.0),
+        Coordinate(0.0, 0.0),
+        Coordinate(0.0, 1.0),
         Seq(layer),
       )
 
@@ -86,8 +87,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
 
       val coordinate = SegmentCalculationPoints.coordinateFor(
         segmentUuid,
-        (0.0, 0.0),
-        (1.0, 0.0),
+        Coordinate(0.0, 0.0),
+        Coordinate(0.0, 1.0),
         Seq(layer),
       )
 
@@ -103,8 +104,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
 
       val coordinate = SegmentCalculationPoints.coordinateFor(
         segmentUuid,
-        (0.0, 0.0),
-        (1.0, 0.0),
+        Coordinate(0.0, 0.0),
+        Coordinate(0.0, 1.0),
         Seq(layer),
       )
 
@@ -115,8 +116,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
     "work with diagonal segments" in {
       val coordinate = SegmentCalculationPoints.coordinateFor(
         segmentUuid,
-        (0.0, 0.0),
-        (1.0, 1.0),
+        Coordinate(0.0, 0.0),
+        Coordinate(1.0, 1.0),
         Seq.empty,
       )
 
@@ -128,8 +129,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
       val exception = the[GridAgentInitializationException] thrownBy {
         SegmentCalculationPoints.coordinateFor(
           segmentUuid,
-          (Double.NaN, 0.0),
-          (1.0, 0.0),
+          Coordinate(0.0, Double.NaN),
+          Coordinate(0.0, 1.0),
           Seq.empty,
         )
       }
@@ -140,8 +141,8 @@ class SegmentCalculationPointsSpec extends UnitSpec with Matchers {
       a[GridAgentInitializationException] should be thrownBy {
         SegmentCalculationPoints.coordinateFor(
           segmentUuid,
-          (0.0, 0.0),
-          (Double.NaN, 0.0),
+          Coordinate(0.0, 0.0),
+          Coordinate(0.0, Double.NaN),
           Seq.empty,
         )
       }

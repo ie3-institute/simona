@@ -877,7 +877,7 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val dielectricLosses = calcDielectricLosses(
       phaseToGroundVoltage,
-      Hertz(50),
+      cableSetup.frequency,
       cableSetup.tanDelta,
       cableSetup.electricCapacitance,
     )
@@ -1060,6 +1060,8 @@ object LineThermalModelCalculations extends LazyLogging {
     val g3 = 2d / t3.toKelvinMetersPerWatt
     val g4 = 2d / t3.toKelvinMetersPerWatt
     val g5 = 1d / t4.toKelvinMetersPerWatt
+
+    // TODO g1 == g2 and g3 == g4, looks like a copy error at minimum; verify against the reference implementation.
 
     // the RC-Network can be simplified since all parallel capacitance can be merged
     // Conductor capacitance and first part of the first half of the dielectric
