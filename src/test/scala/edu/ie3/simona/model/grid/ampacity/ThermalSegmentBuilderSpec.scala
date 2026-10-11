@@ -3,6 +3,7 @@
  * Institute of Energy Systems, Energy Efficiency and Energy Economics,
  * Research group Distribution grid planning and operation
  */
+
 package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.datamodel.models.input.connector.LineInput
 import edu.ie3.simona.config.SimonaConfig
@@ -578,6 +579,59 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
       idxs shouldBe empty
     }
+    "resolve a parallel stretch on a geodesically long segment" in {
+      val candidate = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.0, 0.0),
+          new JtsCoordinate(1.0, 0.0),
+        )
+      )
+      val indexedLine = new LengthIndexedLine(candidate)
+      val segLength = candidate.getLength
+      val neighbour = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.5, 0.00005),
+          new JtsCoordinate(0.55, 0.00005),
+        )
+      )
+      val idxs = ThermalSegmentBuilder.sampledProximityIndices(
+        indexedLine,
+        segLength,
+        neighbour,
+        10.0,
+        geometryFactory,
+      )
+      idxs.size shouldBe 2
+      idxs.head should be > 0.0
+      idxs.head should be < segLength
+      idxs.last should be > 0.0
+      idxs.last should be < segLength
+      idxs.head should be < idxs.last
+    }
+    "return no transitions for a sub-meter segment fully inside the threshold" in {
+      val candidate = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.0, 0.0),
+          new JtsCoordinate(0.000005, 0.0),
+        )
+      )
+      val indexedLine = new LengthIndexedLine(candidate)
+      val segLength = candidate.getLength
+      val neighbour = geometryFactory.createLineString(
+        Array(
+          new JtsCoordinate(0.0, 0.000045),
+          new JtsCoordinate(0.000005, 0.000045),
+        )
+      )
+      val idxs = ThermalSegmentBuilder.sampledProximityIndices(
+        indexedLine,
+        segLength,
+        neighbour,
+        10.0,
+        geometryFactory,
+      )
+      idxs shouldBe empty
+    }
   }
   "ThermalSegmentBuilder.writeThermalSegmentsToOutput" should {
     "include the parallel-influence columns in the CSV header and rows" in {
@@ -608,7 +662,10 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         fields(8) shouldBe neighbourUuid.toString
         fields(9) shouldBe "3.5"
       } finally {
-        Files.walk(tempDir).sorted(java.util.Comparator.reverseOrder[Path]()).forEach(p => Files.deleteIfExists(p))
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
       }
     }
     "show false and empty neighbour columns when no parallel influence is present" in {
@@ -633,7 +690,10 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         fields(8) shouldBe ""
         fields(9) shouldBe ""
       } finally {
-        Files.walk(tempDir).sorted(java.util.Comparator.reverseOrder[Path]()).forEach(p => Files.deleteIfExists(p))
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
       }
     }
     "write multiple neighbour UUIDs and distances in semicolon-separated order" in {
@@ -663,7 +723,10 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         fields(8) shouldBe s"$neighbour1Uuid;$neighbour2Uuid"
         fields(9) shouldBe "2.0;5.5"
       } finally {
-        Files.walk(tempDir).sorted(java.util.Comparator.reverseOrder[Path]()).forEach(p => Files.deleteIfExists(p))
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
       }
     }
   }

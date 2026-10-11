@@ -5,6 +5,7 @@
  */
 
 package edu.ie3.simona.model.grid.ampacity
+import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
   LineTypeInput,
@@ -33,23 +34,19 @@ import edu.ie3.util.scala.quantities.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
 }
-import com.typesafe.scalalogging.LazyLogging
-import org.locationtech.jts.operation.distance.DistanceOp
 import org.locationtech.jts.geom.{
   Geometry,
   GeometryFactory,
   Coordinate as JtsCoordinate,
 }
 import org.locationtech.jts.linearref.LengthIndexedLine
+import org.locationtech.jts.operation.distance.DistanceOp
 import squants.space.{Length, Millimeters}
 import squants.{Meters, Temperature}
+
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
 import java.util.UUID
-import scala.collection.mutable.{
-  ListBuffer,
-  Map as MutableMap,
-  Set as MutableSet,
-}
+import scala.collection.mutable.{ListBuffer, Set as MutableSet}
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
 import scala.util.{Failure, Success, Try}
@@ -79,15 +76,18 @@ object ThermalSegmentBuilder extends LazyLogging {
     */
   private val minOverlapLengthMeters: Double = 5.0
 
-  /** Maximum sampling step in degrees for parallel-proximity detection along a
-    * straight segment (about one meter).
+  /** Target distance between samples in Meters for parallel-proximity detection
+    * along a straight segment.
     */
-  private val minSampleStepDegrees: Double = 1e-5
+  private val sampleStepMeters = 1.0
 
-  /** Upper bound on the number of samples used for parallel-proximity detection
-    * along a single straight segment.
+  /** Safety cap on the number of samples used for parallel-proximity detection
+    * along a single straight segment (10 km at the 1 m target step). When the
+    * cap is reached, the effective sample distance grows beyond
+    * [[sampleStepMeters]] and a warning is logged.
     */
-  private val maxSamples: Int = 200000 // 200km at 1m, unreasonable long
+  private val maxSamples: Int = 10000
+
   /** Result of building thermal segments.
     *
     * @param soilLayers
@@ -365,17 +365,25 @@ object ThermalSegmentBuilder extends LazyLogging {
               val deploymentPattern: String =
                 Option(firstDeployment.getLayoutFormation)
                   .getOrElse(
-                    throw new NoSuchElementException(
-                      s"No deployment pattern available for line ${lineInput.getUuid}"
+                    throw new GridAgentInitializationException(
+                      s"Ampacity build failed: No cable deployment pattern available for line ${lineInput.getUuid}"
                     )
                   )
               val cableDepth = Option(firstDeployment.getDepthCables)
                 .map(_.toSquants)
-                .getOrElse(Meters(1))
+                .getOrElse(
+                  throw new GridAgentInitializationException(
+                    s"Ampacity build failed: No cable depth available for line ${lineInput.getUuid}"
+                  )
+                )
               val cableDistance =
                 Option(firstDeployment.getDistanceCables)
                   .map(_.toSquants)
-                  .getOrElse(Meters(1))
+                  .getOrElse(
+                    throw new GridAgentInitializationException(
+                      s"Ampacity build failed: No cable distance available for line ${lineInput.getUuid}"
+                    )
+                  )
               val cable: CableSetup = CableSetup(
                 cableTypeInput.getUuid,
                 cableTypeInput.getId,
@@ -629,7 +637,9 @@ object ThermalSegmentBuilder extends LazyLogging {
                   case Some(thresholdMeters) =>
                     neighbourLineStrings
                       .filter(_._1.hasDeployment)
-                      .filterNot(n => rejectedNeighbours.contains(n._1.lineUuid))
+                      .filterNot(n =>
+                        rejectedNeighbours.contains(n._1.lineUuid)
+                      )
                       .flatMap { case (neighbour, _) =>
                         val distMeters =
                           neighborLineDistanceMeters(
@@ -652,15 +662,15 @@ object ThermalSegmentBuilder extends LazyLogging {
                 Coordinate3D(p2.y, p2.x, depthMeters),
                 cableDepth,
                 cableDistance,
-                KelvinMetersPerWatt(1),
-                KelvinMetersPerWatt(1),
-                KelvinMetersPerWatt(1),
-                KelvinMetersPerWatt(1),
-                JoulesPerCubicMeterKelvin(1),
-                JoulesPerCubicMeterKelvin(1),
-                JoulesPerCubicMeterKelvin(1),
-                JoulesPerCubicMeterKelvin(1),
-                JoulesPerCubicMeterKelvin(1),
+                KelvinMetersPerWatt(1), // Placeholder
+                KelvinMetersPerWatt(1), // Placeholder
+                KelvinMetersPerWatt(1), // Placeholder
+                KelvinMetersPerWatt(1), // Placeholder
+                JoulesPerCubicMeterKelvin(1), // Placeholder
+                JoulesPerCubicMeterKelvin(1), // Placeholder
+                JoulesPerCubicMeterKelvin(1), // Placeholder
+                JoulesPerCubicMeterKelvin(1), // Placeholder
+                JoulesPerCubicMeterKelvin(1), // Placeholder
                 limitTemperature,
                 assignedSoilType,
                 calculationPoint,
@@ -710,12 +720,15 @@ object ThermalSegmentBuilder extends LazyLogging {
     * haversine distance of each sample to the neighbour centerline.
     *
     * The neighbour line is a plain centerline, so proximity is measured
-    * geodesically via the haversine formula.
+    * geodesically via the haversine formula. The number of samples is derived
+    * from the geodesic length of the segment so that the sample distance stays
+    * near [[sampleStepMeters]] at any latitude; the returned indices are planar
+    * (lon, lat) indices within the given length-indexed line.
     *
     * @param indexedLine
     *   The length-indexed line of the candidate straight segment.
     * @param segLength
-    *   The planar length of the candidate straight segment.
+    *   The planar length of the candidate straight segment (used for indexing).
     * @param neighbourLine
     *   The neighbour centerline.
     * @param thresholdMeters
@@ -733,9 +746,21 @@ object ThermalSegmentBuilder extends LazyLogging {
       thresholdMeters: Double,
       geometryFactory: GeometryFactory,
   ): Seq[Double] = {
+    val segLengthMeters =
+      indexedLine
+        .extractPoint(0.0)
+        .haversineDistance(indexedLine.extractPoint(segLength))
+        .getValue
+        .doubleValue()
+    val targetSamples = (segLengthMeters / sampleStepMeters).toInt + 1
+    if targetSamples > maxSamples then
+      logger.warn(
+        s"Segment of ${segLengthMeters}m exceeds the sampling cap of ${maxSamples} samples; " +
+          s"parallel-proximity resolution degrades to ${segLengthMeters / maxSamples}m per sample."
+      )
     val n = math.max(
       2,
-      math.min(maxSamples, (segLength / minSampleStepDegrees).toInt + 1),
+      math.min(maxSamples, targetSamples),
     )
     val sampleIdxs: Seq[Double] =
       (0 to n).map(i => segLength * i / n)
@@ -774,14 +799,14 @@ object ThermalSegmentBuilder extends LazyLogging {
   }
 
   /** Writes the generated thermal line segments to a CSV file in the simulation
-   * output folder (configured via `simona.output.base.dir`).
-   *
-   * @param segments
-   *   The generated thermal segments, each with the start/end coordinates it
-   *   was built from.
-   * @param simonaConfig
-   *   The SIMONA configuration (used to resolve the output base dir).
-   */
+    * output folder (configured via `simona.output.base.dir`).
+    *
+    * @param segments
+    *   The generated thermal segments, each with the start/end coordinates it
+    *   was built from.
+    * @param simonaConfig
+    *   The SIMONA configuration (used to resolve the output base dir).
+    */
   private[ampacity] def writeThermalSegmentsToOutput(
       segments: Iterable[
         (LineSegmentThermalModel, (Double, Double), (Double, Double))

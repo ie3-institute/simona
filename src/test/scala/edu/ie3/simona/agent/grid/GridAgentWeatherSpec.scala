@@ -135,7 +135,7 @@ class GridAgentWeatherSpec
     )
     baseModel.copy(
       gridComponents = baseModel.gridComponents.copy(
-        thermalLineSegments = Set(cigreLandCable33kVLineSegmentThermalModel),
+        thermalLineSegments = Set(cigreLandCable33kVLineSegmentThermalModel)
       )
     )
   }
