@@ -397,7 +397,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     "skip a parallel stretch shorter than the minimum overlap and produce no mark" in {
       val layer = SoilLayer(
         UUID.randomUUID(),
-        rectangle(-1.0, -1.0, 2.0, 1.0),
+        rectangle(-0.0005, -0.0005, 0.0005, 0.0005),
         Meters(0.0),
         Meters(-2.0),
         soilTypeUuid,
@@ -405,11 +405,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.499995, 0.000005), (0.500005, 0.000005)),
+        Seq((0.00004, 0.000005), (0.00006, 0.000005)),
         hasDeployment = true,
       )
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq((0.0, 0.0), (0.0001, 0.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
