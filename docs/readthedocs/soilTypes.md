@@ -19,23 +19,23 @@ This document describes the expected CSV format for soil types used by SoilDataP
      - –
      - UUID of the soil type record
 
-   * - name
+   * - id
      - –
      - Human readable name of the soil type
 
-   * - tr_wet
+   * - thermal_resistivity_wet
      - K·m/W
      - Thermal resistivity when wet
 
-   * - tr_dry
+   * - thermal_resistivity_dry
      - K·m/W
      - Thermal resistivity when dry
 
-   * - shc
+   * - specific_heat_capacity
      - kWh/m³K
      - Specific heat capacity
 
-   * - crit_temp_diff
+   * - critical_temperature_difference
      - °C
      - Critical temperature difference for ampacity calculations
 ```
@@ -48,6 +48,6 @@ This document describes the expected CSV format for soil types used by SoilDataP
 ## Example CSV
 
 ```text
-uuid,name,tr_wet,tr_dry,shc,crit_temp_diff
+uuid,id,thermal_resistivity_wet,thermal_resistivity_dry,specific_heat_capacity,critical_temperature_difference
 78b72d1d-9d05-446b-a072-426eb4d3807e,loam,0.30,0.40,0.0015,15.0
 ```
