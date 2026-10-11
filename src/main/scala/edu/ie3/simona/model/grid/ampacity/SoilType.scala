@@ -21,7 +21,7 @@ import java.util.UUID
   * @param thermalResistivityDry
   *   The thermal resistivity of the soil in the dry state.
   * @param specificHeatCapacity
-  *   The volumetric specific heat capacity of the soil in J/(m³·K).
+  *   The volumetric specific heat capacity of the soil in kWh/(m³·K).
   * @param criticalTemperatureDifference
   *   The over-temperature at the cable surface above the undisturbed soil
   *   temperature at which the soil transitions from the wet to the dry state.
@@ -31,7 +31,7 @@ case class SoilType(
     id: String,
     thermalResistivityWet: ThermalResistivity,
     thermalResistivityDry: ThermalResistivity,
-    specificHeatCapacity: ThermalCapacitance, // FIXME DF Check if required per volume or per weight
+    specificHeatCapacity: ThermalCapacitance,
     criticalTemperatureDifference: Temperature,
 ) {
 
