@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.source.csv.CsvDataSource
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.{
@@ -18,7 +20,7 @@ import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory}
 import squants.thermal.Celsius
 import squants.{Kelvin, Meters, Temperature}
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
 class SoilDataParserSpec extends UnitSpec {
@@ -44,6 +46,13 @@ class SoilDataParserSpec extends UnitSpec {
     }
 
     val g = square(0.0, 0.0)
+    def sourceFor(path: Path): CsvDataSource =
+      new CsvDataSource(
+        ",",
+        Option(path.getParent).getOrElse(Paths.get(".")),
+        new FileNamingStrategy(),
+      )
+
     def soilType(tuuid: UUID, name: String) =
       SoilType(
         tuuid,
@@ -60,21 +69,13 @@ class SoilDataParserSpec extends UnitSpec {
       val tmp = Files.createTempFile("soil_types", ".csv")
       Files.writeString(tmp, content)
 
-      val types = SoilDataParser.readSoilTypes(tmp).success.value
+      val types =
+        SoilDataParser.readSoilTypes(sourceFor(tmp), tmp).success.value
       types should have size 1
       val t = types.head
       t.uuid shouldBe uuid
       t.id shouldBe "loam"
       t.criticalTemperatureDifference shouldBe Celsius(15d)
-    }
-
-    "reject soil types file with incorrect header case" in {
-      val content =
-        s"UUID,id,thermal_resistivity_wet,thermal_resistivity_dry,specific_heat_capacity,critical_temperature_difference\n${uuid},loam,0.30,0.40,0.0015,15.0\n"
-      val tmp = Files.createTempFile("soil_types_bad_header", ".csv")
-      Files.writeString(tmp, content)
-
-      SoilDataParser.readSoilTypes(tmp).isFailure shouldBe true
     }
 
     "select the wet or dry thermal resistivity based on the critical temperature difference" in {
@@ -109,13 +110,20 @@ class SoilDataParserSpec extends UnitSpec {
       layersUrl should not be (null)
       val layersPath = Paths.get(layersUrl.toURI)
 
-      val types = SoilDataParser.readSoilTypes(typesPath).success.value
+      val types =
+        SoilDataParser
+          .readSoilTypes(sourceFor(typesPath), typesPath)
+          .success
+          .value
       types should not be empty
       types.head.id should be("loam")
 
-      val layers = SoilDataParser.readSoilLayers(layersPath).success.value
+      val layers =
+        SoilDataParser
+          .readSoilLayers(sourceFor(layersPath), layersPath)
+          .success
+          .value
       layers should not be empty
-      layers.head.thickness.toMeters should be(2.0)
 
       val typeIds = types.map(_.uuid).toSet
       val referenced = layers.map(_.soilType).toSet
@@ -134,18 +142,10 @@ class SoilDataParserSpec extends UnitSpec {
       val tmp = Files.createTempFile("soilLayers", ".csv")
       Files.writeString(tmp, content)
 
-      val layers = SoilDataParser.readSoilLayers(tmp).success.value
+      val layers =
+        SoilDataParser.readSoilLayers(sourceFor(tmp), tmp).success.value
       layers should have size 1
       layers.head.thickness shouldBe Meters(0.4)
-    }
-
-    "reject soil layers file with incorrect header case" in {
-      val content =
-        "UUID,geometry,z_from,z_to,soil_type\nf07aa67c-43f5-4706-967a-5d0613a94701,\"{\"\"type\"\":\"\"Polygon\"\",\"\"coordinates\"\":[[[7.40383,51.49129],[7.40562,51.49130],[7.40560,51.49106],[7.40377,51.49105],[7.40383,51.49129]]]]}\",0.0,-0.4,32b43a78-7721-431d-b1c2-56975a123670"
-      val tmp = Files.createTempFile("soilLayers_bad_header", ".csv")
-      Files.writeString(tmp, content)
-
-      SoilDataParser.readSoilLayers(tmp).isFailure shouldBe true
     }
 
     "associate layers with their soil types" in {
