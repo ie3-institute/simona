@@ -16,8 +16,9 @@ import squants.Meters
 import squants.space.Length
 import squants.thermal.Celsius
 
-import java.nio.file.{Path}
+import java.nio.file.{Path, Paths}
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success, Try}
 
 /** Utilities to parse soil related data from simple CSV files and provide
@@ -145,9 +146,7 @@ object SoilDataParser {
       UUID.fromString(data("soilType")),
     )
 
-    process(0, 0, false)
-    fields += sb.toString
-    fields.result().toArray
+  private val geometryFactory = new GeometryFactory()
 
   private def parseGeoJsonToGeometry(s: String): Geometry =
     try

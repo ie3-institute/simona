@@ -9,10 +9,10 @@ package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.util.Coordinate
 import org.locationtech.jts.geom.{
-  Coordinate as JtsCoordinate,
   Geometry,
   GeometryFactory,
   Point,
+  Coordinate as JtsCoordinate,
 }
 
 import java.util.UUID
@@ -25,11 +25,6 @@ import java.util.UUID
   */
 object SegmentCalculationPoints {
 
-  /** Maximum distance between two geographic points (in degrees) to treat them
-    * as equal.
-    */
-  private val equalityTolerance = 1e-9
-
   private val geometryFactory = new GeometryFactory()
 
   /** Calculates the calculation point for the given thermal line segment.
@@ -37,9 +32,9 @@ object SegmentCalculationPoints {
     * @param segmentUuid
     *   The uuid of the segment (used for the error message).
     * @param start
-    *   The segment start point as (longitude, latitude).
+    *   The segment start coordinate.
     * @param end
-    *   The segment end point as (longitude, latitude).
+    *   The segment end coordinate.
     * @param soilLayerBoundaries
     *   The boundaries of all soil layers (outer rings of their polygons).
     * @return
@@ -47,52 +42,30 @@ object SegmentCalculationPoints {
     */
   def coordinateFor(
       segmentUuid: UUID,
-      start: (Double, Double),
-      end: (Double, Double),
+      start: Coordinate,
+      end: Coordinate,
       soilLayerBoundaries: Seq[Geometry],
   ): Coordinate = {
-    val startPoint =
-      geometryFactory.createPoint(new JtsCoordinate(start._1, start._2))
-    val endPoint =
-      geometryFactory.createPoint(new JtsCoordinate(end._1, end._2))
+    val startPoint = start.toPoint
+    val endPoint = end.toPoint
 
     if !startPoint.isValid || !endPoint.isValid ||
       !startPoint.getCoordinate.isValid || !endPoint.getCoordinate.isValid
     then
       throw new GridAgentInitializationException(
         s"Cannot calculate the calculation point of thermal segment $segmentUuid: " +
-          s"the segment geometry from ($start._1, $start._2) to ($end._1, $end._2) is invalid."
+          s"the segment geometry from (${start.longitude}, ${start.latitude}) to (${end.longitude}, ${end.latitude}) is invalid."
       )
 
     val centroid = geometryFactory.createPoint(
-      new JtsCoordinate((start._1 + end._1) / 2.0, (start._2 + end._2) / 2.0)
+      new JtsCoordinate(
+        (start.longitude + end.longitude) / 2.0,
+        (start.latitude + end.latitude) / 2.0,
+      )
     )
 
     val calculationPoint: Point = centroid
 
     Coordinate(calculationPoint.getY, calculationPoint.getX)
   }
-
-  /** Checks whether the given point lies at or near the boundary of any of the
-    * given soil layers.
-    *
-    * @param point
-    *   The point to check.
-    * @param soilLayerBoundaries
-    *   The boundaries of all soil layers (outer rings of their polygons).
-    * @param tolerance
-    *   The maximum distance from a boundary at which the point is still
-    *   considered to be at the boundary.
-    * @return
-    *   `true` if the point is at or within the given tolerance distance of a
-    *   soil layer boundary, `false` otherwise.
-    */
-  private def isAtSoilLayerBoundary(
-      point: Point,
-      soilLayerBoundaries: Seq[Geometry],
-      tolerance: Double,
-  ): Boolean =
-    soilLayerBoundaries.exists(boundary =>
-      boundary.distance(point) <= tolerance
-    )
 }

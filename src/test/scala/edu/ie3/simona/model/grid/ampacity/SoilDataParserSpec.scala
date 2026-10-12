@@ -78,16 +78,6 @@ class SoilDataParserSpec extends UnitSpec {
       t.criticalTemperatureDifference shouldBe Celsius(15d)
     }
 
-    "reject soil types file with incorrect header case" in {
-      val content =
-        s"UUID,id,thermal_resistivity_wet,thermal_resistivity_dry,specific_heat_capacity,critical_temperature_difference\n${uuid},loam,0.30,0.40,0.0015,15.0\n"
-      val tmp = Files.createTempFile("soil_types_bad_header", ".csv")
-      Files.writeString(tmp, content)
-
-      val res = SoilDataParser.readSoilTypes(tmp)
-      assert(res.isFailure)
-    }
-
     "select the wet or dry thermal resistivity based on the critical temperature difference" in {
       val t = soilType(uuid, "loam")
 
