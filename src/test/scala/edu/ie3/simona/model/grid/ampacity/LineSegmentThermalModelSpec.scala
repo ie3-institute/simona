@@ -166,7 +166,7 @@ class LineSegmentThermalModelSpec
       results should have size 1
       val result = results.head
       result.getTime shouldBe defaultSimulationStart
-      result.getLineSegmentUuid shouldBe cigreLandCable33kVLineSegmentThermalModel.uuid
+      result.getInputModel shouldBe cigreLandCable33kVLineSegmentThermalModel.uuid
       result.getLineSegmentTemperature.getValue.doubleValue should approximate(
         updatedState.lineTemperatures.currentLineTemp1.inCelsius.value
       )
