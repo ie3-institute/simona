@@ -144,7 +144,7 @@ class EnergyPriceServiceSpec
       completionMsg.newTick shouldBe Some(3600)
 
       agent1.expectMessageType[DataProvision] match {
-        case DataProvision(tick, serviceRef, data, nextTick) =>
+        case DataProvision(tick, serviceRef, data, nextTick, _) =>
           tick shouldBe 0L
           serviceRef shouldBe priceService
           data match {
@@ -160,7 +160,7 @@ class EnergyPriceServiceSpec
       }
 
       agent2.expectMessageType[DataProvision] match {
-        case DataProvision(tick, serviceRef, data, nextTick) =>
+        case DataProvision(tick, serviceRef, data, nextTick, _) =>
           tick shouldBe 0L
           serviceRef shouldBe priceService
           data match {

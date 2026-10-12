@@ -54,7 +54,7 @@ final case class DataInputHandler(
 
     val updatedReceivedData =
       msg match {
-        case DataProvision(tick, serviceRef, data, _) =>
+        case DataProvision(tick, serviceRef, data, _, _) =>
           receivedData +
             (serviceRef -> ReceivedData(data, tick))
         case _: NoDataProvision =>

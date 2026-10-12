@@ -73,6 +73,7 @@ class WeatherServiceSpec
 
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
+  private val agent3 = TestProbe[ParticipantAgent.Message]("agent3")
 
   "A weather service" must {
     val serviceKey =
@@ -180,7 +181,7 @@ class WeatherServiceSpec
       )
 
       agent2.expectMessageType[DataProvision] match {
-        case DataProvision(tick, serviceRef, data, nextTick) =>
+        case DataProvision(tick, serviceRef, data, nextTick, _) =>
           tick shouldBe 0L
           serviceRef shouldBe weatherService
           data match {
@@ -192,6 +193,33 @@ class WeatherServiceSpec
           nextTick shouldBe Some(3600L)
       }
 
+    }
+
+    "echo the registrant key of a registration in the provided weather data" in {
+      // register with a coordinate and a registrant key (e.g. a grid asset uuid)
+      weatherService ! SecondaryServiceRegistrationMessage(
+        agent3.ref,
+        DataTimeType.Current,
+        WeatherRegistrationData(
+          Coordinate(validCoordinate.latitude, validCoordinate.longitude),
+          Some("segment-uuid-1"),
+        ),
+      )
+
+      agent3.expectMessage(
+        RegistrationSuccessfulMessage(weatherService, 3600L)
+      )
+
+      // trigger an activation so that all current subscribers are informed
+      weatherService ! Activation(3600)
+
+      agent3.expectMessageType[DataProvision] match {
+        case DataProvision(tick, _, data: WeatherData, _, key) =>
+          tick shouldBe 3600L
+          key shouldBe Some("segment-uuid-1")
+        case unexpected =>
+          fail(s"Expected weather data provision with key, got $unexpected")
+      }
     }
 
     "sends out correct weather information when triggered again and does not as for triggering, if the end is reached" in {

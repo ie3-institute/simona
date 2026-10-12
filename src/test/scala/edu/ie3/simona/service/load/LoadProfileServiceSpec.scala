@@ -159,7 +159,7 @@ class LoadProfileServiceSpec
       activationMsg.newTick shouldBe Some(900)
 
       agent1.expectMessageType[DataProvision] match {
-        case DataProvision(tick, serviceRef, data, nextTick) =>
+        case DataProvision(tick, serviceRef, data, nextTick, _) =>
           tick shouldBe 0L
           serviceRef shouldBe loadProfileService
           data match {
@@ -172,7 +172,7 @@ class LoadProfileServiceSpec
       }
 
       agent2.expectMessageType[DataProvision] match {
-        case DataProvision(tick, serviceRef, data, nextTick) =>
+        case DataProvision(tick, serviceRef, data, nextTick, _) =>
           tick shouldBe 0L
           serviceRef shouldBe loadProfileService
           data match {
@@ -194,7 +194,7 @@ class LoadProfileServiceSpec
       activationMsg.newTick shouldBe Some(1800)
 
       agent1.expectMessageType[DataProvision] match {
-        case DataProvision(tick, serviceRef, data, nextTick) =>
+        case DataProvision(tick, serviceRef, data, nextTick, _) =>
           tick shouldBe 900L
           serviceRef shouldBe loadProfileService
           data match {

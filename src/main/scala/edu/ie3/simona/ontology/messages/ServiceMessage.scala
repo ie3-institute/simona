@@ -239,12 +239,15 @@ object ServiceMessage {
     *
     * @param data
     *   The data.
+    * @param registrantKey
+    *   Optional key for per-registration attribution in DataProvision.
     */
   final case class DataProvision(
       override val tick: Long,
       override val serviceRef: ActorRef[ServiceMessage],
       data: Data,
       override val nextDataTick: Option[Long],
+      registrantKey: Option[String] = None,
   ) extends DataMessage
 
   /** Providing the information that no data will be provided by the sending

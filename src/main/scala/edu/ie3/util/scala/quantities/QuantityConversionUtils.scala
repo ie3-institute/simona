@@ -196,6 +196,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Ohms]].
       */
+    @targetName("specificResistanceToElectricalResistanceSquants")
     def toSquants(implicit
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalResistance = Ohms(

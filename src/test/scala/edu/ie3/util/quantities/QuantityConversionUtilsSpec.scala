@@ -104,7 +104,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
     }
 
     "properly convert specific resistance quantities" in {
-      implicit val length: ComparableQuantity[Length] =
+      given length: ComparableQuantity[Length] =
         Quantities.getQuantity(2.5, KILOMETRE)
       val specResistance = Quantities.getQuantity(0.2, OHM_PER_KILOMETRE)
       specResistance.toSquants shouldBe Ohms(0.5)
