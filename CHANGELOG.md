@@ -124,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhancement of `QuantityConversionUtils` and some fixes and clean up [#1940](https://github.com/ie3-institute/simona/issues/1940)
 
 ### Fixed
+- Honor the configured output csv separator in `ResultEntityCsvSink` instead of always writing commas [#550](https://github.com/ie3-institute/simona/issues/550)
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
 - Fixed variable shadowing [#1371](https://github.com/ie3-institute/simona/issues/1371)
 - Updated dev's guide [#1409](https://github.com/ie3-institute/simona/issues/1409)
