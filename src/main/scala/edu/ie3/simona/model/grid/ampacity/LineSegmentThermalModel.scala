@@ -8,7 +8,6 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
-import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data

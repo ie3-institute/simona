@@ -15,6 +15,23 @@ import squants.time.Frequency
 
 import java.util.UUID
 
+/** Represents a single layer of a cable.
+  *
+  * @param name
+  *   Name of the layer
+  * @param material
+  *   Material of the layer
+  * @param innerDiameter
+  *   Inner diameter of the layer
+  * @param outerDiameter
+  *   Outer diameter of the layer
+  * @param thermalResistivity
+  *   Thermal resistivity of the layer material
+  * @param thermalCapacitance
+  *   Thermal capacitance per meter of the layer
+  * @param area
+  *   Optional cross-sectional area of the layer
+  */
 final case class Layer(
     name: String,
     material: CableMaterial,
@@ -61,25 +78,46 @@ final case class ScreenLayer(
     materialResistivity: Resistivity,
 )
 
-/** @param uuid
+/** Represents the complete setup of a cable for ampacity calculations.
+  *
+  * @param uuid
+  *   Unique identifier of the cable setup
   * @param id
+  *   Identifier string of the cable setup
   * @param conductor
+  *   The conductor layer of the cable
   * @param layersIsolationElements
+  *   List of insulation layers
   * @param screenLayer
+  *   Optional screen layer for conductor shielding
   * @param layersFillerElements
+  *   List of filler layers
   * @param layersArmorElements
+  *   List of armor layers
   * @param layersJackElements
+  *   List of jacket layers
   * @param layoutFormation
+  *   Layout formation of the cable
   * @param limitTemperature
+  *   Maximum allowable conductor temperature
   * @param voltage
+  *   Rated voltage of the cable
   * @param frequency
+  *   Operating frequency
   * @param electricResistance
+  *   Electrical resistance per unit length
   * @param skinEffectCoefficient
+  *   Coefficient accounting for the skin effect
   * @param proximityEffectCoefficient
+  *   Coefficient accounting for the proximity effect
   * @param electricCapacitance
+  *   Specific electrical capacitance of the cable
   * @param tanDelta
+  *   Dielectric loss tangent
   * @param circulatingLossFactorScreen
+  *   Loss factor for circulating currents in the screen
   * @param eddyCurrentsLossFactorScreen
+  *   Loss factor for eddy currents in the screen
   */
 final case class CableSetup(
     uuid: UUID,
