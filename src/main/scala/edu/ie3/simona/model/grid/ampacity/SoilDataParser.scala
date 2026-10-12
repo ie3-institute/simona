@@ -6,7 +6,9 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.source.csv.CsvDataSource
+import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.util.scala.quantities.*
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory}
 import play.api.libs.json.*
@@ -14,31 +16,14 @@ import squants.Meters
 import squants.space.Length
 import squants.thermal.Celsius
 
-import java.nio.file.{Files, Path}
+import java.nio.file.{Path}
 import java.util.UUID
 import scala.util.{Failure, Success, Try}
 
 /** Utilities to parse soil related data from simple CSV files and provide
   * helpers to further process the parsed data.
   */
-object SoilDataParser extends LazyLogging {
-
-  private val soilTypeHeader = List(
-    "uuid",
-    "id",
-    "thermal_resistivity_wet",
-    "thermal_resistivity_dry",
-    "specific_heat_capacity",
-    "critical_temperature_difference",
-  )
-
-  private val soilLayerHeader = List(
-    "uuid",
-    "geometry",
-    "z_from",
-    "z_to",
-    "soil_type",
-  )
+object SoilDataParser {
 
   private val expectedDepthRange: (Double, Double) = (-2.0, 0.0)
 
@@ -58,17 +43,17 @@ object SoilDataParser extends LazyLogging {
     val typesPath = Path.of(args(0))
     val layersPath = Path.of(args(1))
 
-    val types = readOrFail(readSoilTypes(typesPath), "soil types")
-    val layers = readOrFail(readSoilLayers(layersPath), "soil layers")
+    val typesSource = csvDataSourceFor(typesPath)
+    val layersSource = csvDataSourceFor(layersPath)
 
-    val missing =
-      associateLayersWithTypes(layers, types).collect { case (l, None) =>
-        l
-      }.length
-    if missing > 0 then
-      throw new RuntimeException(
-        s"Warning: $missing layers reference missing soil types."
-      )
+    val types = readOrFail(
+      readSoilTypes(typesSource, typesPath.getFileName),
+      "soil types",
+    )
+    val layers = readOrFail(
+      readSoilLayers(layersSource, layersPath.getFileName),
+      "soil layers",
+    )
 
     val expectedRanges = layers
       .map(l => l.geometry)
@@ -76,9 +61,22 @@ object SoilDataParser extends LazyLogging {
       .map(g => g -> expectedDepthRange)
       .toMap
 
-    try validateAll(layers, expectedRanges, tolerance = 1e-6, types = types)
-    catch case e: IllegalArgumentException => logger.error(e.getMessage)
+    validateAll(layers, expectedRanges, tolerance = 1e-6, types = types)
   }
+
+  /** Builds a [[CsvDataSource]] rooted at the directory containing `path`.
+    *
+    * @param path
+    *   the path of the CSV file to read.
+    * @return
+    *   a [[CsvDataSource]] whose base directory is the parent of `path`.
+    */
+  private def csvDataSourceFor(path: Path): CsvDataSource =
+    new CsvDataSource(
+      ",",
+      Option(path.getParent).getOrElse(Paths.get(".")),
+      new FileNamingStrategy(),
+    )
 
   private def readOrFail[A](
       result: Try[A],
@@ -89,131 +87,67 @@ object SoilDataParser extends LazyLogging {
     case Success(value) => value
   }
 
-  private def readAllLines(path: Path): Try[List[String]] = Try {
-    Files.readAllLines(path).toArray(new Array[String](0)).toList.map(_.trim)
-  }
-
-  /** Verifies that the given header matches `expected` exactly (case-sensitive
-    * and in the same order) and returns the remaining data rows. Throws an
-    * [[IllegalArgumentException]] on any mismatch, an empty file, or a
-    * header-only file.
-    */
-  private def splitHeader(
-      content: List[String],
-      expected: List[String],
-      label: String,
-  ): List[String] =
-    if content.isEmpty then
-      throw new IllegalArgumentException(
-        s"Cannot parse $label: file contains no data rows."
-      )
-
-    val header = content.head.split(',').map(_.trim).toList
-    if !header.sameElements(expected) then
-      throw new IllegalArgumentException(
-        s"Unexpected $label header: ${header.mkString(",")}. " +
-          s"Expected exact header: ${expected.mkString(",")}."
-      )
-
-    content.tail
-
   /** Parse a CSV of soil types. Returns [[Try]] containing the parsed
     * [[SoilType]]s, or a [[Failure]] if the file cannot be read, the header is
     * invalid, or any data row is malformed (a [[Failure]] is produced by
     * letting the underlying exception propagate).
     */
-  def readSoilTypes(path: Path): Try[Seq[SoilType]] =
-    readAllLines(path).map { lines =>
-      val content = lines.filterNot(l => l.isEmpty || l.startsWith("#"))
-      val rows = splitHeader(content, soilTypeHeader, "soil types")
-
-      rows.zipWithIndex.map { case (line, idx) =>
-        val cols = line.split(',').map(_.trim)
-        if cols.length != soilTypeHeader.length then
-          throw new IllegalArgumentException(
-            s"Invalid soil type line ${idx + 1}: '$line'"
-          )
-        SoilType(
-          UUID.fromString(cols(0)),
-          cols(1),
-          KelvinMetersPerWatt(cols(2).toDouble),
-          KelvinMetersPerWatt(cols(3).toDouble),
-          KilowattHoursPerCubicMeterKelvin(cols(4).toDouble),
-          Celsius(cols(5).toDouble),
-        )
-      }
+  def readSoilTypes(source: CsvDataSource, fileName: Path): Try[Seq[SoilType]] =
+    Try {
+      source
+        .getSourceData(fileName)
+        .toList
+        .asScala
+        .map(m => m.asScala.toMap)
+        .map(mapSoilType)
+        .toSeq
     }
+
+  /** Maps a single soil type CSV row to a [[SoilType]]. */
+  private def mapSoilType(data: Map[String, String]): SoilType =
+    SoilType(
+      UUID.fromString(data("uuid")),
+      data("id"),
+      KelvinMetersPerWatt(data("thermalResistivityWet").toDouble),
+      KelvinMetersPerWatt(data("thermalResistivityDry").toDouble),
+      KilowattHoursPerCubicMeterKelvin(
+        data("specificHeatCapacity").toDouble
+      ),
+      Celsius(data("criticalTemperatureDifference").toDouble),
+    )
 
   /** Parse a CSV of soil layers. Returns [[Try]] containing the parsed
     * [[SoilLayer]]s, or a [[Failure]] if the file cannot be read, the header is
     * invalid, or any data row is malformed (a [[Failure]] is produced by
     * letting the underlying exception propagate).
     */
-  def readSoilLayers(path: Path): Try[Seq[SoilLayer]] =
-    readAllLines(path).map { lines =>
-      val content = lines.filterNot(l => l.isEmpty || l.startsWith("#"))
-      val rows = splitHeader(content, soilLayerHeader, "soil layers")
-
-      rows.zipWithIndex.map { case (line, idx) =>
-        val cols = splitCsvLine(line).map(_.trim)
-        if cols.length != soilLayerHeader.length then
-          throw new IllegalArgumentException(
-            s"Invalid soil layer line ${idx + 1}: '$line'"
-          )
-        SoilLayer(
-          UUID.fromString(cols(0)),
-          parseGeoJsonToGeometry(unquoteCsvField(cols(1))),
-          Meters(cols(2).toDouble),
-          Meters(cols(3).toDouble),
-          UUID.fromString(cols(4)),
-        )
-      }
+  def readSoilLayers(
+      source: CsvDataSource,
+      fileName: Path,
+  ): Try[Seq[SoilLayer]] =
+    Try {
+      source
+        .getSourceData(fileName)
+        .toList
+        .asScala
+        .map(m => m.asScala.toMap)
+        .map(mapSoilLayer)
+        .toSeq
     }
 
-  /** Splits a CSV line on commas while ignoring commas that appear inside
-    * braces or quotes, so that a quoted GeoJSON geometry survives as a single
-    * field.
-    */
-  private def splitCsvLine(line: String): Array[String] =
-    val fields = List.newBuilder[String]
-    val sb = new StringBuilder
-
-    def process(i: Int, depth: Int, inQuotes: Boolean): Unit =
-      if i < line.length then
-        val c = line.charAt(i)
-        c match
-          case '"' =>
-            if inQuotes && i + 1 < line.length && line.charAt(i + 1) == '"' then
-              sb.append('"')
-              process(i + 2, depth, inQuotes)
-            else
-              sb.append(c)
-              process(i + 1, depth, !inQuotes)
-          case '{' if !inQuotes =>
-            sb.append(c)
-            process(i + 1, depth + 1, inQuotes)
-          case '}' if !inQuotes =>
-            sb.append(c)
-            process(i + 1, math.max(0, depth - 1), inQuotes)
-          case ',' if depth == 0 && !inQuotes =>
-            fields += sb.toString
-            sb.clear()
-            process(i + 1, depth, inQuotes)
-          case _ =>
-            sb.append(c)
-            process(i + 1, depth, inQuotes)
+  /** Maps a single soil layer CSV row to a [[SoilLayer]]. */
+  private def mapSoilLayer(data: Map[String, String]): SoilLayer =
+    SoilLayer(
+      UUID.fromString(data("uuid")),
+      parseGeoJsonToGeometry(data("geometry")),
+      Meters(data("zFrom").toDouble),
+      Meters(data("zTo").toDouble),
+      UUID.fromString(data("soilType")),
+    )
 
     process(0, 0, false)
     fields += sb.toString
     fields.result().toArray
-
-  private def unquoteCsvField(field: String): String =
-    val t = field.trim
-    if t.length >= 2 && t.startsWith("\"") && t.endsWith("\"") then
-      t.substring(1, t.length - 1).replace("\"\"", "\"")
-    else t
-
-  private val geometryFactory = new GeometryFactory()
 
   private def parseGeoJsonToGeometry(s: String): Geometry =
     try
@@ -226,7 +160,7 @@ object SoilDataParser extends LazyLogging {
             new Coordinate(arr(0).as[Double], arr(1).as[Double])
           }.toArray
           if pts.head != pts.last then
-            throw new RuntimeException(
+            throw new IllegalArgumentException(
               s"Expected closed polygon of soil layer: ${pts
                   .mkString("Array(", ", ", ")")}."
             )
@@ -290,7 +224,15 @@ object SoilDataParser extends LazyLogging {
       validateCoverageAgainstRanges(layers, expectedRanges, tolerance)
 
     if types.nonEmpty then
-      associateLayersWithTypes(layers, types).collect { case (l, None) => l }
+      val missing = associateLayersWithTypes(layers, types).collect {
+        case (l, None) => l
+      }
+      if missing.nonEmpty then
+        throw new GridInconsistencyException(
+          s"${missing.length} layers reference missing soil types: ${missing
+              .map(_.uuid)
+              .mkString(", ")}."
+        )
 
     totalThicknessBySoilType(layers)
   }
@@ -315,7 +257,7 @@ object SoilDataParser extends LazyLogging {
     } yield s"Overlap between layers ${a.uuid} and ${b.uuid}"
 
     if errors.nonEmpty then
-      throw new RuntimeException(
+      throw new GridInconsistencyException(
         s"Soil validation failed for non overlapping layers: ${errors.mkString(", ")}"
       )
   }
@@ -355,7 +297,7 @@ object SoilDataParser extends LazyLogging {
       }
 
     if errors.nonEmpty then
-      throw new RuntimeException(
+      throw new GridInconsistencyException(
         s"Validation of soil layers for gaps failed. ${errors.mkString(", ")}"
       )
   }
@@ -407,7 +349,7 @@ object SoilDataParser extends LazyLogging {
     }
 
     if errors.nonEmpty then
-      throw new RuntimeException(
+      throw new GridInconsistencyException(
         s"Validation of soil layers for coverage against expected ranges failed. ${errors.mkString(", ")}"
       )
   }

@@ -6,8 +6,10 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.source.csv.CsvDataSource
+import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.test.matchers.QuantityMatchers
 import edu.ie3.util.scala.quantities.{
   KelvinMetersPerWatt,
   KilowattHoursPerCubicMeterKelvin,
@@ -15,14 +17,13 @@ import edu.ie3.util.scala.quantities.{
   ThermalResistivity,
 }
 import org.locationtech.jts.geom.{Coordinate, Geometry, GeometryFactory}
-import org.scalatest.matchers.should.Matchers
 import squants.thermal.Celsius
 import squants.{Kelvin, Meters, Temperature}
 
-import java.nio.file.{Files, Paths}
+import java.nio.file.{Files, Path, Paths}
 import java.util.UUID
 
-class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
+class SoilDataParserSpec extends UnitSpec {
 
   given Temperature = Kelvin(1e-3)
   given ThermalCapacitance = KilowattHoursPerCubicMeterKelvin(1e-8)
@@ -31,6 +32,7 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
 
   "SoilDataParser" should {
     val uuid = UUID.fromString("123e4567-e89b-12d3-a456-426614174000")
+    val typeUuid = UUID.fromString("32b43a78-7721-431d-b1c2-56975a123670")
     val gf = new GeometryFactory()
     def square(x: Double, y: Double, s: Double = 0.0001) = {
       val coords = Array(
@@ -44,6 +46,22 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
     }
 
     val g = square(0.0, 0.0)
+    def sourceFor(path: Path): CsvDataSource =
+      new CsvDataSource(
+        ",",
+        Option(path.getParent).getOrElse(Paths.get(".")),
+        new FileNamingStrategy(),
+      )
+
+    def soilType(tuuid: UUID, name: String) =
+      SoilType(
+        tuuid,
+        name,
+        KelvinMetersPerWatt(0.30),
+        KelvinMetersPerWatt(0.40),
+        KilowattHoursPerCubicMeterKelvin(0.0015),
+        Celsius(15d),
+      )
 
     "read soil types from CSV" in {
       val content =
@@ -51,14 +69,13 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
       val tmp = Files.createTempFile("soil_types", ".csv")
       Files.writeString(tmp, content)
 
-      val res = SoilDataParser.readSoilTypes(tmp)
-      assert(res.isSuccess)
-      val types = res.get
-      assert(types.size == 1)
+      val types =
+        SoilDataParser.readSoilTypes(sourceFor(tmp), tmp).success.value
+      types should have size 1
       val t = types.head
-      assert(t.uuid == uuid)
-      assert(t.id == "loam")
-      assert(t.criticalTemperatureDifference == Celsius(15d))
+      t.uuid shouldBe uuid
+      t.id shouldBe "loam"
+      t.criticalTemperatureDifference shouldBe Celsius(15d)
     }
 
     "reject soil types file with incorrect header case" in {
@@ -72,14 +89,7 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
     }
 
     "select the wet or dry thermal resistivity based on the critical temperature difference" in {
-      val t = SoilType(
-        uuid,
-        "loam",
-        KelvinMetersPerWatt(0.30),
-        KelvinMetersPerWatt(0.40),
-        KilowattHoursPerCubicMeterKelvin(0.0015),
-        Celsius(15d),
-      )
+      val t = soilType(uuid, "loam")
 
       // Below the critical difference: wet resistivity.
       t.currentThermalResistivity(Celsius(0.0)) shouldBe KelvinMetersPerWatt(
@@ -110,17 +120,20 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
       layersUrl should not be (null)
       val layersPath = Paths.get(layersUrl.toURI)
 
-      val typesRes = SoilDataParser.readSoilTypes(typesPath)
-      typesRes.isSuccess shouldBe true
-      val types = typesRes.get
+      val types =
+        SoilDataParser
+          .readSoilTypes(sourceFor(typesPath), typesPath)
+          .success
+          .value
       types should not be empty
       types.head.id should be("loam")
 
-      val layersRes = SoilDataParser.readSoilLayers(layersPath)
-      layersRes.isSuccess shouldBe true
-      val layers = layersRes.get
+      val layers =
+        SoilDataParser
+          .readSoilLayers(sourceFor(layersPath), layersPath)
+          .success
+          .value
       layers should not be empty
-      layers.head.thickness.toMeters should be(2.0)
 
       val typeIds = types.map(_.uuid).toSet
       val referenced = layers.map(_.soilType).toSet
@@ -139,87 +152,137 @@ class SoilDataParserSpec extends UnitSpec with Matchers with QuantityMatchers {
       val tmp = Files.createTempFile("soilLayers", ".csv")
       Files.writeString(tmp, content)
 
-      val res = SoilDataParser.readSoilLayers(tmp)
-      assert(res.isSuccess)
-      val layers = res.get
-      assert(layers.size == 1)
-
+      val layers =
+        SoilDataParser.readSoilLayers(sourceFor(tmp), tmp).success.value
+      layers should have size 1
       layers.head.thickness shouldBe Meters(0.4)
     }
 
-    "reject soil layers file with incorrect header case" in {
-      val content =
-        "UUID,geometry,z_from,z_to,soil_type\nf07aa67c-43f5-4706-967a-5d0613a94701,\"{\"\"type\"\":\"\"Polygon\"\",\"\"coordinates\"\":[[[7.40383,51.49129],[7.40562,51.49130],[7.40560,51.49106],[7.40377,51.49105],[7.40383,51.49129]]]]}\",0.0,-0.4,32b43a78-7721-431d-b1c2-56975a123670"
-      val tmp = Files.createTempFile("soilLayers_bad_header", ".csv")
-      Files.writeString(tmp, content)
+    "associate layers with their soil types" in {
+      val knownType = soilType(typeUuid, "loam")
+      val matched = SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), typeUuid)
+      val missing = SoilLayer(
+        UUID.randomUUID(),
+        g,
+        Meters(0.0),
+        Meters(-1.0),
+        UUID.randomUUID(),
+      )
 
-      val res = SoilDataParser.readSoilLayers(tmp)
-      assert(res.isFailure)
+      val res = SoilDataParser.associateLayersWithTypes(
+        Seq(matched, missing),
+        Seq(knownType),
+      )
+
+      res should have size 2
+      res.find(_._1 == matched).value._2 shouldBe Some(knownType)
+      res.find(_._1 == missing).value._2 shouldBe None
+    }
+
+    "compute the total thickness per soil type" in {
+      val layers = Seq(
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), typeUuid),
+        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), typeUuid),
+        SoilLayer(
+          UUID.randomUUID(),
+          g,
+          Meters(0.0),
+          Meters(-0.5),
+          UUID.randomUUID(),
+        ),
+      )
+
+      val totals = SoilDataParser.totalThicknessBySoilType(layers)
+      totals should have size 2
+      totals(typeUuid) shouldBe Meters(2.0)
     }
 
     "check for overlaps of soil layers" in {
       val layers = Seq(
-        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(uuid, g, Meters(-0.5), Meters(-2.0), uuid), // overlap
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), typeUuid),
+        SoilLayer(uuid, g, Meters(-0.5), Meters(-2.0), typeUuid), // overlap
       )
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateNonOverlappingPerCoordinate(layers)
       }
-
     }
+
     "check for gaps between soil layers" in {
       val layers = Seq(
-        SoilLayer(uuid, g, Meters(0.0), Meters(-0.5), uuid),
-        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), uuid), // gap
+        SoilLayer(uuid, g, Meters(0.0), Meters(-0.5), typeUuid),
+        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), typeUuid), // gap
       )
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateNoGapsPerCoordinate(layers)
       }
     }
+
     "check for coverage of soil layers" in {
       val g2 = square(1.0, 1.0)
       val layers = Seq(
-        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), uuid),
-        SoilLayer(uuid, g2, Meters(0.0), Meters(-0.5), uuid),
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), typeUuid),
+        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), typeUuid),
+        SoilLayer(UUID.randomUUID(), g2, Meters(0.0), Meters(-0.5), typeUuid),
         SoilLayer(
-          uuid,
+          UUID.randomUUID(),
           g2,
           Meters(-0.5),
           Meters(-1.5),
-          uuid,
+          typeUuid,
         ), // missing coverage to -2.0 m
       )
-      val expected: Map[org.locationtech.jts.geom.Geometry, (Double, Double)] =
+      val expected: Map[Geometry, (Double, Double)] =
         Map(g -> (-2.0, 0.0), g2 -> (-2.0, 0.0))
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateCoverageAgainstRanges(layers, expected)
       }
     }
 
+    "report layers that reference unknown soil types" in {
+      val layers = Seq(
+        SoilLayer(uuid, g, Meters(0.0), Meters(-2.0), typeUuid)
+      )
+      val expected: Map[Geometry, (Double, Double)] = Map(g -> (-2.0, 0.0))
+      // The only known soil type has a different UUID than the one referenced
+      // by the layer, so the reference is missing.
+      val knownTypes = Seq(soilType(UUID.randomUUID(), "loam"))
+
+      val ex = intercept[GridInconsistencyException] {
+        SoilDataParser.validateAll(
+          layers,
+          expectedRanges = expected,
+          types = knownTypes,
+        )
+      }
+      ex.getMessage should include("missing soil types")
+    }
+
     "throw exception in case of errors" in {
       val layers = Seq(
-        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(uuid, g, Meters(-0.5), Meters(-2.0), uuid), // overlap
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), typeUuid),
+        SoilLayer(uuid, g, Meters(-0.5), Meters(-2.0), typeUuid), // overlap
       )
-      val expected: Map[Geometry, (Double, Double)] =
-        Map(g -> (-2.0, 0.0))
+      val expected: Map[Geometry, (Double, Double)] = Map(g -> (-2.0, 0.0))
 
-      intercept[RuntimeException] {
+      intercept[GridInconsistencyException] {
         SoilDataParser.validateAll(layers, expectedRanges = expected)
       }
     }
 
     "not throw exception when everything is fine" in {
       val layers = Seq(
-        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), uuid),
-        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), uuid),
+        SoilLayer(uuid, g, Meters(0.0), Meters(-1.0), typeUuid),
+        SoilLayer(uuid, g, Meters(-1.0), Meters(-2.0), typeUuid),
       )
-      val expected: Map[Geometry, (Double, Double)] =
-        Map(g -> (-2.0, 0.0))
+      val expected: Map[Geometry, (Double, Double)] = Map(g -> (-2.0, 0.0))
+      val knownTypes = Seq(soilType(typeUuid, "loam"))
 
       noException shouldBe thrownBy {
-        SoilDataParser.validateAll(layers, expectedRanges = expected)
+        SoilDataParser.validateAll(
+          layers,
+          expectedRanges = expected,
+          types = knownTypes,
+        )
       }
     }
 

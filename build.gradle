@@ -3,8 +3,8 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.10.3' // code format
-  id "io.github.ben-manes.versions" version '0.64.0'
+  id 'com.diffplug.spotless' version '8.10.4' // code format
+  id "io.github.ben-manes.versions" version '0.65.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.6.1' // fat jar
@@ -20,11 +20,11 @@ ext {
   javaVersion = JavaVersion.VERSION_25
 
   scalaVersion = '3'
-  scalaBinaryVersion = '3.9.0'
+  scalaBinaryVersion = '3.10.0'
   pekkoVersion = '1.7.1'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
-  scapegoatVersion = '3.4.0'
+  scapegoatVersion = '3.4.1'
 
   junitVersion = '6.1.3'
   testContainerVersion = '0.44.1'
@@ -183,7 +183,7 @@ tasks.withType(JavaCompile).configureEach {
 jar {
   manifest {
     attributes(
-    'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
+        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
     )
   }
 }
