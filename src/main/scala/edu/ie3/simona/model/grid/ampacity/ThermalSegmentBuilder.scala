@@ -6,6 +6,8 @@
 
 package edu.ie3.simona.model.grid.ampacity
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.io.naming.FileNamingStrategy
+import edu.ie3.datamodel.io.source.csv.CsvDataSource
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
   LineTypeInput,
@@ -238,7 +240,7 @@ object ThermalSegmentBuilder extends LazyLogging {
   private def readAndValidate[T](
       fileName: String,
       description: String,
-      parser: Path => Try[Seq[T]],
+      parser: (CsvDataSource, Path) => Try[Seq[T]],
       simonaConfig: SimonaConfig,
   ): Seq[T] = {
     val entriesTry: Try[Seq[T]] =
@@ -822,14 +824,21 @@ object ThermalSegmentBuilder extends LazyLogging {
     */
   private def readFromConfiguredDir[T](
       fileName: String,
-      parser: Path => Try[Seq[T]],
+      parser: (CsvDataSource, Path) => Try[Seq[T]],
       simonaConfig: SimonaConfig,
   ): Try[Seq[T]] = {
-    simonaConfig.input.grid.datasource.csvParams.map(_.directoryPath) match {
-      case Some(dir) =>
-        val p = Paths.get(dir).resolve(fileName)
-        if Files.exists(p) then parser(p)
-        else Success(Seq.empty[T])
+    simonaConfig.input.grid.datasource.csvParams match {
+      case Some(csvParams) =>
+        val dir = Paths.get(csvParams.directoryPath)
+        val p = dir.resolve(fileName)
+        if Files.exists(p) then {
+          val source = new CsvDataSource(
+            csvParams.csvSep,
+            dir,
+            new FileNamingStrategy(),
+          )
+          parser(source, Paths.get(fileName))
+        } else Success(Seq.empty[T])
       case None => Success(Seq.empty[T])
     }
   }
