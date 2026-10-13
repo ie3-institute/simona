@@ -183,4 +183,4 @@ A file is named ``markov_<name>.json``, where ``<name>`` consists of up to 11 le
 - Before the simulation start, or a later start of operation, the chain is run for one day to get an initial state.
 - With reference *"power"*, the model is not scaled, since its maximal power is the maximum of all training data. Only the configured ``scaling`` is applied.
 - With reference *"energy"*, the model is scaled to ``eConsAnnual``. This is not supported yet, since the PowerSystemDataModel does not provide an energy scaling for Markov models so far. The simulation fails at model creation.
-- Forecasts are not supported. Therefore, Markov load models only provide power limit flexibility.
+- As forecast, the expected power of the following time steps is used, given the current state of the chain. Markov load models provide power limit and energy boundaries flexibility.

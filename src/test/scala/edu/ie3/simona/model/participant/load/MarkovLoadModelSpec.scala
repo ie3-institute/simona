@@ -17,21 +17,27 @@ import edu.ie3.simona.model.participant.load.MarkovLoadModel.{
   MarkovLoadFactoryData,
   MarkovLoadModelState,
 }
+import edu.ie3.simona.ontology.messages.flex.{
+  EnergyBoundariesFlexOptions,
+  FlexType,
+}
 import edu.ie3.simona.service.Data.SecondaryData.MarkovDataFunction
-import edu.ie3.simona.service.ServiceType
+import edu.ie3.simona.service.{DataTimeType, ServiceType}
 import edu.ie3.simona.service.load.LoadProfileStore
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
-import squants.Power
-import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.energy.{KilowattHours, Kilowatts, WattHours, Watts}
+import squants.time.{Hours, Minutes}
+import squants.{Energy, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 import scala.collection.mutable.ListBuffer
 
 class MarkovLoadModelSpec
@@ -46,6 +52,7 @@ class MarkovLoadModelSpec
   // testing tolerances
   private given ApparentPower = Kilovoltamperes(1e-6)
   private given Power = Watts(1e-6)
+  private given Energy = WattHours(1e-6)
   private given Double = 1e-6
 
   /** Step function cycling through two states. All calls are recorded.
@@ -300,6 +307,84 @@ class MarkovLoadModelSpec
         1800L,
         simulationStartDate.plusSeconds(1800L),
       ) shouldBe updatedState.copy(tick = 1800L)
+    }
+
+    "keep the forecast for the state after the step" in {
+      val model = MarkovLoadModel
+        .Factory(loadInput, LoadRuntimeConfig(modelBehaviour = "markov"))
+        .update(factoryData())
+        .create()
+
+      val forecast =
+        SortedMap(1800L -> Kilowatts(1.5d), 2700L -> Kilowatts(2.5d))
+      val forecastStates = ListBuffer.empty[Int]
+
+      val updatedState = model.handleInput(
+        MarkovLoadModelState(900L, Kilowatts(1d), 1),
+        Seq(
+          MarkovDataFunction(
+            (_, _) => (Kilowatts(2d), 0),
+            markovState => {
+              forecastStates.append(markovState)
+              forecast
+            },
+          )
+        ),
+        onePU,
+      )
+
+      forecastStates shouldBe Seq(0)
+      updatedState shouldBe MarkovLoadModelState(
+        900L,
+        Kilowatts(2d),
+        0,
+        forecast,
+      )
+    }
+
+    "calculate forecast flex power series correctly" in {
+      val model = MarkovLoadModel
+        .Factory(
+          loadInput,
+          LoadRuntimeConfig(modelBehaviour = "markov", reference = "energy"),
+        )
+        .update(factoryData(energyScaling = Some(KilowattHours(1500d))))
+        .create()
+
+      val powers = SortedMap(
+        0L -> Kilowatts(1d),
+        900L -> Kilowatts(2d),
+        1800L -> Kilowatts(3d),
+        2700L -> Kilowatts(4d),
+      )
+      val state = MarkovLoadModelState(0L, Kilowatts(1d), 0, powers.removed(0L))
+      val dataTimeType = DataTimeType.CurrentAndForecast(
+        forecastLength = Hours(1),
+        forecastResolution = Minutes(15),
+      )
+
+      model
+        .flexModels(FlexType.EnergyBoundaries)
+        .determineFlexOptions(state, dataTimeType) match {
+        case EnergyBoundariesFlexOptions(boundaries) =>
+          boundaries should have size 1
+
+          val energyLimits = boundaries.headOption.value.energyLimits
+          energyLimits should have size 5
+
+          powers
+            // adding dummy value so that last energy is tested
+            .updated(3600L, zeroKW)
+            .foldLeft(zeroKWh) { case (expectedEnergy, (tick, power)) =>
+              energyLimits(tick).getUpper should approximate(expectedEnergy)
+              energyLimits(tick).getLower should approximate(expectedEnergy)
+
+              expectedEnergy + power * model.referenceScalingFactor *
+                dataTimeType.forecastResolution
+            }
+
+        case unexpected => fail(s"Received unexpected flex options $unexpected")
+      }
     }
 
     "provide reproducible initial states with a Markov load profile" in {

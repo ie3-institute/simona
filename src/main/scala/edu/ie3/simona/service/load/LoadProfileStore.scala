@@ -192,13 +192,7 @@ final case class LoadProfileStore(
       powerProfileKey: PowerProfileKey,
   ): (Int, Long) => (squants.Power, Int) = {
 
-    val source = profileToMarkovSource
-      .getOrElse(
-        powerProfileKey,
-        throw new CriticalFailureException(
-          s"Markov load profile $powerProfileKey is not available."
-        ),
-      )
+    val source = getMarkovSource(powerProfileKey)
 
     (previousState, seed) => {
       val output = source
@@ -219,6 +213,43 @@ final case class LoadProfileStore(
       (power, output.nextState)
     }
   }
+
+  /** Returns the forecast function of a Markov load profile for given time:
+    * state => expected power of the following steps.
+    *
+    * @param time
+    *   The time of the current step.
+    * @param powerProfileKey
+    *   The requested Markov load profile.
+    * @param steps
+    *   The number of following steps.
+    * @return
+    *   A function returning the expected loads in kW.
+    */
+  def markovForecastFunc(
+      time: ZonedDateTime,
+      powerProfileKey: PowerProfileKey,
+      steps: Int,
+  ): Int => Seq[squants.Power] = {
+    val model = getMarkovSource(powerProfileKey).getModel
+
+    markovState =>
+      model
+        .getExpectedPowers(time, markovState, steps)
+        .asScala
+        .map(_.toSquants)
+        .toSeq
+  }
+
+  private def getMarkovSource(
+      powerProfileKey: PowerProfileKey
+  ): JsonMarkovProfileSource =
+    profileToMarkovSource.getOrElse(
+      powerProfileKey,
+      throw new CriticalFailureException(
+        s"Markov load profile $powerProfileKey is not available."
+      ),
+    )
 
   /** @param powerProfileKey
     *   Given Markov load profile.

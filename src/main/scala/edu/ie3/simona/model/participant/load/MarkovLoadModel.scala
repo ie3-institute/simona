@@ -19,6 +19,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
   ParticipantFlexModel,
+  ParticipantInflexibleEnergyLimitFlexModel,
   ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.model.participant.load.MarkovLoadModel.MarkovLoadModelState
@@ -32,6 +33,7 @@ import squants.{Dimensionless, Power}
 
 import java.time.{Duration, ZonedDateTime}
 import java.util.UUID
+import scala.collection.immutable.SortedMap
 import scala.jdk.OptionConverters.RichOptional
 
 /** Load model based on a Markov load profile. The state of the Markov chain is
@@ -52,7 +54,11 @@ class MarkovLoadModel(
     MarkovLoadModelState,
   ]] =
     Map(
-      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this)
+      FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
+        this,
+        _.toStateSeries,
+      ),
     )
 
   override def determineOperatingPoint(
@@ -73,9 +79,13 @@ class MarkovLoadModel(
       nodalVoltage: Dimensionless,
   ): MarkovLoadModelState =
     receivedData
-      .collectFirst { case MarkovDataFunction(stepFunction) =>
+      .collectFirst { case MarkovDataFunction(stepFunction, forecastFunction) =>
         val (power, nextMarkovState) = stepFunction(state.markovState, seed)
-        state.copy(power = power, markovState = nextMarkovState)
+        state.copy(
+          power = power,
+          markovState = nextMarkovState,
+          forecast = forecastFunction(nextMarkovState),
+        )
       }
       .getOrElse(state)
 }
@@ -98,12 +108,27 @@ object MarkovLoadModel {
     *   The unscaled power of the current interval.
     * @param markovState
     *   The current state of the Markov chain.
+    * @param forecast
+    *   The expected unscaled power of the following ticks, if forecasts are
+    *   requested.
     */
   final case class MarkovLoadModelState(
       override val tick: Long,
       power: Power,
       markovState: Int,
-  ) extends ModelState
+      forecast: SortedMap[Long, Power] = SortedMap.empty,
+  ) extends ModelState {
+
+    /** Creates states for forecast calculation given the current state.
+      *
+      * @return
+      *   States for forecast calculation.
+      */
+    def toStateSeries: SortedMap[Long, MarkovLoadModelState] =
+      forecast.updated(tick, power).map { case (forecastTick, forecastPower) =>
+        forecastTick -> copy(tick = forecastTick, power = forecastPower)
+      }
+  }
 
   /** Holds additional data for the Markov load model factory.
     *

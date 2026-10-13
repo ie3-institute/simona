@@ -173,7 +173,7 @@ object LoadProfileService extends SimonaService {
       ctx: ActorContext[Message],
   ): LoadProfileInitializedStateData = {
 
-    getRegistrantsContainer(powerProfileKey, dataTimeType) match {
+    getRegistrantsContainer(powerProfileKey) match {
       case Success(registrants) =>
         if registrants.registrantsMap.contains(
             dataTimeType,
@@ -221,23 +221,12 @@ object LoadProfileService extends SimonaService {
   }
 
   /** Retrieves or creates the [[RegistrantsContainer]] for given load profile.
-    * Forecasts are not supported for Markov load profiles.
     */
-  private def getRegistrantsContainer(
-      loadProfile: PowerProfileKey,
-      dataTimeType: DataTimeType,
-  )(using
+  private def getRegistrantsContainer(loadProfile: PowerProfileKey)(using
       serviceStateData: LoadProfileInitializedStateData
   ): Try[RegistrantsContainer] =
-    (serviceStateData.registeredAgents.get(loadProfile), dataTimeType) match {
-      case (_, _: DataTimeType.CurrentAndForecast)
-          if loadProfile.getType == PowerProfileKey.Type.MARKOV =>
-        Failure(
-          InvalidRegistrationRequestException(
-            s"Forecasts are not supported for Markov load profile $loadProfile!"
-          )
-        )
-      case (None, _) =>
+    serviceStateData.registeredAgents.get(loadProfile) match {
+      case None =>
         if serviceStateData.loadProfileStore.contains(loadProfile) then
           Success(RegistrantsContainer())
         else
@@ -246,7 +235,7 @@ object LoadProfileService extends SimonaService {
               s"Cannot register an agent for load profile $loadProfile, which is not available!"
             )
           )
-      case (Some(container), _) => Success(container)
+      case Some(container) => Success(container)
     }
 
   override protected def announceInformation(tick: Long)(using
@@ -297,21 +286,46 @@ object LoadProfileService extends SimonaService {
                   if forecastRes % profileRes == 0 then forecastRes
                   else profileRes
 
-                // profile time series is forwarded as forecast without adding noise
-                val series =
-                  Range.Long
-                    .inclusive(tick, endTick, adaptedRes)
-                    .map { tickIt =>
-                      val timeIt = tickIt.toDateTime
-                      val data = dataRetrievalFunc(timeIt)
+                if loadProfile.getType == PowerProfileKey.Type.MARKOV then {
+                  // expected values of the following steps are used as forecast
+                  val expectedPowers = loadProfileStore.markovForecastFunc(
+                    time,
+                    loadProfile,
+                    ((endTick - tick) / profileRes).toInt,
+                  )
+                  val forecastTicks =
+                    Range.Long.inclusive(tick + adaptedRes, endTick, adaptedRes)
 
-                      tickIt -> data
-                    }
-                    .to(SortedMap)
+                  MarkovDataFunction(
+                    loadProfileStore.markovEntryFunc(time, loadProfile),
+                    markovState => {
+                      val powers = expectedPowers(markovState)
+                      forecastTicks
+                        .map(forecastTick =>
+                          forecastTick -> powers(
+                            ((forecastTick - tick) / profileRes).toInt - 1
+                          )
+                        )
+                        .to(SortedMap)
+                    },
+                  )
+                } else {
+                  // profile time series is forwarded as forecast without adding noise
+                  val series =
+                    Range.Long
+                      .inclusive(tick, endTick, adaptedRes)
+                      .map { tickIt =>
+                        val timeIt = tickIt.toDateTime
+                        val data = dataRetrievalFunc(timeIt)
 
-                SecondarySeriesData(
-                  reduceTimeSeriesResolution(series, forecastResTime)
-                )
+                        tickIt -> data
+                      }
+                      .to(SortedMap)
+
+                  SecondarySeriesData(
+                    reduceTimeSeriesResolution(series, forecastResTime)
+                  )
+                }
 
             }
 

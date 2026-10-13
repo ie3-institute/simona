@@ -356,9 +356,12 @@ object Data {
       *
       * @param stepFunction
       *   Function: (previous state, seed) => (power, next state).
+      * @param forecastFunction
+      *   Function: state => expected power of the following ticks.
       */
     final case class MarkovDataFunction(
-        stepFunction: (Int, Long) => (Power, Int)
+        stepFunction: (Int, Long) => (Power, Int),
+        forecastFunction: Int => SortedMap[Long, Power] = _ => SortedMap.empty,
     ) extends SecondaryData
 
     /** Container class for the entirety of weather information at a certain

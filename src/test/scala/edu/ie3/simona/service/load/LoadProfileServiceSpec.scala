@@ -279,7 +279,7 @@ class LoadProfileServiceSpec
       }
     }
 
-    "announce failed registration for forecasts of a Markov load profile" in {
+    "announce, that a Markov load profile is registered for forecasts" in {
       loadProfileService ! SecondaryServiceRegistrationMessage(
         forecastAgent.ref,
         DataTimeType.CurrentAndForecast(
@@ -289,7 +289,7 @@ class LoadProfileServiceSpec
         markovKey,
       )
 
-      forecastAgent.expectMessage(RegistrationFailedMessage(loadProfileService))
+      forecastAgent.expectMessageType[RegistrationSuccessfulMessage]
     }
 
     "send out Markov load profile information upon activity start trigger" in {
@@ -303,7 +303,7 @@ class LoadProfileServiceSpec
           tick shouldBe 0L
           serviceRef shouldBe loadProfileService
           data match {
-            case MarkovDataFunction(stepFunction) =>
+            case MarkovDataFunction(stepFunction, forecastFunction) =>
               // the function is bound to the time of the current tick
               val expectedFunction = LoadProfileStore(markovSourceDefinition)
                 .markovEntryFunc(simonaConfig.time.simStartTime, markovKey)
@@ -316,13 +316,29 @@ class LoadProfileServiceSpec
                   )
               }
 
+              forecastFunction(1) shouldBe empty
+
             case unexpected =>
               fail(s"Received unexpected data $unexpected")
           }
           nextTick shouldBe Some(900L)
       }
 
-      forecastAgent.expectNoMessage()
+      forecastAgent.expectMessageType[DataProvision] match {
+        case DataProvision(_, _, MarkovDataFunction(_, forecastFunction), _) =>
+          // expected values of the 24 following quarter-hours, one per hour
+          val expectedPowers = LoadProfileStore(markovSourceDefinition)
+            .markovForecastFunc(simonaConfig.time.simStartTime, markovKey, 24)
+
+          Seq(0, 1).foreach { markovState =>
+            forecastFunction(markovState) shouldBe Range(1, 7).map { hour =>
+              hour * 3600L -> expectedPowers(markovState)(hour * 4 - 1)
+            }.toMap
+          }
+
+        case unexpected =>
+          fail(s"Received unexpected message $unexpected")
+      }
     }
   }
 }
