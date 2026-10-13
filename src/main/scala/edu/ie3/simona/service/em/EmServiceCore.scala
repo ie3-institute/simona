@@ -272,8 +272,6 @@ case class EmServiceCore(
     *   Current tick of the service.
     * @param responseMsg
     *   To handle.
-    * @param startTime
-    *   The start time of the simulation.
     * @param log
     *   Logger for logging messages.
     * @return
@@ -283,45 +281,43 @@ case class EmServiceCore(
   final def handleDataResponseMessage(
       tick: Long,
       responseMsg: ServiceResponseMessage,
-  )(using
-      startTime: ZonedDateTime,
-      log: Logger,
-  ): (EmServiceCore, Option[EmDataResponseMessageToExt]) = responseMsg match {
-    case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
-      log.debug(s"$receiver <- $flexRequest")
+  )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) =
+    responseMsg match {
+      case EmFlexMessage(flexRequest: FlexRequest, receiver) =>
+        log.debug(s"$receiver <- $flexRequest")
 
-      receiver match {
-        case ref: ActorRef[FlexRequest] =>
-          if tick == INIT_SIM_TICK then {
-            ref ! flexRequest
+        receiver match {
+          case ref: ActorRef[FlexRequest] =>
+            if tick == INIT_SIM_TICK then {
+              ref ! flexRequest
 
+              (this, None)
+            } else {
+              handleFlexRequest(flexRequest, ref)
+            }
+
+          case _ =>
+            // should not happen
+            log.warn(s"No receiver found for msg: $flexRequest")
             (this, None)
-          } else {
-            handleFlexRequest(flexRequest, ref)
-          }
+        }
 
-        case _ =>
-          // should not happen
-          log.warn(s"No receiver found for msg: $flexRequest")
-          (this, None)
-      }
+      case EmFlexMessage(flexResponse: FlexResponse, receiver) =>
+        log.debug(s"$receiver <- $flexResponse")
 
-    case EmFlexMessage(flexResponse: FlexResponse, receiver) =>
-      log.debug(s"$receiver <- $flexResponse")
+        receiver match {
+          case uuid: UUID =>
+            handleFlexResponse(tick, flexResponse, Left(uuid))
 
-      receiver match {
-        case uuid: UUID =>
-          handleFlexResponse(tick, flexResponse, Left(uuid))
-
-        case ref: ActorRef[FlexResponse] =>
-          if tick == INIT_SIM_TICK then {
-            ref ! flexResponse
-            (this, None)
-          } else {
-            handleFlexResponse(tick, flexResponse, Right(ref))
-          }
-      }
-  }
+          case ref: ActorRef[FlexResponse] =>
+            if tick == INIT_SIM_TICK then {
+              ref ! flexResponse
+              (this, None)
+            } else {
+              handleFlexResponse(tick, flexResponse, Right(ref))
+            }
+        }
+    }
 
   /** Method to handle the set points provided by the external simulation.
     * @param tick

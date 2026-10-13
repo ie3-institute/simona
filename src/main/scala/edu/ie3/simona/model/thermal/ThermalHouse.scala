@@ -26,7 +26,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.util.scala.quantities.SquantsUtils.toWattSecondsPerKelvin
 import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerKelvinCubicMeters,
+  KilowattHoursPerCubicMeterKelvin,
   ThermalConductance,
   WattsPerKelvin,
 }
@@ -226,7 +226,7 @@ final case class ThermalHouse(
         s"End temperature of $endTemperature is lower than the start temperature $startTemperature for the water heating system."
       )
 
-    val specificHeatDemandWater = KilowattHoursPerKelvinCubicMeters(
+    val specificHeatDemandWater = KilowattHoursPerCubicMeterKelvin(
       Joules(4184e3).toKilowattHours
     )
 

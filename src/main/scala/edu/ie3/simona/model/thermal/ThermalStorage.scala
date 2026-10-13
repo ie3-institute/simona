@@ -15,7 +15,10 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalStorage.ThermalStorageState
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toSquants,
+  toSquantsKWhPerCubicMeterKelvin,
+}
 import squants.time.Seconds
 import squants.{Energy, Power}
 
@@ -229,7 +232,7 @@ object AbstractThermalStorage extends ThermalStorageCalculations {
   ): Energy = {
     volumeToEnergy(
       input.getStorageVolumeLvl.toSquants,
-      input.getC.toSquants,
+      input.getC.toSquantsKWhPerCubicMeterKelvin,
       input.getInletTemp.toSquants,
       input.getReturnTemp.toSquants,
     )
