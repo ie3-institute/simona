@@ -6,8 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.io.naming.FileNamingStrategy
-import edu.ie3.datamodel.io.source.csv.CsvDataSource
+import edu.ie3.datamodel.models.input.grid.{SoilLayer => PsdmSoilLayer, SoilType => PsdmSoilType}
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
   LineTypeInput,
@@ -25,7 +24,6 @@ import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.ampacity.{
   CableSetup,
   LineSegmentThermalModel,
-  SoilDataParser,
   SoilLayer,
   SoilType,
 }
@@ -183,10 +181,9 @@ object ThermalSegmentBuilder extends LazyLogging {
       simonaConfig: SimonaConfig,
       neighbourLines: Seq[NeighbourLineInfo] = Seq.empty,
   ): BuildResult = {
-    // 1. Read and validate soil data
-    val soilLayers = readAndValidateSoilLayers(simonaConfig)
-    val soilTypes = readAndValidateSoilTypes(simonaConfig)
-    validateSoilReferences(soilLayers, soilTypes)
+    // 1. Extract soil types and layers from the SubGridContainer
+    val soilLayers = extractSoilLayersFromContainer(subGridContainer)
+    val soilTypes = extractSoilTypesFromContainer(subGridContainer)
 
     // 2. Validate cable deployments
     // NOTE: Validation of cable types and cable deployments on subgrid level
@@ -222,82 +219,48 @@ object ThermalSegmentBuilder extends LazyLogging {
     )
   }
 
-  /** Reads a CSV file from the configured directory, validates the result and
-    * fails with an actionable error when reading failed or no entries were
-    * found.
-    *
-    * @param fileName
-    *   The name of the CSV file to read.
-    * @param description
-    *   A short description of the file, used in the error messages.
-    * @param parser
-    *   The parser for the CSV file.
-    * @param simonaConfig
-    *   The SIMONA configuration.
-    * @return
-    *   The parsed entries.
+  /** Extracts soil layers from the SubGridContainer
     */
-  private def readAndValidate[T](
-      fileName: String,
-      description: String,
-      parser: (CsvDataSource, Path) => Try[Seq[T]],
-      simonaConfig: SimonaConfig,
-  ): Seq[T] = {
-    val entriesTry: Try[Seq[T]] =
-      readFromConfiguredDir[T](fileName, parser, simonaConfig)
-    entriesTry match
-      case Failure(cause) =>
-        throw new GridAgentInitializationException(
-          s"Ampacity calculation is activated, but reading ${description} failed. Please ensure '$fileName' is present and valid.",
-          cause,
-        )
-      case Success(entries) if entries.isEmpty =>
-        throw new GridAgentInitializationException(
-          s"Ampacity calculation is activated, but no ${description} were found. Please provide '$fileName' with valid entries."
-        )
-      case _ => // ok
-    entriesTry.get
+  private def extractSoilLayersFromContainer(
+      subGridContainer: SubGridContainer
+  ): Seq[SoilLayer] = {
+    // Collect PSDM SoilLayer instances from the container's entity list
+    val psdmLayers: Seq[PsdmSoilLayer] =
+      subGridContainer.allEntitiesAsList().asScala.collect {
+        case l: PsdmSoilLayer => l
+      }.toSeq
+
+    psdmLayers.map { pl =>
+      SoilLayer(
+        pl.getUuid,
+        pl.getGeometry,
+        pl.getZFrom.toSquants,
+        pl.getZTo.toSquants,
+        pl.getSoilType,
+      )
+    }
   }
 
-  /** Reads soil layers from the configured directory and validates them.
+  /** Extracts soil types from SubGridContainer
     */
-  private def readAndValidateSoilLayers(
-      simonaConfig: SimonaConfig
-  ): Seq[SoilLayer] =
-    readAndValidate(
-      "soilLayers.csv",
-      "soil layers",
-      SoilDataParser.readSoilLayers,
-      simonaConfig,
-    )
+  private def extractSoilTypesFromContainer(
+      subGridContainer: SubGridContainer
+  ): Seq[SoilType] = {
+    val psdmTypes: Seq[PsdmSoilType] =
+      Option(subGridContainer.getSoilData)
+        .map(_.getSoilTypes.asScala.toSeq)
+        .getOrElse(Seq.empty)
 
-  /** Reads soil types from the configured directory and validates them.
-    */
-  private def readAndValidateSoilTypes(
-      simonaConfig: SimonaConfig
-  ): Seq[SoilType] =
-    readAndValidate(
-      "soilTypes.csv",
-      "soil types",
-      SoilDataParser.readSoilTypes,
-      simonaConfig,
-    )
-
-  /** Validates that all soil layers reference existing soil types.
-    */
-  private def validateSoilReferences(
-      soilLayers: Seq[SoilLayer],
-      soilTypes: Seq[SoilType],
-  ): Unit = {
-    if soilLayers.nonEmpty && soilTypes.nonEmpty then
-      val missingRefs =
-        SoilDataParser
-          .associateLayersWithTypes(soilLayers, soilTypes)
-          .collect { case (l, None) => l }
-      if missingRefs.nonEmpty then
-        throw new GridAgentInitializationException(
-          s"Ampacity calculation is activated, but ${missingRefs.size} soil layers reference missing soil types. Please ensure soilTypes.csv contains the referenced UUIDs."
-        )
+    psdmTypes.map { st =>
+      SoilType(
+        st.getUuid,
+        st.getId,
+        st.getThermalResistivityWet.toSquants,
+        st.getThermalResistivityDry.toSquants,
+        st.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin,
+        st.getCriticalTemperatureDifference.toSquants,
+      )
+    }
   }
 
   /** Validates that at least one line has a cable type attached to its line
@@ -820,104 +783,6 @@ object ThermalSegmentBuilder extends LazyLogging {
     }.sorted
   }
 
-  /** Reads a CSV file from the configured grid CSV directory.
-    */
-  private def readFromConfiguredDir[T](
-      fileName: String,
-      parser: (CsvDataSource, Path) => Try[Seq[T]],
-      simonaConfig: SimonaConfig,
-  ): Try[Seq[T]] = {
-    simonaConfig.input.grid.datasource.csvParams match {
-      case Some(csvParams) =>
-        val dir = Paths.get(csvParams.directoryPath)
-        val p = dir.resolve(fileName)
-        if Files.exists(p) then {
-          val source = new CsvDataSource(
-            csvParams.csvSep,
-            dir,
-            new FileNamingStrategy(),
-          )
-          parser(source, Paths.get(fileName))
-        } else Success(Seq.empty[T])
-      case None => Success(Seq.empty[T])
-    }
-  }
-
-  /** Writes the generated thermal line segments to a CSV file in the simulation
-    * output folder (configured via `simona.output.base.dir`).
-    *
-    * @param segments
-    *   The generated thermal segments, each with the start/end coordinates it
-    *   was built from.
-    * @param simonaConfig
-    *   The SIMONA configuration (used to resolve the output base dir).
-    */
-  private[ampacity] def writeThermalSegmentsToOutput(
-      segments: Iterable[BuiltSegment],
-      simonaConfig: SimonaConfig,
-  ): Unit = {
-
-    // If nothing to write, nothing to do
-    if segments.isEmpty then return
-    val baseOutputDir = Paths.get(simonaConfig.output.base.dir)
-    val simulationName = simonaConfig.simulationName
-    val runDirOpt: Option[Path] =
-      try
-        val stream = Files.list(baseOutputDir)
-        try
-          val dirs = stream
-            .filter(p =>
-              Files.isDirectory(p) && p.getFileName.toString.startsWith(
-                simulationName
-              )
-            )
-            .iterator()
-            .asScala
-            .toSeq
-          if dirs.nonEmpty then
-            Some(dirs.maxBy(p => Files.getLastModifiedTime(p).toMillis))
-          else None
-        finally stream.close()
-      catch case _: Exception => None
-    val runDir = runDirOpt.getOrElse(baseOutputDir.resolve(simulationName))
-    val rawOutputDir = runDir.resolve("rawOutputData")
-    Files.createDirectories(rawOutputDir)
-    val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
-    val header =
-      "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature,hasParallelInfluence,neighbourLineUuids,minLateralDistanceMeters"
-    val rows = segments.map { case BuiltSegment(segment, start, end) =>
-      val influence = segment.parallelInfluence
-      val hasInfluence = influence.nonEmpty
-      val neighbourUuids = influence.map(_._1.toString).mkString(";")
-      val distances = influence.map(_._2.toString).mkString(";")
-      Seq(
-        segment.uuid.toString,
-        segment.lineUuid.toString,
-        start.longitude.toString,
-        start.latitude.toString,
-        end.longitude.toString,
-        end.latitude.toString,
-        segment.upperBoundaryTemperature.value.toString,
-        hasInfluence.toString,
-        neighbourUuids,
-        distances,
-      ).mkString(",")
-    }.toSeq
-    val content = rows.mkString("\n") + "\n"
-    // Append if the file already exists, otherwise create it with the header.
-    if Files.exists(outPath) then
-      Files.write(
-        outPath,
-        content.getBytes("UTF-8"),
-        StandardOpenOption.CREATE,
-        StandardOpenOption.APPEND,
-      )
-    else
-      Files.write(
-        outPath,
-        (header +: rows).mkString("\n").getBytes("UTF-8"),
-      )
-  }
   private def mapConductor(jc: JConductorInput): Layer = {
     val mat = jc.material()
     Layer(
@@ -991,5 +856,83 @@ object ThermalSegmentBuilder extends LazyLogging {
         deploymentList.headOption
       case None => None
     }
+
+  /** Writes the generated thermal line segments to a CSV file in the simulation
+    * output folder (configured via `simona.output.base.dir`).
+    *
+    * @param segments
+    *   The generated thermal segments, each with the start/end coordinates it
+    *   was built from.
+    * @param simonaConfig
+    *   The SIMONA configuration (used to resolve the output base dir).
+    */
+  private[ampacity] def writeThermalSegmentsToOutput(
+      segments: Iterable[BuiltSegment],
+      simonaConfig: SimonaConfig,
+  ): Unit = {
+
+    // If nothing to write, nothing to do
+    if segments.isEmpty then return
+    val baseOutputDir = Paths.get(simonaConfig.output.base.dir)
+    val simulationName = simonaConfig.simulationName
+    val runDirOpt: Option[Path] =
+      try {
+        val stream = Files.list(baseOutputDir)
+        try
+          val dirs = stream
+            .filter(p =>
+              Files.isDirectory(p) && p.getFileName.toString.startsWith(
+                simulationName
+              )
+            )
+            .iterator()
+            .asScala
+            .toSeq
+          if dirs.nonEmpty then
+            Some(dirs.maxBy(p => Files.getLastModifiedTime(p).toMillis))
+          else None
+        finally stream.close()
+      } catch {
+        case _: Exception => None
+      }
+    val runDir = runDirOpt.getOrElse(baseOutputDir.resolve(simulationName))
+    val rawOutputDir = runDir.resolve("rawOutputData")
+    Files.createDirectories(rawOutputDir)
+    val outPath = rawOutputDir.resolve("thermal_line_segments.csv")
+    val header =
+      "segmentUuid,lineUuid,startX,startY,endX,endY,limitTemperature,hasParallelInfluence,neighbourLineUuids,minLateralDistanceMeters"
+    val rows = segments.map { case BuiltSegment(segment, start, end) =>
+      val influence = segment.parallelInfluence
+      val hasInfluence = influence.nonEmpty
+      val neighbourUuids = influence.map(_._1.toString).mkString(";")
+      val distances = influence.map(_._2.toString).mkString(";")
+      Seq(
+        segment.uuid.toString,
+        segment.lineUuid.toString,
+        start.longitude.toString,
+        start.latitude.toString,
+        end.longitude.toString,
+        end.latitude.toString,
+        segment.upperBoundaryTemperature.value.toString,
+        hasInfluence.toString,
+        neighbourUuids,
+        distances,
+      ).mkString(",")
+    }.toSeq
+    val content = rows.mkString("\n") + "\n"
+    // Append if the file already exists, otherwise create it with the header.
+    if Files.exists(outPath) then
+      Files.write(
+        outPath,
+        content.getBytes("UTF-8"),
+        StandardOpenOption.CREATE,
+        StandardOpenOption.APPEND,
+      )
+    else
+      Files.write(
+        outPath,
+        (header +: rows).mkString("\n").getBytes("UTF-8"),
+      )
+  }
 
 }
