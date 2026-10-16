@@ -16,6 +16,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueNoControl,
   IssuePowerControl,
 }
+import edu.ie3.simona.service.DataTimeType
+import edu.ie3.simona.service.DataTimeType.CurrentAndForecast
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaWattHour}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
@@ -212,19 +214,29 @@ object EnergyBoundariesFlexOptions
       *
       * @param constantPower
       *   The constant power.
+      * @param currentTick
+      *   The current tick.
+      * @param forecastType
+      *   The forecast data configuration. At least two ticks have to result
+      *   from this.
       * @return
       *   The [[AssetEnergyBoundaries]].
       */
     def apply(
         constantPower: Power,
         currentTick: Long,
+        forecastType: DataTimeType.CurrentAndForecast,
     ): AssetEnergyBoundaries = {
-      AssetEnergyBoundaries(
-        currentEnergy = zeroKWh,
-        energyLimits =
-          SortedMap(currentTick -> new ClosedInterval(zeroKWh, zeroKWh)),
-        powerLimits = new ClosedInterval(constantPower, constantPower),
+
+      val ticks = DataTimeType.createTicks(
+        forecastType.forecastLength,
+        forecastType.forecastResolution,
+        currentTick,
       )
+
+      val powerSeries = ticks.map { _ -> constantPower }.to(SortedMap)
+
+      createFromPowerSeries(powerSeries)
     }
 
     /** Creating energy boundaries for a fixed power time series. Assumes
@@ -240,7 +252,7 @@ object EnergyBoundariesFlexOptions
         powerSeries: SortedMap[Long, Power]
     ): AssetEnergyBoundaries = {
 
-      val (firstTick, firstPower) = powerSeries.headOption.getOrElse(
+      val (firstTick, _) = powerSeries.headOption.getOrElse(
         throw new CriticalFailureException("Empty power time series!")
       )
 
@@ -256,12 +268,21 @@ object EnergyBoundariesFlexOptions
       val dummyTick =
         lastSeriesTick + (lastSeriesTick - firstTick) / (powerSeries.size - 1)
 
+      createFromPowerSeries(powerSeries.updated(dummyTick, zeroKW))
+    }
+
+    private def createFromPowerSeries(
+        powerSeries: SortedMap[Long, Power]
+    ): AssetEnergyBoundaries = {
+
+      val (firstTick, firstPower) = powerSeries.headOption.getOrElse(
+        throw new CriticalFailureException("Empty power time series!")
+      )
+
       val (energySeries, _) =
         powerSeries
-          // excluding first data, which we already extracted above
+          // excluding first data tuple, which we already extracted above
           .tail
-          // adding dummy tick so that last actual power entry is recognized
-          .updated(dummyTick, zeroKW)
           .foldLeft(
             (SortedMap(firstTick -> zeroKWh), firstPower)
           ) { case ((previousSeries, previousPower), (tick, power)) =>
