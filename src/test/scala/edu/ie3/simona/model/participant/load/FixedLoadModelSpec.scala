@@ -17,13 +17,15 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
-import squants.Power
-import squants.energy.Watts
+import squants.{Energy, Power}
+import squants.energy.{WattHours, Watts}
 import squants.time.Hours
 
 class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
 
-  private implicit val tolerance: Power = Watts(1e-2)
+  // tolerances
+  given Power = Watts(1e-2)
+  given Energy = WattHours(1e-2)
 
   "A fixed load model" should {
 
@@ -69,10 +71,9 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
         )
         .create()
 
-      // parameters are not relevant here
       val dataTimeType = DataTimeType.CurrentAndForecast(
-        forecastLength = Hours(1),
-        forecastResolution = Hours(12),
+        forecastLength = Hours(12),
+        forecastResolution = Hours(1),
       )
 
       val flexOptions =
@@ -87,7 +88,7 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
           val assetBoundaries = boundaries.headOption.value
 
           val energyLimits = assetBoundaries.energyLimits
-          energyLimits should have size 1
+          energyLimits should have size 13
           energyLimits.headOption.value shouldBe (
             0L -> new ClosedInterval(
               zeroKWh,
@@ -95,10 +96,14 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
             )
           )
 
-          assetBoundaries.powerLimits shouldBe new ClosedInterval(
-            model.pRated,
-            model.pRated,
-          )
+          val (lastKey, lastValue) = energyLimits.lastOption.value
+          lastKey shouldBe 12 * 3600L
+          val expectedTotalEnergy = model.pRated * dataTimeType.forecastLength
+          lastValue.getUpper should approximate(expectedTotalEnergy)
+          lastValue.getLower should approximate(expectedTotalEnergy)
+
+          assetBoundaries.powerLimits.getUpper should approximate(model.pRated)
+          assetBoundaries.powerLimits.getLower should approximate(model.pRated)
 
         case unexpected => fail(s"Received unexpected flex options $unexpected")
       }
