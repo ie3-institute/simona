@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.grid.ampacity
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.grid.{SoilLayer => PsdmSoilLayer, SoilType => PsdmSoilType}
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
   LineTypeInput,
@@ -18,15 +17,14 @@ import edu.ie3.datamodel.models.input.connector.{
   CableDeploymentInput,
   LineInput,
 }
-import edu.ie3.datamodel.models.input.container.SubGridContainer
-import edu.ie3.simona.config.SimonaConfig
-import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
-import edu.ie3.simona.model.grid.ampacity.{
-  CableSetup,
-  LineSegmentThermalModel,
+import edu.ie3.datamodel.models.input.container.{
   SoilLayer,
   SoilType,
+  SubGridContainer,
 }
+import edu.ie3.simona.config.SimonaConfig
+import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
+import edu.ie3.simona.model.grid.ampacity.{CableSetup, LineSegmentThermalModel}
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.geo.RichGeometries.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
@@ -224,21 +222,13 @@ object ThermalSegmentBuilder extends LazyLogging {
   private def extractSoilLayersFromContainer(
       subGridContainer: SubGridContainer
   ): Seq[SoilLayer] = {
-    // Collect PSDM SoilLayer instances from the container's entity list
-    val psdmLayers: Seq[PsdmSoilLayer] =
-      subGridContainer.allEntitiesAsList().asScala.collect {
-        case l: PsdmSoilLayer => l
-      }.toSeq
-
-    psdmLayers.map { pl =>
-      SoilLayer(
-        pl.getUuid,
-        pl.getGeometry,
-        pl.getZFrom.toSquants,
-        pl.getZTo.toSquants,
-        pl.getSoilType,
-      )
-    }
+    subGridContainer
+      .allEntitiesAsList()
+      .asScala
+      .collect { case l: SoilLayer =>
+        l
+      }
+      .toSeq
   }
 
   /** Extracts soil types from SubGridContainer
@@ -246,21 +236,9 @@ object ThermalSegmentBuilder extends LazyLogging {
   private def extractSoilTypesFromContainer(
       subGridContainer: SubGridContainer
   ): Seq[SoilType] = {
-    val psdmTypes: Seq[PsdmSoilType] =
-      Option(subGridContainer.getSoilData)
-        .map(_.getSoilTypes.asScala.toSeq)
-        .getOrElse(Seq.empty)
-
-    psdmTypes.map { st =>
-      SoilType(
-        st.getUuid,
-        st.getId,
-        st.getThermalResistivityWet.toSquants,
-        st.getThermalResistivityDry.toSquants,
-        st.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin,
-        st.getCriticalTemperatureDifference.toSquants,
-      )
-    }
+    Option(subGridContainer.getSoilData)
+      .map(_.getSoilTypes.asScala.toSeq)
+      .getOrElse(Seq.empty)
   }
 
   /** Validates that at least one line has a cable type attached to its line
@@ -476,7 +454,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     val geometryFactory = new GeometryFactory()
     val depthMeters = context.cableDepth.toMeters
     val soilTypesById: Map[UUID, SoilType] =
-      context.soilTypes.map(t => t.uuid -> t).toMap
+      context.soilTypes.map(t => t.getUuid -> t).toMap
     // Pre-compute neighbour centerlines for parallel-proximity detection.
     // NOTE: The haversine-on-sampled-points approach is geodesically consistent
     // but still relies on planar (lon, lat) sampling and a coarse per-sample
@@ -515,7 +493,7 @@ object ThermalSegmentBuilder extends LazyLogging {
         // Soil boundary intersection indices
         val soilIndices: Seq[Double] =
           context.soilLayers.flatMap { layer =>
-            val boundary = layer.geometry.getBoundary
+            val boundary = layer.getGeometry.getBoundary
             val intersection = boundary.intersection(jtsLine)
             if intersection.isEmpty then Seq.empty
             else
@@ -586,7 +564,7 @@ object ThermalSegmentBuilder extends LazyLogging {
               val midPoint = geometryFactory.createPoint(midCoord)
               val coveringLayers =
                 context.soilLayers.filter(layer =>
-                  layer.geometry.contains(midPoint)
+                  layer.getGeometry.contains(midPoint)
                 )
               if coveringLayers.isEmpty then
                 throw new GridAgentInitializationException(
@@ -598,9 +576,15 @@ object ThermalSegmentBuilder extends LazyLogging {
                 coveringLayers
                   .find { layer =>
                     val minZ =
-                      math.min(layer.zFrom.toMeters, layer.zTo.toMeters)
+                      math.min(
+                        layer.getZFrom.toSquants.toMeters,
+                        layer.getZTo.toSquants.toMeters,
+                      )
                     val maxZ =
-                      math.max(layer.zFrom.toMeters, layer.zTo.toMeters)
+                      math.max(
+                        layer.getZFrom.toSquants.toMeters,
+                        layer.getZTo.toSquants.toMeters,
+                      )
                     depthMeters >= minZ && depthMeters <= maxZ
                   }
                   .getOrElse(
@@ -611,10 +595,10 @@ object ThermalSegmentBuilder extends LazyLogging {
                     )
                   )
               val assignedSoilType = soilTypesById.getOrElse(
-                assignedLayer.soilType,
+                assignedLayer.getSoilType,
                 throw new GridAgentInitializationException(
-                  s"Ampacity build failed: Soil layer ${assignedLayer.uuid} references " +
-                    s"unknown soil type ${assignedLayer.soilType} for line ${context.lineInput.getUuid}."
+                  s"Ampacity build failed: Soil layer ${assignedLayer.getUuid} references " +
+                    s"unknown soil type ${assignedLayer.getSoilType} for line ${context.lineInput.getUuid}."
                 ),
               )
               val sCoord = toCoordinate(p1)
@@ -624,7 +608,7 @@ object ThermalSegmentBuilder extends LazyLogging {
                 segmentUuid,
                 sCoord,
                 eCoord,
-                context.soilLayers.map(_.geometry.getBoundary),
+                context.soilLayers.map(_.getGeometry.getBoundary),
               )
               val influence: Seq[(UUID, Double)] =
                 context.ppThreshold match {

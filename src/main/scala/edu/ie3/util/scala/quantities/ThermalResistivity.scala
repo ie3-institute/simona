@@ -13,6 +13,7 @@ import scala.util.Try
 
 /** Represents the thermal resistivity, in K*m/W.
   */
+//TODO DF: Can be replaced by PSU >v3.2.3
 final class ThermalResistivity private (
     val value: Double,
     val unit: ThermalResistivityUnit,

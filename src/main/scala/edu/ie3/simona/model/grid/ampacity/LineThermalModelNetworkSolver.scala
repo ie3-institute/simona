@@ -6,31 +6,33 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import breeze.linalg.{DenseMatrix, DenseVector, eig}
+import org.apache.commons.math3.linear.{EigenDecomposition, RealMatrix}
 
 object LineThermalModelNetworkSolver {
 
   def determineEigenvaluesAndVectors(
-      matrix: DenseMatrix[Double]
-  ): (DenseVector[Double], DenseMatrix[Double]) = {
+      matrix: RealMatrix
+  ): (Array[Double], RealMatrix) = {
 
-    val eigResult = eig(matrix)
-    val eigenvalues = eigResult.eigenvalues
-    val eigenvectors = eigResult.eigenvectors
+    val eigResult = new EigenDecomposition(matrix)
+    val n = matrix.getColumnDimension
+    val eigenvalues = Array.tabulate(n)(i => eigResult.getRealEigenvalue(i))
+    val eigenvectors = eigResult.getV // RealMatrix
 
     val tolerance = 1e-10
 
     // sanity check
-    if eigenvalues.length != matrix.cols ||
-      eigenvectors.rows != eigenvalues.length ||
-      eigenvectors.cols != eigenvalues.length
+    if eigenvalues.length != matrix.getColumnDimension ||
+      eigenvectors.getRowDimension != eigenvalues.length ||
+      eigenvectors.getColumnDimension != eigenvalues.length
     then
       throw new IllegalStateException(
-        s"Unexpected number of Eigenvalues or Eigenvectors. Expected are 5 each, Got: Eigenvalues: $eigenvalues, Eigenvectors: $eigenvectors."
+        s"Unexpected number of Eigenvalues or Eigenvectors. Expected are 5 each, Got: Eigenvalues: ${eigenvalues
+            .mkString(",")}, Eigenvectors: ${eigenvectors.toString}."
       )
     if eigenvalues.exists(_ > tolerance) then {
       throw new IllegalStateException(
-        s"Unstable RC network: positive eigenvalues detected: $eigenvalues"
+        s"Unstable RC network: positive eigenvalues detected: ${eigenvalues.mkString(",")}"
       )
     }
 

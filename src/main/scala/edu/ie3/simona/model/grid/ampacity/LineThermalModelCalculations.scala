@@ -6,7 +6,14 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import breeze.linalg.{DenseMatrix, DenseVector}
+import org.apache.commons.math3.linear.{
+  Array2DRowRealMatrix,
+  ArrayRealVector,
+  LUDecomposition,
+  RealMatrix,
+  RealVector,
+}
+
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
@@ -14,6 +21,7 @@ import edu.ie3.util.scala.quantities.SquantsUtils.{
   RichResistivity,
   RichSpecificCapacitance,
 }
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
   ElectricalResistancePerLength,
   JoulesPerCubicMeterKelvin,
@@ -31,6 +39,8 @@ import squants.space.{Length, Millimeters, SquareMeters}
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
 import squants.{ElectricCurrent, Kelvin, Meters, Temperature}
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units.CELSIUS
 
 import scala.math.*
 
@@ -856,17 +866,21 @@ object LineThermalModelCalculations extends LazyLogging {
     val cableSetup = state.cableSetup
 
     val effectiveSoilResistivity =
-      currentLineModel.soilType.currentThermalResistivity(
-        state.lineTemperatures.currentLineTemp4 - groundTemperature
-      )
+      currentLineModel.soilType
+        .currentThermalResistivity(
+          Quantities.getQuantity(
+            (state.lineTemperatures.currentLineTemp4 - groundTemperature).toCelsiusDegrees,
+            CELSIUS,
+          )
+        )
+        .toSquants
 
     val soilCapacitance =
-      currentLineModel.soilType.specificHeatCapacity
+      currentLineModel.soilType.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin
 
     val acResistance = calcAcResistance(
       cableSetup.electricResistance,
-      cableSetup.conductor.material
-        .getElectricalResistivityTemperatureCoefficient(),
+      cableSetup.conductor.material.getElectricalResistivityTemperatureCoefficient,
       cableSetup,
       currentLineModel.distanceCables,
     )
@@ -1061,7 +1075,7 @@ object LineThermalModelCalculations extends LazyLogging {
     val g4 = 2d / t3.toKelvinMetersPerWatt
     val g5 = 1d / t4.toKelvinMetersPerWatt
 
-    // TODO g1 == g2 and g3 == g4, looks like a copy error at minimum; verify against the reference implementation.
+    // FIXME DF g1 == g2 and g3 == g4, looks like a copy error at minimum; verify against the reference implementation.
 
     // the RC-Network can be simplified since all parallel capacitance can be merged
     // Conductor capacitance and first part of the first half of the dielectric
@@ -1081,46 +1095,57 @@ object LineThermalModelCalculations extends LazyLogging {
       (jackThermCapacitanceC22 + soilCapacitance).toJoulesPerCubicMeterKelvin
 
     // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
-    val matrixA = DenseMatrix(
-      (-g1 / c1, g1 / c1, 0.0, 0.0, 0.0),
-      (g1 / c2, (-g1 - g2) / c2, g2 / c2, 0.0, 0.0),
-      (0.0, g2 / c3, (-g2 - g3) / c3, g3 / c3, 0.0),
-      (0.0, 0.0, g3 / c4, (-g3 - g4) / c4, g4 / c4),
-      (0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
+    val matrixAData: Array[Array[Double]] = Array(
+      Array(-g1 / c1, g1 / c1, 0.0, 0.0, 0.0),
+      Array(g1 / c2, (-g1 - g2) / c2, g2 / c2, 0.0, 0.0),
+      Array(0.0, g2 / c3, (-g2 - g3) / c3, g3 / c3, 0.0),
+      Array(0.0, 0.0, g3 / c4, (-g3 - g4) / c4, g4 / c4),
+      Array(0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
     )
 
-    val vectorB = DenseVector(
-      (conductorLosses.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c1,
-      0d,
-      (sheathLossesMiddlePhase.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c3,
-      0d,
-      (g5 * groundTemperature.toCelsiusScale) / c5,
+    val matrixA: RealMatrix = new Array2DRowRealMatrix(matrixAData)
+
+    val vectorB: RealVector = new ArrayRealVector(
+      Array(
+        (conductorLosses.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c1,
+        0d,
+        (sheathLossesMiddlePhase.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c3,
+        0d,
+        (g5 * groundTemperature.toCelsiusScale) / c5,
+      )
     )
 
     val (eigenvalues, eigenvectors) =
       LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrixA)
 
-    val vStart = DenseVector(
-      state.lineTemperatures.currentLineTemp1.toCelsiusScale,
-      state.lineTemperatures.currentLineTemp2.toCelsiusScale,
-      state.lineTemperatures.currentLineTemp3.toCelsiusScale,
-      state.lineTemperatures.currentLineTemp4.toCelsiusScale,
-      state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME DF: Check if this is always ambientTemp/groundTemp, then it can be removed.
+    val vStart: RealVector = new ArrayRealVector(
+      Array(
+        state.lineTemperatures.currentLineTemp1.toCelsiusScale,
+        state.lineTemperatures.currentLineTemp2.toCelsiusScale,
+        state.lineTemperatures.currentLineTemp3.toCelsiusScale,
+        state.lineTemperatures.currentLineTemp4.toCelsiusScale,
+        state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME DF: Check if this is always ambientTemp/groundTemp, then it can be removed.
+      )
     )
 
-    val vp = matrixA \ (-vectorB)
+    val luSolver = new LUDecomposition(matrixA).getSolver
+    val vp: RealVector = luSolver.solve(vectorB.mapMultiply(-1.0))
 
-    val c = eigenvectors \ (vStart - vp)
+    val vStartMinusVp: RealVector = vStart.subtract(vp)
+    val evSolver = new LUDecomposition(eigenvectors).getSolver
+    val c: RealVector = evSolver.solve(vStartMinusVp)
 
     def getNodeTemperature(t: Long, node: Int): Temperature = {
-      var temperature = vp(node) // Start with the steady-state value of Node
+      var temperature =
+        vp.getEntry(node) // Start with the steady-state value of Node
 
       for i <- 0 until 5 do {
         // Add the transient responses of the 5 e-functions
-        // c(i) is the coefficient, v_eigen(0, i) is the Node 1 component of the i-th eigenvector
-        temperature += c(i) * eigenvectors(node, i) * math.exp(
-          eigenvalues(i) * t
-        )
+        // c(i) is the coefficient, eigenvectors.getEntry(node, i) is the Node component of the i-th eigenvector
+        temperature += c.getEntry(i) * eigenvectors.getEntry(node, i) * math
+          .exp(
+            eigenvalues(i) * t
+          )
       }
 
       Celsius(temperature)

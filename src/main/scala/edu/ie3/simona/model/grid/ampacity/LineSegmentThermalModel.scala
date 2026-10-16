@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.datamodel.models.input.container.SoilType
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
@@ -14,9 +15,10 @@ import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
-import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.simona.util.TickUtil.toDateTime
+import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.scala.quantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.ElectricPotential
 import squants.space.{Length, Meters}
 import squants.{ElectricCurrent, Temperature}
@@ -84,8 +86,7 @@ final case class LineSegmentThermalModel(
       groundTemperature: Temperature,
   ): Boolean = {
     val cableOuterTemperature = lineTemperatures.currentLineTemp4
-    cableOuterTemperature - groundTemperature >=
-      this.soilType.criticalTemperatureDifference
+    cableOuterTemperature - groundTemperature >= this.soilType.getCriticalTemperatureDifference.toSquants
   }
 
   /** Update the current state of the line segment
@@ -293,7 +294,7 @@ object LineSegmentThermalModel {
     val t2 = calcThermalResistanceT2(cableSetup)
     val t3 = calcThermalResistanceT3(cableSetup)
     val t4 = calcThermalResistanceToSoilSingleCable(
-      lineSegmentModel.soilType.thermalResistivityWet,
+      lineSegmentModel.soilType.getThermalResistivityWet.toSquants,
       lineSegmentModel.depthCables,
       cableSetup.layersJackElements.last.outerDiameter,
     )
@@ -358,7 +359,7 @@ object LineSegmentThermalModel {
     val thermalCapacityCj = thermalCapacityCj1 + thermalCapacityCj2
 
     val thermalCapacityCe =
-      lineSegmentModel.soilType.specificHeatCapacity // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
+      lineSegmentModel.soilType.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
 
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       lineSegmentModel.uuid,

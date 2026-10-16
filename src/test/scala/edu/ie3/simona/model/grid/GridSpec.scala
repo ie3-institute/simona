@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.grid
 
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
+import edu.ie3.datamodel.models.input.container.SoilLayer
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.powerflow.math.{Complex, DenseMatrix}
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -15,7 +16,7 @@ import edu.ie3.simona.model.grid.GridModel.{
   GridComponents,
   updateUuidToIndexMap,
 }
-import edu.ie3.simona.model.grid.ampacity.{LineSegmentThermalModel, SoilLayer}
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel
 import edu.ie3.simona.test.common.input.{GridInputTestData, LineInputTestData}
 import edu.ie3.simona.test.common.model.grid.{
   BasicGrid,
