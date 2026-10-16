@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common.input
 
-import breeze.math.Complex
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.models.OperationTime
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
 import edu.ie3.datamodel.models.input.connector.{

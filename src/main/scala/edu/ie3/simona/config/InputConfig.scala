@@ -24,9 +24,8 @@ import scala.deriving.Mirror
 /** Input configuration for simona.
   * @param baseInputDir
   *   The base input directory for file based inputs (default: ./input).
-  * @param extSimDir
-  *   Option for the directory, where external simulation are placed in
-  *   (default: None).
+  * @param addonDir
+  *   Option for the directory, where addons are placed in (default: None).
   * @param grid
   *   Mainly the source for grid data.
   * @param loadProfile
@@ -40,7 +39,7 @@ import scala.deriving.Mirror
   */
 final case class InputConfig(
     baseInputDir: String = "./input",
-    extSimDir: Option[String] = None,
+    addonDir: Option[String] = None,
     grid: Grid,
     loadProfile: LoadProfile = LoadProfile(),
     primary: Primary = Primary(),

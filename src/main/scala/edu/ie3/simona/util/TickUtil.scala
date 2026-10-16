@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.util
 
-import breeze.numerics.floor
+import scala.math.floor
 import edu.ie3.util.TimeUtil
 import squants.Time
 import squants.time.Seconds

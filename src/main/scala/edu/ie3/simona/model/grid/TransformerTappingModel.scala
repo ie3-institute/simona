@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.numerics.{abs, floor, signum}
+import scala.math.{abs, floor, signum}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.exceptions.InvalidActionRequestException

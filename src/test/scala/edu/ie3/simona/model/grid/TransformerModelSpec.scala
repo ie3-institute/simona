@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.math.Complex
-import breeze.numerics.abs
+import edu.ie3.powerflow.math.Complex
+import scala.math.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
@@ -406,7 +406,6 @@ class TransformerModelSpec
               epsilon,
               maxIterations,
               admittanceMatrix,
-              Option.apply(Vector(0, 1)),
             )
             val result = powerFlow.calculate(operationPoint, startData)
 

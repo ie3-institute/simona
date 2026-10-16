@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.math.Complex
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LineInputTestData

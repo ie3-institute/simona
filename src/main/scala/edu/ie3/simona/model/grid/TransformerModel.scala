@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.math.Complex
-import breeze.numerics.pow
+import edu.ie3.powerflow.math.Complex
+import scala.math.pow
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,

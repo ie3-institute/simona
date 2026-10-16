@@ -3,8 +3,8 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.10.3' // code format
-  id "com.github.ben-manes.versions" version '0.64.0'
+  id 'com.diffplug.spotless' version '8.10.4' // code format
+  id "com.github.ben-manes.versions" version '0.66.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.6.1' // fat jar
@@ -17,14 +17,14 @@ plugins {
 
 ext {
   // version (changing these should be considered thoroughly!)
-  javaVersion = JavaVersion.VERSION_21
+  javaVersion = JavaVersion.VERSION_25
 
   scalaVersion = '3'
-  scalaBinaryVersion = '3.8.4'
-  pekkoVersion = '1.7.0'
+  scalaBinaryVersion = '3.10.0'
+  pekkoVersion = '1.7.1'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
-  scapegoatVersion = '3.3.6'
+  scapegoatVersion = '3.4.1'
   optimusVersion = '3.4.6-SNAPSHOT'
 
   junitVersion = '6.1.3'
@@ -33,7 +33,6 @@ ext {
   scriptsLocation = 'gradle' + File.separator + 'scripts' + File.separator // location of script plugins
 
   scala3compilerOptions = [
-    "-print-tasty",
     "-feature",
     "-language:implicitConversions",
     "-language:existentials",
@@ -84,20 +83,19 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:9.1.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.2.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:powerflow:0.4.0') {
+  implementation('com.github.ie3-institute:powerflow:0.5.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
     exclude group: 'edu.ie3'
   }
-
-  implementation('com.github.ie3-institute:simonaAPI:0.15.0') {
+  implementation('com.github.ie3-institute:simonaAPI:0.16.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -106,7 +104,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.6.4"
+  implementation "ch.qos.logback:logback-classic:1.6.5"
 
   /* testing */
   // scalatest & junit
@@ -141,7 +139,7 @@ dependencies {
 
   /* config */
   implementation 'com.typesafe:config:1.4.9'
-  implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
+  implementation "com.github.scopt:scopt_${scalaVersion}:4.2.0" // cmd args parser
   implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
   implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
 
@@ -163,7 +161,6 @@ dependencies {
   implementation 'javax.measure:unit-api:2.2'
   implementation 'tech.units:indriya:2.2.4' // quantities
   implementation "org.typelevel:squants_${scalaVersion}:1.8.3"
-  implementation "org.scalanlp:breeze_${scalaVersion}:2.1.0" // scientific calculations (http://www.scalanlp.org/)
   implementation 'org.jgrapht:jgrapht-core:1.5.3'
 
   // needed, because scala won't compile otherwise
@@ -185,7 +182,7 @@ tasks.withType(JavaCompile).configureEach {
 jar {
   manifest {
     attributes(
-    'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
+        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
     )
   }
 }

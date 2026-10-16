@@ -71,7 +71,7 @@ final case class ResultEntityCsvSink private (
             .map { column =>
               attributeToValue.getOrElse(column, "")
             }
-            .mkString(",")
+            .mkString(delimiter)
 
         "\n".concat(resString)
       } else {
@@ -93,7 +93,7 @@ final case class ResultEntityCsvSink private (
   private def writeHeader(): Unit = {
     val text = resultEntityProcessor.getHeaderElements.view
       .map(StringUtils.camelCaseToSnakeCase)
-      .mkString(",")
+      .mkString(delimiter)
 
     fileWriter.write(text)
     // flush out the headline immediately

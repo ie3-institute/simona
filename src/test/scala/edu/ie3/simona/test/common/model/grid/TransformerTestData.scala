@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common.model.grid
 
-import breeze.math.Complex
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.simona.model.grid.{RefSystem, VoltageLimits}
 import org.scalatest.prop.TableDrivenPropertyChecks.Table
