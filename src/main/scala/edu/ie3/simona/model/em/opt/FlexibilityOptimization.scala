@@ -15,14 +15,15 @@ import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
 import edu.ie3.simona.service.Data.SecondaryData
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW}
 import optimus.algebra.*
 import optimus.common.Measure.TimeMeasurements
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.MPVar
-import squants.energy.{KilowattHours, Kilowatts}
 import squants.energy.PowerConversions.PowerNumeric
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Dimensionless, Energy, Power, Time}
 
 import java.util.UUID
@@ -48,13 +49,8 @@ object FlexibilityOptimization {
       currentTick: Long,
   ) {
 
-    lazy val ticks: Seq[Long] = {
-      val sampleTicks = sampleTime.toSeconds.toLong
-      val lastPredictedTick =
-        currentTick + predictionHorizon.toSeconds.toLong
-
-      Range.Long.inclusive(currentTick, lastPredictedTick, sampleTicks)
-    }
+    lazy val ticks: Seq[Long] =
+      DataTimeType.createTicks(predictionHorizon, sampleTime, currentTick)
 
   }
 
