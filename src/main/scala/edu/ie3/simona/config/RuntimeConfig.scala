@@ -123,7 +123,7 @@ object RuntimeConfig {
   final case class EmRuntimeConfig(
       override val calculateMissingReactivePowerWithModel: Boolean = false,
       override val scaling: Double = 1.0,
-      aggregateFlex: String = "SELF_OPT_EXCL_REG",
+      aggregateFlex: String = "SIMPLE_BOUNDARIES",
       curtailRegenerative: Boolean = false,
   ) extends BaseRuntimeConfig
       derives ConfigConvert
