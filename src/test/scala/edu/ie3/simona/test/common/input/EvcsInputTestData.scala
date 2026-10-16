@@ -20,6 +20,7 @@ import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.util.quantities.QuantityUtils.*
 
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 
 trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
 
@@ -49,7 +50,7 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     ChargingPointTypeUtils.ChargingStationType2,
     2,
     1,
-    EvcsLocationType.HOME,
+    List(EvcsLocationType.HOME).asJava,
     true,
   )
 

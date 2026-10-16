@@ -12,10 +12,12 @@ import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.{EnergyPrice, Kilovars, ReactivePower}
+import squants.electro.ElectricPotential
 import squants.energy.{Kilowatts, Power}
 import squants.radio.Irradiance
 import squants.{Temperature, Velocity}
 
+import java.util.UUID
 import scala.collection.immutable.SortedMap
 import scala.jdk.OptionConverters.RichOptional
 import scala.reflect.ClassTag
@@ -374,6 +376,19 @@ object Data {
         windVel: Velocity,
         groundTempLvl3: Option[Temperature],
         groundTempLvl4: Option[Temperature],
+    ) extends SecondaryData
+
+    /** Container class for the current voltage at a grid element, as determined
+      * by the last power flow result.
+      *
+      * @param elementUuid
+      *   The uuid of the element (node) this voltage belongs to.
+      * @param voltage
+      *   The current voltage at the element.
+      */
+    final case class CurrentVoltage(
+        elementUuid: UUID,
+        voltage: ElectricPotential,
     ) extends SecondaryData
 
     /** Data class containing only the wholesale price.
