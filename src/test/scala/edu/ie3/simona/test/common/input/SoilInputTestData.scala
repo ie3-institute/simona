@@ -6,13 +6,14 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.simona.model.grid.ampacity.SoilType
+import edu.ie3.datamodel.models.input.container.SoilType
 import edu.ie3.simona.test.common.DefaultTestData
-import edu.ie3.util.scala.quantities.{
-  JoulesPerCubicMeterKelvin,
-  KelvinMetersPerWatt,
+import edu.ie3.util.quantities.PowerSystemUnits.{
+  KELVIN_METRE_PER_WATT,
+  JOULE_PER_CUBIC_METRE_KELVIN,
 }
-import squants.thermal.Celsius
+import tech.units.indriya.quantity.Quantities
+import tech.units.indriya.unit.Units.CELSIUS
 
 import java.util.UUID
 
@@ -20,12 +21,12 @@ trait SoilInputTestData extends DefaultTestData {
 
   /** A test soil type matching the soil parameters used in this test model.
     */
-  protected val defaultSoilType: SoilType = SoilType(
+  protected val defaultSoilType: SoilType = new SoilType(
     UUID.fromString("a1b2c3d4-e5f6-7890-abcd-ef1234567890"),
     "SandyClay",
-    KelvinMetersPerWatt(1.0),
-    KelvinMetersPerWatt(2.5),
-    JoulesPerCubicMeterKelvin(1.0),
-    Celsius(15),
+    Quantities.getQuantity(1.0, KELVIN_METRE_PER_WATT),
+    Quantities.getQuantity(2.5, KELVIN_METRE_PER_WATT),
+    Quantities.getQuantity(1.0, JOULE_PER_CUBIC_METRE_KELVIN),
+    Quantities.getQuantity(15.0, CELSIUS),
   )
 }

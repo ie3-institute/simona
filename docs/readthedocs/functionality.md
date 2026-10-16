@@ -8,5 +8,4 @@ maxdepth: 1
 ---
 functionality/congestionmanagement
 functionality/neuralstateestimation
-functionality/ampacity
 ```

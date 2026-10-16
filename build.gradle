@@ -20,7 +20,7 @@ ext {
   javaVersion = JavaVersion.VERSION_25
 
   scalaVersion = '3'
-  scalaBinaryVersion = '3.10.0'
+  scalaBinaryVersion = '3.9.0'
   pekkoVersion = '1.7.1'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
@@ -81,12 +81,15 @@ dependencies {
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:9.2.0') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
-    /* Exclude our own nested dependencies */
-    exclude group: 'com.github.ie3-institute'
-  }
+  // FIXME DF
+  implementation files('/home/smdafeis/simona/PowerSystemDataModel-9.3.0-all_with_soil.jar')
+  runtimeOnly 'org.postgresql:postgresql:42.7.14' // postgresql jdbc driver required during runtime
+  //implementation('com.github.ie3-institute:PowerSystemDataModel:9.2.0') {
+  //exclude group: 'org.apache.logging.log4j'
+  //  exclude group: 'org.slf4j'
+  //  /* Exclude our own nested dependencies */
+  //  exclude group: 'com.github.ie3-institute'
+  //}
   implementation('com.github.ie3-institute:powerflow:0.5.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'

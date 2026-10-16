@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.datamodel.models.input.container.SoilType
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
