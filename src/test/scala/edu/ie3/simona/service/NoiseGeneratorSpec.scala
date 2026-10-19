@@ -84,6 +84,20 @@ class NoiseGeneratorSpec extends UnitSpec {
         ),
       )
 
+      // also test updating
+      val updatedGen = gen.update(currentTick + 7200L)
+
+      // most values should have stayed the same
+      updatedGen.noiseMap shouldBe mutable.SortedMap(
+        14400L -> 0.9820612840170815,
+        18000L -> 0.7058642153381252,
+        21600L -> 0.201540442983696,
+        25200L -> -0.4942978074998051,
+        28800L -> -1.3250773424633955,
+        32400L -> -0.3476840819184529,
+        36000L -> -0.3690196115957172,
+      )
+
     }
 
   }
