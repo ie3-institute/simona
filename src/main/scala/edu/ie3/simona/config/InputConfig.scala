@@ -20,7 +20,6 @@ import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
 
 import java.util.UUID
 import scala.deriving.Mirror
-import scala.util.Random
 
 /** Input configuration for simona.
   * @param baseInputDir
@@ -277,12 +276,12 @@ object InputConfig {
     *   Autoregression coefficient that determines how correlated neighboring
     *   noise values are. Limited to values in [0, 1] (default: 0.8).
     * @param seed
-    *   Seed for the random number generator (default: random seed).
+    *   Seed for the random number generator (default: 0).
     */
   final case class NoiseConfig(
       variance: Double,
       autoregression: Double = 0.8,
-      seed: Long = new Random().nextLong(),
+      seed: Long = 0L,
   ) derives ConfigConvert
 
 }
