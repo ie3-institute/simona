@@ -213,6 +213,7 @@ class SimonaSetup(
         scheduler,
         InitWeatherServiceStateData(
           simonaConfig.input.weather.datasource,
+          simonaConfig.input.weather.forecast,
           simonaConfig.time.simStartTime,
           simonaConfig.time.simEndTime,
         ),

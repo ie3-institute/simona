@@ -20,6 +20,7 @@ import pureconfig.{CamelCase, ConfigConvert, ConfigFieldMapping}
 
 import java.util.UUID
 import scala.deriving.Mirror
+import scala.util.Random
 
 /** Input configuration for simona.
   * @param baseInputDir
@@ -124,10 +125,14 @@ object InputConfig {
 
   /** Case class that holds all information for weather.
     * @param datasource
-    *   That hold the weather data (default: empty).
+    *   Configuration of data source providing the weather data (default:
+    *   empty).
+    * @param forecast
+    *   Configuration of weather forecasts (default: pre-set parameters).
     */
   final case class Weather(
-      datasource: WeatherDatasource = WeatherDatasource()
+      datasource: WeatherDatasource = WeatherDatasource(),
+      forecast: WeatherForecast = WeatherForecast(),
   ) derives ConfigConvert
 
   /** Case class with parameters for a weather source.
@@ -186,13 +191,34 @@ object InputConfig {
       sqlParams: Option[BaseSqlParams] = None,
   ) derives ConfigConvert
 
+  /** Case class that configures weather forecasts.
+    *
+    * @param irradianceNoise
+    *   Config for noise added to irradiance forecasts. Variance is interpreted
+    *   in watts per square meter (default: 5 W/m²).
+    * @param temperatureNoise
+    *   Config for noise added to temperature forecasts. Variance is interpreted
+    *   in Kelvin (default: 2 K).
+    * @param windVelocityNoise
+    *   Config for noise added to wind velocity forecasts. Variance is
+    *   interpreted in meters per second (default: 2 m/s).
+    */
+  final case class WeatherForecast(
+      irradianceNoise: NoiseConfig = NoiseConfig(variance = 5d),
+      temperatureNoise: NoiseConfig = NoiseConfig(variance = 2d),
+      windVelocityNoise: NoiseConfig = NoiseConfig(variance = 2d),
+  ) derives ConfigConvert
+
   /** Case class that holds all information for prices.
     *
     * @param datasource
-    *   That hold the price data (default: None).
+    *   Configuration of data source providing the price data (default: none).
+    * @param forecast
+    *   Configuration of price forecasts (default: pre-set parameters).
     */
   final case class Prices(
-      datasource: Option[PriceDatasource] = None
+      datasource: Option[PriceDatasource] = None,
+      forecast: PriceForecast = PriceForecast(),
   ) derives ConfigConvert
 
   /** Class with parameters for a price source.
@@ -218,6 +244,16 @@ object InputConfig {
       csvParams: Option[BaseCsvParams] = None,
   ) derives ConfigConvert
 
+  /** Case class that configures price forecasts.
+    *
+    * @param noise
+    *   Config for noise added to price forecasts. Variance is interpreted in
+    *   euro per MWh (default: 50 EUR/MWh).
+    */
+  final case class PriceForecast(
+      noise: NoiseConfig = NoiseConfig(variance = 50d)
+  ) derives ConfigConvert
+
   /** Class with parameters for price adjustments given a wholesale price.
     *
     * @param fees
@@ -230,6 +266,24 @@ object InputConfig {
   final case class PriceAdjustments(
       fees: Double = 0d,
       tax: Double = 0d,
+  ) derives ConfigConvert
+
+  /** Class with parameters for configuration of noise generator for forecasts.
+    *
+    * @param variance
+    *   Variance (sigma squared) of values produced by normal distribution. A
+    *   value of zero turns off noise generation.
+    * @param autoregression
+    *   Autoregression coefficient that determines how correlated neighboring
+    *   noise values are. Limited to values in [0, 1] (default: 0.8).
+    * @param seed
+    *   Seed for the random number generator (default: random seed).
+    */
+  // TODO validation
+  final case class NoiseConfig(
+      variance: Double,
+      autoregression: Double = 0.8,
+      seed: Long = new Random().nextLong(),
   ) derives ConfigConvert
 
 }

@@ -11,22 +11,35 @@ import edu.ie3.simona.exceptions.InitializationException
 import edu.ie3.simona.exceptions.WeatherServiceException.InvalidRegistrationRequestException
 import edu.ie3.simona.ontology.messages.ServiceMessage
 import edu.ie3.simona.ontology.messages.ServiceMessage.*
-import edu.ie3.simona.service.Data.SecondaryData.SecondarySeriesData
+import edu.ie3.simona.service.Data.SecondaryData.{
+  SecondarySeriesData,
+  WeatherData,
+}
+import edu.ie3.simona.service.NoiseGenerator.applyNoise
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.service.{DataTimeType, SimonaService}
+import edu.ie3.simona.service.{DataTimeType, NoiseGenerator, SimonaService}
 import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
 import edu.ie3.simona.util.TickUtil.toTick
 import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
+import edu.ie3.util.scala.quantities.DefaultQuantities.{
+  zeroKelvin,
+  zeroMPerS,
+  zeroWPerSM,
+}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
+import squants.motion.{MetersPerSecond, Velocity}
+import squants.radio.{Irradiance, WattsPerSquareMeter}
+import squants.thermal.{Kelvin, Temperature}
 
 import java.time.ZonedDateTime
+import scala.collection.immutable
 import scala.util.{Failure, Success, Try}
 
 /** Weather Service is responsible to register other actors that require weather
@@ -69,6 +82,8 @@ object WeatherService extends SimonaService {
     *   The simulation time at which simulation started.
     * @param amountOfInterpolationCoords
     *   The amount of coordinates to be interpolated for any agent coordinate.
+    * @param forecastData
+    *   Data related to forecasts.
     */
   final case class WeatherBaseStateData(
       weatherSource: WeatherSource,
@@ -76,7 +91,143 @@ object WeatherService extends SimonaService {
       activationTicks: ActivationTickQueue,
       startDateTime: ZonedDateTime,
       amountOfInterpolationCoords: Int = 4,
+      forecastData: ForecastData,
   ) extends ServiceBaseStateData
+
+  /** Holds all relevant data and configuration related to forecasts.
+    *
+    * @param irradianceNoiseGenerator
+    *   The noise generator for irradiance data.
+    * @param irradianceNoiseVariance
+    *   The noise variance for irradiance data.
+    * @param temperatureNoiseGenerator
+    *   The noise generator for temperature data.
+    * @param temperatureNoiseVariance
+    *   The noise variance for temperature data.
+    * @param windVelocityNoiseGenerator
+    *   The noise generator for wind velocity data.
+    * @param windVelocityNoiseVariance
+    *   The noise variance for wind velocity data.
+    */
+  final case class ForecastData(
+      irradianceNoiseGenerator: NoiseGenerator,
+      irradianceNoiseVariance: Double,
+      temperatureNoiseGenerator: NoiseGenerator,
+      temperatureNoiseVariance: Double,
+      windVelocityNoiseGenerator: NoiseGenerator,
+      windVelocityNoiseVariance: Double,
+  ) {
+
+    /** Updates all noise generators for the current tick.
+      *
+      * @param currentTick
+      *   The current tick.
+      * @param forecastParams
+      *   The forecast parameters specifying resolution and forecast horizon.
+      * @return
+      *   Updated ForecastData.
+      */
+    def update(
+        currentTick: Long,
+        forecastParams: DataTimeType.CurrentAndForecast,
+    ): ForecastData =
+      copy(
+        irradianceNoiseGenerator =
+          irradianceNoiseGenerator.update(currentTick, forecastParams),
+        temperatureNoiseGenerator =
+          temperatureNoiseGenerator.update(currentTick, forecastParams),
+        windVelocityNoiseGenerator =
+          windVelocityNoiseGenerator.update(currentTick, forecastParams),
+      )
+
+    /** Adds noise to all values in WeatherData.
+      *
+      * @param data
+      *   The weather data series to which noise is to be added.
+      * @param forecastParams
+      *   The forecast parameters specifying resolution and forecast horizon.
+      * @return
+      *   Weather data series with added noise.
+      */
+    def applyToSeries(
+        data: immutable.SortedMap[Long, WeatherData],
+        forecastParams: DataTimeType.CurrentAndForecast,
+    ): immutable.SortedMap[Long, WeatherData] = {
+
+      val applyToIrradiance = (data: WeatherData, noise: Double) => {
+        if irradianceNoiseVariance > 0d then
+          val noiseInUnit = WattsPerSquareMeter(
+            noise * irradianceNoiseVariance
+          )
+          val adaptVal = (irr: Irradiance) => {
+            zeroWPerSM.max(irr + noiseInUnit)
+          }
+          data.copy(
+            dirIrr = adaptVal(data.dirIrr),
+            diffIrr = adaptVal(data.diffIrr),
+          )
+        else data
+      }
+
+      val applyToTemperature = (data: WeatherData, noise: Double) => {
+        if temperatureNoiseVariance > 0d then
+          val noiseInUnit = Kelvin(noise * temperatureNoiseVariance)
+          val adaptVal = (temp: Temperature) => {
+            zeroKelvin.max(temp + noiseInUnit)
+          }
+          data.copy(
+            temp = adaptVal(data.temp),
+            groundTempLvl3 = data.groundTempLvl3.map(adaptVal),
+            groundTempLvl4 = data.groundTempLvl4.map(adaptVal),
+          )
+        else data
+      }
+
+      val applyToWindVelocity = (data: WeatherData, noise: Double) => {
+        if windVelocityNoiseVariance > 0d then
+          val noiseInUnit = MetersPerSecond(noise * windVelocityNoiseVariance)
+          val adaptVal = (vel: Velocity) => {
+            zeroMPerS.max(vel + noiseInUnit)
+          }
+          data.copy(
+            windVel = adaptVal(data.windVel)
+          )
+        else data
+      }
+
+      data
+        .applyNoise(
+          irradianceNoiseGenerator,
+          applyToIrradiance,
+          forecastParams,
+        )
+        .applyNoise(
+          temperatureNoiseGenerator,
+          applyToTemperature,
+          forecastParams,
+        )
+        .applyNoise(
+          windVelocityNoiseGenerator,
+          applyToWindVelocity,
+          forecastParams,
+        )
+    }
+
+  }
+
+  private object ForecastData {
+
+    def apply(config: InputConfig.WeatherForecast): ForecastData =
+      ForecastData(
+        irradianceNoiseGenerator = NoiseGenerator(config.irradianceNoise),
+        irradianceNoiseVariance = config.irradianceNoise.variance,
+        temperatureNoiseGenerator = NoiseGenerator(config.temperatureNoise),
+        temperatureNoiseVariance = config.temperatureNoise.variance,
+        windVelocityNoiseGenerator = NoiseGenerator(config.windVelocityNoise),
+        windVelocityNoiseVariance = config.windVelocityNoise.variance,
+      )
+
+  }
 
   /** Weather service state data used for initialization of the weather service
     *
@@ -85,6 +236,7 @@ object WeatherService extends SimonaService {
     */
   final case class InitWeatherServiceStateData(
       sourceDefinition: InputConfig.WeatherDatasource,
+      forecastConfig: InputConfig.WeatherForecast,
       startDateTime: ZonedDateTime,
       simulationEnd: ZonedDateTime,
   ) extends InitializeServiceStateData
@@ -95,6 +247,7 @@ object WeatherService extends SimonaService {
     initServiceData match {
       case InitWeatherServiceStateData(
             sourceDefinition,
+            forecastConfig,
             startDateTime,
             simulationEnd,
           ) =>
@@ -116,6 +269,7 @@ object WeatherService extends SimonaService {
           weatherSource,
           activationTicks = activationTicks,
           startDateTime = startDateTime,
+          forecastData = ForecastData(forecastConfig),
         )
 
         Success(
@@ -283,7 +437,10 @@ object WeatherService extends SimonaService {
         val weatherData = dataTimeType match {
           case DataTimeType.Current =>
             updatedStateData.weatherSource.getWeather(tick, coordinateWeights)
-          case DataTimeType.CurrentAndForecast(length, resolution) =>
+          case forecastParams @ DataTimeType.CurrentAndForecast(
+                length,
+                resolution,
+              ) =>
             val endTick = tick + length.toSeconds.toLong
             // weather time series is forwarded as forecast without adding noise
             val series = updatedStateData.weatherSource
@@ -295,7 +452,16 @@ object WeatherService extends SimonaService {
               .map { case (time, data) =>
                 time.toTick -> data
               }
-            SecondarySeriesData(reduceTimeSeriesResolution(series, resolution))
+
+            val adaptedSeries = reduceTimeSeriesResolution(series, resolution)
+            val updatedForecastData = updatedStateData.forecastData.update(
+              currentTick = tick,
+              forecastParams = forecastParams,
+            )
+
+            SecondarySeriesData(
+              updatedForecastData.applyToSeries(adaptedSeries, forecastParams)
+            )
         }
 
         actors.foreach {

@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service
 
+import edu.ie3.simona.config.InputConfig.NoiseConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.service.DataTimeType.CurrentAndForecast
 
@@ -19,17 +20,14 @@ import scala.util.Random
   *   Map of tick to noise values generated with variance of 1. Gets updated
   *   throughout simulation, dropping past values and adding future values that
   *   were not set yet.
-  * @param forecastParams
-  *   The forecast parameters specifying resolution and forecast horizon.
   * @param autoregression
   *   Autoregression coefficient between 0 and 1, controlling how similar
   *   neighboring values are.
   * @param rng
   *   The random number generator.
   */
-case class NoiseGenerator(
+final case class NoiseGenerator(
     noiseMap: mutable.SortedMap[Long, Double],
-    forecastParams: CurrentAndForecast,
     autoregression: Double,
     rng: Random,
 ) {
@@ -38,11 +36,14 @@ case class NoiseGenerator(
     * Obsolete values are discarded and missing noise values are added.
     * @param currentTick
     *   The current tick.
+    * @param forecastParams
+    *   The forecast parameters specifying resolution and forecast horizon.
     * @return
     *   An updated noise generator.
     */
   def update(
-      currentTick: Long
+      currentTick: Long,
+      forecastParams: CurrentAndForecast,
   ): NoiseGenerator = {
     val ticks = forecastParams.ticks(currentTick)
 
@@ -82,6 +83,8 @@ case class NoiseGenerator(
     *   Applies noise to selected fields of given data container. Since noise
     *   has been generated with variance of 1, the actual variance needs to be
     *   applied here.
+    * @param forecastParams
+    *   The forecast parameters specifying resolution and forecast horizon.
     * @tparam D
     *   The type of data.
     * @return
@@ -90,6 +93,7 @@ case class NoiseGenerator(
   def applyToSeries[D](
       data: immutable.SortedMap[Long, D],
       applyToData: (D, Double) => D,
+      forecastParams: CurrentAndForecast,
   ): immutable.SortedMap[Long, D] = {
     val firstTick = data.firstKey
     val lengthInTicks = forecastParams.forecastLength.toSeconds.toLong
@@ -112,16 +116,28 @@ case class NoiseGenerator(
 
 object NoiseGenerator {
 
+  def apply(config: NoiseConfig): NoiseGenerator =
+    NoiseGenerator(config.autoregression, config.seed)
+
   def apply(
-      forecastParams: CurrentAndForecast,
       autoregression: Double,
       seed: Long,
   ): NoiseGenerator =
     NoiseGenerator(
       noiseMap = mutable.SortedMap.empty,
-      forecastParams = forecastParams,
       autoregression = autoregression,
       rng = Random(seed),
     )
+
+  extension [D](series: immutable.SortedMap[Long, D]) {
+
+    def applyNoise(
+        generator: NoiseGenerator,
+        applyToData: (D, Double) => D,
+        forecastParams: CurrentAndForecast,
+    ): immutable.SortedMap[Long, D] =
+      generator.applyToSeries(series, applyToData, forecastParams)
+
+  }
 
 }

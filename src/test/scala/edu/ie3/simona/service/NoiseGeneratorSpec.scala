@@ -27,10 +27,9 @@ class NoiseGeneratorSpec extends UnitSpec {
 
       val forecastParams = CurrentAndForecast(Hours(6), Hours(1))
       val gen = NoiseGenerator(
-        forecastParams = forecastParams,
         autoregression = 0.8d,
         seed = 1234L,
-      ).update(currentTick)
+      ).update(currentTick, forecastParams)
 
       gen.noiseMap shouldBe mutable.SortedMap(
         7200L -> 0.14115907833078006,
@@ -60,7 +59,7 @@ class NoiseGeneratorSpec extends UnitSpec {
       val applyToData = (data: WeatherData, noise: Double) =>
         data.copy(dirIrr = data.dirIrr + WattsPerSquareMeter(noise * 10d))
 
-      val result = gen.applyToSeries(series, applyToData)
+      val result = gen.applyToSeries(series, applyToData, forecastParams)
 
       result shouldBe immutable.SortedMap(
         7200L -> sampleData.copy(dirIrr = WattsPerSquareMeter(100.0)),
@@ -85,7 +84,7 @@ class NoiseGeneratorSpec extends UnitSpec {
       )
 
       // also test updating
-      val updatedGen = gen.update(currentTick + 7200L)
+      val updatedGen = gen.update(currentTick + 7200L, forecastParams)
 
       // most values should have stayed the same
       updatedGen.noiseMap shouldBe mutable.SortedMap(
