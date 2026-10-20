@@ -279,7 +279,6 @@ object InputConfig {
     * @param seed
     *   Seed for the random number generator (default: random seed).
     */
-  // TODO validation
   final case class NoiseConfig(
       variance: Double,
       autoregression: Double = 0.8,
