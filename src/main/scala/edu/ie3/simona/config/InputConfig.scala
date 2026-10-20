@@ -247,10 +247,10 @@ object InputConfig {
     *
     * @param noise
     *   Config for noise added to price forecasts. Variance is interpreted in
-    *   euro per MWh (default: 50 EUR/MWh).
+    *   euro per MWh (default: 20 EUR/MWh).
     */
   final case class PriceForecast(
-      noise: NoiseConfig = NoiseConfig(variance = 50d)
+      noise: NoiseConfig = NoiseConfig(variance = 20d)
   ) derives ConfigConvert
 
   /** Class with parameters for price adjustments given a wholesale price.

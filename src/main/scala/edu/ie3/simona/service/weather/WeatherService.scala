@@ -233,6 +233,8 @@ object WeatherService extends SimonaService {
     *
     * @param sourceDefinition
     *   the definition of the source to use
+    * @param forecastConfig
+    *   The forecast configuration to use.
     */
   final case class InitWeatherServiceStateData(
       sourceDefinition: InputConfig.WeatherDatasource,

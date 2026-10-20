@@ -241,6 +241,7 @@ class SimonaSetup(
           scheduler,
           InitPriceServiceStateData(
             dataSource,
+            simonaConfig.input.prices.forecast,
             simonaConfig.time.simStartTime,
           ),
           ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
