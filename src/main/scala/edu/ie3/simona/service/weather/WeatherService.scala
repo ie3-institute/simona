@@ -429,6 +429,8 @@ object WeatherService extends SimonaService {
     val updatedStateData =
       serviceStateData.copy(activationTicks = remainingTicks)
 
+    var forecastData = updatedStateData.forecastData
+
     // get the weather and send it to the subscribed agents
     // no sanity check needed here as we can assume that we always have weather available
     // when we announce it. Otherwise, the registration would have failed already!
@@ -456,13 +458,13 @@ object WeatherService extends SimonaService {
               }
 
             val adaptedSeries = reduceTimeSeriesResolution(series, resolution)
-            val updatedForecastData = updatedStateData.forecastData.update(
+            forecastData = forecastData.update(
               currentTick = tick,
               forecastParams = forecastParams,
             )
 
             SecondarySeriesData(
-              updatedForecastData.applyToSeries(adaptedSeries, forecastParams)
+              forecastData.applyToSeries(adaptedSeries, forecastParams)
             )
         }
 
@@ -478,7 +480,7 @@ object WeatherService extends SimonaService {
     }
 
     (
-      updatedStateData,
+      updatedStateData.copy(forecastData = forecastData),
       maybeNextTick,
     )
   }

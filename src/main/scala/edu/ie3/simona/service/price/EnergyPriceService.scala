@@ -367,6 +367,8 @@ object EnergyPriceService extends SimonaService {
     val updatedStateData =
       serviceStateData.copy(activationTicks = remainingTicks)
 
+    var forecastData = updatedStateData.forecastData
+
     // get the price data and send it to the subscribed agents
     updatedStateData.subscribers.foreach { case (dataType, actors) =>
       val priceData = dataType match {
@@ -405,13 +407,13 @@ object EnergyPriceService extends SimonaService {
               case (tick, value) =>
                 tick -> createProsumerPrice(value)
             }
-          val updatedForecastData = updatedStateData.forecastData.update(
+          forecastData = forecastData.update(
             currentTick = tick,
             forecastParams = forecastParams,
           )
 
           SecondarySeriesData(
-            updatedForecastData.applyToSeries(priceSeries, forecastParams)
+            forecastData.applyToSeries(priceSeries, forecastParams)
           )
       }
 
@@ -426,7 +428,7 @@ object EnergyPriceService extends SimonaService {
     }
 
     (
-      updatedStateData,
+      updatedStateData.copy(forecastData = forecastData),
       maybeNextTick,
     )
   }
