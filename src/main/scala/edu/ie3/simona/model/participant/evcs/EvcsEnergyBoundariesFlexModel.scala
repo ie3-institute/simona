@@ -26,7 +26,7 @@ import scala.collection.immutable.SortedMap
 class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
     extends AbstractEnergyBoundariesFlexModel[EvcsState] {
 
-  override val hasEnergyFlexibility: Boolean = true
+  override val hasEnergyState: Boolean = true
 
   override def determineFlexOptions(
       state: EvcsState,

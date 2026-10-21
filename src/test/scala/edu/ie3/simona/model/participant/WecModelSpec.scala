@@ -24,7 +24,7 @@ import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW}
 import squants.energy.{Power, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
@@ -229,7 +229,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
           expectedResults
             .foreach { case (tick, expectedPower) =>
               assetBoundaries.powerLimits(tick).getUpper should approximate(
-                expectedPower
+                zeroKW
               )
               assetBoundaries.powerLimits(tick).getLower should approximate(
                 expectedPower

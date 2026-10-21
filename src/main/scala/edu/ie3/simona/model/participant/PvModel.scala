@@ -92,6 +92,7 @@ class PvModel private (
       FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyBoundariesFlexModel(
         this,
         _.toStateSeries,
+        allowCurtailment = true,
       ),
     )
 

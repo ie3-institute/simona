@@ -81,6 +81,7 @@ class WecModel private (
       FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyBoundariesFlexModel(
         this,
         _.toStateSeries,
+        allowCurtailment = true,
       ),
     )
 

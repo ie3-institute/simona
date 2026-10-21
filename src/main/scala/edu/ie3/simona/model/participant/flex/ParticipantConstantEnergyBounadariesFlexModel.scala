@@ -31,7 +31,7 @@ class ParticipantConstantEnergyBounadariesFlexModel(
     model: ParticipantModel[?, FixedState]
 ) extends AbstractEnergyBoundariesFlexModel[FixedState] {
 
-  override val hasEnergyFlexibility: Boolean = false
+  override val hasEnergyState: Boolean = false
 
   override def determineFlexOptions(
       state: FixedState,
