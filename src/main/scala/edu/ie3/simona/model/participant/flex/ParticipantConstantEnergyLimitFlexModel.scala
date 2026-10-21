@@ -49,7 +49,7 @@ class ParticipantConstantEnergyLimitFlexModel(
     }
 
     EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries(op.activePower, state.tick, forecastDataType)
+      AssetEnergyBoundaries(op.activePower, state.tick)
     )
   }
 

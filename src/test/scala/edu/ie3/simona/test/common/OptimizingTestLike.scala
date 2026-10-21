@@ -10,6 +10,7 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.TimeParams
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
+  VariableAssetStepSymbols,
 }
 import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
@@ -41,7 +42,11 @@ trait OptimizingTestLike extends Matchers {
     /** The state of energy in kWh, if applicable (NaN else).
       */
     def energyVal: Double =
-      symbols.getStepEndEnergyResult.toKilowattHours
+      symbols match {
+        case varSymbols: VariableAssetStepSymbols =>
+          varSymbols.getStepEndEnergyResult.toKilowattHours
+        case _ => fail(s"Symbols $symbols do not include energy")
+      }
 
     /** Power value in kW.
       */
@@ -136,13 +141,24 @@ trait OptimizingTestLike extends Matchers {
       container.results.map { assetSymbolsSeq =>
         val firstRow = assetSymbolsSeq.headOption
           .map { case (_, assetSymbols) =>
-            s"0,0,${assetSymbols.getStepStartEnergyResult.toRoundedKiloWattHours},0,0\n"
+            val state = assetSymbols match {
+              case varSymbols: VariableAssetStepSymbols =>
+                varSymbols.getStepStartEnergyResult.toRoundedKiloWattHours
+              case _ => 0
+            }
+            s"0,0,$state,0,0\n"
           }
           .getOrElse("")
 
         val dataRows = assetSymbolsSeq.zipWithIndex
           .map { case ((_, assetSymbols), step) =>
-            s"${step + 1},${assetSymbols.getOperatingPowerResult.toRoundedKiloWatts},${assetSymbols.getStepEndEnergyResult.toRoundedKiloWattHours},${assetSymbols.getActualLoss.toRoundedKiloWattHours},${assetSymbols.getExcessLoss.toRoundedKiloWattHours}\n"
+            val state = assetSymbols match {
+              case varSymbols: VariableAssetStepSymbols =>
+                varSymbols.getStepEndEnergyResult.toRoundedKiloWattHours
+              case _ => 0
+            }
+
+            s"${step + 1},${assetSymbols.getOperatingPowerResult.toRoundedKiloWatts},$state,${assetSymbols.getActualLoss.toRoundedKiloWattHours},${assetSymbols.getExcessLoss.toRoundedKiloWattHours}\n"
           }
           .mkString("")
 
@@ -172,11 +188,16 @@ trait OptimizingTestLike extends Matchers {
         .map { container =>
           s"\n\t\t${container.assetUuid}:" +
             container.results
-              .map { sortedVars =>
-                s"\n\t\t\tTrajectory: ${sortedVars
-                    .map { case (_, vars) =>
-                      vars.getOperatingPowerResult.toRoundedKiloWatts +
-                        s" (-> ${vars.getStepEndEnergyResult.toRoundedKiloWattHours})"
+              .map { sortedSymbols =>
+                s"\n\t\t\tTrajectory: ${sortedSymbols
+                    .map { case (_, symbols) =>
+                      val state = symbols match {
+                        case varSymbols: VariableAssetStepSymbols =>
+                          s" (-> ${varSymbols.getStepEndEnergyResult.toRoundedKiloWattHours})"
+                        case _ => ""
+                      }
+
+                      symbols.getOperatingPowerResult.toRoundedKiloWatts + state
                     }
                     .mkString(", ")}"
               }

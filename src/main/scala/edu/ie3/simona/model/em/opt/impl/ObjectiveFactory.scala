@@ -36,18 +36,18 @@ import scala.collection.immutable.SortedMap
 
 /** Trait to be implemented by factories of power objectives.
   *
-  * @tparam AV
+  * @tparam AS
   *   The type of [[AssetStepSymbols]] that the objective factory produces and
   *   uses.
   */
-trait ObjectiveFactory[AV <: AssetStepSymbols] {
+trait ObjectiveFactory[AS <: AssetStepSymbols] {
 
   /** @return
     *   All secondary services required by the optimization model.
     */
   def getRequiredSecondaryServices: Iterable[ServiceType]
 
-  /** Creates asset symbols of type [[AV]] from given [[AssetStepParameters]]
+  /** Creates asset symbols of type [[AS]] from given [[AssetStepParameters]]
     * according to the requirements of the objective factory.
     *
     * @param assetParams
@@ -59,7 +59,7 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
     */
   def createAssetSymbols(assetParams: AssetStepParameters)(using
       model: MPModel
-  ): AV
+  ): AS
 
   /** Builds an objective to minimize given the asset symbols and an objective
     * factory.
@@ -79,14 +79,14 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
     */
   def build(
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      assetSymbols: Iterable[AssetSymbolContainer[AV]],
+      assetSymbols: Iterable[AssetSymbolContainer[AS]],
       target: Power,
       receivedData: Iterable[SecondaryData],
   )(using model: MPModel): Expression
 
   // todo scaladoc
   def getComparableObjectiveValue(
-      assetSymbols: Iterable[AssetSymbolContainer[AV]],
+      assetSymbols: Iterable[AssetSymbolContainer[AS]],
       target: Power,
       receivedData: Iterable[SecondaryData],
   ): Double
@@ -150,8 +150,8 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
     *   The [[AssetStepSymbols]] ordered by tick.
     */
   protected def sortSymbolsByTick(
-      assetSymbols: Iterable[AssetSymbolContainer[AV]]
-  ): SortedMap[Long, Iterable[AV]] = {
+      assetSymbols: Iterable[AssetSymbolContainer[AS]]
+  ): SortedMap[Long, Iterable[AS]] = {
     // asset symbols should all have the same ticks,
     // since they should have all been created with the same ticks
     val ticks = assetSymbols.headOption
@@ -214,12 +214,12 @@ trait ObjectiveFactory[AV <: AssetStepSymbols] {
 
 object ObjectiveFactory {
 
-  trait PeakShavingObjective[AV <: AssetStepSymbols]
-      extends ObjectiveFactory[AV] {
+  trait PeakShavingObjective[AS <: AssetStepSymbols]
+      extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
         assetSymbols: Iterable[
-          AssetSymbolContainer[AV]
+          AssetSymbolContainer[AS]
         ],
         target: Power,
         receivedData: Iterable[SecondaryData],
@@ -234,12 +234,12 @@ object ObjectiveFactory {
 
   }
 
-  trait MinAbsPowerObjective[AV <: AssetStepSymbols]
-      extends ObjectiveFactory[AV] {
+  trait MinAbsPowerObjective[AS <: AssetStepSymbols]
+      extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
         assetSymbols: Iterable[
-          AssetSymbolContainer[AV]
+          AssetSymbolContainer[AS]
         ],
         target: Power,
         receivedData: Iterable[SecondaryData],
@@ -253,12 +253,12 @@ object ObjectiveFactory {
 
   }
 
-  trait QuadraticPowerObjective[AV <: AssetStepSymbols]
-      extends ObjectiveFactory[AV] {
+  trait QuadraticPowerObjective[AS <: AssetStepSymbols]
+      extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
         assetSymbols: Iterable[
-          AssetSymbolContainer[AV]
+          AssetSymbolContainer[AS]
         ],
         target: Power,
         receivedData: Iterable[SecondaryData],
@@ -272,11 +272,11 @@ object ObjectiveFactory {
 
   }
 
-  trait PriceObjective[AV <: AssetStepSymbols] extends ObjectiveFactory[AV] {
+  trait PriceObjective[AS <: AssetStepSymbols] extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
         assetSymbols: Iterable[
-          AssetSymbolContainer[AV]
+          AssetSymbolContainer[AS]
         ],
         target: Power,
         receivedData: Iterable[SecondaryData],
@@ -311,11 +311,6 @@ object ObjectiveFactory {
 
     val parameters: AssetStepParameters
 
-    /** Returns the symbol for the asset state of energy at the end of the time
-      * step in kWh.
-      */
-    def getStepEndStateSymbol: MPSymbol
-
     /** Returns the resulting operating power.
       *
       * This method should only be called after optimization has successfully
@@ -323,16 +318,6 @@ object ObjectiveFactory {
       * might be thrown.
       */
     def getOperatingPowerResult: Power
-
-    def getStepStartEnergyResult: Energy
-
-    /** Returns the resulting state of energy.
-      *
-      * This method should only be called after optimization has successfully
-      * completed. Otherwise, results might not be available and an exception
-      * might be thrown.
-      */
-    def getStepEndEnergyResult: Energy
 
     /** todo */
     def getActualLoss: Energy = zeroKWh
@@ -346,6 +331,21 @@ object ObjectiveFactory {
   trait VariableAssetStepSymbols extends AssetStepSymbols {
 
     override val parameters: VariablePowerStepParameters
+
+    /** Returns the symbol for the asset state of energy at the end of the time
+      * step in kWh.
+      */
+    def getStepEndStateSymbol: MPSymbol
+
+    def getStepStartEnergyResult: Energy
+
+    /** Returns the resulting state of energy.
+      *
+      * This method should only be called after optimization has successfully
+      * completed. Otherwise, results might not be available and an exception
+      * might be thrown.
+      */
+    def getStepEndEnergyResult: Energy
 
     override def getActualLoss: Energy = {
       val sampleTime = parameters.sampleTime
@@ -390,9 +390,9 @@ object ObjectiveFactory {
     *   how [[EnergyBoundariesFlexOptions]] can contain several asset
     *   boundaries.
     */
-  final case class AssetSymbolContainer[AV <: AssetStepSymbols](
+  final case class AssetSymbolContainer[AS <: AssetStepSymbols](
       assetUuid: UUID,
-      results: Seq[SortedMap[Long, AV]],
+      results: Seq[SortedMap[Long, AS]],
   ) {
 
     def getStateCalcErrors: Seq[Energy] =

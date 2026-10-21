@@ -220,18 +220,10 @@ object SignedEnergyVariableObjectiveFactory {
   ) extends SignedEnergyStepSymbols {
 
     override def getObjectiveVariations: Seq[Expression] =
-      Seq(Const(parameters.energyChange.toKilowattHours))
-
-    override def getStepEndStateSymbol: MPSymbol = Const(
-      parameters.stepEndEnergy.toKilowattHours
-    )
+      Seq(Const((parameters.power * parameters.sampleTime).toKilowattHours))
 
     override def getOperatingPowerResult: Power =
-      parameters.energyChange / parameters.sampleTime
-
-    override def getStepStartEnergyResult: Energy = parameters.stepStartEnergy
-
-    override def getStepEndEnergyResult: Energy = parameters.stepEndEnergy
+      parameters.power
 
   }
 

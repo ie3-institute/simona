@@ -11,6 +11,7 @@ import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
+  VariableAssetStepSymbols,
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
@@ -66,11 +67,16 @@ object FlexibilityOptimization {
         .map { container =>
           s"\n\t\t${container.assetUuid}:" +
             container.results
-              .map { sortedVars =>
-                s"\n\t\t\tTrajectory: ${sortedVars
-                    .map { case (_, vars) =>
-                      vars.getOperatingPowerResult.in(Kilowatts).rounded(6).toString +
-                        s" (-> ${vars.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
+              .map { sortedSymbols =>
+                s"\n\t\t\tTrajectory: ${sortedSymbols
+                    .map { case (_, symbols) =>
+                      val state = symbols match {
+                        case vars: VariableAssetStepSymbols =>
+                          s" (-> ${vars.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
+                        case _ => ""
+                      }
+
+                      symbols.getOperatingPowerResult.in(Kilowatts).rounded(6).toString + state
                     }
                     .mkString(", ")}"
               }
@@ -161,7 +167,9 @@ object FlexibilityOptimization {
           ),
         )
         val adaptedSetPoint =
-          setPoint.max(flex.powerLimits.getLower).min(flex.powerLimits.getUpper)
+          setPoint
+            .max(flex.headPowerLimits.getLower)
+            .min(flex.headPowerLimits.getUpper)
 
         assetUuid -> adaptedSetPoint
     }
@@ -191,21 +199,21 @@ object FlexibilityOptimization {
     *
     * @param model
     *   The optimization model to add variables and constraints to.
-    * @tparam AV
+    * @tparam AS
     *   The type of asset symbols that the objective factory returns.
     * @return
     *   The created asset symbols containers and the objective expression.
     */
-  private def buildModel[AV <: AssetStepSymbols](
+  private def buildModel[AS <: AssetStepSymbols](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       sampleTime: Time,
       ticks: Seq[Long],
       target: Power,
       receivedData: Iterable[SecondaryData],
-      objectiveFactory: ObjectiveFactory[AV],
+      objectiveFactory: ObjectiveFactory[AS],
   )(using
       model: MPModel
-  ): (Iterable[AssetSymbolContainer[AV]], Expression) = {
+  ): (Iterable[AssetSymbolContainer[AS]], Expression) = {
 
     val assetSymbols = addAssetConstraints(
       flexOptions,
@@ -244,12 +252,12 @@ object FlexibilityOptimization {
     *   Containers that holds all results, including state and operation
     *   variables.
     */
-  private def addAssetConstraints[AV <: AssetStepSymbols](
+  private def addAssetConstraints[AS <: AssetStepSymbols](
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
       sampleTime: Time,
       ticks: Seq[Long],
-      objectiveFactory: ObjectiveFactory[AV],
-  )(using model: MPModel): Iterable[AssetSymbolContainer[AV]] = {
+      objectiveFactory: ObjectiveFactory[AS],
+  )(using model: MPModel): Iterable[AssetSymbolContainer[AS]] = {
     flexOptions.map { case (assetUUID, fo) =>
       val allAssetSymbols = fo.energyBoundaries
         .map { assetBoundaries =>
@@ -275,8 +283,8 @@ object FlexibilityOptimization {
             }
             .getOrElse(ticks)
             .sliding(2)
-            .foldLeft[(SortedMap[Long, AV], MPSymbol)](
-              (SortedMap.empty, startState)
+            .foldLeft[(SortedMap[Long, AS], Option[MPSymbol])](
+              (SortedMap.empty, Some(startState))
             ) {
               case (
                     (previousResults, previousState),
@@ -292,9 +300,15 @@ object FlexibilityOptimization {
 
                 val vars = objectiveFactory.createAssetSymbols(assetParams)
 
+                val endSymbol = vars match {
+                  case varSymbols: VariableAssetStepSymbols =>
+                    Some(varSymbols.getStepEndStateSymbol)
+                  case _ => None
+                }
+
                 (
                   previousResults.updated(stepStartTick, vars),
-                  vars.getStepEndStateSymbol,
+                  endSymbol,
                 )
 
               case _ =>
@@ -319,8 +333,8 @@ object FlexibilityOptimization {
     *   The asset energy boundaries to use.
     * @param stepEndTick
     *   The step ending tick.
-    * @param previousState
-    *   The previous state symbol.
+    * @param optPreviousState
+    *   Optionally, the previous state symbol.
     * @return
     *   The results for this asset and time step.
     */
@@ -329,41 +343,19 @@ object FlexibilityOptimization {
       stepStartTick: Long,
       stepEndTick: Long,
       sampleTime: Time,
-      previousState: MPSymbol,
+      optPreviousState: Option[MPSymbol],
   ): AssetStepParameters = {
 
-    // we are interested in the energy limits at the end of the step interval,
-    // since they tell us in which energy the power of this step interval may
-    // result in
-    val (limitsTickEnd, energyLimitsEnd) = energyBoundaries.energyLimits
-      .maxBefore(stepEndTick + 1)
-      .getOrElse(throw new CriticalFailureException("No energy limits found!"))
+    val (_, powerLimits) = energyBoundaries.powerLimits
+      .maxBefore(stepStartTick + 1)
+      .getOrElse(throw new CriticalFailureException("No power limits found!"))
 
-    // the energy limits at the beginning of the interval can in some
-    // circumstances provide information on constraints
-    val energyLimitsStart =
-      energyBoundaries.energyLimits.maxBefore(limitsTickEnd).map {
-        case (_, limits) => limits
-      }
-
-    if energyLimitsEnd.getLower == energyLimitsEnd.getUpper &&
-      energyLimitsStart.forall(limits => limits.getLower == limits.getUpper)
+    if powerLimits.getLower == powerLimits.getUpper
     then {
       // there is no flexibility at all, thus we don't need any state to keep track of
 
-      val stepStartEnergy = energyLimitsStart
-        // we try to use the last energy value, if available
-        .map(_.getUpper)
-        // ... or this is the initial step, thus we start with initial energy
-        .getOrElse(energyBoundaries.currentEnergy)
-      val stepEndEnergy = energyLimitsEnd.getUpper
-
-      val energyChange = stepEndEnergy - stepStartEnergy
-
       FixedPowerStepParameters(
-        energyChange = energyChange,
-        stepStartEnergy = stepStartEnergy,
-        stepEndEnergy = stepEndEnergy,
+        power = powerLimits.getUpper,
         stepStartTick = stepStartTick,
         stepEndTick = stepEndTick,
         sampleTime = sampleTime,
@@ -371,10 +363,20 @@ object FlexibilityOptimization {
     } else {
       // we do have some flexibility at this point in time, model it
 
+      val (_, energyLimitsEnd) = energyBoundaries.energyLimits
+        .maxBefore(stepEndTick + 1)
+        .getOrElse(
+          throw new CriticalFailureException("No energy limits found!")
+        )
+
+      val previousState = optPreviousState.getOrElse(
+        throw new CriticalFailureException("No previous state provided!")
+      )
+
       VariablePowerStepParameters(
         previousStateEnergy = previousState,
-        pMin = energyBoundaries.powerLimits.getLower,
-        pMax = energyBoundaries.powerLimits.getUpper,
+        pMin = powerLimits.getLower,
+        pMax = powerLimits.getUpper,
         eMin = energyLimitsEnd.getLower,
         eMax = energyLimitsEnd.getUpper,
         etaCharge = energyBoundaries.etaCharge,
@@ -407,20 +409,13 @@ object FlexibilityOptimization {
   }
 
   /** Holds parameters for an asset that is not providing flexibility at the
-    * time step, but is requiring a fixed amount of energy to be added or
-    * subtracted from the state energy. This necessarily results in fixed amount
-    * of power at this time step.
+    * time step, but is requiring a fixed power.
     *
-    * @param energyChange
-    *   The amount of energy change required at this time step.
-    * @param stepStartEnergy
-    * @param stepEndEnergy
-    *   The state of energy at the end of this time step.
+    * @param power
+    *   The amount of fixed power at this time step.
     */
   final case class FixedPowerStepParameters(
-      energyChange: Energy,
-      stepStartEnergy: Energy,
-      stepEndEnergy: Energy,
+      power: Power,
       override val stepStartTick: Long,
       override val stepEndTick: Long,
       override val sampleTime: Time,

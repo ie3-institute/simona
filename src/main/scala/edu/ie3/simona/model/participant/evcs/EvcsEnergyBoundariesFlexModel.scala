@@ -128,7 +128,8 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
           ev.eStorage,
         )
       ) ++ disconnectingLimits,
-      powerLimits = ClosedInterval(minPower, maxPower),
+      powerLimits =
+        SortedMap(currentTick -> ClosedInterval(minPower, maxPower)),
       tickDisconnect = adaptedDisconnectTick,
     )
   }

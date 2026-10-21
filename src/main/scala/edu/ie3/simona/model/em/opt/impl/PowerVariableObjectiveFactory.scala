@@ -6,10 +6,7 @@
 
 package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
-  FixedPowerStepParameters,
-  MPSymbol,
-}
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.FixedPowerStepParameters
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
@@ -21,7 +18,7 @@ import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroEurPerKWh
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
-import squants.{Energy, Power}
+import squants.Power
 
 import java.util.UUID
 import scala.collection.immutable.SortedMap
@@ -251,18 +248,11 @@ object PowerVariableObjectiveFactory {
 
     override lazy val objectiveAddition: Option[Expression] = None
 
-    private lazy val power = parameters.energyChange / parameters.sampleTime
+    override def getOperationPowerSymbol: Expression = Const(
+      parameters.power.toKilowatts
+    )
 
-    override def getOperationPowerSymbol: Expression = Const(power.toKilowatts)
-
-    override def getStepEndStateSymbol: MPSymbol =
-      Const(parameters.stepEndEnergy.toKilowattHours)
-
-    override def getOperatingPowerResult: Power = power
-
-    override def getStepStartEnergyResult: Energy = parameters.stepStartEnergy
-
-    override def getStepEndEnergyResult: Energy = parameters.stepEndEnergy
+    override def getOperatingPowerResult: Power = parameters.power
 
   }
 

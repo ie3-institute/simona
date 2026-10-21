@@ -354,7 +354,8 @@ trait PowerObjectiveTestScenario extends OptimizingTestLike {
             KilowattHours(10d),
           ),
         ),
-        powerLimits = ClosedInterval(Kilowatts(-11d), Kilowatts(11)),
+        powerLimits =
+          SortedMap(0L -> ClosedInterval(Kilowatts(-11d), Kilowatts(11))),
         tickDisconnect = Some(3600L),
       )
     )

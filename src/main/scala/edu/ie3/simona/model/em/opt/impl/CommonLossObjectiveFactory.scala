@@ -281,8 +281,15 @@ object CommonLossObjectiveFactory {
         .flatMap { case (_, fo) =>
           fo.energyBoundaries
         }
-        .map { boundaries =>
-          (boundaries.powerLimits.getLower, boundaries.powerLimits.getUpper)
+        .flatMap { boundaries =>
+          val minPower = boundaries.powerLimits.map { case (_, limits) =>
+            limits.getLower
+          }.minOption
+          val maxPower = boundaries.powerLimits.map { case (_, limits) =>
+            limits.getUpper
+          }.maxOption
+
+          minPower.zip(maxPower)
         }
         .reduceOption { case ((lower1, upper1), (lower2, upper2)) =>
           (lower1 + lower2, upper1 + upper2)
