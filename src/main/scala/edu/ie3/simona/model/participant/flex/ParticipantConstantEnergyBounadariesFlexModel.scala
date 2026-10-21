@@ -27,7 +27,7 @@ import edu.ie3.simona.service.DataTimeType.CurrentAndForecast
   * @param model
   *   The participant model to create energy boundary flex options for.
   */
-class ParticipantConstantEnergyLimitFlexModel(
+class ParticipantConstantEnergyBounadariesFlexModel(
     model: ParticipantModel[?, FixedState]
 ) extends AbstractEnergyBoundariesFlexModel[FixedState] {
 

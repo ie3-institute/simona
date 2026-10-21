@@ -23,7 +23,7 @@ import edu.ie3.simona.model.participant.SolarIrradiationCalculation.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
   ParticipantFlexModel,
-  ParticipantInflexibleEnergyLimitFlexModel,
+  ParticipantInflexibleEnergyBoundariesFlexModel,
   ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexType
@@ -89,7 +89,7 @@ class PvModel private (
   ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
-      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
+      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyBoundariesFlexModel(
         this,
         _.toStateSeries,
       ),

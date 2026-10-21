@@ -31,7 +31,7 @@ import scala.collection.immutable.SortedMap
   * @tparam S
   *   The type of state of the participant model.
   */
-class ParticipantInflexibleEnergyLimitFlexModel[S <: ModelState](
+class ParticipantInflexibleEnergyBoundariesFlexModel[S <: ModelState](
     model: ParticipantModel[?, S],
     determineStates: S => SortedMap[Long, S],
 ) extends AbstractEnergyBoundariesFlexModel[S] {
