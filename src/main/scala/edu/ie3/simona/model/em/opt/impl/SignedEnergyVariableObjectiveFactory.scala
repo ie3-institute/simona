@@ -31,8 +31,8 @@ import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
 import org.slf4j.{Logger, LoggerFactory}
+import squants.Power
 import squants.energy.KilowattHours
-import squants.{Energy, Power}
 
 import java.util.UUID
 import scala.collection.SortedSet
@@ -56,6 +56,7 @@ abstract class SignedEnergyVariableObjectiveFactory
       case fixedPower: FixedPowerStepParameters =>
         FixedSignedEnergyStepSymbols(
           fixedPower,
+          previousState,
           createEndStateForFixedPower(fixedPower, previousState),
         )
       case varPower: VariablePowerStepParameters =>
@@ -219,12 +220,16 @@ object SignedEnergyVariableObjectiveFactory {
     *
     * @param parameters
     *   Parameters for the asset at the specific time step.
+    * @param stepStartState
+    *   Symbol describing the amount of energy in kWh at the start of the time
+    *   step interval.
     * @param stepEndState
-    *   The state variable, describing the amount of energy in kWh at the end of
-    *   the time step interval.
+    *   Symbol describing the amount of energy in kWh at the end of the time
+    *   step interval.
     */
   private final case class FixedSignedEnergyStepSymbols(
       override val parameters: FixedPowerStepParameters,
+      override val stepStartState: MPSymbol,
       override val stepEndState: MPSymbol,
   ) extends FixedAssetStepSymbols
       with SignedEnergyStepSymbols {
@@ -244,14 +249,17 @@ object SignedEnergyVariableObjectiveFactory {
     *   The operation variable, describing the energy change in kWh to get from
     *   the energy state at the start to the state at the end of the time step
     *   interval.
+    * @param stepStartState
+    *   Symbol describing the amount of energy in kWh at the start of the time
+    *   step interval.
     * @param stepEndState
-    *   The state variable, describing the amount of energy in kWh at the end of
-    *   the time step interval.
+    *   Symbol describing the amount of energy in kWh at the end of the time
+    *   step interval.
     */
   private final case class VariableSignedEnergyStepSymbols(
       parameters: VariablePowerStepParameters,
       energyChange: MPVar,
-      stepStartState: MPSymbol,
+      override val stepStartState: MPSymbol,
       override val stepEndState: MPSymbol,
   ) extends SignedEnergyStepSymbols
       with VariableAssetStepSymbols {
@@ -281,12 +289,6 @@ object SignedEnergyVariableObjectiveFactory {
       // outside power
       storagePower * factor
     }
-
-    override def getStepStartEnergyResult: Energy =
-      KilowattHours(stepStartState.getValue)
-
-    override def getStepEndEnergyResult: Energy =
-      KilowattHours(stepEndState.getValue)
 
   }
 

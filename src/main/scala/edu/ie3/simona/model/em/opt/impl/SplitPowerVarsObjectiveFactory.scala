@@ -22,8 +22,8 @@ import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowe
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPBinaryVar, MPFloatVar, MPVar}
-import squants.energy.{KilowattHours, Kilowatts}
-import squants.{Energy, Power}
+import squants.Power
+import squants.energy.Kilowatts
 
 /** Implementation for storage optimization that is quite common in literature.
   * Charging and discharging each are modeled with their own variable. Multiple
@@ -45,6 +45,7 @@ abstract class SplitPowerVarsObjectiveFactory
       case fixedPower: FixedPowerStepParameters =>
         FixedSplitPowerAssetStepSymbols(
           fixedPower,
+          previousState,
           createEndStateForFixedPower(fixedPower, previousState),
         )
 
@@ -207,12 +208,16 @@ object SplitPowerVarsObjectiveFactory {
     *
     * @param parameters
     *   Parameters for the asset at the specific time step.
+    * @param stepStartState
+    *   Symbol describing the amount of energy in kWh at the start of the time
+    *   step interval.
     * @param stepEndState
-    *   The state variable, describing the amount of energy in kWh at the end of
-    *   the time step interval.
+    *   Symbol describing the amount of energy in kWh at the end of the time
+    *   step interval.
     */
   private final case class FixedSplitPowerAssetStepSymbols(
       override val parameters: FixedPowerStepParameters,
+      override val stepStartState: MPSymbol,
       override val stepEndState: MPSymbol,
   ) extends SplitPowerAssetStepSymbols
       with FixedPowerVarAssetStepSymbols
@@ -227,14 +232,16 @@ object SplitPowerVarsObjectiveFactory {
     *   The operation variable, describing the power in kW to get from the
     *   energy state at the start to the state at the end of the interval.
     * @param stepStartState
+    *   Symbol describing the amount of energy in kWh at the start of the time
+    *   step interval.
     * @param stepEndState
-    *   The state variable, describing the state of energy in kWh at the end of
-    *   the time step interval.
+    *   Symbol describing the amount of energy in kWh at the end of the time
+    *   step interval.
     */
   private final case class EfficientSplitPowerAssetStepSymbols(
       override val parameters: VariablePowerStepParameters,
       power: MPVar,
-      stepStartState: MPSymbol,
+      override val stepStartState: MPSymbol,
       override val stepEndState: MPSymbol,
   ) extends SplitPowerAssetStepSymbols
       with VariableAssetStepSymbols {
@@ -242,13 +249,6 @@ object SplitPowerVarsObjectiveFactory {
     override def getOperationPowerSymbol: Expression = power
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
-
-    override def getStepStartEnergyResult: Energy = KilowattHours(
-      stepStartState.getValue
-    )
-
-    override def getStepEndEnergyResult: Energy =
-      KilowattHours(stepEndState.getValue)
 
   }
 
@@ -266,15 +266,18 @@ object SplitPowerVarsObjectiveFactory {
     *   The discharging power variable, describing the power in kW to get from
     *   the energy state at the start to the state at the end of the interval
     *   when discharging.
+    * @param stepStartState
+    *   Symbol describing the amount of energy in kWh at the start of the time
+    *   step interval.
     * @param stepEndState
-    *   The state variable, describing the state of energy in kWh at the end of
-    *   the time step interval.
+    *   Symbol describing the amount of energy in kWh at the end of the time
+    *   step interval.
     */
   private final case class InefficientSplitPowerAssetStepSymbols(
       override val parameters: VariablePowerStepParameters,
       powerCharge: MPVar,
       powerDischarge: MPVar,
-      stepStartState: MPSymbol,
+      override val stepStartState: MPSymbol,
       override val stepEndState: MPSymbol,
   ) extends SplitPowerAssetStepSymbols
       with VariableAssetStepSymbols
@@ -286,12 +289,6 @@ object SplitPowerVarsObjectiveFactory {
     override def getOperatingPowerResult: Power = Kilowatts(
       powerCharge.getValue - powerDischarge.getValue
     )
-
-    override def getStepStartEnergyResult: Energy =
-      KilowattHours(stepStartState.getValue)
-
-    override def getStepEndEnergyResult: Energy =
-      KilowattHours(stepEndState.getValue)
 
   }
 

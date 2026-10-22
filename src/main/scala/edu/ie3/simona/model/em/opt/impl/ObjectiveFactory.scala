@@ -339,6 +339,11 @@ object ObjectiveFactory {
     /** The symbol for the asset state of energy at the end of the time step in
       * kWh.
       */
+    val stepStartState: MPSymbol
+
+    /** The symbol for the asset state of energy at the end of the time step in
+      * kWh.
+      */
     val stepEndState: MPSymbol
 
     /** Returns the resulting operating power.
@@ -349,13 +354,23 @@ object ObjectiveFactory {
       */
     def getOperatingPowerResult: Power
 
-    /** Returns the resulting state of energy.
+    /** Returns the resulting state of energy at the start of the step.
       *
       * This method should only be called after optimization has successfully
       * completed. Otherwise, results might not be available and an exception
       * might be thrown.
       */
-    def getStepEndEnergyResult: Energy
+    def getStepStartEnergyResult: Energy =
+      KilowattHours(stepStartState.getValue)
+
+    /** Returns the resulting state of energy at the end of the step.
+      *
+      * This method should only be called after optimization has successfully
+      * completed. Otherwise, results might not be available and an exception
+      * might be thrown.
+      */
+    def getStepEndEnergyResult: Energy =
+      KilowattHours(stepEndState.getValue)
 
     /** todo */
     def getActualLoss: Energy = zeroKWh
@@ -373,16 +388,11 @@ object ObjectiveFactory {
     override def getOperatingPowerResult: Power =
       parameters.power
 
-    override def getStepEndEnergyResult: Energy = KilowattHours(
-      stepEndState.getValue
-    )
   }
 
   trait VariableAssetStepSymbols extends AssetStepSymbols {
 
     override val parameters: VariablePowerStepParameters
-
-    def getStepStartEnergyResult: Energy
 
     override def getActualLoss: Energy = {
       val sampleTime = parameters.sampleTime

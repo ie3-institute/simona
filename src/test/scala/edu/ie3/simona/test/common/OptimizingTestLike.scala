@@ -42,11 +42,7 @@ trait OptimizingTestLike extends Matchers {
     /** The state of energy in kWh, if applicable (NaN else).
       */
     def energyVal: Double =
-      symbols match {
-        case varSymbols: VariableAssetStepSymbols =>
-          varSymbols.getStepEndEnergyResult.toKilowattHours
-        case _ => fail(s"Symbols $symbols do not include energy")
-      }
+      symbols.getStepEndEnergyResult.toKilowattHours
 
     /** Power value in kW.
       */
@@ -141,12 +137,7 @@ trait OptimizingTestLike extends Matchers {
       container.results.map { assetSymbolsSeq =>
         val firstRow = assetSymbolsSeq.headOption
           .map { case (_, assetSymbols) =>
-            val state = assetSymbols match {
-              case varSymbols: VariableAssetStepSymbols =>
-                varSymbols.getStepStartEnergyResult.toRoundedKiloWattHours
-              case _ => 0
-            }
-            s"0,0,$state,0,0\n"
+            s"0,0,${assetSymbols.getStepStartEnergyResult.toRoundedKiloWattHours},0,0\n"
           }
           .getOrElse("")
 
