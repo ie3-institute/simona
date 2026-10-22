@@ -119,21 +119,14 @@ object EnergyBoundariesFlexOptions
   ): FlexOptionsResult = {
 
     val firstEnergyLimits = flexOptions.energyBoundaries
-      .map(
-        _.energyLimits.headOption.getOrElse(
-          throw new CriticalFailureException(
-            s"Empty energy limits. At least one entry needs to be provided."
-          )
-        )
-      )
+      .flatMap(_.energyLimits.headOption)
+      .map { case (_, energyLimits) =>
+        energyLimits
+      }
 
     val currentState = flexOptions.energyBoundaries.map { _.currentEnergy }.sum
-    val lowerEnergyLimit = firstEnergyLimits.map { case (_, energyLimits) =>
-      energyLimits.getLower
-    }.sum
-    val upperEnergyLimit = firstEnergyLimits.map { case (_, energyLimits) =>
-      energyLimits.getUpper
-    }.sum
+    val lowerEnergyLimit = firstEnergyLimits.map(_.getLower).sum
+    val upperEnergyLimit = firstEnergyLimits.map(_.getUpper).sum
 
     new EnergyBoundariesFlexOptionsResult(
       dateTime,
