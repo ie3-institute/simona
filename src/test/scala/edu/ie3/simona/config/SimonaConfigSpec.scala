@@ -8,7 +8,14 @@ package edu.ie3.simona.config
 
 import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.ConfigParams.{BaseCsvParams, PsdmSinkCsvParams}
-import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSource,
+  Grid,
+  GridDatasource,
+  LoadProfile,
+  WeatherDatasource,
+}
+import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.config.SimonaConfig.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.{
   CongestionManagement,
@@ -17,6 +24,8 @@ import edu.ie3.simona.config.SimonaConfig.{
   Time,
 }
 import edu.ie3.simona.test.common.UnitSpec
+
+import scala.concurrent.duration.DurationInt
 
 class SimonaConfigSpec extends UnitSpec {
 
@@ -57,16 +66,22 @@ class SimonaConfigSpec extends UnitSpec {
       )
 
       // congestion management config
-      simonaConfig.congestionManagement shouldBe CongestionManagement()
+      simonaConfig.congestionManagement shouldBe CongestionManagement(
+        enableDetection = false
+      )
 
       // control config
       simonaConfig.control shouldBe None
 
       // grid config
-      simonaConfig.gridConfig shouldBe GridConfig()
+      simonaConfig.gridConfig shouldBe GridConfig(
+        refSystems = None,
+        voltageLimits = None,
+      )
 
       // input config
       simonaConfig.input shouldBe InputConfig(
+        addonDir = None,
         grid = Grid(
           GridDatasource(
             Some(
@@ -78,29 +93,128 @@ class SimonaConfigSpec extends UnitSpec {
             ),
             "csv",
           )
-        )
+        ),
+        loadProfile = LoadProfile(
+          LoadProfile.Datasource(
+            None,
+            None,
+          )
+        ),
+        primary = InputConfig.Primary(
+          None,
+          None,
+          None,
+          None,
+        ),
+        weather = InputConfig.Weather(
+          WeatherDatasource(
+            coordinateSource = CoordinateSource(None, "icon", None, None),
+            couchbaseParams = None,
+            csvParams = None,
+            influxDb1xParams = None,
+            maxCoordinateDistance = 50000,
+            resolution = 3600L,
+            sampleParams = None,
+            scheme = "icon",
+            sqlParams = None,
+          )
+        ),
       )
 
       // output config
       simonaConfig.output shouldBe OutputConfig(
         base = OutputConfig
-          .Base(dir = "testOutput/"),
+          .Base(addTimestampToOutputDir = true, dir = "testOutput/"),
+        grid = OutputConfig.GridOutputConfig(
+          congestions = false,
+          lines = false,
+          nodes = false,
+          switches = false,
+          transformers2w = false,
+          transformers3w = false,
+        ),
+        log = OutputConfig.Log(level = "INFO", consoleLevel = None),
+        participant = OutputConfig.ParticipantOutputConfigs(),
         sink = OutputConfig.Sink(
           csv = Some(
-            PsdmSinkCsvParams()
-          )
+            PsdmSinkCsvParams(
+              compressOutputs = false,
+              csvSep = ",",
+              fileFormat = ".csv",
+              filePrefix = "",
+              fileSuffix = "",
+              isHierarchic = false,
+            )
+          ),
+          influxDb1x = None,
+          kafka = None,
         ),
+        thermal = OutputConfig.ThermalOutputConfigs(),
       )
 
       // powerflow config
       simonaConfig.powerflow shouldBe Some(
         Powerflow(
-          newtonraphson = Newtonraphson(epsilon = List(1e-12))
+          maxSweepPowerDeviation = 1e-5,
+          newtonraphson = Newtonraphson(epsilon = List(1e-12), iterations = 50),
+          resolution = 1.hours,
+          stopOnFailure = false,
         )
       )
 
       // runtime config
-      simonaConfig.runtime shouldBe RuntimeConfig()
+      simonaConfig.runtime shouldBe RuntimeConfig(
+        em = EmRuntimeConfig(
+          calculateMissingReactivePowerWithModel = false,
+          scaling = 1.0,
+          aggregateFlex = "SELF_OPT_EXCL_REG",
+          curtailRegenerative = false,
+        ),
+        listener = RuntimeConfig.Listener(eventsToProcess = None, kafka = None),
+        participant = RuntimeConfig.Participant(
+          bm = BmRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+          ),
+          evcs = EvcsRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+            chargingStrategy = "maxPower",
+            departureTargetSoc = 0.75,
+          ),
+          fixedFeedIn = FixedFeedInRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+          ),
+          hp = HpRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+          ),
+          load = LoadRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+            modelBehaviour = "fix",
+            reference = "power",
+          ),
+          pv = PvRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+          ),
+          requestVoltageDeviationThreshold = 1e-14,
+          storage = StorageRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+            initialSoc = 0.0,
+            targetSoc = None,
+          ),
+          wec = WecRuntimeConfig(
+            calculateMissingReactivePowerWithModel = false,
+            scaling = 1.0,
+          ),
+        ),
+        selectedSubgrids = None,
+        selectedVoltLvls = None,
+      )
     }
 
   }

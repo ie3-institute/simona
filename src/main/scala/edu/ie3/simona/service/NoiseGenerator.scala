@@ -27,10 +27,13 @@ import scala.util.Random
   *   The random number generator.
   */
 final case class NoiseGenerator(
-    noiseMap: mutable.SortedMap[Long, Double],
-    autoregression: Double,
-    rng: Random,
+    private val noiseMap: mutable.SortedMap[Long, Double],
+    private val autoregression: Double,
+    private val rng: Random,
 ) {
+
+  def getNoiseMap: immutable.SortedMap[Long, Double] =
+    immutable.SortedMap.from(noiseMap)
 
   /** Updates the internal map of noise values according to the current tick.
     * Obsolete values are discarded and missing noise values are added.

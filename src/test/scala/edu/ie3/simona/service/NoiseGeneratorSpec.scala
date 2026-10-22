@@ -31,7 +31,7 @@ class NoiseGeneratorSpec extends UnitSpec {
         seed = 1234L,
       ).update(currentTick, forecastParams)
 
-      gen.noiseMap shouldBe mutable.SortedMap(
+      gen.getNoiseMap shouldBe immutable.SortedMap(
         7200L -> 0.14115907833078006,
         10800L -> 0.37372259414733083,
         14400L -> 0.9820612840170815,
@@ -87,7 +87,7 @@ class NoiseGeneratorSpec extends UnitSpec {
       val updatedGen = gen.update(currentTick + 7200L, forecastParams)
 
       // most values should have stayed the same
-      updatedGen.noiseMap shouldBe mutable.SortedMap(
+      updatedGen.getNoiseMap shouldBe immutable.SortedMap(
         14400L -> 0.9820612840170815,
         18000L -> 0.7058642153381252,
         21600L -> 0.201540442983696,
