@@ -24,7 +24,7 @@ import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
 import squants.energy.WattHours
 import squants.time.Seconds
-import squants.{Dimensionless, Energy, Power}
+import squants.{Dimensionless, Energy, Power, Time}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -255,6 +255,39 @@ object EnergyBoundariesFlexOptions
       AssetEnergyBoundaries(
         currentEnergy = zeroKWh,
         energyLimits = SortedMap.empty[Long, ClosedInterval[Energy]],
+        powerLimits = powerLimits,
+      )
+    }
+
+    /** Creating energy boundaries for a time series of power limits.
+      *
+      * @param powerLimits
+      *   The power limits time series (at equidistant ticks). Has to consist of
+      *   at least one entry.
+      * @param resolution
+      *   The resolution of the time series.
+      * @return
+      *   The [[AssetEnergyBoundaries]].
+      */
+    def apply(
+        powerLimits: SortedMap[Long, ClosedInterval[Power]],
+        resolution: Time,
+    ): AssetEnergyBoundaries = {
+
+      val (firstTick, _) = powerLimits.headOption.getOrElse(
+        throw new CriticalFailureException("Empty power time series!")
+      )
+
+      val limits = powerLimits.map { case (_, limits) =>
+        limits
+      }
+      val minEnergy = limits.map(_.getLower).sum * resolution
+      val maxEnergy = limits.map(_.getUpper).sum * resolution
+
+      AssetEnergyBoundaries(
+        currentEnergy = zeroKWh,
+        energyLimits =
+          SortedMap(firstTick -> new ClosedInterval(minEnergy, maxEnergy)),
         powerLimits = powerLimits,
       )
     }

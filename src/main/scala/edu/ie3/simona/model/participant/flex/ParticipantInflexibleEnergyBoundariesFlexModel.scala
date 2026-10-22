@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant.flex
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.{
   ModelState,
@@ -18,8 +19,7 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import squants.Energy
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 
 import scala.collection.immutable.SortedMap
 
@@ -55,19 +55,29 @@ class ParticipantInflexibleEnergyBoundariesFlexModel[S <: ModelState](
       tick -> op.activePower
     }
 
-    val powerLimits = powerMap.map { case (tick, power) =>
-      val maxPower =
-        if allowCurtailment && power < zeroKW then zeroKW else power
-      tick -> new ClosedInterval(power, maxPower)
-    }
+    val assetBoundaries =
+      if allowCurtailment then {
+        val powerLimits = powerMap.map { case (tick, power) =>
+          val maxPower =
+            if allowCurtailment && power < zeroKW then zeroKW else power
+          tick -> new ClosedInterval(power, maxPower)
+        }
 
-    EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries(
-        currentEnergy = zeroKWh,
-        energyLimits = SortedMap.empty[Long, ClosedInterval[Energy]],
-        powerLimits = powerLimits,
-      )
-    )
+        val forecastResolution = dataTimeType match {
+          case DataTimeType.CurrentAndForecast(_, resolution) =>
+            resolution
+          case other =>
+            throw new CriticalFailureException(
+              s"Unexpected date time type $other"
+            )
+        }
+
+        AssetEnergyBoundaries(powerLimits, forecastResolution)
+      } else {
+        AssetEnergyBoundaries(powerMap)
+      }
+
+    EnergyBoundariesFlexOptions(assetBoundaries)
   }
 
 }

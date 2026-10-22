@@ -224,7 +224,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
           boundaries should have size 1
           val assetBoundaries = boundaries.headOption.value
 
-          assetBoundaries.energyLimits should have size 0
+          assetBoundaries.energyLimits should have size 1
 
           expectedResults
             .foreach { case (tick, expectedPower) =>
