@@ -104,6 +104,8 @@ final case class OptimizingFlexStrat(
       )
     }
 
+    result.energyTrajectories.foreach(resultListener ! _)
+
     FlexibilityOptimization.extractSetPoints(flexOptionsById, result)
   }
 

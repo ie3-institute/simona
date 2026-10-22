@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.em.opt
 
+import edu.ie3.simona.event.ResultEvent.EmTrajectoryStepResult
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
@@ -83,6 +84,60 @@ object FlexibilityOptimization {
               .mkString("")
         }
         .mkString("")
+    }
+
+    def energyTrajectories: Iterable[EmTrajectoryStepResult] = {
+      assetSymbols
+        .flatMap { container =>
+          val uuid = container.assetUuid
+
+          container.results
+            .flatMap { sortedSymbols =>
+
+              val (currentTick, currentSymbols) =
+                sortedSymbols.headOption.getOrElse(
+                  throw new CriticalFailureException(
+                    "First tick could not be determined"
+                  )
+                )
+
+              val currentState = currentSymbols.getStepStartEnergyResult
+
+              val currentStepRes = EmTrajectoryStepResult(
+                uuid,
+                currentTick,
+                currentTick,
+                currentState,
+                currentState,
+                currentState,
+              )
+
+              sortedSymbols
+                .map { case (_, symbols) =>
+                  val tick = symbols.parameters.stepEndTick
+                  val state = symbols.getStepEndEnergyResult
+
+                  val (eMin, eMax) = symbols match {
+                    case vars: VariableAssetStepSymbols =>
+                      (vars.parameters.eMin, vars.parameters.eMax)
+                    case _ =>
+                      (state, state)
+                  }
+
+                  EmTrajectoryStepResult(
+                    uuid,
+                    currentTick,
+                    tick,
+                    state,
+                    eMin,
+                    eMax,
+                  )
+                }
+                .toSeq
+                .prepended(currentStepRes)
+            }
+
+        }
     }
   }
 

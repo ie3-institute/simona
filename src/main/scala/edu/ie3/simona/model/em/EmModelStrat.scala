@@ -8,6 +8,7 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant
 import edu.ie3.simona.model.em.opt.{
   ComparativeOptimizingFlexStrat,
@@ -30,6 +31,7 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.ServiceRegistrationData
+import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 import squants.energy.Kilowatts
 import squants.time.Hours
@@ -41,6 +43,9 @@ import java.util.UUID
   * connected agents
   */
 trait EmModelStrat[FO <: FlexOptions] {
+
+  // FIXME very hacky
+  var resultListener: ActorRef[ResultEvent] = null
 
   /** Returns the service registration data specifying the data provision
     * required for running for this model strategy. To be overridden by
