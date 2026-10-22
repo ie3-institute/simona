@@ -9,6 +9,7 @@ package edu.ie3.simona.model.em.opt.impl
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   AssetStepParameters,
+  FixedPowerStepParameters,
   MPSymbol,
   VariablePowerStepParameters,
 }
@@ -24,9 +25,9 @@ import edu.ie3.simona.service.Data.SecondaryData.{
 }
 import edu.ie3.simona.service.ServiceType
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import optimus.algebra.Expression
+import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
-import optimus.optimization.model.MPFloatVar
+import optimus.optimization.model.{MPFloatVar, MPVar}
 import squants.energy.PowerConversions.PowerNumeric
 import squants.time.Hours
 import squants.{Energy, Power}
@@ -52,12 +53,17 @@ trait ObjectiveFactory[AS <: AssetStepSymbols] {
     *
     * @param assetParams
     *   The asset parameters to use for creating asset symbols.
+    * @param previousState
+    *   The state of energy symbol of the previous step.
     * @param model
     *   The optimization model to add symbols and constraints to.
     * @return
     *   The asset symbols for the given asset and time step.
     */
-  def createAssetSymbols(assetParams: AssetStepParameters)(using
+  def createAssetSymbols(
+      assetParams: AssetStepParameters,
+      previousState: MPSymbol,
+  )(using
       model: MPModel
   ): AS
 
@@ -210,6 +216,23 @@ trait ObjectiveFactory[AS <: AssetStepSymbols] {
     valueAbs
   }
 
+  protected def createEndStateForFixedPower(
+      parameters: FixedPowerStepParameters,
+      previousState: MPSymbol,
+  )(using model: MPModel): MPSymbol = {
+    val energyChange =
+      (parameters.power * parameters.sampleTime).toKilowattHours
+
+    previousState match {
+      case const: Const =>
+        Const(const.value + energyChange)
+      case variable: MPVar =>
+        val newState = MPFloatVar(symbol = "E")
+        model.add(newState := variable + Const(energyChange))
+        newState
+    }
+  }
+
 }
 
 object ObjectiveFactory {
@@ -311,6 +334,11 @@ object ObjectiveFactory {
 
     val parameters: AssetStepParameters
 
+    /** The symbol for the asset state of energy at the end of the time step in
+      * kWh.
+      */
+    val stepEndState: MPSymbol
+
     /** Returns the resulting operating power.
       *
       * This method should only be called after optimization has successfully
@@ -331,11 +359,6 @@ object ObjectiveFactory {
   trait VariableAssetStepSymbols extends AssetStepSymbols {
 
     override val parameters: VariablePowerStepParameters
-
-    /** Returns the symbol for the asset state of energy at the end of the time
-      * step in kWh.
-      */
-    def getStepEndStateSymbol: MPSymbol
 
     def getStepStartEnergyResult: Energy
 

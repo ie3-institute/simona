@@ -283,8 +283,8 @@ object FlexibilityOptimization {
             }
             .getOrElse(ticks)
             .sliding(2)
-            .foldLeft[(SortedMap[Long, AS], Option[MPSymbol])](
-              (SortedMap.empty, Some(startState))
+            .foldLeft[(SortedMap[Long, AS], MPSymbol)](
+              (SortedMap.empty, startState)
             ) {
               case (
                     (previousResults, previousState),
@@ -295,20 +295,16 @@ object FlexibilityOptimization {
                   stepStartTick,
                   stepEndTick,
                   sampleTime,
+                )
+
+                val symbols = objectiveFactory.createAssetSymbols(
+                  assetParams,
                   previousState,
                 )
 
-                val vars = objectiveFactory.createAssetSymbols(assetParams)
-
-                val endSymbol = vars match {
-                  case varSymbols: VariableAssetStepSymbols =>
-                    Some(varSymbols.getStepEndStateSymbol)
-                  case _ => None
-                }
-
                 (
-                  previousResults.updated(stepStartTick, vars),
-                  endSymbol,
+                  previousResults.updated(stepStartTick, symbols),
+                  symbols.stepEndState,
                 )
 
               case _ =>
@@ -333,8 +329,6 @@ object FlexibilityOptimization {
     *   The asset energy boundaries to use.
     * @param stepEndTick
     *   The step ending tick.
-    * @param optPreviousState
-    *   Optionally, the previous state symbol.
     * @return
     *   The results for this asset and time step.
     */
@@ -343,7 +337,6 @@ object FlexibilityOptimization {
       stepStartTick: Long,
       stepEndTick: Long,
       sampleTime: Time,
-      optPreviousState: Option[MPSymbol],
   ): AssetStepParameters = {
 
     val (_, powerLimits) = energyBoundaries.powerLimits
@@ -369,12 +362,7 @@ object FlexibilityOptimization {
           throw new CriticalFailureException("No energy limits found!")
         )
 
-      val previousState = optPreviousState.getOrElse(
-        throw new CriticalFailureException("No previous state provided!")
-      )
-
       VariablePowerStepParameters(
-        previousStateEnergy = previousState,
         pMin = powerLimits.getLower,
         pMax = powerLimits.getUpper,
         eMin = energyLimitsEnd.getLower,
@@ -425,8 +413,6 @@ object FlexibilityOptimization {
     * time step, which is restricted by the given power and energy limits as
     * well as charging and discharging efficiencies.
     *
-    * @param previousStateEnergy
-    *   The previous energy state variable or constant.
     * @param pMin
     *   The minimum power allowed.
     * @param pMax
@@ -441,7 +427,6 @@ object FlexibilityOptimization {
     *   The discharging efficiency.
     */
   final case class VariablePowerStepParameters(
-      previousStateEnergy: MPSymbol,
       pMin: Power,
       pMax: Power,
       eMin: Energy,

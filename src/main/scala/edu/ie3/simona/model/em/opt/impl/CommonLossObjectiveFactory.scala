@@ -56,11 +56,15 @@ abstract class CommonLossObjectiveFactory
   val variant: CommonLossVariant
 
   override def createAssetSymbols(
-      assetParams: AssetStepParameters
+      assetParams: AssetStepParameters,
+      previousState: MPSymbol,
   )(using model: MPModel): PowerVarAssetStepSymbols =
     assetParams match {
       case fixedPower: FixedPowerStepParameters =>
-        FixedCommonLossAssetStepSymbols(fixedPower)
+        FixedCommonLossAssetStepSymbols(
+          fixedPower,
+          createEndStateForFixedPower(fixedPower, previousState),
+        )
 
       case varPower: VariablePowerStepParameters =>
         val etaCh = varPower.etaCharge
@@ -107,7 +111,7 @@ abstract class CommonLossObjectiveFactory
           model.add(pAbs >:= -p)
 
           val adaptedPreviousEnergy: MPSymbol =
-            varPower.previousStateEnergy match {
+            previousState match {
               // constants are taken from energy boundary values
               // and need to be converted to the adapted model
               case constState: Const =>
@@ -143,7 +147,7 @@ abstract class CommonLossObjectiveFactory
           // there are no charging/discharging losses, we can keep it simple
 
           model.add(
-            newState := varPower.previousStateEnergy + p * Const(
+            newState := previousState + p * Const(
               varPower.sampleTime.toHours
             )
           )
@@ -151,7 +155,7 @@ abstract class CommonLossObjectiveFactory
           EfficientCommonLossAssetStepSymbols(
             varPower,
             p,
-            varPower.previousStateEnergy,
+            previousState,
             newState,
           )
         }
@@ -386,9 +390,13 @@ object CommonLossObjectiveFactory {
     *
     * @param parameters
     *   Parameters for the asset at the specific time step.
+    * @param stepEndState
+    *   The state variable, describing the state of energy in kWh at the end of
+    *   the time step interval.
     */
   private final case class FixedCommonLossAssetStepSymbols(
-      override val parameters: FixedPowerStepParameters
+      override val parameters: FixedPowerStepParameters,
+      override val stepEndState: MPSymbol,
   ) extends CommonLossAssetStepSymbols
       with FixedPowerVarAssetStepSymbols
 
@@ -411,15 +419,13 @@ object CommonLossObjectiveFactory {
       override val parameters: VariablePowerStepParameters,
       power: MPVar,
       stepStartState: MPSymbol,
-      stepEndState: MPSymbol,
+      override val stepEndState: MPSymbol,
   ) extends CommonLossAssetStepSymbols
       with VariableAssetStepSymbols {
 
     override lazy val objectiveAddition: Option[Expression] = None
 
     override def getOperationPowerSymbol: Expression = power
-
-    override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
 
@@ -458,7 +464,7 @@ object CommonLossObjectiveFactory {
       power: MPVar,
       powerAbs: MPVar,
       stepStartState: MPSymbol,
-      stepEndState: MPSymbol,
+      override val stepEndState: MPSymbol,
       etaCommon: Dimensionless,
       energyConversionFactor: Double,
       useSoftConstraint: Boolean,
@@ -472,8 +478,6 @@ object CommonLossObjectiveFactory {
       )
 
     override def getOperationPowerSymbol: Expression = power
-
-    override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getOperatingPowerResult: Power = Kilowatts(power.getValue)
 

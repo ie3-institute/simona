@@ -48,11 +48,15 @@ abstract class SignedEnergyVariableObjectiveFactory
     Iterable(ServiceType.PriceService)
 
   override def createAssetSymbols(
-      assetParams: AssetStepParameters
+      assetParams: AssetStepParameters,
+      previousState: MPSymbol,
   )(using model: MPModel): SignedEnergyStepSymbols =
     assetParams match {
       case fixedPower: FixedPowerStepParameters =>
-        FixedSignedEnergyStepSymbols(fixedPower)
+        FixedSignedEnergyStepSymbols(
+          fixedPower,
+          createEndStateForFixedPower(fixedPower, previousState),
+        )
       case varPower: VariablePowerStepParameters =>
         val lowerBound =
           varPower.pMin * varPower.sampleTime / varPower.etaDischarge.toEach
@@ -78,12 +82,12 @@ abstract class SignedEnergyVariableObjectiveFactory
               upperBound = varPower.eMax.toKilowattHours,
             )
 
-        model.add(newEnergy := varPower.previousStateEnergy + energyChange)
+        model.add(newEnergy := previousState + energyChange)
 
         VariableSignedEnergyStepSymbols(
           varPower,
           energyChange,
-          varPower.previousStateEnergy,
+          previousState,
           newEnergy,
         )
     }
@@ -214,9 +218,13 @@ object SignedEnergyVariableObjectiveFactory {
     *
     * @param parameters
     *   Parameters for the asset at the specific time step.
+    * @param stepEndState
+    *   The state variable, describing the amount of energy in kWh at the end of
+    *   the time step interval.
     */
   private final case class FixedSignedEnergyStepSymbols(
-      override val parameters: FixedPowerStepParameters
+      override val parameters: FixedPowerStepParameters,
+      override val stepEndState: MPSymbol,
   ) extends SignedEnergyStepSymbols {
 
     override def getObjectiveVariations: Seq[Expression] =
@@ -245,11 +253,9 @@ object SignedEnergyVariableObjectiveFactory {
       parameters: VariablePowerStepParameters,
       energyChange: MPVar,
       stepStartState: MPSymbol,
-      stepEndState: MPSymbol,
+      override val stepEndState: MPSymbol,
   ) extends SignedEnergyStepSymbols
       with VariableAssetStepSymbols {
-
-    override def getStepEndStateSymbol: MPSymbol = stepEndState
 
     override def getObjectiveVariations: Seq[Expression] =
       if isInefficient then
