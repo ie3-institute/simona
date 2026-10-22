@@ -10,6 +10,7 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
+  FixedAssetStepSymbols,
   VariableAssetStepSymbols,
 }
 import edu.ie3.simona.model.em.opt.impl.SignedEnergyVariableObjectiveFactory.{
@@ -225,13 +226,11 @@ object SignedEnergyVariableObjectiveFactory {
   private final case class FixedSignedEnergyStepSymbols(
       override val parameters: FixedPowerStepParameters,
       override val stepEndState: MPSymbol,
-  ) extends SignedEnergyStepSymbols {
+  ) extends FixedAssetStepSymbols
+      with SignedEnergyStepSymbols {
 
     override def getObjectiveVariations: Seq[Expression] =
       Seq(Const((parameters.power * parameters.sampleTime).toKilowattHours))
-
-    override def getOperatingPowerResult: Power =
-      parameters.power
 
   }
 

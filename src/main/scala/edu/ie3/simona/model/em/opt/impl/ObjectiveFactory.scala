@@ -12,6 +12,7 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   FixedPowerStepParameters,
   MPSymbol,
   VariablePowerStepParameters,
+  getValue,
 }
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
@@ -28,6 +29,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import optimus.algebra.{Const, Expression}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}
+import squants.energy.KilowattHours
 import squants.energy.PowerConversions.PowerNumeric
 import squants.time.Hours
 import squants.{Energy, Power}
@@ -347,6 +349,14 @@ object ObjectiveFactory {
       */
     def getOperatingPowerResult: Power
 
+    /** Returns the resulting state of energy.
+      *
+      * This method should only be called after optimization has successfully
+      * completed. Otherwise, results might not be available and an exception
+      * might be thrown.
+      */
+    def getStepEndEnergyResult: Energy
+
     /** todo */
     def getActualLoss: Energy = zeroKWh
 
@@ -356,19 +366,23 @@ object ObjectiveFactory {
 
   }
 
+  trait FixedAssetStepSymbols extends AssetStepSymbols {
+
+    override val parameters: FixedPowerStepParameters
+
+    override def getOperatingPowerResult: Power =
+      parameters.power
+
+    override def getStepEndEnergyResult: Energy = KilowattHours(
+      stepEndState.getValue
+    )
+  }
+
   trait VariableAssetStepSymbols extends AssetStepSymbols {
 
     override val parameters: VariablePowerStepParameters
 
     def getStepStartEnergyResult: Energy
-
-    /** Returns the resulting state of energy.
-      *
-      * This method should only be called after optimization has successfully
-      * completed. Otherwise, results might not be available and an exception
-      * might be thrown.
-      */
-    def getStepEndEnergyResult: Energy
 
     override def getActualLoss: Energy = {
       val sampleTime = parameters.sampleTime

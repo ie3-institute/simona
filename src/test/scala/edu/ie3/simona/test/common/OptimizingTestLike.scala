@@ -152,13 +152,7 @@ trait OptimizingTestLike extends Matchers {
 
         val dataRows = assetSymbolsSeq.zipWithIndex
           .map { case ((_, assetSymbols), step) =>
-            val state = assetSymbols match {
-              case varSymbols: VariableAssetStepSymbols =>
-                varSymbols.getStepEndEnergyResult.toRoundedKiloWattHours
-              case _ => 0
-            }
-
-            s"${step + 1},${assetSymbols.getOperatingPowerResult.toRoundedKiloWatts},$state,${assetSymbols.getActualLoss.toRoundedKiloWattHours},${assetSymbols.getExcessLoss.toRoundedKiloWattHours}\n"
+            s"${step + 1},${assetSymbols.getOperatingPowerResult.toRoundedKiloWatts},${assetSymbols.getStepEndEnergyResult.toRoundedKiloWattHours},${assetSymbols.getActualLoss.toRoundedKiloWattHours},${assetSymbols.getExcessLoss.toRoundedKiloWattHours}\n"
           }
           .mkString("")
 

@@ -6,10 +6,10 @@
 
 package edu.ie3.simona.model.em.opt.impl
 
-import edu.ie3.simona.model.em.opt.FlexibilityOptimization.FixedPowerStepParameters
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
+  FixedAssetStepSymbols,
 }
 import edu.ie3.simona.model.em.opt.impl.PowerVariableObjectiveFactory.PowerVarAssetStepSymbols
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
@@ -242,17 +242,15 @@ object PowerVariableObjectiveFactory {
 
   /** Trait that provides basic functionality for time steps with fixed power.
     */
-  trait FixedPowerVarAssetStepSymbols extends PowerVarAssetStepSymbols {
-
-    override val parameters: FixedPowerStepParameters
+  trait FixedPowerVarAssetStepSymbols
+      extends FixedAssetStepSymbols
+      with PowerVarAssetStepSymbols {
 
     override lazy val objectiveAddition: Option[Expression] = None
 
     override def getOperationPowerSymbol: Expression = Const(
       parameters.power.toKilowatts
     )
-
-    override def getOperatingPowerResult: Power = parameters.power
 
   }
 
