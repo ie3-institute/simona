@@ -82,18 +82,18 @@ abstract class CommonLossObjectiveFactory
         val etaCommon = calculateCommonEta(etaCh, etaDis)
         val conversionFactor = calculateConversionFactor(etaCh, etaCommon)
 
-        // modeling the new state (stored energy)
-        val newState: MPSymbol =
-          if varPower.eMin == varPower.eMax then
-            Const(varPower.eMax.toKilowattHours * conversionFactor)
-          else
-            MPFloatVar(
-              symbol = s"e_${varPower.stepEndTick}",
-              lowerBound = varPower.eMin.toKilowattHours * conversionFactor,
-              upperBound = varPower.eMax.toKilowattHours * conversionFactor,
-            )
-
         if varPower.isInefficient then {
+          // modeling the new state (stored energy)
+          val newState: MPSymbol =
+            if varPower.eMin == varPower.eMax then
+              Const(varPower.eMax.toKilowattHours * conversionFactor)
+            else
+              MPFloatVar(
+                symbol = s"e_${varPower.stepEndTick}",
+                lowerBound = varPower.eMin.toKilowattHours * conversionFactor,
+                upperBound = varPower.eMax.toKilowattHours * conversionFactor,
+              )
+
           // there are charging/discharging losses, thus use the full model
 
           // approximation of the absolute value of p,
@@ -145,6 +145,17 @@ abstract class CommonLossObjectiveFactory
           )
         } else {
           // there are no charging/discharging losses, we can keep it simple
+
+          // modeling the new state (stored energy)
+          val newState: MPSymbol =
+            if varPower.eMin == varPower.eMax then
+              Const(varPower.eMax.toKilowattHours)
+            else
+              MPFloatVar(
+                symbol = s"e_${varPower.stepEndTick}",
+                lowerBound = varPower.eMin.toKilowattHours,
+                upperBound = varPower.eMax.toKilowattHours,
+              )
 
           model.add(
             newState := previousState + p * Const(
