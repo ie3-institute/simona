@@ -32,7 +32,12 @@ object DataTimeType {
   final case class CurrentAndForecast(
       forecastLength: Time,
       forecastResolution: Time = Hours(1),
-  ) extends DataTimeType
+  ) extends DataTimeType {
+
+    def ticks(currentTick: Long): Seq[Long] =
+      createTicks(forecastLength, forecastResolution, currentTick)
+
+  }
 
   /** Creates sequence of ticks specified by parameters.
     *
