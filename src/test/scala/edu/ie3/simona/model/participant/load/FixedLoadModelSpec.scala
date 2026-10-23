@@ -15,8 +15,6 @@ import edu.ie3.simona.ontology.messages.flex.{
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
-import edu.ie3.util.interval.ClosedInterval
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKWh
 import squants.{Energy, Power}
 import squants.energy.{WattHours, Watts}
 import squants.time.Hours
@@ -84,26 +82,13 @@ class FixedLoadModelSpec extends UnitSpec with LoadInputTestData {
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>
           boundaries should have size 1
-
           val assetBoundaries = boundaries.headOption.value
 
-          val energyLimits = assetBoundaries.energyLimits
-          energyLimits should have size 13
-          energyLimits.headOption.value shouldBe (
-            0L -> new ClosedInterval(
-              zeroKWh,
-              zeroKWh,
-            )
-          )
+          assetBoundaries.energyLimits should have size 0
 
-          val (lastKey, lastValue) = energyLimits.lastOption.value
-          lastKey shouldBe 12 * 3600L
-          val expectedTotalEnergy = model.pRated * dataTimeType.forecastLength
-          lastValue.getUpper should approximate(expectedTotalEnergy)
-          lastValue.getLower should approximate(expectedTotalEnergy)
-
-          assetBoundaries.powerLimits.getUpper should approximate(model.pRated)
-          assetBoundaries.powerLimits.getLower should approximate(model.pRated)
+          val powerLimits = assetBoundaries.powerLimits.headOption.value._2
+          powerLimits.getUpper should approximate(model.pRated)
+          powerLimits.getLower should approximate(model.pRated)
 
         case unexpected => fail(s"Received unexpected flex options $unexpected")
       }

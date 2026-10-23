@@ -85,6 +85,52 @@ simona.input.weather.datasource = {
 Further model classes which can be used to parse a data set as input to power system simulations are described in [PSDM](https://powersystemdatamodel.readthedocs.io/en/latest/models/models.html#time-series). 
 Data sources and data sinks are explained in the [I/O-capabilities](https://powersystemdatamodel.readthedocs.io/en/latest/io/basiciousage.html) section of the PSDM. 
 
+Configuration of forecasts:
+```
+simona.input.weather.forecast = {
+  irradianceNoise = {
+    variance = 5
+    autoregression = 0.8
+    seed = 0
+  }
+  temperatureNoise = {
+    variance = 2
+    autoregression = 0.8
+    seed = 0
+  }
+  windVelocityNoise = {
+    variance = 2
+    autoregression = 0.8
+    seed = 0
+  }
+}
+```
+
+The configured noise is applied to forecasts of the following values:
+
+```{list-table}
+:widths: auto
+:header-rows: 1
+
+* - Configuration set
+  - Weather data values
+  - Default variance
+
+* - `irradianceNoise`
+  - direct and diffuse irradiance
+  - 5 W/m²
+
+* - `temperatureNoise`
+  - Air temperature and ground temperatures (if applicable)
+  - 2 K
+  
+* - `windVelocityNoise`
+  - Wind velocity
+  - 2 M/s
+```
+
+A variance of 0 disables the addition of noise.
+
 ### Price data
 
 For the buying price, fees (in EUR/MWh) are added to the wholesale price and the tax is added on the total cost.
@@ -113,6 +159,34 @@ simona.input.prices.datasource = {
   }
 }
 ```
+
+Configuration of forecasts:
+```
+simona.input.prices.forecast = {
+  noise = {
+    variance = 20
+    autoregression = 0.8
+    seed = 0
+  }
+}
+```
+
+The configured noise is applied to forecasts of the following values:
+
+```{list-table}
+:widths: auto
+:header-rows: 1
+
+* - Configuration set
+  - Price data values
+  - Default variance
+
+* - `noise`
+  - buying and selling price
+  - 20 EUR/MWh
+```
+
+A variance of 0 disables the addition of noise.
 
 ## Output parameters
 
