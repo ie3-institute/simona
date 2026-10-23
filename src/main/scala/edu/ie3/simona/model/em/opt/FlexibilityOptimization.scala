@@ -63,28 +63,6 @@ object FlexibilityOptimization {
       timeMeasurements: TimeMeasurements,
       model: MPModel,
   ) {
-    def varsolutions: String = {
-      assetSymbols
-        .map { container =>
-          s"\n\t\t${container.assetUuid}:" +
-            container.results
-              .map { sortedSymbols =>
-                s"\n\t\t\tTrajectory: ${sortedSymbols
-                    .map { case (_, symbols) =>
-                      val state = symbols match {
-                        case vars: VariableAssetStepSymbols =>
-                          s" (-> ${vars.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
-                        case _ => ""
-                      }
-
-                      symbols.getOperatingPowerResult.in(Kilowatts).rounded(6).toString + state
-                    }
-                    .mkString(", ")}"
-              }
-              .mkString("")
-        }
-        .mkString("")
-    }
 
     def energyTrajectories: Iterable[EmTrajectoryStepResult] = {
       assetSymbols
