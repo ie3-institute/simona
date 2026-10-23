@@ -13,7 +13,6 @@ import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVar
   SoftConstraints,
 }
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
-  AssetSymbolContainer,
   QuadraticPowerObjective,
   RelativeStateErrorHelper,
   VariableAssetStepSymbols,
@@ -223,14 +222,12 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[PowerVarAssetStepSymbols]],
         target: Power,
         receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
 
-      sortSymbolsByTick(assetSymbols)
+      assetSymbols
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetSymbols) =>
           val differenceAbs =
@@ -275,9 +272,7 @@ object CommonLossObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[PowerVarAssetStepSymbols]],
         target: Power,
         receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
@@ -324,7 +319,7 @@ object CommonLossObjectiveFactory {
       val segmentSize = absTotalPowerKW / segmentCount
       val adaptFactor = (1d - lowerLimit) / absTotalPowerKW
 
-      sortSymbolsByTick(assetSymbols)
+      assetSymbols
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetSymbols) =>
           val differenceAbs =

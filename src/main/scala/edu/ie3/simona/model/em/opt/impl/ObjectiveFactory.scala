@@ -7,17 +7,8 @@
 package edu.ie3.simona.model.em.opt.impl
 
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
-  AssetStepParameters,
-  FixedPowerStepParameters,
-  MPSymbol,
-  VariablePowerStepParameters,
-  getValue,
-}
-import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
-  AssetStepSymbols,
-  AssetSymbolContainer,
-}
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.Data.SecondaryData.{
@@ -87,14 +78,14 @@ trait ObjectiveFactory[AS <: AssetStepSymbols] {
     */
   def build(
       flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-      assetSymbols: Iterable[AssetSymbolContainer[AS]],
+      assetSymbols: SortedMap[Long, Iterable[AS]],
       target: Power,
       receivedData: Iterable[SecondaryData],
   )(using model: MPModel): Expression
 
   // todo scaladoc
   def getComparableObjectiveValue(
-      assetSymbols: Iterable[AssetSymbolContainer[AS]],
+      assetSymbols: SortedMap[Long, Iterable[AS]],
       target: Power,
       receivedData: Iterable[SecondaryData],
   ): Double
@@ -147,33 +138,6 @@ trait ObjectiveFactory[AS <: AssetStepSymbols] {
       )
 
     priceData
-  }
-
-  /** Re-orders the [[AssetStepSymbols]] inside given [[AssetSymbolContainer]]s
-    * to be grouped by their by tick.
-    *
-    * @param assetSymbols
-    *   The [[AssetSymbolContainer]]s to be reordered.
-    * @return
-    *   The [[AssetStepSymbols]] ordered by tick.
-    */
-  protected def sortSymbolsByTick(
-      assetSymbols: Iterable[AssetSymbolContainer[AS]]
-  ): SortedMap[Long, Iterable[AS]] = {
-    // asset symbols should all have the same ticks,
-    // since they should have all been created with the same ticks
-    val ticks = assetSymbols.headOption
-      .flatMap(_.results.headOption.map(_.keys.toSeq))
-      .getOrElse(Seq.empty)
-
-    // sort all asset symbols by tick
-    ticks
-      .map { stepStartTick =>
-        stepStartTick -> assetSymbols.flatMap {
-          _.results.flatMap(_.get(stepStartTick))
-        }
-      }
-      .to(SortedMap)
   }
 
   /** Creates an unbounded continuous variable that is constrained to be greater
@@ -243,13 +207,11 @@ object ObjectiveFactory {
       extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
-        assetSymbols: Iterable[
-          AssetSymbolContainer[AS]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[AS]],
         target: Power,
         receivedData: Iterable[SecondaryData],
     ): Double =
-      sortSymbolsByTick(assetSymbols)
+      assetSymbols
         .map { case (_, tickAssetSymbols) =>
           tickAssetSymbols.map(_.getOperatingPowerResult).sum
         }
@@ -263,13 +225,11 @@ object ObjectiveFactory {
       extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
-        assetSymbols: Iterable[
-          AssetSymbolContainer[AS]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[AS]],
         target: Power,
         receivedData: Iterable[SecondaryData],
     ): Double =
-      sortSymbolsByTick(assetSymbols).map { case (_, tickAssetSymbols) =>
+      assetSymbols.map { case (_, tickAssetSymbols) =>
         val powerSum =
           tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
 
@@ -282,13 +242,11 @@ object ObjectiveFactory {
       extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
-        assetSymbols: Iterable[
-          AssetSymbolContainer[AS]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[AS]],
         target: Power,
         receivedData: Iterable[SecondaryData],
     ): Double =
-      sortSymbolsByTick(assetSymbols).map { case (_, tickAssetSymbols) =>
+      assetSymbols.map { case (_, tickAssetSymbols) =>
         val powerSum =
           tickAssetSymbols.map(_.getOperatingPowerResult).sum.toKilowatts
 
@@ -300,16 +258,14 @@ object ObjectiveFactory {
   trait PriceObjective[AS <: AssetStepSymbols] extends ObjectiveFactory[AS] {
 
     override def getComparableObjectiveValue(
-        assetSymbols: Iterable[
-          AssetSymbolContainer[AS]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[AS]],
         target: Power,
         receivedData: Iterable[SecondaryData],
     ): Double = {
 
       val priceSeries = extractPriceSeries(receivedData)
 
-      sortSymbolsByTick(assetSymbols).map { (stepStartTick, tickAssetSymbols) =>
+      assetSymbols.map { (stepStartTick, tickAssetSymbols) =>
         val priceData = getAndCheckPriceData(priceSeries, stepStartTick)
 
         val sampleTime = tickAssetSymbols.headOption
@@ -433,9 +389,9 @@ object ObjectiveFactory {
     * @param results
     *   All [[AssetStepSymbols]] of the assets, including state and operation
     *   variables. The step variables are referenced by stepStartTick within the
-    *   sorted map. The sequence contains one or more variable maps, similar to
+    *   sorted map. The sequence can contain several variable maps, similar to
     *   how [[EnergyBoundariesFlexOptions]] can contain several asset
-    *   boundaries.
+    *   boundaries. It can also be empty though.
     */
   final case class AssetSymbolContainer[AS <: AssetStepSymbols](
       assetUuid: UUID,
@@ -446,6 +402,55 @@ object ObjectiveFactory {
       results.flatten.map { case (_, assetSymbols) =>
         assetSymbols.getExcessLoss
       }
+
+    /** Returns the [[AssetStepSymbols]] grouped by their by tick.
+      *
+      * @param ticks
+      *   The whole set of ticks.
+      * @return
+      *   The [[AssetStepSymbols]] ordered by tick. Every value iterable is
+      *   non-empty.
+      */
+    def resultsByTick(ticks: Seq[Long]): SortedMap[Long, Iterable[AS]] = {
+      // sort all asset symbols by tick
+      ticks
+        .flatMap { stepStartTick =>
+          val tickResults = results.flatMap(_.get(stepStartTick))
+          Option.when(tickResults.nonEmpty)(stepStartTick -> tickResults)
+        }
+        .to(SortedMap)
+    }
+
+  }
+
+  object AssetSymbolContainer {
+
+    extension [AS <: AssetStepSymbols](
+        assetSymbols: Iterable[AssetSymbolContainer[AS]]
+    ) {
+
+      /** Re-orders the [[AssetStepSymbols]] inside given
+        * [[AssetSymbolContainer]]s to be grouped by their by tick.
+        *
+        * @param ticks
+        *   The full set of ticks.
+        * @return
+        *   The [[AssetStepSymbols]] ordered by tick. Every value iterable is
+        *   non-empty.
+        */
+      def sortByTick(ticks: Seq[Long]): SortedMap[Long, Iterable[AS]] = {
+        // sort all asset symbols by tick
+        ticks
+          .flatMap { stepStartTick =>
+            val tickResults = assetSymbols.flatMap {
+              _.results.flatMap(_.get(stepStartTick))
+            }
+            Option.when(tickResults.nonEmpty)(stepStartTick -> tickResults)
+          }
+          .to(SortedMap)
+      }
+
+    }
 
   }
 

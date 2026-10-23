@@ -9,7 +9,6 @@ package edu.ie3.simona.model.em.opt.impl
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.*
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
-  AssetSymbolContainer,
   FixedAssetStepSymbols,
   VariableAssetStepSymbols,
 }
@@ -36,6 +35,7 @@ import squants.energy.KilowattHours
 
 import java.util.UUID
 import scala.collection.SortedSet
+import scala.collection.immutable.SortedMap
 
 /** Optimization model based on the fundamental idea of Hashmi et al., "Optimal
   * Storage Arbitrage under Net Metering using Linear Programming", formulating
@@ -115,11 +115,11 @@ object SignedEnergyVariableObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
+        assetSymbols: SortedMap[Long, Iterable[SignedEnergyStepSymbols]],
         target: Power,
         receivedData: Iterable[SecondaryData],
     )(using model: MPModel): Expression =
-      sortSymbolsByTick(assetSymbols)
+      assetSymbols
         // create objective expression for every time step
         .map { (stepStartTick, tickAssetSymbols) =>
           val segments = createSegments(tickAssetSymbols)
@@ -149,7 +149,7 @@ object SignedEnergyVariableObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[AssetSymbolContainer[SignedEnergyStepSymbols]],
+        assetSymbols: SortedMap[Long, Iterable[SignedEnergyStepSymbols]],
         target: Power,
         receivedData: Iterable[SecondaryData],
     )(using model: MPModel): Expression = {
@@ -172,7 +172,7 @@ object SignedEnergyVariableObjectiveFactory {
             "Results might deviate from optimal solution."
         )
 
-      sortSymbolsByTick(assetSymbols)
+      assetSymbols
         // create objective expression for every time step
         .map { (stepStartTick, tickAssetSymbols) =>
           val segments = createSegments(tickAssetSymbols)

@@ -8,7 +8,6 @@ package edu.ie3.simona.model.em.opt.impl
 
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
-  AssetSymbolContainer,
   FixedAssetStepSymbols,
 }
 import edu.ie3.simona.model.em.opt.impl.PowerVariableObjectiveFactory.PowerVarAssetStepSymbols
@@ -78,16 +77,13 @@ object PowerVariableObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[PowerVarAssetStepSymbols]],
         target: Power,
         receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
-      val sortedByTick = sortSymbolsByTick(assetSymbols)
-      val stepCount = sortedByTick.size
+      val stepCount = assetSymbols.size
 
-      val allVariants = sortedByTick.toSeq
+      val allVariants = assetSymbols.toSeq
         // create objective expression for every time step
         .flatMap { case (_, tickAssetSymbols) =>
           val powerSum = createPowerSum(tickAssetSymbols)
@@ -97,7 +93,7 @@ object PowerVariableObjectiveFactory {
 
       val epigraphVar = createEpigraphVar(allVariants, "max_abs_epigraph")
 
-      val softConstraints = sortedByTick
+      val softConstraints = assetSymbols
         .flatMap { case (_, tickAssetSymbols) =>
           tickAssetSymbols.flatMap(_.objectiveAddition)
         }
@@ -125,13 +121,11 @@ object PowerVariableObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[PowerVarAssetStepSymbols]],
         target: Power,
         receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
-      sortSymbolsByTick(assetSymbols)
+      assetSymbols
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetSymbols) =>
           val absDiff =
@@ -165,9 +159,7 @@ object PowerVariableObjectiveFactory {
 
     override def build(
         flexOptions: Iterable[(UUID, EnergyBoundariesFlexOptions)],
-        assetSymbols: Iterable[
-          AssetSymbolContainer[PowerVarAssetStepSymbols]
-        ],
+        assetSymbols: SortedMap[Long, Iterable[PowerVarAssetStepSymbols]],
         target: Power,
         receivedData: Iterable[Data.SecondaryData],
     )(using model: MPModel): Expression = {
@@ -183,7 +175,7 @@ object PowerVariableObjectiveFactory {
 
       val adaptedPriceSeries = transformPrices(priceSeries)
 
-      sortSymbolsByTick(assetSymbols)
+      assetSymbols
         // create objective expression for every time step
         .map { case (stepStartTick, tickAssetSymbols) =>
           val totalPower = createPowerSum(tickAssetSymbols)

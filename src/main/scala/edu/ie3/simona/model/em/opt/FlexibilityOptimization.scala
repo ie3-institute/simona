@@ -12,7 +12,6 @@ import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.{
   AssetStepSymbols,
   AssetSymbolContainer,
-  VariableAssetStepSymbols,
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
@@ -24,8 +23,8 @@ import optimus.common.Measure.TimeMeasurements
 import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.MPVar
+import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
-import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Dimensionless, Energy, Power, Time}
 
 import java.util.UUID
@@ -57,6 +56,7 @@ object FlexibilityOptimization {
   }
 
   final case class OptimizationResult(
+      params: OptimizationParams,
       assetSymbols: Iterable[AssetSymbolContainer[? <: AssetStepSymbols]],
       solutionStatus: SolutionStatus,
       objectiveValue: Option[Double],
@@ -65,56 +65,86 @@ object FlexibilityOptimization {
   ) {
 
     def energyTrajectories: Iterable[EmTrajectoryStepResult] = {
+      val flexOptionsMap = params.flexOptionsById.toMap
+
       assetSymbols
         .flatMap { container =>
           val uuid = container.assetUuid
 
-          container.results
-            .flatMap { sortedSymbols =>
+          val flex = flexOptionsMap.getOrElse(
+            uuid,
+            throw new CriticalFailureException(
+              s"Flex options not found for asset $uuid"
+            ),
+          )
 
-              val (currentTick, currentSymbols) =
-                sortedSymbols.headOption.getOrElse(
-                  throw new CriticalFailureException(
-                    "First tick could not be determined"
-                  )
+          val tightenedFlex =
+            EnergyBoundariesFlexOptions.tighten(flex, params.timeParams.ticks)
+
+          val resultsByTick = container.resultsByTick(params.timeParams.ticks)
+
+          // results can be empty in some edge cases, e.g. EVCS with no connected EV
+          if resultsByTick.nonEmpty then {
+
+            val (currentTick, firstSymbols) =
+              resultsByTick.headOption.getOrElse(
+                throw new CriticalFailureException(
+                  "Empty results"
                 )
-
-              val currentState = currentSymbols.getStepStartEnergyResult
-
-              val currentStepRes = EmTrajectoryStepResult(
-                uuid,
-                currentTick,
-                currentTick,
-                currentState,
-                currentState,
-                currentState,
               )
 
-              sortedSymbols
-                .map { case (_, symbols) =>
-                  val tick = symbols.parameters.stepEndTick
-                  val state = symbols.getStepEndEnergyResult
+            val currentState = firstSymbols.map(_.getStepStartEnergyResult).sum
 
-                  val (eMin, eMax) = symbols match {
-                    case vars: VariableAssetStepSymbols =>
-                      (vars.parameters.eMin, vars.parameters.eMax)
-                    case _ =>
-                      (state, state)
+            val currentStepRes = EmTrajectoryStepResult(
+              uuid,
+              currentTick,
+              currentTick,
+              currentState,
+              currentState,
+              currentState,
+            )
+
+            resultsByTick
+              .map { case (_, allSymbols) =>
+                val stepEndTick = allSymbols.headOption
+                  .getOrElse(
+                    throw new CriticalFailureException(
+                      "Empty results"
+                    )
+                  )
+                  .parameters
+                  .stepEndTick
+
+                val state = allSymbols.map(_.getStepEndEnergyResult).sum
+
+                val energyLimits = tightenedFlex.energyBoundaries.flatMap {
+                  _.energyLimits.maxBefore(stepEndTick + 1).map(_._2)
+                }
+                val (eMin, eMax) =
+                  if energyLimits.nonEmpty then {
+                    (
+                      energyLimits.map(_.getLower).sum,
+                      energyLimits.map(_.getUpper).sum,
+                    )
+                  } else {
+                    // in case energy limits are empty, there was no flexibility
+                    (state, state)
                   }
 
-                  EmTrajectoryStepResult(
-                    uuid,
-                    currentTick,
-                    tick,
-                    state,
-                    eMin,
-                    eMax,
-                  )
-                }
-                .toSeq
-                .prepended(currentStepRes)
-            }
+                EmTrajectoryStepResult(
+                  uuid,
+                  currentTick,
+                  stepEndTick,
+                  state,
+                  eMin,
+                  eMax,
+                )
 
+              }
+              .toSeq
+              .prepended(currentStepRes)
+
+          } else Seq.empty
         }
     }
   }
@@ -149,7 +179,7 @@ object FlexibilityOptimization {
     val actualObjectiveValue =
       Option.when(model.getStatus == SolutionStatus.OPTIMAL)(
         params.objectiveFactory.getComparableObjectiveValue(
-          allAssetSymbols,
+          allAssetSymbols.sortByTick(ticks),
           params.target,
           params.receivedData,
         )
@@ -158,6 +188,7 @@ object FlexibilityOptimization {
     val timeMeasurements = model.getTimeMeasurements
 
     OptimizationResult(
+      params = params,
       assetSymbols = allAssetSymbols,
       solutionStatus = model.getStatus,
       objectiveValue = actualObjectiveValue,
@@ -257,7 +288,7 @@ object FlexibilityOptimization {
 
     val objective = objectiveFactory.build(
       flexOptions,
-      assetSymbols,
+      assetSymbols.sortByTick(ticks),
       target,
       receivedData,
     )
