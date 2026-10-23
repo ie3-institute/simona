@@ -137,6 +137,8 @@ object LoadModel {
         FixedLoadModel.Factory(input, config)
       case LoadModelBehaviour.PROFILE =>
         ProfileLoadModel.Factory(input, config)
+      case LoadModelBehaviour.MARKOV =>
+        MarkovLoadModel.Factory(input, config)
     }
 
 }
