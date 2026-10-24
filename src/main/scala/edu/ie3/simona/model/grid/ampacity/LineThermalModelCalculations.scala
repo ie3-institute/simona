@@ -882,7 +882,7 @@ object LineThermalModelCalculations extends LazyLogging {
       )
     }
     if axialDistance <= 0 then {
-      IllegalArgumentException(
+      throw new IllegalArgumentException(
         s"The two cables must be at different distances from the boundary, but both were at $distanceJ m."
       )
     }
@@ -1679,8 +1679,8 @@ object LineThermalModelCalculations extends LazyLogging {
     val baseSoilResistivity =
       bedResistivity.getOrElse(effectiveSoilResistivity)
 
-    val soilCapacitance =
-      currentLineModel.thermalCapacityCe // TODO DF check this
+    // TODO DF check this
+    val soilCapacitance = currentLineModel.thermalCapacityCe
 
     val acResistance = calcAcResistance(
       cableSetup.electricResistance,

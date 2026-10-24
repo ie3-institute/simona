@@ -1,0 +1,124 @@
+\begin{circuitikz}[european, scale=0.7, transform shape]
+
+  %========================================================
+  % (a) 5-node model: no cable bed
+  %========================================================
+  \node at (9,7.2) {\textbf{(a) 5-node model --- no cable bed}};
+
+  % Vertical branches at their own x-positions
+  % W1=0, C1=3, C2=6, C3=9, W3=11, C4=14, C5=17, V=20
+
+  % Heat input sources
+  \draw (0,5) to[I,l_={$W_1$}] (0,1);
+  \draw (11,5) to[I,l_={$W_3$}] (11,1);
+
+  % Thermal capacities
+  \draw (3,5) to[C,l_={$C_1$}] (3,1);
+  \draw (6,5) to[C,l_={$C_2$}] (6,1);
+  \draw (9,5) to[C,l_={$C_3$}] (9,1);
+  \draw (14,5) to[C,l_={$C_4$}] (14,1);
+  \draw (17,5) to[C,l_={$C_5$}] (17,1);
+
+  % Terminal branch: g5 to ambient source
+  \draw (17,5) to[R,l_={$g_5=1/T_4$}] (20,5);
+  \draw (20,5) to[V,l_={$T_{\text{ground}}$}] (20,1);
+
+  % Top rail: nodes and conductances
+  \draw (0,5) -- (3,5);
+  \draw (3,5) to[R,l_={$g_1$}] (6,5);
+  \draw (6,5) to[R,l_={$g_2$}] (9,5);
+  \draw (9,5) -- (11,5);
+  \draw (11,5) to[R,l_={$g_3$}] (14,5);
+  \draw (14,5) to[R,l_={$g_4$}] (17,5);
+
+  % Temperature labels (at node junctions)
+  \node[above=2mm] at (3,5) {$T_1$};
+  \node[above=2mm] at (6,5) {$T_2$};
+  \node[above=2mm] at (10,5) {$T_3$};
+  \node[above=2mm] at (14,5) {$T_4$};
+  \node[above=2mm] at (17,5) {$T_5$};
+
+  % Return rail (closes the circuit)
+  \draw (0,1) -- (20,1);
+  \node[ground] at (20,1) {};
+
+  %========================================================
+  % (b) 10-node model: with cable bed
+  %========================================================
+  \begin{scope}[yshift=-10cm, scale=0.45, transform shape]
+
+    \node at (12,7.2) {\textbf{(b) 10-node model --- with cable bed}};
+
+    % Heat input sources
+    \draw (0,5) to[I,l_={$W_1$}] (0,1);
+    \draw (7,5) to[I,l_={$W_3$}] (7,1);
+
+    % Thermal capacities
+    \draw (2,5) to[C,l_={$C_1$}] (2,1);
+    \draw (4,5) to[C,l_={$C_2$}] (4,1);
+    \draw (6,5) to[C,l_={$C_3$}] (6,1);
+    \draw (9,5) to[C,l_={$C_4$}] (9,1);
+    \draw (11,5) to[C,l_={$C_5$}] (11,1);
+    \draw (13,5) to[C,l_={$C_6$}] (13,1);
+    \draw (15,5) to[C,l_={$C_7$}] (15,1);
+    \draw (17,5) to[C,l_={$C_8$}] (17,1);
+    \draw (19,5) to[C,l_={$C_9$}] (19,1);
+    \draw (21,5) to[C,l_={$C_{10}$}] (21,1);
+
+    % Terminal branch to ground
+    \draw (21,5) to[R,l_={$g_{10}=2/R_5$}] (24,5);
+    \draw (24,5) to[V,l_={$T_{\text{ground}}$}] (24,1);
+
+    % Top rail and thermal resistances
+    \draw (0,5) -- (2,5);
+    \draw (2,5) to[R,l_={$g_1$}] (4,5);
+    \draw (4,5) to[R,l_={$g_2$}] (6,5);
+    \draw (6,5) -- (7,5);
+    \draw (7,5) to[R,l_={$g_3$}] (9,5);
+    \draw (9,5) to[R,l_={$g_4$}] (11,5);
+    \draw (11,5) to[R,l_={$g_5$}] (13,5);
+    \draw (13,5) to[R,l_={$g_6$}] (15,5);
+    \draw (15,5) to[R,l_={$g_7$}] (17,5);
+    \draw (17,5) to[R,l_={$g_8$}] (19,5);
+    \draw (19,5) to[R,l_={$g_9$}] (21,5);
+
+    % Temperature labels
+    \node[above=2mm] at (2,5) {$T_1$};
+    \node[above=2mm] at (4,5) {$T_2$};
+    \node[above=2mm] at (6,5) {$T_3$};
+    \node[above=2mm] at (9,5) {$T_4$};
+    \node[above=2mm] at (11,5) {$T_5$ (jack)};
+    \node[above=2mm] at (13,5) {$T_6$};
+    \node[above=2mm] at (15,5) {$T_7$ (bed)};
+    \node[above=2mm] at (17,5) {$T_8$};
+    \node[above=2mm] at (19,5) {$T_9$};
+    \node[above=2mm] at (21,5) {$T_{10}$ (soil)};
+
+    \draw (0,1) -- (24,1);
+    \node[ground] at (24,1) {};
+
+  \end{scope}
+
+\end{circuitikz}
+
+% Conventions (below the graphics, not part of the figure bounding box)
+\begin{itemize}\small
+  \item \textbf{Van--Wormer short-duration model:} each cable shell
+        capacitance (insulation $C_2$, jacket $C_4$) is split by the
+        Van--Wormer coefficient onto the flanking nodes, which forces the
+        shell resistance to be halved: $g_1=g_2=2/T_1$, $g_3=g_4=2/T_3$.
+  \item \textbf{Environmental cells:} $C_6$--$C_7$ represent two logarithmic
+        radial cells in the bed and $C_8$--$C_{10}$ represent three in the
+        surrounding soil. $g_5=2/R_1$ and $g_i=2/(R_{i-5}+R_{i-4})$ for
+        $i=6,\ldots,9$; the terminal conductance is $g_{10}=2/R_5$.
+        Their series resistances sum to the cable-bed T4 resistance.
+  \item \textbf{Terminal branch:} the no-bed model uses a single
+        $1/T_4$ resistance to ground; the bed model uses the five environmental
+        cell resistances from $T_5$ to ground.
+  \item \textbf{Node $\to$ layer:} $C_1$ conductor, $C_2$ dielectric
+        (insulation), $C_3$ screen, $C_4$/$C_5$ jacket, $C_6$/$C_7$ bed,
+        and $C_8$--$C_{10}$ outer soil.
+  \item \textbf{Sources:} $W_1$, $W_3$ are the conductor / screen heat
+        sources; $V_{\text{ground}}=T_{\text{ground}}$ is the fixed
+        undisturbed soil temperature.
+\end{itemize}

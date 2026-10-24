@@ -37,6 +37,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
   private val geometryFactory = new GeometryFactory()
   private val lineUuid = UUID.randomUUID()
   private val soilTypeUuid = UUID.randomUUID()
+  private val secondSoilTypeUuid = UUID.randomUUID()
   private val lineInput: LineInput = {
     val li = mock(classOf[LineInput])
     when(li.getUuid).thenReturn(lineUuid)
@@ -48,6 +49,14 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
   private val soilType = new SoilType(
     soilTypeUuid,
     "testLoam",
+    Quantities.getQuantity(0.5, KELVIN_METRE_PER_WATT),
+    Quantities.getQuantity(2.5, KELVIN_METRE_PER_WATT),
+    Quantities.getQuantity(1.5e6, JOULE_PER_CUBIC_METRE_KELVIN),
+    Quantities.getQuantity(35.0, CELSIUS),
+  )
+  private val secondSoilType = new SoilType(
+    secondSoilTypeUuid,
+    "testSand",
     Quantities.getQuantity(0.5, KELVIN_METRE_PER_WATT),
     Quantities.getQuantity(2.5, KELVIN_METRE_PER_WATT),
     Quantities.getQuantity(1.5e6, JOULE_PER_CUBIC_METRE_KELVIN),
@@ -78,13 +87,14 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       yMax: Double,
       zFromMeters: Double = 0.0,
       zToMeters: Double = -2.0,
+      soilTypeId: UUID = soilTypeUuid,
   ): SoilLayer =
     new SoilLayer(
       UUID.randomUUID(),
       rectangle(xMin, yMin, xMax, yMax),
       Quantities.getQuantity(zFromMeters, METRE),
       Quantities.getQuantity(zToMeters, METRE),
-      soilTypeUuid,
+      soilTypeId,
     )
 
   private def run(
@@ -93,6 +103,8 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       soilLayers: Seq[SoilLayer],
       neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] = Seq.empty,
       ppThreshold: Option[Double] = None,
+      cableBed: Option[LineSegmentThermalModel.CableBed] = None,
+      inputSoilTypes: Seq[SoilType] = soilTypes,
   ): (
       Set[LineSegmentThermalModel],
       ListBuffer[ThermalSegmentBuilder.BuiltSegment],
@@ -106,12 +118,13 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       cableDepth,
       Meters(0.5),
       soilLayers,
-      soilTypes,
+      inputSoilTypes,
       limitTemperature,
       generatedSegments,
       neighbourLines,
       ppThreshold,
       warnedPairs,
+      cableBed,
     )
     val segments = ThermalSegmentBuilder.splitAndAssignSegments(context)
     (segments, generatedSegments)
@@ -725,6 +738,182 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
           .sorted(java.util.Comparator.reverseOrder[Path]())
           .forEach(p => Files.deleteIfExists(p))
       }
+    }
+  }
+  "map cable bed fields from the deployment input" in {
+    val deployment = new CableDeploymentInput(
+      UUID.randomUUID(),
+      lineUuid,
+      "trefoil-touching",
+      Quantities.getQuantity(1.0, METRE),
+      Quantities.getQuantity(0.5, METRE),
+      Quantities.getQuantity(0.6, METRE),
+      Quantities.getQuantity(0.4, METRE),
+      soilTypeUuid,
+    )
+
+    val bed = ThermalSegmentBuilder
+      .cableBedForDeployment(deployment, soilTypes)
+      .getOrElse(fail("Expected cable bed fields to be mapped."))
+
+    bed.width shouldBe Meters(0.6)
+    bed.height shouldBe Meters(0.4)
+    bed.soilType shouldBe soilType
+  }
+
+  "leave cable bed unset when deployment fields are absent" in {
+    val deployment = new CableDeploymentInput(
+      UUID.randomUUID(),
+      lineUuid,
+      "trefoil-touching",
+      Quantities.getQuantity(1.0, METRE),
+      Quantities.getQuantity(0.5, METRE),
+    )
+
+    ThermalSegmentBuilder.cableBedForDeployment(
+      deployment,
+      soilTypes,
+    ) shouldBe None
+  }
+
+  "reject cable bed fields with an unknown soil type UUID" in {
+    val deployment = new CableDeploymentInput(
+      UUID.randomUUID(),
+      lineUuid,
+      "trefoil-touching",
+      Quantities.getQuantity(1.0, METRE),
+      Quantities.getQuantity(0.5, METRE),
+      Quantities.getQuantity(0.6, METRE),
+      Quantities.getQuantity(0.4, METRE),
+      UUID.randomUUID(),
+    )
+
+    an[GridAgentInitializationException] should be thrownBy {
+      ThermalSegmentBuilder.cableBedForDeployment(deployment, soilTypes)
+    }
+  }
+
+  "accept an enclosing bed for each supported cable formation" in {
+    val bed = LineSegmentThermalModel.CableBed(
+      Meters(1.2),
+      Meters(0.5),
+      soilType,
+    )
+
+    Seq("flat-distance", "flat-touching", "trefoil-touching").foreach {
+      formation =>
+        noException should be thrownBy {
+          ThermalSegmentBuilder.validateCableBedGeometry(
+            cable.copy(layoutFormation = formation),
+            Meters(0.5),
+            Meters(-1.0),
+            bed,
+          )
+        }
+    }
+  }
+
+  "reject cable beds that do not enclose every cable" in {
+    val bed = LineSegmentThermalModel.CableBed(
+      Meters(0.1),
+      Meters(0.1),
+      soilType,
+    )
+
+    an[GridAgentInitializationException] should be thrownBy {
+      ThermalSegmentBuilder.validateCableBedGeometry(
+        cable,
+        Meters(0.5),
+        Meters(-1.0),
+        bed,
+      )
+    }
+  }
+
+  "reject overlapping outer-soil layers with a cable bed" in {
+    val bed = LineSegmentThermalModel.CableBed(
+      Meters(1.2),
+      Meters(0.5),
+      soilType,
+    )
+    val layers = Seq(
+      makeSoilLayer(0.0, -0.1, 1.0, 0.1),
+      makeSoilLayer(0.0, -0.1, 1.0, 0.1),
+    )
+
+    an[GridAgentInitializationException] should be thrownBy {
+      run(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Meters(-1.0),
+        layers,
+        cableBed = Some(bed),
+      )
+    }
+  }
+
+  "reject adjacent outer-soil materials with a cable bed" in {
+    val bed = LineSegmentThermalModel.CableBed(
+      Meters(1.2),
+      Meters(0.5),
+      soilType,
+    )
+    val layers = Seq(
+      makeSoilLayer(0.0, -0.1, 0.5, 0.1),
+      makeSoilLayer(
+        0.5,
+        -0.1,
+        1.0,
+        0.1,
+        soilTypeId = secondSoilTypeUuid,
+      ),
+    )
+
+    an[GridAgentInitializationException] should be thrownBy {
+      run(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Meters(-1.0),
+        layers,
+        cableBed = Some(bed),
+        inputSoilTypes = Seq(soilType, secondSoilType),
+      )
+    }
+  }
+
+  "reject cable beds whose top crosses ground level" in {
+    val bed = LineSegmentThermalModel.CableBed(
+      Meters(1.2),
+      Meters(1.2),
+      soilType,
+    )
+
+    an[GridAgentInitializationException] should be thrownBy {
+      ThermalSegmentBuilder.validateCableBedGeometry(
+        cable,
+        Meters(0.5),
+        Meters(-0.5),
+        bed,
+      )
+    }
+  }
+
+  "reject vertically layered outer soil with a cable bed when only one layer covers cable depth" in {
+    val bed = LineSegmentThermalModel.CableBed(
+      Meters(1.2),
+      Meters(0.5),
+      soilType,
+    )
+    val layers = Seq(
+      makeSoilLayer(0.0, -0.1, 1.0, 0.1, zFromMeters = 0.0, zToMeters = -0.8),
+      makeSoilLayer(0.0, -0.1, 1.0, 0.1, zFromMeters = -0.8, zToMeters = -2.0),
+    )
+
+    an[GridAgentInitializationException] should be thrownBy {
+      run(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Meters(-1.0),
+        layers,
+        cableBed = Some(bed),
+      )
     }
   }
 }

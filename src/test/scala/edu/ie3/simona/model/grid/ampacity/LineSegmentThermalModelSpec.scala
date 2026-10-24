@@ -10,6 +10,7 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
+import edu.ie3.util.scala.quantities.JoulesPerMeterKelvin
 import org.scalatest.matchers.should.Matchers
 import squants.electro.Kilovolts
 import squants.energy.{KilowattHours, Kilowatts}
@@ -247,6 +248,33 @@ class LineSegmentThermalModelSpec
           weatherData.copy(groundTempLvl4 = None),
         )
       }
+    }
+
+    "initialize outer-soil and cable-bed thermal capacities" in {
+      val model = cigreLandCable33kVLineSegmentThermalModel.copy(
+        cableBed = Some(
+          LineSegmentThermalModel.CableBed(
+            Meters(0.6),
+            Meters(0.4),
+            cigreLandCable33kVLineSegmentThermalModel.soilType,
+          )
+        )
+      )
+
+      val initialized = LineSegmentThermalModel
+        .initState(
+          cigreT880LandCable33kVCableSetup,
+          model,
+          Celsius(20),
+        )
+        .currentLineSegmentThermalModel
+
+      initialized.thermalCapacityCe shouldBe JoulesPerMeterKelvin(
+        model.soilType.getSpecificHeatCapacity.getValue.doubleValue
+      )
+      initialized.thermalCapacityCb shouldBe JoulesPerMeterKelvin(
+        0.24 * model.soilType.getSpecificHeatCapacity.getValue.doubleValue
+      )
     }
 
   }

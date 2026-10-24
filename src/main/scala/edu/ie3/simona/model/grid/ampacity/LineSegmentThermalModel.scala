@@ -6,10 +6,13 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.datamodel.models.input.container.SoilType
 import edu.ie3.datamodel.models.StandardUnits
+import edu.ie3.datamodel.models.input.container.SoilType
 import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
+  LineState,
+  SoilLayerInfo,
+}
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
@@ -20,7 +23,7 @@ import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.ElectricPotential
-import squants.space.{Length, Meters}
+import squants.space.{Length, Meters, SquareMeters}
 import squants.{ElectricCurrent, Temperature}
 import tech.units.indriya.quantity.Quantities
 
@@ -34,16 +37,54 @@ import java.util.UUID
   *   the element's uuid
   * @param id
   *   the element's human-readable id
+  * @param lineUuid
+  *   the uuid of the line this segment belongs to
+  * @param cableSetup
+  *   the setup of the cable in this line segment
+  * @param pointA
+  *   the 3d coordinate of the segment's starting point
+  * @param pointB
+  *   the 3d coordinate of the segment's ending point
+  * @param depthCables
+  *   the laying depth of the cables below ground level (negative)
+  * @param distanceCables
+  *   the distance between the cables
   * @param thermalResistanceT1
-  *   the element's human-readable id
+  *   the thermal resistance T1 of the inner cable elements between conductor
+  *   and screen, per unit of length
   * @param thermalResistanceT2
-  *   the element's human-readable id
+  *   the thermal resistance T2 of the cable elements between screen and the
+  *   outer cable covering (filler and armor), per unit of length
   * @param thermalResistanceT3
-  *   the element's human-readable id
+  *   the thermal resistance T3 of the outer cable covering, per unit of length
   * @param thermalResistanceT4
-  *   the element's human-readable id
+  *   the thermal resistance T4 between the cable and its surrounding soil, per
+  *   unit of length
+  * @param thermalCapacityCc
+  *   the thermal capacity of the conductor per unit of length
+  * @param thermalCapacityCd
+  *   the thermal capacity of the dielectric (isolation and filler) per unit of
+  *   length
+  * @param thermalCapacityCs
+  *   the thermal capacity of the screen (sheath) per unit of length
+  * @param thermalCapacityCj
+  *   the thermal capacity of the armor and jack (outer covering) per unit of
+  *   length
+  * @param thermalCapacityCb
+  *   the thermal capacity of the cable bed per unit of length (zero if no bed)
+  * @param thermalCapacityCe
+  *   the thermal capacity of the surrounding soil per unit of length
   * @param upperBoundaryTemperature
   *   Upper boundary temperature
+  * @param soilType
+  *   the type of the surrounding soil, outside an optional existing cable bed
+  * @param calculationPoint
+  *   the calculation point of this segment
+  * @param parallelInfluence
+  *   the parallel influence of neighbouring cables as a sequence of (uuid,
+  *   influence factor)
+  * @param cableBed
+  *   the optional cable bed surrounding the cable
   */
 final case class LineSegmentThermalModel(
     uuid: UUID,
@@ -58,15 +99,18 @@ final case class LineSegmentThermalModel(
     thermalResistanceT2: ThermalResistivity,
     thermalResistanceT3: ThermalResistivity,
     thermalResistanceT4: ThermalResistivity, // FIXME DF Think about to remove this one here, since it needs to be calculated everytime new in case of changes in surrounding conditions (e.g. parallel cables and their current load)
-    thermalCapacityCc: ThermalCapacitance,
-    thermalCapacityCd: ThermalCapacitance,
-    thermalCapacityCs: ThermalCapacitance,
-    thermalCapacityCj: ThermalCapacitance,
-    thermalCapacityCe: ThermalCapacitance,
+    thermalCapacityCc: ThermalCapacityPerLength,
+    thermalCapacityCd: ThermalCapacityPerLength,
+    thermalCapacityCs: ThermalCapacityPerLength,
+    thermalCapacityCj: ThermalCapacityPerLength,
+    thermalCapacityCb: ThermalCapacityPerLength = JoulesPerMeterKelvin(0d),
+    thermalCapacityCe: ThermalCapacityPerLength,
     upperBoundaryTemperature: Temperature,
     soilType: SoilType,
     calculationPoint: Coordinate,
     parallelInfluence: Seq[(UUID, Double)] = Seq.empty,
+    cableBed: Option[LineSegmentThermalModel.CableBed] = None,
+    soilLayers: Seq[SoilLayerInfo] = Seq.empty,
 ) {
 
   /** Checks whether a dry zone around the cable is triggered, i.e. whether the
@@ -224,6 +268,33 @@ final case class LineSegmentThermalModel(
 
 object LineSegmentThermalModel {
 
+  /** Homogeneous rectangular bedding around a supported cable formation. The
+    * horizontal center is aligned with the formation center; its vertical
+    * center is located at the deployment cable depth.
+    */
+  final case class CableBed(
+      width: Length,
+      height: Length,
+      soilType: SoilType,
+  )
+
+  /** Describes a single horizontal soil layer in the ordered layer sequence.
+    * Layers are ordered from the ground surface (upperDepth closest to 0)
+    * downwards (lowerDepth most negative).
+    *
+    * @param soilType
+    *   The soil type of this layer.
+    * @param upperDepth
+    *   The depth of the upper boundary of this layer (negative below surface).
+    * @param lowerDepth
+    *   The depth of the lower boundary of this layer (negative below surface).
+    */
+  final case class SoilLayerInfo(
+      soilType: SoilType,
+      upperDepth: Length,
+      lowerDepth: Length,
+  )
+
   /** Derives the ground temperature at cable depth from [[WeatherData]] using
     * weighting of ground temperature level 3 and 4.
     *
@@ -307,7 +378,7 @@ object LineSegmentThermalModel {
 
     val thermalCapacityCd1 =
       cableSetup.layersIsolationElements.foldLeft(
-        JoulesPerCubicMeterKelvin(0)
+        JoulesPerMeterKelvin(0)
       ) { (acc, layer) =>
         acc + calcThermalCapacityCylindrical(
           layer.thermalCapacitance,
@@ -316,7 +387,7 @@ object LineSegmentThermalModel {
         )
       }
     val thermalCapacityCd2 =
-      cableSetup.layersFillerElements.foldLeft(JoulesPerCubicMeterKelvin(0)) {
+      cableSetup.layersFillerElements.foldLeft(JoulesPerMeterKelvin(0)) {
         (acc, layer) =>
           acc + calcThermalCapacityCylindrical(
             layer.thermalCapacitance,
@@ -328,7 +399,7 @@ object LineSegmentThermalModel {
     val thermalCapacityCd = thermalCapacityCd1 + thermalCapacityCd2
 
     val thermalCapacityCs =
-      cableSetup.screenLayer.fold(JoulesPerCubicMeterKelvin(0d))(layer =>
+      cableSetup.screenLayer.fold(JoulesPerMeterKelvin(0d))(layer =>
         calcThermalCapacityCylindrical(
           layer.thermalCapacitance,
           layer.innerDiameter,
@@ -337,7 +408,7 @@ object LineSegmentThermalModel {
       )
 
     val thermalCapacityCj1 =
-      cableSetup.layersArmorElements.foldLeft(JoulesPerCubicMeterKelvin(0)) {
+      cableSetup.layersArmorElements.foldLeft(JoulesPerMeterKelvin(0)) {
         (acc, layer) =>
           acc + calcThermalCapacityCylindrical(
             layer.thermalCapacitance,
@@ -347,7 +418,7 @@ object LineSegmentThermalModel {
       }
 
     val thermalCapacityCj2 =
-      cableSetup.layersJackElements.foldLeft(JoulesPerCubicMeterKelvin(0)) {
+      cableSetup.layersJackElements.foldLeft(JoulesPerMeterKelvin(0)) {
         (acc, layer) =>
           acc + calcThermalCapacityCylindrical(
             layer.thermalCapacitance,
@@ -358,8 +429,20 @@ object LineSegmentThermalModel {
 
     val thermalCapacityCj = thermalCapacityCj1 + thermalCapacityCj2
 
-    val thermalCapacityCe =
-      lineSegmentModel.soilType.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin // FIXME DF Is this necessary or does it not matter since there is the "voltage source" of the ambient ground temp?
+    val thermalCapacityCe: ThermalCapacityPerLength =
+      lineSegmentModel.soilType.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin * SquareMeters(
+        1d
+      ) // FIXME DF Proper size of the area need to be determined.
+
+    val thermalCapacityCb = lineSegmentModel.cableBed.fold(
+      JoulesPerMeterKelvin(0d)
+    ) { bed =>
+      calcThermalCapacityRectangular(
+        bed.soilType.getSpecificHeatCapacity.toSquants,
+        bed.width,
+        bed.height,
+      )
+    }
 
     val initialLineSegmentThermalModel = new LineSegmentThermalModel(
       lineSegmentModel.uuid,
@@ -378,14 +461,22 @@ object LineSegmentThermalModel {
       thermalCapacityCd,
       thermalCapacityCs,
       thermalCapacityCj,
+      thermalCapacityCb,
       thermalCapacityCe,
       lineSegmentModel.upperBoundaryTemperature,
       lineSegmentModel.soilType,
       lineSegmentModel.calculationPoint,
       lineSegmentModel.parallelInfluence,
+      lineSegmentModel.cableBed,
+      lineSegmentModel.soilLayers,
     )
 
     val initLineTemperatures = LineTemperatures(
+      initialGroundTemperature,
+      initialGroundTemperature,
+      initialGroundTemperature,
+      initialGroundTemperature,
+      initialGroundTemperature,
       initialGroundTemperature,
       initialGroundTemperature,
       initialGroundTemperature,
