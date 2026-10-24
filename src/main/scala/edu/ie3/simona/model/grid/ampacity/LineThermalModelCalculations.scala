@@ -826,12 +826,70 @@ object LineThermalModelCalculations extends LazyLogging {
     val depth = -depthCable.toMeters
     val distance = distanceToBoundary.toMeters
     val boundaryFactor = log(sqrt(pow(distance, 2) + pow(depth, 2)) / distance)
-    val geometricFactor = //TODO DF check if this calcGeometricFactor is same as ln(2h/r_s)...
+    val geometricFactor = // TODO DF check if this calcGeometricFactor is same as ln(2h/r_s)...
       calcGeometricFactor(
         depthCable,
         cableDiameter,
       ) + reflectionFactor * boundaryFactor
     (soilResistivity / TWO_PI) * geometricFactor
+  }
+
+  /** Calculates the mutual external thermal resistance T4 of two cables, j and
+    * k, buried in a flat formation in medium I at a plane vertical boundary to
+    * medium II, using the image-source method. Reference: Morgan and Slaninka,
+    * "The external thermal resistance of power cables in a group buried in
+    * non-uniform soil", Electric Power Systems Research, 29 (1994), Fig. 6
+    * eqns. (17)-(19). For equal resistivities on both sides of the boundary the
+    * image-source correction vanishes.
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of the medium in which the cables are buried
+    *   (medium I).
+    * @param boundaryResistivity
+    *   The thermal resistivity of the adjacent medium (medium II).
+    * @param depthCable
+    *   The laying depth of the cables, negative below the ground surface.
+    * @param distanceCableJToBoundary
+    *   The horizontal distance from cable j to the vertical boundary.
+    * @param distanceCableKToBoundary
+    *   The horizontal distance from cable k to the vertical boundary.
+    * @return
+    *   The mutual external thermal resistance in Kelvin * Meter / Watt per unit
+    *   cable length.
+    */
+  def calcThermalResistanceMutualVerticalBoundary(
+      soilResistivity: ThermalResistivity,
+      boundaryResistivity: ThermalResistivity,
+      depthCable: Length,
+      distanceCableJToBoundary: Length,
+      distanceCableKToBoundary: Length,
+  ): ThermalResistivity = {
+    val distanceJ = distanceCableJToBoundary.toMeters
+    val distanceK = distanceCableKToBoundary.toMeters
+    val depth = -depthCable.toMeters
+    val axialDistance = abs(distanceJ - distanceK)
+    val imageDistance = distanceJ + distanceK
+
+    if distanceJ <= 0 ||      distanceK <= 0
+    then {
+      throw new IllegalArgumentException(
+        s"The distances to the vertical boundary must be positive, but were $distanceCableJToBoundary and $distanceCableKToBoundary."
+   )
+    }
+    if axialDistance <= 0 then {
+      IllegalArgumentException(
+        s"The two cables must be at different distances from the boundary, but both were at $distanceJ m."
+      )
+    }
+
+    val reflectionFactor =
+      calcVerticalBoundaryReflectionFactor(soilResistivity, boundaryResistivity)
+
+    val uniformFactor = // TODO FIXME DF this is right for R12 and R23 but not for R13...
+      log((4 * pow(depth, 2) +pow(axialDistance, 2)  ) / pow(axialDistance, 2))
+    val imageFactor =  // TODO FIXME DF this is right for R12 and R23 but not for R13...
+      log((pow(imageDistance, 2) + 4 * pow(depth, 2)) / pow(imageDistance, 2))
+    (soilResistivity / FOUR_PI) * (uniformFactor + reflectionFactor * imageFactor)
   }
 
   /** Calculates the thermal resistivity between the cable layers and the
