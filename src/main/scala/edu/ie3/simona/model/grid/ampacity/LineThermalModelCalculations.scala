@@ -25,17 +25,19 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
   ElectricalResistancePerLength,
   JoulesPerCubicMeterKelvin,
+  JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
   OhmsPerMeter,
   PowerPerLength,
   SpecificCapacitance,
   ThermalCapacitance,
+  ThermalCapacityPerLength,
   ThermalResistivity,
   WattsPerMeter,
   SquantsUtils as RichElectricPotential,
 }
 import squants.electro.*
-import squants.space.{Length, Millimeters, SquareMeters}
+import squants.space.*
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
 import squants.{ElectricCurrent, Kelvin, Meters, Temperature}
@@ -51,10 +53,15 @@ object LineThermalModelCalculations extends LazyLogging {
 
   // Constants for thermal calculations
   private val TWO_PI: Double = 2 * Pi
+  private val FOUR_PI: Double = 4 * Pi
   private val PI_OVER_FOUR: Double = Pi / 4
   private val TREFOIL_COEFFICIENT: Double = 1.5
   private val TREFOIL_ADJUSTMENT: Double = 0.63
   private val REFERENCE_TEMPERATURE: Temperature = Celsius(20d)
+
+  // Image-source series limits for the non-uniform soil T4 methods (S&M 1992)
+  private val IMAGE_SERIES_MAX_TERMS: Int = 1000
+  private val IMAGE_SERIES_CONVERGENCE_TOLERANCE: Double = 1e-12
 
   /** Calculates the thermal resistance T1 of the inner cable elements between
     * conductor and screen.
@@ -716,12 +723,12 @@ object LineThermalModelCalculations extends LazyLogging {
     *   The thermal resistance between cable and its surrounding soil in Kelvin
     *   * Meter / Watt per unit cable length.
     */
-  private def calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
+  private[ampacity] def calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
       specificThermalResistivityGround: ThermalResistivity,
       depthCables: Length,
       diameterCableB: Length,
   ): ThermalResistivity = {
-    val u = (depthCables * 2) / diameterCableB
+    val u = (depthCables * -2) / diameterCableB
 
     if u < 5 then
       logger.warn(
@@ -762,21 +769,20 @@ object LineThermalModelCalculations extends LazyLogging {
     ) * (log(2 * u) - TREFOIL_ADJUSTMENT)
   }
 
-  /** Calculates the reflection factor at a plane vertical boundary between two
-    * homogeneous media. Reference: Slaninka and Morgan, "External thermal
+  /** Calculates the dimensionless thermal reflection factor at a plane boundary
+    * between two homogeneous media. The formula is the same for vertical and
+    * horizontal boundaries. Reference: Slaninka and Morgan, "External thermal
     * resistance of power cable in non-uniform soil", IEE Proceedings A, 139(3)
     * (1992), eqn. (3).
-    *
     * @param soilResistivity
     *   The thermal resistivity of the medium in which the cable is buried
     *   (medium I).
-    *
     * @param boundaryResistivity
     *   The thermal resistivity of the adjacent medium (medium II).
     * @return
     *   The dimensionless reflection factor m.
     */
-  def calcVerticalBoundaryReflectionFactor(
+  def calcBoundaryReflectionFactor(
       soilResistivity: ThermalResistivity,
       boundaryResistivity: ThermalResistivity,
   ): Double = {
@@ -822,7 +828,7 @@ object LineThermalModelCalculations extends LazyLogging {
       throw new IllegalArgumentException(message)
     }
     val reflectionFactor =
-      calcVerticalBoundaryReflectionFactor(soilResistivity, boundaryResistivity)
+      calcBoundaryReflectionFactor(soilResistivity, boundaryResistivity)
     val depth = -depthCable.toMeters
     val distance = distanceToBoundary.toMeters
     val boundaryFactor = log(sqrt(pow(distance, 2) + pow(depth, 2)) / distance)
@@ -838,10 +844,9 @@ object LineThermalModelCalculations extends LazyLogging {
     * k, buried in a flat formation in medium I at a plane vertical boundary to
     * medium II, using the image-source method. Reference: Morgan and Slaninka,
     * "The external thermal resistance of power cables in a group buried in
-    * non-uniform soil", Electric Power Systems Research, 29 (1994), Fig. 6
-    * eqns. (17)-(19). For equal resistivities on both sides of the boundary the
+    * non-uniform soil", Electric Power Systems Research, 29 (1994), eqns.
+    * (17)-(19). For equal resistivities on both sides of the boundary the
     * image-source correction vanishes.
-    *
     * @param soilResistivity
     *   The thermal resistivity of the medium in which the cables are buried
     *   (medium I).
@@ -870,11 +875,11 @@ object LineThermalModelCalculations extends LazyLogging {
     val axialDistance = abs(distanceJ - distanceK)
     val imageDistance = distanceJ + distanceK
 
-    if distanceJ <= 0 ||      distanceK <= 0
+    if distanceJ <= 0 || distanceK <= 0
     then {
       throw new IllegalArgumentException(
         s"The distances to the vertical boundary must be positive, but were $distanceCableJToBoundary and $distanceCableKToBoundary."
-   )
+      )
     }
     if axialDistance <= 0 then {
       IllegalArgumentException(
@@ -883,41 +888,696 @@ object LineThermalModelCalculations extends LazyLogging {
     }
 
     val reflectionFactor =
-      calcVerticalBoundaryReflectionFactor(soilResistivity, boundaryResistivity)
+      calcBoundaryReflectionFactor(soilResistivity, boundaryResistivity)
 
     val uniformFactor = // TODO FIXME DF this is right for R12 and R23 but not for R13...
-      log((4 * pow(depth, 2) +pow(axialDistance, 2)  ) / pow(axialDistance, 2))
-    val imageFactor =  // TODO FIXME DF this is right for R12 and R23 but not for R13...
+      log((4 * pow(depth, 2) + pow(axialDistance, 2)) / pow(axialDistance, 2))
+    val imageFactor = // TODO FIXME DF this is right for R12 and R23 but not for R13...
       log((pow(imageDistance, 2) + 4 * pow(depth, 2)) / pow(imageDistance, 2))
     (soilResistivity / FOUR_PI) * (uniformFactor + reflectionFactor * imageFactor)
   }
 
-  /** Calculates the thermal resistivity between the cable layers and the
-    * surrounding soil.
-    * @param specificThermalCapacity
-    *   The material dependent specific thermal capacity of the layer in
-    *   question (Joule per cubic meter).
-    * @param innerDiameter
-    *   The inner diameter of this layer.
-    * @param outerDiameter
-    *   The outer diameter of this layer.
+  /** Calculates the mutual external thermal resistance T4 of two cables, j and
+    * k, buried in a flat formation in medium I beneath a horizontal layer of
+    * medium II, using the image-source method. Reference: Morgan and Slaninka,
+    * "The external thermal resistance of power cables in a group buried in
+    * non-uniform soil", Electric Power Systems Research, 29(1) (1994), eqn.
+    * (8). For equal resistivities the method reduces to the Kennelly mutual
+    * formula for a uniform medium with a symmetry plane at the surface.
+    * @param soilResistivity
+    *   The thermal resistivity of medium I in which the cables are buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the top layer of medium II.
+    * @param distanceToSurface
+    *   The vertical distance from the cable axis to the ground surface (h).
+    * @param axialSpacing
+    *   The axial distance between the two cables (s).
+    * @param distanceToBoundary
+    *   The vertical distance from the cable axis to the layer interface (a).
+    * @param layerThickness
+    *   The thickness of the top layer (t).
     * @return
-    *   The thermal capacity of this cable layer Joule / Kelvin per unit cable
-    *   length.
+    *   The mutual external thermal resistance in Kelvin * Meter / Watt per unit
+    *   cable length.
+    */
+  def calcThermalResistanceMutualHorizontalLayerBeneath(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      distanceToSurface: Length,
+      axialSpacing: Length,
+      distanceToBoundary: Length,
+      layerThickness: Length,
+  ): ThermalResistivity = {
+    val h = distanceToSurface.toMeters
+    val s = axialSpacing.toMeters
+    val a = distanceToBoundary.toMeters
+    val t = layerThickness.toMeters
+    if h <= 0 || s <= 0 || a <= 0 || t <= 0 then {
+      val message =
+        s"All distances must be positive, but were h=$h m, s=$s m, a=$a m, t=$t m."
+      logger.error(message)
+      throw new IllegalArgumentException(message)
+    }
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val m1 =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val m2 = -m1
+    val n1 = 2 * rho1 / (rho1 + rho2)
+    val n2 = 2 * rho2 / (rho1 + rho2)
+    val p = m2 * n1 * n2
+    val q = m2 * m2
+
+    val s2 = s * s
+    val uniformFactor = log(1.0 / s2)
+    val imageFactor = m1 * log(1.0 / (4.0 * a * a + s2))
+
+    if abs(m1) < 1e-15 then {
+      val d2 = (2.0 * a + 2.0 * t) * (2.0 * a + 2.0 * t) + s2
+      return (soilResistivity / FOUR_PI) * (uniformFactor + imageFactor - log(
+        1.0 / d2
+      ))
+    }
+
+    var sum1 = 0.0
+    var sum2 = 0.0
+    var qi = 1.0
+    var i = 1
+    while i <= IMAGE_SERIES_MAX_TERMS do {
+      val d1 = 2.0 * a + 4.0 * i * t
+      val term1 = qi * log(1.0 / (d1 * d1 + s2))
+      val d2 = 2.0 * a + (4.0 * i - 2.0) * t
+      val term2 = qi * log(1.0 / (d2 * d2 + s2))
+      sum1 += term1
+      sum2 += term2
+      // TODO DF CHECK THIS / Understand this
+      if abs(term1) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(sum1) &&
+        abs(term2) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(sum2)
+      then i = IMAGE_SERIES_MAX_TERMS + 1
+      else
+        qi *= q
+        i += 1
+    }
+    val geometricFactor =
+      uniformFactor + imageFactor + p * sum1 - n1 * n2 * sum2
+    (soilResistivity / FOUR_PI) * geometricFactor
+  }
+
+  /** Calculates the mutual external thermal resistance T4 of two cables, j and
+    * k, buried within a horizontal layer of medium I (thickness a + h) on top
+    * of the semi-infinite medium II, using the image-source method.
+    *
+    * Reference: Morgan and Slaninka, "The external thermal resistance of power
+    * cables in a group buried in non-uniform soil", Electric Power Systems
+    * Research, 29(1) (1994), Fig. 4, eqn. (12), and its general derivation in
+    * the Appendix (eqn. A1).
+    *
+    * NOTE on a typographical error in the source: the published eqn. (12)
+    * prints the 4th and 5th summation terms as *identical*, both with offset
+    * `(4i - 2)h`. This is a genuine typo. A line source between the two
+    * parallel boundaries produces two image sets at *distinct* offsets. The 5th
+    * term (upper-boundary / surface reflection series) must use `(4i + 2)h`.
+    *
+    * Using the identical `(4i - 2)h` in both terms is non-physical: it doubles
+    * the lower-boundary image set, omits the surface-reflection series, and
+    * makes the computed resistance non-monotonic (it even drops below the
+    * uniform-soil value for large rho2/rho1), violating the maximum principle
+    * for steady heat conduction. The corrected `(4i + 2)h` restores
+    * monotonicity and matches the structure of the 1992 self-resistance formula
+    * (Slaninka and Morgan, IEE Proc. A, 139(3), eqn. 12), where the
+    * corresponding terms carry the distinct offsets `(i - 0.5)h` and `(i +
+    * 0.5)h` (which map to `(4i - 2)h` and `(4i + 2)h` under the mutual 4x
+    * scaling). For equal resistivities (m = q = 0) all image terms vanish and
+    * the result reduces to the Kennelly mutual formula for a uniform medium.
+    * See research notes 16 and 17. TODO DF, remove last sentence after included
+    * in rtd.
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of the layer medium I in which the cables are
+    *   buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the medium II beneath the layer.
+    * @param distanceToLowerBoundary
+    *   The distance a from the cable axis to the lower interface (medium I /
+    *   II).
+    * @param distanceToSurface
+    *   The distance h from the cable axis to the ground surface.
+    * @param axialSpacing
+    *   The axial distance s between the two cables.
+    * @return
+    *   The mutual external thermal resistance in Kelvin * Meter / Watt per unit
+    *   cable length.
+    */
+  def calcThermalResistanceMutualHorizontalLayerWithin(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      distanceToLowerBoundary: Length,
+      distanceToSurface: Length,
+      axialSpacing: Length,
+  ): ThermalResistivity = {
+    val a = distanceToLowerBoundary.toMeters
+    val h = distanceToSurface.toMeters
+    val s = axialSpacing.toMeters
+    if a <= 0 || h <= 0 || s <= 0 then {
+      val message =
+        s"All distances must be positive, but were a=$a m, h=$h m, s=$s m."
+      logger.error(message)
+      throw new IllegalArgumentException(message)
+    }
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val m =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val q = m * m
+    val sSquared = s * s
+
+    val term1 = log((4.0 * h * h + sSquared) / sSquared)
+    if abs(m) < 1e-15 then return (soilResistivity / FOUR_PI) * term1
+
+    var s2sum = 0.0
+    var s3sum = 0.0
+    var s4sum = 0.0
+    var s5sum = 0.0
+    var i = 1
+    while i <= IMAGE_SERIES_MAX_TERMS do {
+      val num2 = (4.0 * i - 2.0) * (a + h)
+      val den2 = (4.0 * i - 2.0) * a + 4.0 * (i - 1) * h
+      val t2 = pow(m, 2 * i - 1) * log(
+        (num2 * num2 + sSquared) / (den2 * den2 + sSquared)
+      )
+      val den3 = (4.0 * i - 2.0) * a + 4.0 * i * h
+      val t3 = pow(m, 2 * i - 1) * log(
+        (num2 * num2 + sSquared) / (den3 * den3 + sSquared)
+      )
+      val num4 = 4.0 * i * a + (4.0 * i - 2.0) * h
+      val den4 = 4.0 * i * (a + h)
+      val t4 = pow(q, i) * log(
+        (num4 * num4 + sSquared) / (den4 * den4 + sSquared)
+      )
+      val num5 = 4.0 * i * a + (4.0 * i + 2.0) * h
+      val t5 = pow(q, i) * log(
+        (num5 * num5 + sSquared) / (den4 * den4 + sSquared)
+      )
+      s2sum += t2
+      s3sum += t3
+      s4sum += t4
+      s5sum += t5
+      if max(
+          abs(pow(m, 2 * i - 1)),
+          abs(pow(q, i)),
+        ) < IMAGE_SERIES_CONVERGENCE_TOLERANCE
+      then i = IMAGE_SERIES_MAX_TERMS + 1
+      else i += 1
+    }
+    (soilResistivity / FOUR_PI) * (term1 + s2sum + s3sum + s4sum + s5sum)
+  }
+
+  /** Calculates the mutual external thermal resistance of two adjacent cables
+    * (cables 1 and 2) near a vertical layer of medium II (thickness t)
+    * sandwiched between medium I and medium III, using the image-source method.
+    * Reference: Morgan and Slaninka, "The external thermal resistance of power
+    * cables in a group buried in non-uniform soil", Electric Power Systems
+    * Research, 29(1) (1994), Fig 7, eqn. (21).
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of medium I in which the cables are buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the vertical layer (medium II).
+    * @param farResistivity
+    *   The thermal resistivity of medium III beyond the layer.
+    * @param distanceToSurface
+    *   The vertical distance from the cable axis to the ground surface (h).
+    * @param axialSpacing
+    *   The axial distance between the two cables (s).
+    * @param distanceToNearBoundary
+    *   The horizontal distance from the nearer cable to the near boundary (a).
+    * @param layerThickness
+    *   The thickness of the vertical layer (t).
+    * @return
+    *   The mutual external thermal resistance in Kelvin * Meter / Watt per unit
+    *   cable length.
+    */
+  def calcThermalResistanceMutualVerticalLayer(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      farResistivity: ThermalResistivity,
+      distanceToSurface: Length,
+      axialSpacing: Length,
+      distanceToNearBoundary: Length,
+      layerThickness: Length,
+  ): ThermalResistivity = {
+    val h = distanceToSurface.toMeters
+    val s = axialSpacing.toMeters
+    val a = distanceToNearBoundary.toMeters
+    val t = layerThickness.toMeters
+    if h <= 0 || s <= 0 || a <= 0 || t <= 0 then {
+      throw new IllegalArgumentException(
+        s"All distances must be positive, but were h=$h m, s=$s m, a=$a m, t=$t m."
+      )
+    }
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val rho3 = farResistivity.toKelvinMetersPerWatt
+    val m1 =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val m2 =
+      calcBoundaryReflectionFactor(layerResistivity, farResistivity)
+    val n1 = 2 * rho1 / (rho1 + rho2)
+    val n2 = 2 * rho2 / (rho1 + rho2)
+    val p = m2 * n1 * n2
+    val q = m1 * m2
+
+    val sSquared = s * s
+    val fourHSquared = 4.0 * h * h
+    val term1 = log((fourHSquared + sSquared) / sSquared)
+    val dImg = 2.0 * a + s
+    val term2 = m1 * log((dImg * dImg + fourHSquared) / (dImg * dImg))
+
+    if abs(m1) < 1e-15 && abs(m2) < 1e-15 then
+      return (soilResistivity / FOUR_PI) * (term1 + term2)
+
+    var sSum = 0.0
+    var qi = 1.0
+    var i = 1
+    while i <= IMAGE_SERIES_MAX_TERMS do {
+      val d = 2.0 * a + s + 2.0 * i * t
+      val term = qi * log((d * d + fourHSquared) / (d * d))
+      sSum += term
+      if abs(term) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(sSum) then
+        i = IMAGE_SERIES_MAX_TERMS + 1
+      else
+        qi *= q
+        i += 1
+    }
+    (soilResistivity / FOUR_PI) * (term1 + term2 + p * sSum)
+  }
+
+  /** Calculates the delta correction to the mutual thermal resistance of the
+    * outer pair of cables (cables 2 and 3) near a vertical layer, arising from
+    * the additional multiple reflections at the second boundary B. Reference:
+    * Morgan and Slaninka, "The external thermal resistance of power cables in a
+    * group buried in non-uniform soil", Electric Power Systems Research, 29(1)
+    * (1994), Fig 7, eqn. (22). This delta is added to the two-media base mutual
+    * resistance to obtain the total three-media mutual R.
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of medium I in which the cables are buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the vertical layer (medium II).
+    * @param farResistivity
+    *   The thermal resistivity of medium III beyond the layer.
+    * @param distanceToSurface
+    *   The vertical distance from the cable axis to the ground surface (h).
+    * @param axialSpacing
+    *   The axial distance between adjacent cables (s).
+    * @param distanceToNearBoundary
+    *   The horizontal distance from cable 1 to the near boundary (a).
+    * @param layerThickness
+    *   The thickness of the vertical layer (t).
+    * @return
+    *   The delta correction to the mutual thermal resistance in Kelvin * Meter
+    *   / Watt per unit cable length.
+    */
+  def calcThermalResistanceDeltaVerticalLayerOuter(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      farResistivity: ThermalResistivity,
+      distanceToSurface: Length,
+      axialSpacing: Length,
+      distanceToNearBoundary: Length,
+      layerThickness: Length,
+  ): ThermalResistivity = {
+    val h = distanceToSurface.toMeters
+    val s = axialSpacing.toMeters
+    val a = distanceToNearBoundary.toMeters
+    val t = layerThickness.toMeters
+    if h <= 0 || s <= 0 || a <= 0 || t <= 0 then {
+      val message =
+        s"All distances must be positive, but were h=$h m, s=$s m, a=$a m, t=$t m."
+      logger.error(message)
+      throw new IllegalArgumentException(message)
+    }
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val m1 =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val m2 =
+      calcBoundaryReflectionFactor(layerResistivity, farResistivity)
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val n1 = 2 * rho1 / (rho1 + rho2)
+    val n2 = 2 * rho2 / (rho1 + rho2)
+    val p = m2 * n1 * n2
+    val q = m1 * m2
+
+    if abs(p) < 1e-15 then return KelvinMetersPerWatt(0.0)
+
+    val fourHSquared = 4.0 * h * h
+    var sSum = 0.0
+    var qi = 1.0
+    var i = 1
+    while i <= IMAGE_SERIES_MAX_TERMS do {
+      val d = 2.0 * a + 3.0 * s + 2.0 * i * t
+      val term = qi * log((d * d + fourHSquared) / (d * d))
+      sSum += term
+      if abs(term) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(sSum) then
+        i = IMAGE_SERIES_MAX_TERMS + 1
+      else
+        qi *= q
+        i += 1
+    }
+    KelvinMetersPerWatt(rho1 * p / FOUR_PI * sSum)
+  }
+
+  /** Calculates the delta correction to the mutual thermal resistance of the
+    * far pair of cables (cables 1 and 3) near a vertical layer, arising from
+    * the additional multiple reflections at the second boundary B. Reference:
+    * Morgan and Slaninka, "The external thermal resistance of power cables in a
+    * group buried in non-uniform soil", Electric Power Systems Research, 29(1)
+    * (1994), Fig 7, eqn. (23). This delta is added to the two-media base mutual
+    * resistance to obtain the total three-media mutual R.
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of medium I in which the cables are buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the vertical layer (medium II).
+    * @param farResistivity
+    *   The thermal resistivity of medium III beyond the layer.
+    * @param distanceToSurface
+    *   The vertical distance from the cable axis to the ground surface (h).
+    * @param axialSpacing
+    *   The axial distance between adjacent cables (s).
+    * @param distanceToNearBoundary
+    *   The horizontal distance from cable 1 to the near boundary (a).
+    * @param layerThickness
+    *   The thickness of the vertical layer (t).
+    * @return
+    *   The delta correction to the mutual thermal resistance in Kelvin * Meter
+    *   / Watt per unit cable length.
+    */
+  def calcThermalResistanceDeltaVerticalLayerFar(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      farResistivity: ThermalResistivity,
+      distanceToSurface: Length,
+      axialSpacing: Length,
+      distanceToNearBoundary: Length,
+      layerThickness: Length,
+  ): ThermalResistivity = {
+    val h = distanceToSurface.toMeters
+    val s = axialSpacing.toMeters
+    val a = distanceToNearBoundary.toMeters
+    val t = layerThickness.toMeters
+    if h <= 0 || s <= 0 || a <= 0 || t <= 0 then {
+      val message =
+        s"All distances must be positive, but were h=$h m, s=$s m, a=$a m, t=$t m."
+      logger.error(message)
+      throw new IllegalArgumentException(message)
+    }
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val m1 =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val m2 =
+      calcBoundaryReflectionFactor(layerResistivity, farResistivity)
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val n1 = 2 * rho1 / (rho1 + rho2)
+    val n2 = 2 * rho2 / (rho1 + rho2)
+    val p = m2 * n1 * n2
+    val q = m1 * m2
+
+    if abs(p) < 1e-15 then return KelvinMetersPerWatt(0.0)
+
+    val hSq = h * h
+    var sSum = 0.0
+    var qi = 1.0
+    var i = 1
+    while i <= IMAGE_SERIES_MAX_TERMS do {
+      val d = a + s + i * t
+      val term = qi * log((d * d + hSq) / (d * d))
+      sSum += term
+      if abs(term) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(sSum) then
+        i = IMAGE_SERIES_MAX_TERMS + 1
+      else
+        qi *= q
+        i += 1
+    }
+    KelvinMetersPerWatt(rho1 * p / FOUR_PI * sSum)
+  }
+
+  /** Calculates the self external thermal resistance T4 of a single cable
+    * buried beneath a horizontal layer of medium II on top of the uniform
+    * medium I, using the image-source method. Reference: Slaninka and Morgan,
+    * "External thermal resistance of power cable in non-uniform soil", IEE
+    * Proceedings A, 139(3) (1992), Fig. 3a, eqn. (10). For equal resistivities
+    * the method reduces exactly to [[calcThermalResistanceToSoilSingleCable]].
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of the uniform medium I in which the cable is
+    *   buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the top layer of medium II.
+    * @param depthCable
+    *   The laying depth of the cable, negative below the ground surface.
+    * @param cableDiameter
+    *   The outer diameter of the cable.
+    * @param layerThickness
+    *   The thickness of the top layer.
+    * @return
+    *   The external thermal resistance between cable and soil in Kelvin * Meter
+    *   / Watt per unit cable length.
+    */
+  def calcThermalResistanceToSoilHorizontalLayerBeneath(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      depthCable: Length,
+      cableDiameter: Length,
+      layerThickness: Length,
+  ): ThermalResistivity = {
+    val depth = -depthCable.toMeters
+    val t = layerThickness.toMeters
+    val a = depth - t
+    if a <= 0 then {
+      throw new IllegalArgumentException(
+        s"The cable must be below the layer interface (depth > layerThickness), but depth was $depth m and layerThickness was $t m."
+      )
+    }
+    val rs = cableDiameter.toMeters / 2
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val m1 =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val m2 = -m1
+    val n1 = 2 * rho1 / (rho1 + rho2)
+    val n2 = 2 * rho2 / (rho1 + rho2)
+    val p = m2 * n1 * n2
+    val q = m2 * m2
+
+    var s1 = 0.0
+    var s2 = 0.0
+    var qi = 1.0
+    var i = 1
+    while i <= IMAGE_SERIES_MAX_TERMS do {
+      val term1 = qi * log(1.0 / (2.0 * (a + 2.0 * i * t)))
+      val term2 = qi * log(1.0 / (2.0 * (a + (2.0 * i - 1.0) * t)))
+      s1 += term1
+      s2 += term2
+      if abs(term1) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(s1) &&
+        abs(term2) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(s2)
+      then i = IMAGE_SERIES_MAX_TERMS + 1
+      else
+        qi *= q
+        i += 1
+    }
+    val geometricFactor =
+      log(1.0 / rs) + m1 * log(1.0 / (2.0 * a)) + p * s1 - n1 * n2 * s2
+    (soilResistivity / TWO_PI) * geometricFactor
+  }
+
+  // TODO DF review
+
+  /** Calculates the self external thermal resistance T4 of a single cable
+    * buried within a horizontal layer of medium I (thickness a + h) on top of
+    * medium II, using the image-source method. Reference: Slaninka and Morgan,
+    * "External thermal resistance of power cable in non-uniform soil", IEE
+    * Proceedings A, 139(3) (1992), Fig. 4a, eqn. (12). For equal resistivities
+    * the method reduces exactly to [[calcThermalResistanceToSoilSingleCable]].
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of the layer (medium I) in which the cable is
+    *   buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the medium II below the layer.
+    * @param distanceToLowerBoundary
+    *   The vertical distance from the cable axis to the lower boundary of the
+    *   layer (with medium II).
+    * @param distanceToSurface
+    *   The vertical distance from the cable axis to the ground surface.
+    * @param cableDiameter
+    *   The outer diameter of the cable.
+    * @return
+    *   The external thermal resistance between cable and soil in Kelvin * Meter
+    *   / Watt per unit cable length.
+    */
+  def calcThermalResistanceToSoilHorizontalLayerWithin(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      distanceToLowerBoundary: Length,
+      distanceToSurface: Length,
+      cableDiameter: Length,
+  ): ThermalResistivity = {
+    val a = distanceToLowerBoundary.toMeters
+    val h = distanceToSurface.toMeters
+    if a <= 0 || h <= 0 then {
+      throw new IllegalArgumentException(
+        s"The distances to the lower boundary and the surface must be positive, but were $distanceToLowerBoundary and $distanceToSurface."
+      )
+    }
+    val rs = cableDiameter.toMeters / 2
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val m =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val q = m * m
+
+    var s = 0.0
+    var i = 1
+    var converged = false
+    while i <= IMAGE_SERIES_MAX_TERMS && !converged do {
+      val t1 = pow(m, 2 * i - 1) * log(
+        (
+          (i - 0.5) * (a + h)
+        ) / ((i - 0.5) * a + (i - 1) * h)
+      )
+      val t2 = pow(m, 2 * i - 1) * log(
+        (
+          (i - 0.5) * (a + h)
+        ) / ((i - 0.5) * a + i * h)
+      )
+      val t3 = pow(q, i) * log((i * a + (i - 0.5) * h) / (i * (a + h)))
+      val t4 = pow(q, i) * log((i * a + (i + 0.5) * h) / (i * (a + h)))
+      val term = t1 + t2 + t3 + t4
+      s += term
+      converged = abs(term) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(s)
+      i += 1
+    }
+    val geometricFactor = log(2 * h / rs) + s
+    (soilResistivity / TWO_PI) * geometricFactor
+  }
+
+  /** Calculates the self external thermal resistance T4 of a single cable
+    * buried near a vertical layer of medium II (thickness t) sandwiched between
+    * medium I and medium III, using the image-source method. Reference:
+    * Slaninka and Morgan, "External thermal resistance of power cable in
+    * non-uniform soil", IEE Proceedings A, 139(3) (1992), Fig. 6a, eqn. (14).
+    * For equal resistivities the method reduces exactly to
+    * [[calcThermalResistanceToSoilSingleCable]].
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of the medium I in which the cable is buried.
+    * @param layerResistivity
+    *   The thermal resistivity of the vertical layer (medium II).
+    * @param farResistivity
+    *   The thermal resistivity of the medium III beyond the layer.
+    * @param depthCable
+    *   The laying depth of the cable, negative below the ground surface.
+    * @param cableDiameter
+    *   The outer diameter of the cable.
+    * @param distanceToNearBoundary
+    *   The horizontal distance from the cable axis to the near boundary of the
+    *   vertical layer.
+    * @param layerThickness
+    *   The thickness of the vertical layer.
+    * @return
+    *   The external thermal resistance between cable and soil in Kelvin * Meter
+    *   / Watt per unit cable length.
+    */
+  def calcThermalResistanceToSoilVerticalLayerSingleCable(
+      soilResistivity: ThermalResistivity,
+      layerResistivity: ThermalResistivity,
+      farResistivity: ThermalResistivity,
+      depthCable: Length,
+      cableDiameter: Length,
+      distanceToNearBoundary: Length,
+      layerThickness: Length,
+  ): ThermalResistivity = {
+    val a = distanceToNearBoundary.toMeters
+    val t = layerThickness.toMeters
+    if a <= 0 || t <= 0 then {
+      throw new IllegalArgumentException(
+        s"The distance to the vertical layer and the layer thickness must be positive, but were $distanceToNearBoundary and $layerThickness."
+      )
+    }
+    val depth = -depthCable.toMeters
+    val rs = cableDiameter.toMeters / 2
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val m1 =
+      calcBoundaryReflectionFactor(soilResistivity, layerResistivity)
+    val m2 =
+      calcBoundaryReflectionFactor(layerResistivity, farResistivity)
+    val rho2 = layerResistivity.toKelvinMetersPerWatt
+    val n1 = 2 * rho1 / (rho1 + rho2)
+    val n2 = 2 * rho2 / (rho1 + rho2)
+    val p = m2 * n1 * n2
+    val q = -m1 * m2
+
+    def verticalFactor(d: Double): Double =
+      log(sqrt(d * d + depth * depth) / d)
+
+    var s = 0.0
+    var qi = 1.0
+    var i = 1
+    while i <= IMAGE_SERIES_MAX_TERMS do {
+      val term = qi * verticalFactor(a + i * t)
+      s += term
+      if abs(term) < IMAGE_SERIES_CONVERGENCE_TOLERANCE * abs(s) then
+        i = IMAGE_SERIES_MAX_TERMS + 1
+      else
+        qi *= q
+        i += 1
+    }
+    val geometricFactor =
+      log(2 * depth / rs) + m1 * verticalFactor(a) + p * s
+    (soilResistivity / TWO_PI) * geometricFactor
+  }
+
+  /** Calculates the thermal resistivity per length unit for a cylindrical area.
+    * @param thermalCapacitanceMaterial
+    *   The material dependent specific thermal capacitance.
+    * @param innerDiameter
+    *   The inner diameter of this area.
+    * @param outerDiameter
+    *   The outer diameter of this area.
+    * @return
+    *   The thermal capacity per length unit of this area.
     */
   def calcThermalCapacityCylindrical(
-      specificThermalCapacity: ThermalCapacitance,
+      thermalCapacitanceMaterial: ThermalCapacitance,
       innerDiameter: Length,
       outerDiameter: Length,
-  ): ThermalCapacitance = {
-    val areaDifference = pow(outerDiameter.toMeters, 2) - pow(
-      innerDiameter.toMeters,
-      2,
+  ): ThermalCapacityPerLength = {
+    val areaDifference = SquareMeters(
+      (pow(outerDiameter.toMeters, 2) -
+        pow(innerDiameter.toMeters, 2)) * PI_OVER_FOUR
     )
-    JoulesPerCubicMeterKelvin(
-      PI_OVER_FOUR * areaDifference * specificThermalCapacity.toJoulesPerCubicMeterKelvin
-    )
+
+    thermalCapacitanceMaterial * areaDifference
   }
+
+  /** Calculates the thermal resistivity per length unit for a rectangular area.
+    * @param thermalCapacitanceMaterial
+    *   The material dependent specific thermal capacitance.
+    * @param width
+    *   The width of this area.
+    * @param height
+    *   The height of this area.
+    * @return
+    *   The thermal capacity per length unit of this area.
+    */
+  def calcThermalCapacityRectangular(
+      thermalCapacitanceMaterial: ThermalCapacitance,
+      width: Length,
+      height: Length,
+  ): ThermalCapacityPerLength =
+    val area = width * height
+    thermalCapacitanceMaterial * area
 
   /** Determines the Van-Wormer-Coefficient for long-duration transients.
     * @param diameterDielectric
@@ -953,18 +1613,18 @@ object LineThermalModelCalculations extends LazyLogging {
 
   /** Splits a given capacitance in case of short-term durations by the method
     * of van-Wormer through its coefficient.
-    * @param capacitance
-    *   The capacitance that should be split.
+    * @param thermalCapacityPerLength
+    *   The capacity that should be split.
     * @param innerDiameter
-    *   The inner diameter of the shell that creates the capacitance.
+    *   The inner diameter of the shell that creates the capacity.
     * @param outerDiameter
-    *   The outer diameter of the shell that creates the capacitance.
+    *   The outer diameter of the shell that creates the capacity.
     * @return
-    *   Returns the four parts C11,C12,C21 and C22 of the input capacitance.
+    *   Returns the four parts C11,C12,C21 and C22 of the input capacity.
     */
 
   private def splitCapacitanceByVanWormerShortDuration(
-      capacitance: ThermalCapacitance,
+      thermalCapacityPerLength: ThermalCapacityPerLength,
       innerDiameter: Length,
       outerDiameter: Length,
   ) = {
@@ -974,15 +1634,16 @@ object LineThermalModelCalculations extends LazyLogging {
         innerDiameter,
         diameterMid,
       )
-    val capacitanceC11 = capacitance * vanWormerJackFirstHalf
-    val capacitanceC12 = capacitance * (1 - vanWormerJackFirstHalf)
+    val capacitanceC11 = thermalCapacityPerLength * vanWormerJackFirstHalf
+    val capacitanceC12 = thermalCapacityPerLength * (1 - vanWormerJackFirstHalf)
     val vanWormerJackSecondHalf =
       vanWormerCoefficientShortTermDurationTransients(
         diameterMid,
         outerDiameter,
       )
-    val capacitanceC21 = capacitance * vanWormerJackSecondHalf
-    val capacitanceC22 = capacitance * (1 - vanWormerJackSecondHalf)
+    val capacitanceC21 = thermalCapacityPerLength * vanWormerJackSecondHalf
+    val capacitanceC22 =
+      thermalCapacityPerLength * (1 - vanWormerJackSecondHalf)
     (capacitanceC11, capacitanceC12, capacitanceC21, capacitanceC22)
   }
 
@@ -995,18 +1656,31 @@ object LineThermalModelCalculations extends LazyLogging {
     val currentLineModel = state.currentLineSegmentThermalModel
     val cableSetup = state.cableSetup
 
+    val temperatureDifference = Quantities.getQuantity(
+      (state.lineTemperatures.currentLineTemp4 - groundTemperature).toCelsiusDegrees,
+      CELSIUS,
+    )
+
     val effectiveSoilResistivity =
       currentLineModel.soilType
-        .currentThermalResistivity(
-          Quantities.getQuantity(
-            (state.lineTemperatures.currentLineTemp4 - groundTemperature).toCelsiusDegrees,
-            CELSIUS,
-          )
-        )
+        .currentThermalResistivity(temperatureDifference)
         .toSquants
 
+    val (bedResistivity, cableBed) = currentLineModel.cableBed match {
+      case Some(bed) =>
+        val bedRes =
+          bed.soilType
+            .currentThermalResistivity(temperatureDifference)
+            .toSquants
+        (Some(bedRes), Some(bed))
+      case None => (None, None)
+    }
+
+    val baseSoilResistivity =
+      bedResistivity.getOrElse(effectiveSoilResistivity)
+
     val soilCapacitance =
-      currentLineModel.soilType.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin
+      currentLineModel.thermalCapacityCe // TODO DF check this
 
     val acResistance = calcAcResistance(
       cableSetup.electricResistance,
@@ -1093,10 +1767,10 @@ object LineThermalModelCalculations extends LazyLogging {
       )
 
     // T4 changes since it depends on losses from neighbouring cables
-    val t4 = cableSetup.layoutFormation match {
+    val t4Base = cableSetup.layoutFormation match {
       case "flat-distance" =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance(
-          effectiveSoilResistivity,
+          baseSoilResistivity,
           currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
@@ -1113,7 +1787,7 @@ object LineThermalModelCalculations extends LazyLogging {
         )
       case "flat-touching" =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
-          effectiveSoilResistivity,
+          baseSoilResistivity,
           currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
@@ -1130,7 +1804,7 @@ object LineThermalModelCalculations extends LazyLogging {
         )
       case "trefoil-touching" =>
         calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching(
-          effectiveSoilResistivity,
+          baseSoilResistivity,
           currentLineModel.depthCables,
           cableSetup.layersJackElements
             .map(_.outerDiameter)
@@ -1145,6 +1819,34 @@ object LineThermalModelCalculations extends LazyLogging {
         throw new IllegalArgumentException(
           s"Unknown layout formation: ${cableSetup.layoutFormation}"
         )
+    }
+
+    val t4 = cableBed match {
+      case Some(bed) =>
+        val bedRes =
+          bed.soilType
+            .currentThermalResistivity(temperatureDifference)
+            .toSquants
+        val bedRadius = calcCableBedEquivalentRadius(bed.width, bed.height)
+        val bedCenterDepth = Meters(-currentLineModel.depthCables.toMeters)
+        val lossWeightFactor = cableSetup.layoutFormation match {
+          case "flat-distance" =>
+            val wSum =
+              thermalTotalLossesLeadingCable.toWattsPerMeter +
+                thermalTotalLossesMiddleCable.toWattsPerMeter +
+                thermalTotalLossesLaggingCable.toWattsPerMeter
+            wSum / thermalTotalLossesMiddleCable.toWattsPerMeter
+          case _ => 3.0
+        }
+        val correction = calcCableBedT4OuterCorrection(
+          effectiveSoilResistivity,
+          bedRes,
+          bedCenterDepth,
+          bedRadius,
+          lossWeightFactor,
+        )
+        t4Base + correction
+      case None => t4Base
     }
 
     /* Split Capacitance with van-Wormer Coefficient */
@@ -1196,67 +1898,185 @@ object LineThermalModelCalculations extends LazyLogging {
           ),
       )
 
-    /* Build RC-Network */
-    // in case of short durations we have an RC-Network with seven loops. There are 5 resistors (dielectric and jack needs to be split) and 5 capacitors.
-    // However, it simplifies if we transform them to conductance
+    /* Build the short-duration RC network. */
+    // Van-Wormer splitting replaces each cable-shell resistance with two half-resistances.
     val g1 = 2d / t1.toKelvinMetersPerWatt
     val g2 = 2d / t1.toKelvinMetersPerWatt
     val g3 = 2d / t3.toKelvinMetersPerWatt
     val g4 = 2d / t3.toKelvinMetersPerWatt
-    val g5 = 1d / t4.toKelvinMetersPerWatt
-
-    // FIXME DF g1 == g2 and g3 == g4, looks like a copy error at minimum; verify against the reference implementation.
 
     // the RC-Network can be simplified since all parallel capacitance can be merged
     // Conductor capacitance and first part of the first half of the dielectric
     val c1 =
-      (currentLineModel.thermalCapacityCc + dielectricThermCapacitanceC11).toJoulesPerCubicMeterKelvin // FIXME DF check conversion factor !
+      (currentLineModel.thermalCapacityCc + dielectricThermCapacitanceC11).toJoulesPerMeterKelvin // FIXME DF check conversion factor !
         // Capacitance of the second part of first half of the dielectric + first part of the second half of the dielectric
     val c2 =
-      (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerCubicMeterKelvin
+      (dielectricThermCapacitanceC12 + dielectricThermCapacitanceC21).toJoulesPerMeterKelvin
     // Capacitance of the second part of second half of the dielectric + the sheath + the first part of the first half of the jack
     val c3 =
-      (dielectricThermCapacitanceC22 + currentLineModel.thermalCapacityCs + jackThermCapacitanceC11).toJoulesPerCubicMeterKelvin
+      (dielectricThermCapacitanceC22 + currentLineModel.thermalCapacityCs + jackThermCapacitanceC11).toJoulesPerMeterKelvin
     // Capacitance of the second part of first half of the jack + first part of the second half of the jack
     val c4 =
-      (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerCubicMeterKelvin
+      (jackThermCapacitanceC12 + jackThermCapacitanceC21).toJoulesPerMeterKelvin
     // Capacitance of the second part of second half of the jack + the capacitance of the soil
-    val c5 =
-      (jackThermCapacitanceC22 + soilCapacitance).toJoulesPerCubicMeterKelvin
-
-    // Using the nodal potential method the 5 differential equation can be formulated and result in the system matrix
-    val matrixAData: Array[Array[Double]] = Array(
-      Array(-g1 / c1, g1 / c1, 0.0, 0.0, 0.0),
-      Array(g1 / c2, (-g1 - g2) / c2, g2 / c2, 0.0, 0.0),
-      Array(0.0, g2 / c3, (-g2 - g3) / c3, g3 / c3, 0.0),
-      Array(0.0, 0.0, g3 / c4, (-g3 - g4) / c4, g4 / c4),
-      Array(0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
-    )
+    val (
+      nodeCount,
+      matrixAData,
+      vectorBData,
+    ) = cableBed match {
+      case None =>
+        // 5-node network: cable nodes 1-4 and node 5 bundling the cable outer
+        // surface (jack) with the outer soil. T4 connects node 5 to ground.
+        val g5 = 1d / t4.toKelvinMetersPerWatt
+        val c5 =
+          (jackThermCapacitanceC22 + soilCapacitance).toJoulesPerMeterKelvin
+        (
+          5,
+          Array(
+            Array(-g1 / c1, g1 / c1, 0.0, 0.0, 0.0),
+            Array(g1 / c2, (-g1 - g2) / c2, g2 / c2, 0.0, 0.0),
+            Array(0.0, g2 / c3, (-g2 - g3) / c3, g3 / c3, 0.0),
+            Array(0.0, 0.0, g3 / c4, (-g3 - g4) / c4, g4 / c4),
+            Array(0.0, 0.0, 0.0, g4 / c5, (-g4 - g5) / c5),
+          ),
+          Array(
+            (conductorLosses.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c1,
+            0d,
+            (sheathLossesMiddlePhase.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c3,
+            0d,
+            (g5 * groundTemperature.toCelsiusScale) / c5,
+          ),
+        )
+      case Some(bed) =>
+        // Ten-node network: five cable nodes, two bed cells, and three outer-soil cells.
+        val bedRes =
+          bed.soilType
+            .currentThermalResistivity(temperatureDifference)
+            .toSquants
+        val bedRadius = calcCableBedEquivalentRadius(bed.width, bed.height)
+        val bedCenterDepth = Meters(-currentLineModel.depthCables.toMeters)
+        if bedCenterDepth <= bedRadius then {
+          val message =
+            s"Cable bed center depth $bedCenterDepth must exceed its equivalent radius $bedRadius."
+          logger.error(message)
+          throw new IllegalArgumentException(message)
+        }
+        val lossWeightFactor = cableSetup.layoutFormation match {
+          case "flat-distance" =>
+            val wSum =
+              thermalTotalLossesLeadingCable.toWattsPerMeter +
+                thermalTotalLossesMiddleCable.toWattsPerMeter +
+                thermalTotalLossesLaggingCable.toWattsPerMeter
+            wSum / thermalTotalLossesMiddleCable.toWattsPerMeter
+          case _ => 3.0
+        }
+        val (bedResistance, soilResistance) = calcCableBedT4Split(
+          t4Base,
+          bedRes,
+          effectiveSoilResistivity,
+          bedCenterDepth,
+          bedRadius,
+          lossWeightFactor,
+        )
+        val cableOuterRadius =
+          cableSetup.layersJackElements
+            .map(_.outerDiameter)
+            .maxOption
+            .getOrElse(
+              throw new IllegalArgumentException(
+                "Jack layer expected for environmental resistance calculation"
+              )
+            ) / 2d
+        val soilOuterRadius =
+          calcSoilModelOuterRadius(bedCenterDepth, bedRadius)
+        val cells = calcCableBedEnvironmentalCells(
+          bedResistance,
+          soilResistance,
+          cableOuterRadius,
+          bedRadius,
+          soilOuterRadius,
+          bed.soilType.getSpecificHeatCapacity.toSquants,
+          currentLineModel.soilType.getSpecificHeatCapacity.toSquants,
+        )
+        val cellResistances = cells.map(_.resistance.toKelvinMetersPerWatt)
+        val cellConductances = Array.tabulate(cells.size) { index =>
+          if index == cells.size - 1 then 2d / cellResistances(index)
+          else 2d / (cellResistances(index) + cellResistances(index + 1))
+        }
+        val cableToEnvironmentConductance = 2d / cellResistances.head
+        val capacities = Array(
+          c1,
+          c2,
+          c3,
+          c4,
+          jackThermCapacitanceC22.toJoulesPerMeterKelvin,
+        ) ++ cells.map(_.thermalCapacity.toJoulesPerMeterKelvin)
+        val matrix = Array.tabulate(10, 10)((_, _) => 0d)
+        val cableConductances =
+          Array(g1, g2, g3, g4, cableToEnvironmentConductance)
+        for row <- 0 until 5 do {
+          val leftConductance =
+            if row == 0 then 0d else cableConductances(row - 1)
+          val rightConductance = cableConductances(row)
+          matrix(row)(row) =
+            -(leftConductance + rightConductance) / capacities(row)
+          if row > 0 then
+            matrix(row)(row - 1) = leftConductance / capacities(row)
+          matrix(row)(row + 1) = rightConductance / capacities(row)
+        }
+        for index <- cells.indices do {
+          val row = index + 5
+          val leftConductance =
+            if index == 0 then cableToEnvironmentConductance
+            else cellConductances(index - 1)
+          val rightConductance = cellConductances(index)
+          matrix(row)(row) =
+            -(leftConductance + rightConductance) / capacities(row)
+          matrix(row)(row - 1) = leftConductance / capacities(row)
+          if index < cells.size - 1 then
+            matrix(row)(row + 1) = rightConductance / capacities(row)
+        }
+        val vector = Array.fill(10)(0d)
+        vector(0) =
+          (conductorLosses.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c1
+        vector(2) =
+          (sheathLossesMiddlePhase.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c3
+        vector(9) =
+          cellConductances.last * groundTemperature.toCelsiusScale / capacities.last
+        (10, matrix, vector)
+    }
 
     val matrixA: RealMatrix = new Array2DRowRealMatrix(matrixAData)
-
-    val vectorB: RealVector = new ArrayRealVector(
-      Array(
-        (conductorLosses.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c1,
-        0d,
-        (sheathLossesMiddlePhase.toWattsPerMeter + dielectricLosses.toWattsPerMeter / 2) / c3,
-        0d,
-        (g5 * groundTemperature.toCelsiusScale) / c5,
-      )
-    )
+    val vectorB: RealVector = new ArrayRealVector(vectorBData)
 
     val (eigenvalues, eigenvectors) =
       LineThermalModelNetworkSolver.determineEigenvaluesAndVectors(matrixA)
 
-    val vStart: RealVector = new ArrayRealVector(
-      Array(
-        state.lineTemperatures.currentLineTemp1.toCelsiusScale,
-        state.lineTemperatures.currentLineTemp2.toCelsiusScale,
-        state.lineTemperatures.currentLineTemp3.toCelsiusScale,
-        state.lineTemperatures.currentLineTemp4.toCelsiusScale,
-        state.lineTemperatures.currentLineTemp5.toCelsiusScale, // FIXME DF: Check if this is always ambientTemp/groundTemp, then it can be removed.
-      )
-    )
+    val stateTemps = state.lineTemperatures
+    val vStartEntries =
+      if nodeCount == 5 then
+        Array(
+          stateTemps.currentLineTemp1.toCelsiusScale,
+          stateTemps.currentLineTemp2.toCelsiusScale,
+          stateTemps.currentLineTemp3.toCelsiusScale,
+          stateTemps.currentLineTemp4.toCelsiusScale,
+          stateTemps.currentLineTemp5.toCelsiusScale,
+        )
+      else
+        Array(
+          stateTemps.currentLineTemp1.toCelsiusScale,
+          stateTemps.currentLineTemp2.toCelsiusScale,
+          stateTemps.currentLineTemp3.toCelsiusScale,
+          stateTemps.currentLineTemp4.toCelsiusScale,
+          stateTemps.currentLineTemp5.toCelsiusScale,
+          stateTemps.currentLineTemp6.toCelsiusScale,
+          stateTemps.currentLineTemp7.toCelsiusScale,
+          stateTemps.currentLineTemp8.toCelsiusScale,
+          stateTemps.currentLineTemp9.toCelsiusScale,
+          stateTemps.currentLineTemp10.toCelsiusScale,
+        )
+
+    val vStart: RealVector = new ArrayRealVector(vStartEntries)
 
     val luSolver = new LUDecomposition(matrixA).getSolver
     val vp: RealVector = luSolver.solve(vectorB.mapMultiply(-1.0))
@@ -1267,17 +2087,13 @@ object LineThermalModelCalculations extends LazyLogging {
 
     def getNodeTemperature(t: Long, node: Int): Temperature = {
       var temperature =
-        vp.getEntry(node) // Start with the steady-state value of Node
-
-      for i <- 0 until 5 do {
-        // Add the transient responses of the 5 e-functions
-        // c(i) is the coefficient, eigenvectors.getEntry(node, i) is the Node component of the i-th eigenvector
-        temperature += c.getEntry(i) * eigenvectors.getEntry(node, i) * math
-          .exp(
+        vp.getEntry(node)
+      for i <- 0 until nodeCount do {
+        temperature +=
+          c.getEntry(i) * eigenvectors.getEntry(node, i) * math.exp(
             eigenvalues(i) * t
           )
       }
-
       Celsius(temperature)
     }
 
@@ -1287,12 +2103,267 @@ object LineThermalModelCalculations extends LazyLogging {
         s"RC-Network for short durations has been used. However, the duration of $duration ticks might be of type long duration. Currently used method might be inaccurate but should estimate on the safe side."
       )
 
-    LineTemperatures(
-      getNodeTemperature(duration, 0),
-      getNodeTemperature(duration, 1),
-      getNodeTemperature(duration, 2),
-      getNodeTemperature(duration, 3),
-      getNodeTemperature(duration, 4),
+    if nodeCount == 5 then
+      LineTemperatures(
+        getNodeTemperature(duration, 0),
+        getNodeTemperature(duration, 1),
+        getNodeTemperature(duration, 2),
+        getNodeTemperature(duration, 3),
+        getNodeTemperature(duration, 4),
+        Celsius(0d),
+        Celsius(0d),
+        Celsius(0d),
+        Celsius(0d),
+        Celsius(0d),
+      )
+    else
+      LineTemperatures(
+        getNodeTemperature(duration, 0),
+        getNodeTemperature(duration, 1),
+        getNodeTemperature(duration, 2),
+        getNodeTemperature(duration, 3),
+        getNodeTemperature(duration, 4),
+        getNodeTemperature(duration, 5),
+        getNodeTemperature(duration, 6),
+        getNodeTemperature(duration, 7),
+        getNodeTemperature(duration, 8),
+        getNodeTemperature(duration, 9),
+      )
+  }
+
+  /** Calculates the equivalent radius of a rectangular cable bed cross-section
+    * according to Anders (1997), Eq. (9.61). The rectangle sides are sorted so
+    * that x <= y. The formula is valid only for y/x < 3.
+    *
+    * @param width
+    *   The width of the rectangular cable bed.
+    * @param height
+    *   The height of the rectangular cable bed.
+    * @return
+    *   The equivalent radius in meters.
+    */
+  def calcCableBedEquivalentRadius(
+      width: Length,
+      height: Length,
+  ): Length = {
+    val x = math.min(width.toMeters, height.toMeters)
+    val y = math.max(width.toMeters, height.toMeters)
+    val ratio = y / x
+    if ratio >= 3.0 then
+      throw new IllegalArgumentException(
+        s"Analytical equivalent radius is only valid for y/x < 3, but got y/x = $ratio. " +
+          s"This case is not supported."
+      )
+    val lnRb =
+      (x / (2 * y)) * (4 / Pi - x / y) * log(1 + (y * y) / (x * x)) + log(x / 2)
+    Meters(exp(lnRb))
+  }
+
+  /** Calculates the Kennelly outer geometric factor `ln(u + sqrt(u^2 - 1))`
+    * with `u = L_b / r_b`, where `L_b` is the bed-center depth below the ground
+    * surface and `r_b` the equivalent bed radius.
+    *
+    * @param bedCenterDepth
+    *   The depth of the bedding center below the ground surface (positive).
+    * @param bedRadius
+    *   The equivalent radius of the cable bed.
+    * @return
+    *   The Kennelly outer geometric factor.
+    */
+  def calcCableBedOuterGeometricFactor(
+      bedCenterDepth: Length,
+      bedRadius: Length,
+  ): Double = {
+    val ratio = bedCenterDepth.toMeters / bedRadius.toMeters
+    log(ratio + sqrt(pow(ratio, 2) - 1))
+  }
+
+  /** Calculates the outer-region T4 correction for a cable bed. The correction
+    * accounts for the resistivity difference between the surrounding soil and
+    * the bedding material in the region from the equivalent bedding radius to
+    * the ground surface.
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of the surrounding soil.
+    * @param bedResistivity
+    *   The thermal resistivity of the cable bed material.
+    * @param bedCenterDepth
+    *   The depth of the bedding center below the ground surface (positive).
+    * @param bedRadius
+    *   The equivalent radius of the cable bed.
+    * @param lossWeightFactor
+    *   The loss weight factor sum(W_k / W_p). Equals 3 for equal losses.
+    * @return
+    *   The outer-region T4 correction in Kelvin * Meter / Watt per unit cable
+    *   length.
+    */
+  def calcCableBedT4OuterCorrection(
+      soilResistivity: ThermalResistivity,
+      bedResistivity: ThermalResistivity,
+      bedCenterDepth: Length,
+      bedRadius: Length,
+      lossWeightFactor: Double,
+  ): ThermalResistivity = {
+    val geometricFactor =
+      calcCableBedOuterGeometricFactor(bedCenterDepth, bedRadius)
+    KelvinMetersPerWatt(
+      ((soilResistivity.toKelvinMetersPerWatt - bedResistivity.toKelvinMetersPerWatt) /
+        TWO_PI) * lossWeightFactor * geometricFactor
+    )
+  }
+
+  /** Splits the total external thermal resistance into the bedding-region part
+    * (from the cable surface to the equivalent bed radius, in the bed material)
+    * and the outer-soil-region part (from the equivalent bed radius to the
+    * ground surface, in the soil material). Their sum equals the total T4.
+    *
+    * @param baseT4
+    *   The base external resistance computed as if the entire path were made of
+    *   the bed material (T4' in Anders 1997).
+    *
+    * @param bedResistivity
+    *   The thermal resistivity of the cable bed material.
+    * @param soilResistivity
+    *   The thermal resistivity of the surrounding soil.
+    * @param bedCenterDepth
+    *   The depth of the bedding center below the ground surface (positive).
+    * @param bedRadius
+    *   The equivalent radius of the cable bed.
+    * @param lossWeightFactor
+    *   The loss weight factor sum(W_k / W_p). Equals 3 for equal losses.
+    * @return
+    *   A tuple of (bedding-region resistance, outer-soil-region resistance).
+    */
+  def calcCableBedT4Split(
+      baseT4: ThermalResistivity,
+      bedResistivity: ThermalResistivity,
+      soilResistivity: ThermalResistivity,
+      bedCenterDepth: Length,
+      bedRadius: Length,
+      lossWeightFactor: Double,
+  ): (ThermalResistivity, ThermalResistivity) = {
+    val geometricFactor =
+      calcCableBedOuterGeometricFactor(bedCenterDepth, bedRadius)
+    val outerShare = (lossWeightFactor / TWO_PI) * geometricFactor
+    val t4Soil =
+      KelvinMetersPerWatt(soilResistivity.toKelvinMetersPerWatt * outerShare)
+    val t4BedOuterPortion =
+      KelvinMetersPerWatt(bedResistivity.toKelvinMetersPerWatt * outerShare)
+    (baseT4 - t4BedOuterPortion, t4Soil)
+  }
+
+  /** Calculates the resistance-matched outer radius of the soil model region
+    * according to Diaz-Aguilo et al. (2014), Eq. (13): `d_m = L + sqrt(L^2 -
+    * r^2)`, where `L` is the depth and `r` the inner radius of the soil region.
+    *
+    * @param depth
+    *   The depth below the ground surface (positive).
+    * @param innerRadius
+    *   The inner radius of the soil region.
+    * @return
+    *   The resistance-matched outer radius of the soil model.
+    */
+  def calcSoilModelOuterRadius(
+      depth: Length,
+      innerRadius: Length,
+  ): Length = {
+    val l = depth.toMeters
+    val r = innerRadius.toMeters
+    Meters(l + sqrt(pow(l, 2) - pow(r, 2)))
+  }
+
+  /** Calculates the thermal capacity of the outer soil region per unit cable
+    * length as the area of the resistance-matched soil annulus times the soil's
+    * volumetric specific heat capacity.
+    *
+    * @param specificHeatCapacity
+    *   The volumetric specific heat capacity of the surrounding soil.
+    * @param depth
+    *   The depth below the ground surface (positive).
+    * @param innerRadius
+    *   The inner radius of the soil region (equivalent bed radius when a bed is
+    *   present, otherwise the cable outer radius).
+    *
+    * @return
+    *   The thermal capacity of the soil region in Joule / Kelvin per unit cable
+    *   length.
+    */
+  def calcSoilThermalCapacity(
+      specificHeatCapacity: ThermalCapacitance,
+      depth: Length,
+      innerRadius: Length,
+  ): ThermalCapacitance = {
+    val outerRadius = calcSoilModelOuterRadius(depth, innerRadius)
+    val area =
+      Pi * (pow(outerRadius.toMeters, 2) - pow(innerRadius.toMeters, 2))
+    JoulesPerCubicMeterKelvin(
+      area * specificHeatCapacity.toJoulesPerCubicMeterKelvin
+    )
+  }
+
+  private[ampacity] final case class EnvironmentalCell(
+      resistance: ThermalResistivity,
+      thermalCapacity: ThermalCapacityPerLength,
+  )
+
+  private[ampacity] def calcCableBedEnvironmentalCells(
+      bedResistance: ThermalResistivity,
+      soilResistance: ThermalResistivity,
+      cableOuterRadius: Length,
+      bedRadius: Length,
+      soilOuterRadius: Length,
+      bedHeatCapacity: ThermalCapacitance,
+      soilHeatCapacity: ThermalCapacitance,
+  ): Seq[EnvironmentalCell] = {
+    if cableOuterRadius >= bedRadius || bedRadius >= soilOuterRadius then {
+      val message =
+        s"Environmental radii must satisfy cable < bed < soil, but got $cableOuterRadius, $bedRadius, $soilOuterRadius."
+      logger.error(message)
+      throw new IllegalArgumentException(message)
+    }
+    if bedResistance <= KelvinMetersPerWatt(0d) ||
+      soilResistance <= KelvinMetersPerWatt(0d)
+    then {
+      val message =
+        s"Environmental thermal resistances must be positive, but got $bedResistance and $soilResistance."
+      logger.error(message)
+      throw new IllegalArgumentException(message)
+    }
+
+    def cellsInZone(
+        count: Int,
+        innerRadius: Length,
+        outerRadius: Length,
+        resistance: ThermalResistivity,
+        heatCapacity: ThermalCapacitance,
+    ): Seq[EnvironmentalCell] = {
+      val inner = innerRadius.toMeters
+      val outer = outerRadius.toMeters
+      (0 until count).map { index =>
+        val cellInner = inner * pow(outer / inner, index.toDouble / count)
+        val cellOuter = inner * pow(outer / inner, (index + 1).toDouble / count)
+        val area = Pi * (pow(cellOuter, 2) - pow(cellInner, 2))
+        EnvironmentalCell(
+          resistance / count,
+          JoulesPerMeterKelvin(
+            area * heatCapacity.toJoulesPerCubicMeterKelvin
+          ),
+        )
+      }
+    }
+
+    cellsInZone(
+      2,
+      cableOuterRadius,
+      bedRadius,
+      bedResistance,
+      bedHeatCapacity,
+    ) ++ cellsInZone(
+      3,
+      bedRadius,
+      soilOuterRadius,
+      soilResistance,
+      soilHeatCapacity,
     )
   }
 
@@ -1302,5 +2373,11 @@ object LineThermalModelCalculations extends LazyLogging {
       currentLineTemp3: Temperature,
       currentLineTemp4: Temperature,
       currentLineTemp5: Temperature,
+      currentLineTemp6: Temperature,
+      currentLineTemp7: Temperature,
+      currentLineTemp8: Temperature,
+      currentLineTemp9: Temperature,
+      currentLineTemp10: Temperature,
   )
+
 }
