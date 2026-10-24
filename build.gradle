@@ -82,7 +82,7 @@ dependencies {
     exclude group: 'com.github.ie3-institute'
   }
   // FIXME DF
-  implementation files('/home/smdafeis/simona/PowerSystemDataModel-9.3.0-all_with_soil.jar')
+  implementation files('/home/smdafeis/simona/PowerSystemDataModel-9.3.0-all.jar')
   runtimeOnly 'org.postgresql:postgresql:42.7.14' // postgresql jdbc driver required during runtime
   //implementation('com.github.ie3-institute:PowerSystemDataModel:9.2.0') {
   //exclude group: 'org.apache.logging.log4j'
