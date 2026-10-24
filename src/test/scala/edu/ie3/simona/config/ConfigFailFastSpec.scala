@@ -17,6 +17,7 @@ import edu.ie3.simona.config.OutputConfig.Sink
 import edu.ie3.simona.config.RuntimeConfig.StorageRuntimeConfig
 import edu.ie3.simona.config.SimonaConfig.Powerflow.Newtonraphson
 import edu.ie3.simona.config.SimonaConfig.{
+  AmpacityCalculation,
   Powerflow,
   Time,
   TransformerControlGroup,
@@ -1420,6 +1421,92 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
           noException shouldBe thrownBy {
             ConfigFailFast.check(properTypesafeConfig, properSimonaConfig)
           }
+        }
+      }
+    }
+  }
+
+  "Ampacity calculation config validation" when {
+    val checkAmpacityCalculation =
+      PrivateMethod[Unit](Symbol("checkAmpacityCalculation"))
+
+    "parallel proximity splitting is activated" should {
+      "throw an exception when threshold is None" in {
+        val ex = intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = true,
+              parallelProximityThreshold = None,
+            )
+          )
+        }
+        ex.getMessage should include(
+          "no parallelProximityThreshold is provided"
+        )
+      }
+
+      "throw an exception when threshold is zero" in {
+        val ex = intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = true,
+              parallelProximityThreshold = Some(0.0),
+            )
+          )
+        }
+        ex.getMessage should include("must be a positive value")
+      }
+
+      "throw an exception when threshold is negative" in {
+        val ex = intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = true,
+              parallelProximityThreshold = Some(-5.0),
+            )
+          )
+        }
+        ex.getMessage should include("must be a positive value")
+      }
+
+      "pass when threshold is positive" in {
+        noException shouldBe thrownBy {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = true,
+              parallelProximityThreshold = Some(10.0),
+            )
+          )
+        }
+      }
+    }
+
+    "parallel proximity splitting is not activated" should {
+      "pass even when threshold is None" in {
+        noException shouldBe thrownBy {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = false,
+              parallelProximityThreshold = None,
+            )
+          )
+        }
+      }
+
+      "pass even when threshold is negative" in {
+        noException shouldBe thrownBy {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = false,
+              parallelProximityThreshold = Some(-1.0),
+            )
+          )
         }
       }
     }

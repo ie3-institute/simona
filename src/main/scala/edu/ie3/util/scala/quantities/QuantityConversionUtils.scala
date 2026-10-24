@@ -9,7 +9,8 @@ package edu.ie3.util.scala.quantities
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.*
 import edu.ie3.util.scala.quantities
-import edu.ie3.util.scala.quantities.ThermalCapacitance as ThermalCapacitanceSquants
+import edu.ie3.util.scala.quantities.ThermalCapacitance
+import edu.ie3.util.scala.quantities.ThermalResistivity
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
@@ -196,6 +197,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Ohms]].
       */
+    @targetName("specificResistanceToElectricalResistanceSquants")
     def toSquants(implicit
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalResistance = Ohms(
@@ -205,6 +207,13 @@ object QuantityConversionUtils {
         .getValue
         .doubleValue
     )
+
+    /** @return
+      *   a quantity with unit [[OhmsPerKilometer]].
+      */
+    @targetName("specificResistanceSquants")
+    def toResistancePerLength: ElectricalResistancePerLength =
+      OhmsPerKilometer(quantity.to(OHM_PER_KILOMETRE).getValue.doubleValue)
   }
 
   /** Extension for [[ComparableQuantity]] of type [[ElectricConductance]] that
@@ -297,7 +306,7 @@ object QuantityConversionUtils {
     */
   extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
 
-    def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitanceSquants =
+    def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitance =
       KilowattHoursPerCubicMeterKelvin(
         quantity
           .to(KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
@@ -349,5 +358,37 @@ object QuantityConversionUtils {
         .getValue
         .doubleValue
     )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[ThermalResistivity]] that
+    * allows conversion into a [[ThermalResistivity]] squants quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.ThermalResistivity
+      ]
+  ) {
+    def toSquants: ThermalResistivity = KelvinMetersPerWatt(
+      quantity
+        .to(KELVIN_METRE_PER_WATT)
+        .getValue
+        .doubleValue
+    )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[SpecificCapacitance]] that
+    * allows conversion into a [[SpecificCapacitance]] squants quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.SpecificCapacitance
+      ]
+  ) {
+
+    def toSquants: edu.ie3.util.scala.quantities.SpecificCapacitance =
+      edu.ie3.util.scala.quantities.SpecificCapacitance(
+        quantity.to(FARAD_PER_KILOMETRE).getValue.doubleValue / 1000,
+        edu.ie3.util.scala.quantities.FaradsPerMeter,
+      )
   }
 }
