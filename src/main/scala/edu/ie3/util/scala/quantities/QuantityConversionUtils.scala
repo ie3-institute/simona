@@ -332,6 +332,9 @@ object QuantityConversionUtils {
           .getValue
           .doubleValue
       )
+
+    def toSquants: edu.ie3.util.scala.quantities.ThermalCapacitance =
+      toSquantsJoulePerCubicMeterKelvin
   }
 
   /** Extension for [[ComparableQuantity]] of type [[Irradiance]] that allows
