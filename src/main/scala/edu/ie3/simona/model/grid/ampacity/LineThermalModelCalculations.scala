@@ -785,6 +785,55 @@ object LineThermalModelCalculations extends LazyLogging {
     (rho2 - rho1) / (rho1 + rho2)
   }
 
+  /** Calculates the self external thermal resistance T4 of a single cable
+    * buried at a distance from a plane vertical boundary between two
+    * homogeneous media, using the image-source method. Reference: Slaninka and
+    * Morgan, "External thermal resistance of power cable in non-uniform soil",
+    * IEE Proceedings A, 139(3) (1992), eqn. (13). For equal resistivities on
+    * both sides of the boundary the method reduces exactly to
+    * [[calcThermalResistanceToSoilSingleCable]].
+    * @param soilResistivity
+    *   The thermal resistivity of the medium in which the cable is buried
+    *   (medium I).
+    * @param boundaryResistivity
+    *   The thermal resistivity of the adjacent medium (medium II).
+    * @param depthCable
+    *   The laying depth of the cable, negative below the ground surface
+    *   (consistent with the other T4 methods in this object).
+    * @param cableDiameter
+    *   The outer diameter of the cable.
+    * @param distanceToBoundary
+    *   The horizontal distance from the cable axis to the vertical boundary.
+    * @return
+    *   The external thermal resistance between cable and soil in Kelvin * Meter
+    *   / Watt per unit cable length.
+    */
+  def calcThermalResistanceToSoilVerticalBoundarySingleCable(
+      soilResistivity: ThermalResistivity,
+      boundaryResistivity: ThermalResistivity,
+      depthCable: Length,
+      cableDiameter: Length,
+      distanceToBoundary: Length,
+  ): ThermalResistivity = {
+    if distanceToBoundary.toMeters <= 0 then {
+      val message =
+        s"The distance to the vertical boundary must be positive, but was $distanceToBoundary."
+      logger.error(message)
+      throw new IllegalArgumentException(message)
+    }
+    val reflectionFactor =
+      calcVerticalBoundaryReflectionFactor(soilResistivity, boundaryResistivity)
+    val depth = -depthCable.toMeters
+    val distance = distanceToBoundary.toMeters
+    val boundaryFactor = log(sqrt(pow(distance, 2) + pow(depth, 2)) / distance)
+    val geometricFactor = //TODO DF check if this calcGeometricFactor is same as ln(2h/r_s)...
+      calcGeometricFactor(
+        depthCable,
+        cableDiameter,
+      ) + reflectionFactor * boundaryFactor
+    (soilResistivity / TWO_PI) * geometricFactor
+  }
+
   /** Calculates the thermal resistivity between the cable layers and the
     * surrounding soil.
     * @param specificThermalCapacity
