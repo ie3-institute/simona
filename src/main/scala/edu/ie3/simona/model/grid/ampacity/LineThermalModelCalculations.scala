@@ -762,6 +762,29 @@ object LineThermalModelCalculations extends LazyLogging {
     ) * (log(2 * u) - TREFOIL_ADJUSTMENT)
   }
 
+  /** Calculates the reflection factor at a plane vertical boundary between two
+    * homogeneous media. Reference: Slaninka and Morgan, "External thermal
+    * resistance of power cable in non-uniform soil", IEE Proceedings A, 139(3)
+    * (1992), eqn. (3).
+    *
+    * @param soilResistivity
+    *   The thermal resistivity of the medium in which the cable is buried
+    *   (medium I).
+    *
+    * @param boundaryResistivity
+    *   The thermal resistivity of the adjacent medium (medium II).
+    * @return
+    *   The dimensionless reflection factor m.
+    */
+  def calcVerticalBoundaryReflectionFactor(
+      soilResistivity: ThermalResistivity,
+      boundaryResistivity: ThermalResistivity,
+  ): Double = {
+    val rho1 = soilResistivity.toKelvinMetersPerWatt
+    val rho2 = boundaryResistivity.toKelvinMetersPerWatt
+    (rho2 - rho1) / (rho1 + rho2)
+  }
+
   /** Calculates the thermal resistivity between the cable layers and the
     * surrounding soil.
     * @param specificThermalCapacity
