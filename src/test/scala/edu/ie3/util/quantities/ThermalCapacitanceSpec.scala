@@ -7,14 +7,15 @@
 package edu.ie3.util.quantities
 
 import edu.ie3.util.scala.quantities.{
+  JoulesPerMeterKelvin,
   KilowattHoursPerCubicMeter,
   KilowattHoursPerCubicMeterKelvin,
 }
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.energy.KilowattHours
-import squants.space.CubicMeters
-import squants.thermal.{Celsius, Kelvin}
+import squants.space.{CubicMeters, SquareMeters}
+import squants.thermal.{Celsius, JoulesPerKelvin, Kelvin}
 
 class ThermalCapacitanceSpec extends AnyFlatSpec with Matchers {
 
@@ -52,6 +53,18 @@ class ThermalCapacitanceSpec extends AnyFlatSpec with Matchers {
       Celsius(101),
       CubicMeters(5),
     ) should be(KilowattHours(5000))
+  }
+
+  it should "return ThermalCapacity when multiplied by Volume" in {
+    KilowattHoursPerCubicMeterKelvin(1) * CubicMeters(5) should be(
+      JoulesPerKelvin(18000000.0)
+    )
+  }
+
+  it should "return ThermalCapacityPerLength when multiplied by Area" in {
+    KilowattHoursPerCubicMeterKelvin(1) * SquareMeters(4) should be(
+      JoulesPerMeterKelvin(14400000.0)
+    )
   }
 
   it should "return EnergyDensity when multiplied by Temperature delta of 1 Kelvin" in {

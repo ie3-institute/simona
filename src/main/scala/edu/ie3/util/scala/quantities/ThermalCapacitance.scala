@@ -8,6 +8,7 @@ package edu.ie3.util.scala.quantities
 
 import squants.energy.{Joules, KilowattHours}
 import squants.space.CubicMeters
+import squants.thermal.{JoulesPerKelvin, Kelvin, ThermalCapacity}
 import squants.*
 
 import scala.util.Try
@@ -49,6 +50,26 @@ final class ThermalCapacitance private (
         temperatureA.toKelvinScale - temperatureB.toKelvinScale
       ) * volume.toCubicMeters / 3600000.0
     )
+
+  /** Multiplies this thermal capacitance (J/(m³*K)) with a given volume.
+    *
+    * @param volume
+    *   The volume of the medium.
+    * @return
+    *   The resulting thermal capacity in J/K.
+    */
+  def *(volume: Volume): ThermalCapacity =
+    JoulesPerKelvin(this.toJoulesPerCubicMeterKelvin * volume.toCubicMeters)
+
+  /** Multiplies this thermal capacitance (J/(m³*K)) with a given area.
+    *
+    * @param area
+    *   The area the medium covers.
+    * @return
+    *   The resulting thermal capacity per length unit in J/(m*K).
+    */
+  def *(area: Area): ThermalCapacityPerLength =
+    JoulesPerMeterKelvin(this.toJoulesPerCubicMeterKelvin * area.toSquareMeters)
 
   /** Returns the value of this quantity in kWh / (K * m³) */
   def toKilowattHoursPerKelvinCubicMeters: Double =
