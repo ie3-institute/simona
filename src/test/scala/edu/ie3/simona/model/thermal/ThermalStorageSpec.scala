@@ -96,7 +96,7 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
         (
           1140.0,
           10.0,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(3599L),
+          ThermalStorage.ThermalStorageThreshold.StorageFull(3600L),
         ),
         (
           10.0,
