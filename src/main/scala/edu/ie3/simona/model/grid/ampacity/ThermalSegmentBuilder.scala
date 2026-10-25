@@ -205,9 +205,9 @@ object ThermalSegmentBuilder extends LazyLogging {
         throw new GridAgentInitializationException(message)
       }
     val (requiredWidth, requiredHeight) = cable.layoutFormation match {
-      case "flat-distance" | "flat-touching" =>
+      case LayoutFormation.FlatDistance | LayoutFormation.FlatTouching =>
         (cableDistance * 2 + cableDiameter, cableDiameter)
-      case "trefoil-touching" =>
+      case LayoutFormation.TrefoilTouching =>
         (
           cableDistance + cableDiameter,
           cableDistance * (math.sqrt(3d) / 2d) + cableDiameter,
@@ -455,13 +455,22 @@ object ThermalSegmentBuilder extends LazyLogging {
                 .map(layersList)
                 .getOrElse(List.empty)
               val jack = layersList(cableTypeInput.getJack)
-              val deploymentPattern: String =
+              val deploymentPattern: LayoutFormation =
                 Option(firstDeployment.getLayoutFormation)
                   .getOrElse(
                     throw new GridAgentInitializationException(
                       s"Ampacity build failed: No cable deployment pattern available for line ${lineInput.getUuid}"
                     )
-                  )
+                  ) match {
+                  case formation =>
+                    try
+                      LayoutFormation.fromString(formation)
+                    catch
+                      case e: IllegalArgumentException =>
+                        throw new GridAgentInitializationException(
+                          s"Ampacity build failed: ${e.getMessage} for line ${lineInput.getUuid}"
+                        )
+                }
               val cableDepth = Option(firstDeployment.getDepthCables)
                 .map(_.toSquants)
                 .getOrElse(

@@ -417,7 +417,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     */
   def calcLossesSheath(
-      layoutFormation: String,
+      layoutFormation: LayoutFormation,
       r: ElectricalResistancePerLength,
       rs: ElectricalResistancePerLength,
       axialCableDistance: Length,
@@ -429,17 +429,15 @@ object LineThermalModelCalculations extends LazyLogging {
     val (x, xm) =
       calculateReactance(Hertz(50), axialCableDistance, averageDiameterSheath)
     val lambda1Dash = layoutFormation match {
-      case "flat-distance" => calcLambda1DashFlatDistance(r, rs, x, xm, phase)
-      case "flat-touching" => calcLambda1DashFlatDistance(r, rs, x, xm, phase)
-      case "trefoil-not-touching" =>
+      case LayoutFormation.FlatDistance =>
+        calcLambda1DashFlatDistance(r, rs, x, xm, phase)
+      case LayoutFormation.FlatTouching =>
+        calcLambda1DashFlatDistance(r, rs, x, xm, phase)
+      case LayoutFormation.TrefoilNotTouching =>
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
         )
-      case "trefoil-touching" => calcLambda1DashTrefoilTouching(r, rs, x)
-      case _ =>
-        throw new IllegalArgumentException(
-          s"Unknown layout formation: $layoutFormation"
-        )
+      case LayoutFormation.TrefoilTouching => calcLambda1DashTrefoilTouching(r, rs, x)
     }
     // lambda_1 = lambda_1_dash + lambda_1_dash_dash
     val lambdaOne = lambda1Dash + eddyCurrentsSheathLossFactor
@@ -994,7 +992,7 @@ object LineThermalModelCalculations extends LazyLogging {
 
     // T4 changes since it depends on losses from neighbouring cables
     val t4Base = cableSetup.layoutFormation match {
-      case "flat-distance" =>
+      case LayoutFormation.FlatDistance =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance(
           baseSoilResistivity,
           currentLineModel.depthCables,
@@ -1011,7 +1009,7 @@ object LineThermalModelCalculations extends LazyLogging {
           thermalTotalLossesMiddleCable,
           thermalTotalLossesLaggingCable,
         )
-      case "flat-touching" =>
+      case LayoutFormation.FlatTouching =>
         calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
           baseSoilResistivity,
           currentLineModel.depthCables,
@@ -1024,11 +1022,11 @@ object LineThermalModelCalculations extends LazyLogging {
               )
             ),
         ) // FIXME DF add tests!
-      case "trefoil-not-touching" => // FIXME DF Check for Trefoil
+      case LayoutFormation.TrefoilNotTouching => // FIXME DF Check for Trefoil
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
         )
-      case "trefoil-touching" =>
+      case LayoutFormation.TrefoilTouching =>
         calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching(
           baseSoilResistivity,
           currentLineModel.depthCables,
@@ -1040,10 +1038,6 @@ object LineThermalModelCalculations extends LazyLogging {
                 "Jack layer expected but not found for thermal resistance to soil calculation"
               )
             ),
-        )
-      case _ =>
-        throw new IllegalArgumentException(
-          s"Unknown layout formation: ${cableSetup.layoutFormation}"
         )
     }
 

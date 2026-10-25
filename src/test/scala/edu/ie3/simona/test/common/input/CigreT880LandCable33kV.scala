@@ -8,6 +8,7 @@ package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
+import edu.ie3.simona.model.grid.ampacity.LayoutFormation
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
 import edu.ie3.util.scala.quantities.{FaradsPerMeter, OhmsPerMeter}
@@ -151,7 +152,7 @@ object CigreT880LandCable33kV {
     List.empty[Layer],
     List.empty[Layer],
     List(jackTape, jack, outerCover),
-    "trefoil-touching",
+    LayoutFormation.TrefoilTouching,
     Celsius(90),
     Kilovolts(33),
     Hertz(50),

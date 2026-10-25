@@ -7,7 +7,7 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
-import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
+import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer, LayoutFormation}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
 import edu.ie3.util.scala.quantities.{FaradsPerMeter, OhmsPerMeter}
@@ -112,7 +112,7 @@ object Anders1997SingleCoreCable10kV {
     List.empty[Layer],
     List.empty[Layer],
     List(jack),
-    "flat-distance",
+    LayoutFormation.FlatDistance,
     Celsius(90),
     Kilovolts(10),
     Hertz(50),

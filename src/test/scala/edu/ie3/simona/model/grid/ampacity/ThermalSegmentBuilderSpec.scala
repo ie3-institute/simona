@@ -800,7 +800,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       soilType,
     )
 
-    Seq("flat-distance", "flat-touching", "trefoil-touching").foreach {
+    Seq(
+      LayoutFormation.FlatDistance,
+      LayoutFormation.FlatTouching,
+      LayoutFormation.TrefoilTouching,
+    ).foreach {
       formation =>
         noException should be thrownBy {
           ThermalSegmentBuilder.validateCableBedGeometry(
