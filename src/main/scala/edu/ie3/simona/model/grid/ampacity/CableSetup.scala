@@ -7,6 +7,8 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
+import edu.ie3.util.quantities.electro.SpecificResistance
+import edu.ie3.util.quantities.thermal.{ThermalCapacitance, ThermalResistivity}
 import edu.ie3.util.scala.quantities.*
 import squants.Temperature
 import squants.electro.{ElectricPotential, Resistivity}
@@ -105,7 +107,7 @@ final case class ScreenLayer(
   *   Rated voltage of the cable
   * @param frequency
   *   Operating frequency
-  * @param electricResistance
+  * @param specificElectricResistance
   *   Electrical resistance per unit length
   * @param skinEffectCoefficient
   *   Coefficient accounting for the skin effect
@@ -133,7 +135,7 @@ final case class CableSetup(
     limitTemperature: Temperature,
     voltage: ElectricPotential,
     frequency: Frequency,
-    electricResistance: ElectricalResistancePerLength,
+    specificElectricResistance: SpecificResistance,
     skinEffectCoefficient: Double,
     proximityEffectCoefficient: Double,
     electricCapacitance: SpecificCapacitance,

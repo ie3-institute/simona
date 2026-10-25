@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.datamodel.models.input.container.SoilType
+import edu.ie3.datamodel.models.input.SoilType
 import tech.units.indriya.ComparableQuantity
 import javax.measure.quantity.Temperature
 import edu.ie3.util.quantities.interfaces.ThermalResistivity

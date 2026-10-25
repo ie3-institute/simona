@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.test.common.input
 
-import edu.ie3.datamodel.models.input.container.SoilType
+import edu.ie3.datamodel.models.input.SoilType
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KELVIN_METRE_PER_WATT,

@@ -8,7 +8,8 @@ package edu.ie3.simona.model.grid
 
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
-import edu.ie3.datamodel.models.input.container.{SoilLayer, SubGridContainer}
+import edu.ie3.datamodel.models.input.SoilLayer
+import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.powerflow.math.{Complex, DenseMatrix}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException

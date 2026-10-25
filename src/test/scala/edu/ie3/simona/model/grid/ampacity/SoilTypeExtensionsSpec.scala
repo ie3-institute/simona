@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.test.common.input.SoilInputTestData
 import org.scalatest.funsuite.AnyFunSuite
 import tech.units.indriya.quantity.Quantities
@@ -47,7 +48,7 @@ class SoilTypeExtensionsSpec extends AnyFunSuite with SoilInputTestData {
   test(
     "throws IllegalStateException when criticalTemperatureDifference is null"
   ) {
-    val soilNoCritical = new edu.ie3.datamodel.models.input.container.SoilType(
+    val soilNoCritical = new edu.ie3.datamodel.models.input.SoilType(
       UUID.randomUUID(),
       "noCritical",
       Quantities.getQuantity(1.0, KELVIN_METRE_PER_WATT),

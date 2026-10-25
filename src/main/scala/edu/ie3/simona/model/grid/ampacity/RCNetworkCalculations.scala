@@ -20,6 +20,7 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
   TWO_PI,
   LineTemperatures,
 }
+import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.{
   EnvironmentalCell,
   calcCableBedEquivalentRadius,
@@ -34,11 +35,10 @@ import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.{
   calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching,
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
+import edu.ie3.util.quantities.thermal.KelvinMetersPerWatt
 import edu.ie3.util.scala.quantities.{
-  ElectricalResistancePerLength,
   JoulesPerMeterKelvin,
-  KelvinMetersPerWatt,
-  OhmsPerMeter,
   ThermalCapacityPerLength,
 }
 import squants.electro.*
@@ -152,7 +152,7 @@ object RCNetworkCalculations extends LazyLogging {
     val soilCapacitance = currentLineModel.thermalCapacityCe
 
     val acResistance = CableLossCalculations.calcAcResistance(
-      cableSetup.electricResistance,
+      cableSetup.specificElectricResistance,
       cableSetup.conductor.material.getElectricalResistivityTemperatureCoefficient,
       cableSetup,
       currentLineModel.distanceCables,

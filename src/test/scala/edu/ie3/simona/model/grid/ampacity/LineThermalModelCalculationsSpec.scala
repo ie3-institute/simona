@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.datamodel.models.input.container.SoilType
+import edu.ie3.datamodel.models.input.SoilType
 import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
@@ -1075,7 +1075,7 @@ class LineThermalModelCalculationsSpec
     val phaseToGroundVoltage =
       Volts(stateWithBed.currentVoltage.toVolts / sqrt(3))
     val acResistance = calcAcResistance(
-      cableSetup.electricResistance,
+      cableSetup.specificElectricResistance,
       cableSetup.conductor.material.getElectricalResistivityTemperatureCoefficient,
       cableSetup,
       cigreLandCable33kVLineSegmentThermalModel.distanceCables,

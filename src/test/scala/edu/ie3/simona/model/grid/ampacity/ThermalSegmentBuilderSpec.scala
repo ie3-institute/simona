@@ -5,7 +5,8 @@
  */
 
 package edu.ie3.simona.model.grid.ampacity
-import edu.ie3.datamodel.models.input.container.{SoilLayer, SoilType}
+import edu.ie3.datamodel.models.input.SoilLayer
+import edu.ie3.datamodel.models.input.SoilType
 import edu.ie3.datamodel.models.input.connector.{
   CableDeploymentInput,
   LineInput,

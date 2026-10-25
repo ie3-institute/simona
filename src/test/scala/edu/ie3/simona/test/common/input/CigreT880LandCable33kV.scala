@@ -30,7 +30,7 @@ object CigreT880LandCable33kV {
       Millimeters(0),
       Millimeters(18.4),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       Some(SquareMeters(0.00024)),
     )
   }
@@ -43,7 +43,7 @@ object CigreT880LandCable33kV {
       Millimeters(18.4),
       Millimeters(19.4),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -56,7 +56,7 @@ object CigreT880LandCable33kV {
       Millimeters(19.4),
       Millimeters(34.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -69,7 +69,7 @@ object CigreT880LandCable33kV {
       Millimeters(34.8),
       Millimeters(35.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -82,7 +82,7 @@ object CigreT880LandCable33kV {
       Millimeters(35.8),
       Millimeters(36.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -94,7 +94,7 @@ object CigreT880LandCable33kV {
       Millimeters(38.6),
       CableMaterial.COPPER.getThermalProperties.resistivity().toSquants,
       CableMaterial.COPPER.getThermalProperties
-        .capacitance()
+        .specificHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       Some(SquareMeters(35.62566069e-6)),
       56,
@@ -112,7 +112,7 @@ object CigreT880LandCable33kV {
       Millimeters(38.6),
       Millimeters(39.2),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -125,7 +125,7 @@ object CigreT880LandCable33kV {
       Millimeters(39.2),
       Millimeters(43.6),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -138,7 +138,7 @@ object CigreT880LandCable33kV {
       Millimeters(43.6),
       Millimeters(44.0),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }

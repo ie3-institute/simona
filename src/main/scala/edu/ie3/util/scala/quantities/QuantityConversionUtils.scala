@@ -305,7 +305,6 @@ object QuantityConversionUtils {
     * [[edu.ie3.util.scala.quantities.ThermalCapacitance]] squants quantity.
     */
   extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
-
     def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitance =
       KilowattHoursPerCubicMeterKelvin(
         quantity
@@ -315,15 +314,11 @@ object QuantityConversionUtils {
       )
   }
 
-  /** Extension for [[ComparableQuantity]] of type [[ThermalCapacitance]] that
+  /** Extension for [[ComparableQuantity]] of type [[SpecificHeatCapacity]] that
     * allows conversion into a
     * [[edu.ie3.util.scala.quantities.ThermalCapacitance]] squants quantity.
     */
-  extension (
-      quantity: ComparableQuantity[
-        edu.ie3.util.quantities.interfaces.ThermalCapacitance
-      ]
-  ) {
+  extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
     def toSquantsJoulePerCubicMeterKelvin
         : edu.ie3.util.scala.quantities.ThermalCapacitance =
       JoulesPerCubicMeterKelvin(

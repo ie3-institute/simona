@@ -14,7 +14,7 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.{
-  ElectricalResistancePerLength,
+  SpecificResistance,
   KelvinMetersPerWatt,
   OhmsPerMeter,
   PowerPerLength,
@@ -56,11 +56,11 @@ object CableLossCalculations {
     *   The AC resistance per unit of length.
     */
   def calcAcResistance(
-      electricalResistanceCable: ElectricalResistancePerLength,
+      electricalResistanceCable: SpecificResistance,
       temperatureCorrectionFactor: Double,
       cableSetup: CableSetup,
       distanceCables: Length,
-  ): ElectricalResistancePerLength = {
+  ): SpecificResistance = {
     // ALTERNATIVE 1: Calculate R0 by specific resistivity / conductorArea
     // ALTERNATIVE 2: We are not using the limitTemperature because this overestimates the losses at lower operating temperatures. Therefore, we use the mean value between the limiting temperature and the current line temperature
     // (1 + temperatureCorrectionFactor * ((limitTemperature.toCelsiusScale - operatingTemperature.toCelsiusScale)/2 - REFERENCE_TEMPERATURE.toCelsiusScale))
@@ -107,7 +107,7 @@ object CableLossCalculations {
       thermalResistanceT1: ThermalResistivity,
       conductorLosses: PowerPerLength,
       dielectricLosses: PowerPerLength,
-  ): ElectricalResistancePerLength = {
+  ): SpecificResistance = {
     // Calculation of cross-sectional area of the sheath
     screenLayer match {
       case Some(layer) =>
@@ -152,7 +152,7 @@ object CableLossCalculations {
     *   Skin effect factor (y_s)
     */
   private def calculateSkinEffectFactor(
-      rDc: ElectricalResistancePerLength,
+      rDc: SpecificResistance,
       frequency: Frequency,
       ks: Double,
   ): Double = {
@@ -185,7 +185,7 @@ object CableLossCalculations {
     *   Proximity effect factor (y_p)
     */
   private def calculateProximityEffectFactor(
-      rDc: ElectricalResistancePerLength,
+      rDc: SpecificResistance,
       frequency: Frequency,
       kp: Double,
       conductorDiameter: Length,
@@ -213,7 +213,7 @@ object CableLossCalculations {
     *   The thermal losses of this line segment in power per unit cable length.
     */
   def calcLossesConductor(
-      acResistance: ElectricalResistancePerLength,
+      acResistance: SpecificResistance,
       current: ElectricCurrent,
   ): PowerPerLength = {
     val currentSquared = current.toAmperes * current.toAmperes
@@ -244,8 +244,8 @@ object CableLossCalculations {
     */
   def calcLossesSheath(
       layoutFormation: LayoutFormation,
-      r: ElectricalResistancePerLength,
-      rs: ElectricalResistancePerLength,
+      r: SpecificResistance,
+      rs: SpecificResistance,
       axialCableDistance: Length,
       averageDiameterSheath: Length,
       phase: String,
@@ -286,10 +286,10 @@ object CableLossCalculations {
     *   Loss factor lambda1.
     */
   private def calcLambda1DashFlatDistance(
-      r: ElectricalResistancePerLength,
-      rs: ElectricalResistancePerLength,
-      x: ElectricalResistancePerLength,
-      xm: ElectricalResistancePerLength,
+      r: SpecificResistance,
+      rs: SpecificResistance,
+      x: SpecificResistance,
+      xm: SpecificResistance,
       phase: String,
   ): Double = {
     // Auxiliary quantity by IEC 60287
@@ -332,9 +332,9 @@ object CableLossCalculations {
     *   loss factor lambda1'
     */
   private def calcLambda1DashTrefoilTouching(
-      r: ElectricalResistancePerLength,
-      rs: ElectricalResistancePerLength,
-      x: ElectricalResistancePerLength,
+      r: SpecificResistance,
+      rs: SpecificResistance,
+      x: SpecificResistance,
   ): Double = {
     (rs / r) * (1 / (1 + pow(rs / x, 2)))
   }
@@ -353,7 +353,7 @@ object CableLossCalculations {
       f: Frequency,
       axialCableDistance: Length,
       averageDiameterSheath: Length,
-  ): (ElectricalResistancePerLength, ElectricalResistancePerLength) = {
+  ): (SpecificResistance, SpecificResistance) = {
     val omega = f.toHertz * TWO_PI
 
     // 2*10^-7 results from μ0/(2*PI) in Henry per Meter (H/m)

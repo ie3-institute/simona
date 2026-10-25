@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.util.scala.quantities.ThermalResistivity
+import edu.ie3.util.quantities.thermal.ThermalResistivity
 
 /** Shared helper for non-uniform soil thermal resistance calculations.
   */

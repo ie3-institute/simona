@@ -17,11 +17,9 @@ import edu.ie3.datamodel.models.input.connector.{
   CableDeploymentInput,
   LineInput,
 }
-import edu.ie3.datamodel.models.input.container.{
-  SoilLayer,
-  SoilType,
-  SubGridContainer,
-}
+import edu.ie3.datamodel.models.input.SoilLayer
+import edu.ie3.datamodel.models.input.SoilType
+import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.CableBed
@@ -30,7 +28,8 @@ import edu.ie3.simona.model.grid.ampacity.{CableSetup, LineSegmentThermalModel}
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.geo.RichGeometries.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.{JoulesPerMeterKelvin, KelvinMetersPerWatt}
+import edu.ie3.util.quantities.thermal.KelvinMetersPerWatt
+import edu.ie3.util.scala.quantities.JoulesPerMeterKelvin
 import org.locationtech.jts.geom.{
   Geometry,
   GeometryFactory,
@@ -934,7 +933,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       Millimeters(0.0),
       jc.diameter().toSquants,
       jc.thermalResistivity().toSquants,
-      jc.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
+      jc.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       jc.area().toScala.map(_.toSquants),
     )
   }
@@ -952,7 +951,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       jl.innerDiameter().toSquants,
       jl.outerDiameter().toSquants,
       jl.thermalResistivity().toSquants,
-      jl.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
+      jl.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       jl.area().toScala.map(_.toSquants),
     )
   }
@@ -964,7 +963,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       js.innerDiameter().toSquants,
       js.outerDiameter().toSquants,
       js.thermalResistivity().toSquants,
-      js.thermalCapacitance().toSquantsJoulePerCubicMeterKelvin,
+      js.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
       js.area().toScala.map(_.toSquants),
       js.wiresNumber,
       js.wireDiameter.toSquants,

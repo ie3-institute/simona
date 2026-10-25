@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.calcGeometricFactor
 import edu.ie3.simona.model.grid.ampacity.SoilBoundaryReflection.calcBoundaryReflectionFactor
-import edu.ie3.util.scala.quantities.ThermalResistivity
+import edu.ie3.util.quantities.thermal.ThermalResistivity
 import squants.space.Length
 import scala.math.*
 

@@ -75,12 +75,12 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.3') {
-    exclude group: 'org.apache.logging.log4j'
-    exclude group: 'org.slf4j'
-    /* Exclude our own nested dependencies */
-    exclude group: 'com.github.ie3-institute'
-  }
+  implementation files('/home/smdafeis/github/PowerSystemUtils/build/libs/PowerSystemUtils-3.2.4-all.jar')
+  //    exclude group: 'org.apache.logging.log4j'
+  //    exclude group: 'org.slf4j'
+  //    /* Exclude our own nested dependencies */
+  //    exclude group: 'com.github.ie3-institute'
+  //  }
   // FIXME DF
   implementation files('/home/smdafeis/simona/PowerSystemDataModel-9.3.0-all.jar')
   runtimeOnly 'org.postgresql:postgresql:42.7.14' // postgresql jdbc driver required during runtime

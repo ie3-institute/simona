@@ -34,7 +34,9 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(0),
       Millimeters(20.5),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       Some(SquareMeters(0.00024)),
     )
   }
@@ -47,7 +49,9 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(20.5),
       Millimeters(21.7),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -60,7 +64,9 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(21.7),
       Millimeters(28.5),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -73,7 +79,9 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(28.5),
       Millimeters(30.1),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -85,7 +93,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
       CableMaterial.COPPER.getThermalProperties.resistivity().toSquants,
       CableMaterial.COPPER.getThermalProperties
-        .capacitance()
+        .specificHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       None,
       76,
@@ -103,7 +111,9 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
       Millimeters(35.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.capacitance().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }

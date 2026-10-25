@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid
 
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
-import edu.ie3.datamodel.models.input.container.SoilLayer
+import edu.ie3.datamodel.models.input.SoilLayer
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.powerflow.math.{Complex, DenseMatrix}
 import edu.ie3.simona.exceptions.GridInconsistencyException

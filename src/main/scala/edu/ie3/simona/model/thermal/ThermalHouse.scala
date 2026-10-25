@@ -25,7 +25,7 @@ import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityUtil.*
 import edu.ie3.util.scala.quantities.SquantsUtils.toWattSecondsPerKelvin
-import edu.ie3.util.scala.quantities.{
+import edu.ie3.util.quantities.thermal.{
   KilowattHoursPerCubicMeterKelvin,
   ThermalConductance,
   WattsPerKelvin,
