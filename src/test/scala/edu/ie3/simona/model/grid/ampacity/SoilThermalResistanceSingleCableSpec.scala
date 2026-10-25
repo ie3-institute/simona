@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.calcThermalResistanceToSoilSingleCable
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.calcThermalResistanceToSoilSingleCable
 import edu.ie3.simona.model.grid.ampacity.SoilBoundaryReflection.calcBoundaryReflectionFactor
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceSingleCable.*
 

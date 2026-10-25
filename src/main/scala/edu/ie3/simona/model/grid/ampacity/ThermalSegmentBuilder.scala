@@ -25,7 +25,7 @@ import edu.ie3.datamodel.models.input.container.{
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.CableBed
-import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.calcCableBedEquivalentRadius
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.calcCableBedEquivalentRadius
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, LineSegmentThermalModel}
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.geo.RichGeometries.*
@@ -463,8 +463,7 @@ object ThermalSegmentBuilder extends LazyLogging {
                     )
                   ) match {
                   case formation =>
-                    try
-                      LayoutFormation.fromString(formation)
+                    try LayoutFormation.fromString(formation)
                     catch
                       case e: IllegalArgumentException =>
                         throw new GridAgentInitializationException(

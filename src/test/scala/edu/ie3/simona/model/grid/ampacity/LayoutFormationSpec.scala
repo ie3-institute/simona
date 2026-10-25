@@ -46,4 +46,3 @@ class LayoutFormationSpec extends UnitSpec {
     }
   }
 }
-

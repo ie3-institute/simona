@@ -804,16 +804,15 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       LayoutFormation.FlatDistance,
       LayoutFormation.FlatTouching,
       LayoutFormation.TrefoilTouching,
-    ).foreach {
-      formation =>
-        noException should be thrownBy {
-          ThermalSegmentBuilder.validateCableBedGeometry(
-            cable.copy(layoutFormation = formation),
-            Meters(0.5),
-            Meters(-1.0),
-            bed,
-          )
-        }
+    ).foreach { formation =>
+      noException should be thrownBy {
+        ThermalSegmentBuilder.validateCableBedGeometry(
+          cable.copy(layoutFormation = formation),
+          Meters(0.5),
+          Meters(-1.0),
+          bed,
+        )
+      }
     }
   }
 

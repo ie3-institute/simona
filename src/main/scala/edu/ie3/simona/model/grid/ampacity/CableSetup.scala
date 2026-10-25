@@ -97,8 +97,8 @@ final case class ScreenLayer(
   * @param layersJackElements
   *   List of jacket layers
   * @param layoutFormation
-  *   Layout formation of the cable, describing the geometric arrangement of
-  *   the conductor axes.
+  *   Layout formation of the cable, describing the geometric arrangement of the
+  *   conductor axes.
   * @param limitTemperature
   *   Maximum allowable conductor temperature
   * @param voltage

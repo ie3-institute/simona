@@ -5,7 +5,7 @@
  */
 
 package edu.ie3.simona.model.grid.ampacity
-import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.calcGeometricFactor
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.calcGeometricFactor
 import edu.ie3.simona.model.grid.ampacity.SoilBoundaryReflection.calcBoundaryReflectionFactor
 import edu.ie3.util.scala.quantities.ThermalResistivity
 import squants.space.Length
@@ -27,7 +27,7 @@ object SoilThermalResistanceSingleCable {
     * Morgan, "External thermal resistance of power cable in non-uniform soil",
     * IEE Proceedings A, 139(3) (1992), eqn. (13). For equal resistivities on
     * both sides of the boundary the method reduces exactly to
-    * [[LineThermalModelCalculations.calcThermalResistanceToSoilSingleCable]].
+    * [[SoilThermalResistanceCalculations.calcThermalResistanceToSoilSingleCable]].
     * @param soilResistivity
     *   The thermal resistivity of the medium in which the cable is buried
     *   (medium I).
@@ -75,7 +75,7 @@ object SoilThermalResistanceSingleCable {
     * "External thermal resistance of power cable in non-uniform soil", IEE
     * Proceedings A, 139(3) (1992), Fig. 3a, eqn. (10). For equal resistivities
     * the method reduces exactly to
-    * [[LineThermalModelCalculations.calcThermalResistanceToSoilSingleCable]].
+    * [[SoilThermalResistanceCalculations.calcThermalResistanceToSoilSingleCable]].
     *
     * @param soilResistivity
     *   The thermal resistivity of the uniform medium I in which the cable is
@@ -144,7 +144,7 @@ object SoilThermalResistanceSingleCable {
     * "External thermal resistance of power cable in non-uniform soil", IEE
     * Proceedings A, 139(3) (1992), Fig. 4a, eqn. (12). For equal resistivities
     * the method reduces exactly to
-    * [[LineThermalModelCalculations.calcThermalResistanceToSoilSingleCable]].
+    * [[SoilThermalResistanceCalculations.calcThermalResistanceToSoilSingleCable]].
     *
     * @param soilResistivity
     *   The thermal resistivity of the layer (medium I) in which the cable is
@@ -213,7 +213,7 @@ object SoilThermalResistanceSingleCable {
     * Slaninka and Morgan, "External thermal resistance of power cable in
     * non-uniform soil", IEE Proceedings A, 139(3) (1992), Fig. 6a, eqn. (14).
     * For equal resistivities the method reduces exactly to
-    * [[LineThermalModelCalculations.calcThermalResistanceToSoilSingleCable]].
+    * [[SoilThermalResistanceCalculations.calcThermalResistanceToSoilSingleCable]].
     *
     * @param soilResistivity
     *   The thermal resistivity of the medium I in which the cable is buried.

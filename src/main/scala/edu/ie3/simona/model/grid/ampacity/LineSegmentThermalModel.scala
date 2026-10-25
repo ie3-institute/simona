@@ -13,7 +13,10 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
   LineState,
   SoilLayerInfo,
 }
+import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
+import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.*
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.service.Data

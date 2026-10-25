@@ -7,7 +7,10 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.container.SoilType
+import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
+import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCableGroup.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceSingleCable.*
 import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
@@ -762,7 +765,7 @@ class LineThermalModelCalculationsSpec
     }
   }
   "return correct thermal resistance for three single-core cables in flat-touching formation" in {
-    val actual = LineThermalModelCalculations
+    val actual = SoilThermalResistanceCalculations
       .calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching(
         KelvinMetersPerWatt(1.0),
         Meters(-1.0),
