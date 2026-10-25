@@ -15,6 +15,7 @@ import org.apache.commons.math3.linear.{
 }
 
 import com.typesafe.scalalogging.LazyLogging
+import edu.ie3.datamodel.models.input.container.SoilType
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelNetworkSolver
 import edu.ie3.util.scala.quantities.SquantsUtils.{
@@ -41,8 +42,10 @@ import squants.space.*
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
 import squants.{ElectricCurrent, Kelvin, Meters, Temperature}
+import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.CELSIUS
+import javax.measure.quantity.Temperature as MeasureTemperature
 
 import scala.math.*
 
@@ -155,7 +158,8 @@ object LineThermalModelCalculations extends LazyLogging {
 
     val screenCorrection = {
       // IEC 60287 requires to add 60 % to T3 in case of trefoil-touching formation and the degree of cover of screen is below 50 %
-      if cableSetup.layoutFormation == "trefoil-touching" && degreeOfCover < 0.5
+      if cableSetup.layoutFormation == LayoutFormation.TrefoilTouching &&
+        degreeOfCover < 0.5
       then {
         baseResistance * 0.6
       } else {
@@ -762,6 +766,158 @@ object LineThermalModelCalculations extends LazyLogging {
     ) * (log(2 * u) - TREFOIL_ADJUSTMENT)
   }
 
+  /** Calculates the external thermal resistance T4 for a cable (or cable
+    * formation) in a horizontally layered, non-uniform soil using the
+    * image-source method. This supersedes the uniform-soil T4 methods whenever
+    * two or more soil layers are present around the cable.
+    *
+    * The cable position within the layer sequence is classified from its laying
+    * depth and the layer boundaries:
+    *   - If the cable lies in the topmost layer while a lower layer of a
+    *     different resistivity lies beneath it, the cable is "within a
+    *     horizontal layer" (S&M 1992, self) with the lower interface at
+    *     distance `a` and the ground surface at distance `h`.
+    *   - If the cable lies in the layer below the topmost layer, the cable is
+    *     "beneath a horizontal layer" (S&M 1992, self) with the layer above at
+    *     thickness `t`.
+    *
+    * For a formation of three single-core cables in flat layout, the mutual
+    * thermal influence of the neighbouring cables (M&S 1994) is added to the
+    * self resistance, weighted by the ratio of the neighbouring cables' losses
+    * to the (hottest, middle) cable's losses.
+    *
+    * @param formation
+    *   The cable layout formation, i.e. the [[LayoutFormation]] of the cable.
+    * @param depthCables
+    *   The laying depth of the cables, negative below the ground surface.
+    * @param cableDiameter
+    *   The outer diameter of the cables.
+    * @param distanceCables
+    *   The axial distance between the cable axes.
+    * @param lossesLeading
+    *   The total losses of the leading cable.
+    * @param lossesMiddle
+    *   The total losses of the middle (reference, hottest) cable.
+    * @param lossesLagging
+    *   The total losses of the lagging cable.
+    * @param soilLayers
+    *   The soil layers ordered from the ground surface to the greatest depth.
+    *   Each layer carries its soil type and its upper/lower depth. At least two
+    *   layers are required; fewer than two returns `None` and the caller is
+    *   expected to fall back to the uniform-soil T4.
+    * @param temperatureDifference
+    *   The over-temperature used to select the dry or wet resistivity of each
+    *   soil type.
+    * @return
+    *   `None` if fewer than two soil layers are provided, otherwise the
+    *   non-uniform-soil external thermal resistance in Kelvin * Meter / Watt
+    *   per unit cable length.
+    */
+  private[ampacity] def calcThermalResistanceToSoilNonUniform(
+      formation: LayoutFormation,
+      depthCables: Length,
+      cableDiameter: Length,
+      distanceCables: Length,
+      lossesLeading: PowerPerLength,
+      lossesMiddle: PowerPerLength,
+      lossesLagging: PowerPerLength,
+      soilLayers: Seq[LineSegmentThermalModel.SoilLayerInfo],
+      temperatureDifference: ComparableQuantity[MeasureTemperature],
+  ): Option[ThermalResistivity] = {
+    if soilLayers.size < 2 then return None
+
+    val depth = -depthCables.toMeters // positive depth below the surface
+    val sorted = soilLayers
+      .map { layer =>
+        val cUpper = layer.upperDepth.toMeters
+        val cLower = layer.lowerDepth.toMeters
+        // Convert the (negative) boundary coordinates to positive depths below
+        // the surface, robustly, regardless of which field holds which bound.
+        val top = -math.max(cUpper, cLower) // shallow boundary
+        val bottom = -math.min(cUpper, cLower) // deep boundary
+        (top, bottom, layer.soilType)
+      }
+      .sortBy(_._1) // surface layer (top closest to 0) first
+    val resistivity = (soilType: SoilType) =>
+      soilType.currentThermalResistivity(temperatureDifference).toSquants
+
+    val cableInTopLayer = sorted.head._2 >= depth
+    val (topResistivity, belowResistivity, aMeters, hMeters, tMeters) =
+      if cableInTopLayer then
+        // Cable within the topmost layer: a = distance to the lower boundary,
+        // h = distance to the surface, t unused.
+        (
+          resistivity(sorted.head._3),
+          resistivity(sorted(1)._3),
+          sorted.head._2 - depth,
+          depth,
+          0.0,
+        )
+      else
+        // Cable in the layer below the top layer: t = thickness of the top
+        // layer, a = distance to its lower boundary, h = distance to surface.
+        (
+          resistivity(sorted.head._3),
+          resistivity(sorted(1)._3),
+          depth - sorted.head._2,
+          depth,
+          sorted.head._2,
+        )
+
+    val selfResistance =
+      if cableInTopLayer then
+        SoilThermalResistanceSingleCable
+          .calcThermalResistanceToSoilHorizontalLayerWithin(
+            topResistivity,
+            belowResistivity,
+            Meters(aMeters),
+            Meters(hMeters),
+            cableDiameter,
+          )
+      else
+        SoilThermalResistanceSingleCable
+          .calcThermalResistanceToSoilHorizontalLayerBeneath(
+            belowResistivity,
+            topResistivity,
+            Meters(-hMeters),
+            cableDiameter,
+            Meters(tMeters),
+          )
+
+    val mutualTerm: ThermalResistivity =
+      if formation == LayoutFormation.FlatDistance &&
+        abs(lossesMiddle.toWattsPerMeter) >= 1e-15
+      then
+        val mutualSingle =
+          if cableInTopLayer then
+            SoilThermalResistanceCableGroup
+              .calcThermalResistanceMutualHorizontalLayerWithin(
+                topResistivity,
+                belowResistivity,
+                Meters(aMeters),
+                Meters(hMeters),
+                distanceCables,
+              )
+          else
+            SoilThermalResistanceCableGroup
+              .calcThermalResistanceMutualHorizontalLayerBeneath(
+                belowResistivity,
+                topResistivity,
+                Meters(hMeters),
+                distanceCables,
+                Meters(aMeters),
+                Meters(tMeters),
+              )
+        val weightLeading =
+          lossesLeading.toWattsPerMeter / lossesMiddle.toWattsPerMeter
+        val weightLagging =
+          lossesLagging.toWattsPerMeter / lossesMiddle.toWattsPerMeter
+        mutualSingle * (weightLeading + weightLagging)
+      else KelvinMetersPerWatt(0.0)
+
+    Some(selfResistance + mutualTerm)
+  }
+
   /** Calculates the thermal resistivity per length unit for a cylindrical area.
     * @param thermalCapacitanceMaterial
     *   The material dependent specific thermal capacitance.
@@ -1049,15 +1205,12 @@ object LineThermalModelCalculations extends LazyLogging {
             .toSquants
         val bedRadius = calcCableBedEquivalentRadius(bed.width, bed.height)
         val bedCenterDepth = Meters(-currentLineModel.depthCables.toMeters)
-        val lossWeightFactor = cableSetup.layoutFormation match {
-          case "flat-distance" =>
-            val wSum =
-              thermalTotalLossesLeadingCable.toWattsPerMeter +
-                thermalTotalLossesMiddleCable.toWattsPerMeter +
-                thermalTotalLossesLaggingCable.toWattsPerMeter
-            wSum / thermalTotalLossesMiddleCable.toWattsPerMeter
-          case _ => 3.0
-        }
+        val lossWeightFactor = calcCableBedLossWeightFactor(
+          cableSetup.layoutFormation,
+          thermalTotalLossesLeadingCable,
+          thermalTotalLossesMiddleCable,
+          thermalTotalLossesLaggingCable,
+        )
         val correction = calcCableBedT4OuterCorrection(
           effectiveSoilResistivity,
           bedRes,
@@ -1066,7 +1219,25 @@ object LineThermalModelCalculations extends LazyLogging {
           lossWeightFactor,
         )
         t4Base + correction
-      case None => t4Base
+      case None =>
+        calcThermalResistanceToSoilNonUniform(
+          cableSetup.layoutFormation,
+          currentLineModel.depthCables,
+          cableSetup.layersJackElements
+            .map(_.outerDiameter)
+            .maxOption
+            .getOrElse(
+              throw new IllegalArgumentException(
+                "Jack layer expected but not found for thermal resistance to soil calculation"
+              )
+            ),
+          currentLineModel.distanceCables,
+          thermalTotalLossesLeadingCable,
+          thermalTotalLossesMiddleCable,
+          thermalTotalLossesLaggingCable,
+          currentLineModel.soilLayers,
+          temperatureDifference,
+        ).getOrElse(t4Base)
     }
 
     /* Split Capacitance with van-Wormer Coefficient */
@@ -1181,15 +1352,12 @@ object LineThermalModelCalculations extends LazyLogging {
           logger.error(message)
           throw new IllegalArgumentException(message)
         }
-        val lossWeightFactor = cableSetup.layoutFormation match {
-          case "flat-distance" =>
-            val wSum =
-              thermalTotalLossesLeadingCable.toWattsPerMeter +
-                thermalTotalLossesMiddleCable.toWattsPerMeter +
-                thermalTotalLossesLaggingCable.toWattsPerMeter
-            wSum / thermalTotalLossesMiddleCable.toWattsPerMeter
-          case _ => 3.0
-        }
+        val lossWeightFactor = calcCableBedLossWeightFactor(
+          cableSetup.layoutFormation,
+          thermalTotalLossesLeadingCable,
+          thermalTotalLossesMiddleCable,
+          thermalTotalLossesLaggingCable,
+        )
         val (bedResistance, soilResistance) = calcCableBedT4Split(
           t4Base,
           bedRes,
@@ -1390,7 +1558,7 @@ object LineThermalModelCalculations extends LazyLogging {
     * @return
     *   The Kennelly outer geometric factor.
     */
-  def calcCableBedOuterGeometricFactor(
+  private def calcCableBedOuterGeometricFactor(
       bedCenterDepth: Length,
       bedRadius: Length,
   ): Double = {
@@ -1600,4 +1768,35 @@ object LineThermalModelCalculations extends LazyLogging {
       currentLineTemp10: Temperature,
   )
 
+  /** Determines the loss weight factor sum(W_k / W_p) used for the cable bed
+    * T4 correction. For a flat formation at distance the total losses of the
+    * three cables are weighted by the middle cable's losses; all other
+    * formations assume equal losses and yield 3.
+    *
+    * @param layoutFormation
+    *   The layout formation of the cable.
+    * @param thermalTotalLossesLeadingCable
+    *   The total losses of the leading cable.
+    * @param thermalTotalLossesMiddleCable
+    *   The total losses of the middle cable.
+    * @param thermalTotalLossesLaggingCable
+    *   The total losses of the lagging cable.
+    * @return
+    *   The loss weight factor sum(W_k / W_p).
+    */
+  private def calcCableBedLossWeightFactor(
+      layoutFormation: LayoutFormation,
+      thermalTotalLossesLeadingCable: PowerPerLength,
+      thermalTotalLossesMiddleCable: PowerPerLength,
+      thermalTotalLossesLaggingCable: PowerPerLength,
+  ): Double =
+    layoutFormation match {
+      case LayoutFormation.FlatDistance =>
+        val wSum =
+          thermalTotalLossesLeadingCable.toWattsPerMeter +
+            thermalTotalLossesMiddleCable.toWattsPerMeter +
+            thermalTotalLossesLaggingCable.toWattsPerMeter
+        wSum / thermalTotalLossesMiddleCable.toWattsPerMeter
+      case _ => 3.0
+    }
 }

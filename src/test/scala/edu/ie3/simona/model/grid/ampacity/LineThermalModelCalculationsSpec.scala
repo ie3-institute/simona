@@ -6,13 +6,20 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
+import edu.ie3.datamodel.models.input.container.SoilType
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCableGroup.*
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceSingleCable.*
 import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.test.common.input.{
   CigreT880LandCable33kV,
   LineSegmentThermalModelInputData,
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
+import edu.ie3.util.quantities.PowerSystemUnits.{
+  JOULE_PER_CUBIC_METRE_KELVIN,
+  KELVIN_METRE_PER_WATT,
+}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.*
 
@@ -23,6 +30,8 @@ import squants.{Amperes, Meters}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.CELSIUS
 import scala.math.sqrt
+
+import java.util.UUID
 
 class LineThermalModelCalculationsSpec
     extends UnitSpec
@@ -335,7 +344,7 @@ class LineThermalModelCalculationsSpec
           "expectedSheathLosses",
         ),
         (
-          "trefoil-touching",
+          LayoutFormation.TrefoilTouching,
           9.762868345e-5,
           6.635010635e-4,
           0.044,
@@ -346,7 +355,7 @@ class LineThermalModelCalculationsSpec
           1.227118334845,
         ), // Cigre TB880 p. 200
         (
-          "flat-distance",
+          LayoutFormation.FlatDistance,
           0.0781e-3,
           0.94692081e-3, // see Anders 1997 Example 7.5
           2 * 0.0358,
@@ -357,7 +366,7 @@ class LineThermalModelCalculationsSpec
           2.7321981418997779, // (lambda1m'=0.088) * 30.85W see Anders 1997 p. 160
         ), // Anders 2005 Cable No.1 p. 311
         (
-          "flat-distance",
+          LayoutFormation.FlatDistance,
           0.0781e-3,
           0.94692081e-3, // see Anders 1997 Example 7.5
           2 * 0.0358,
@@ -368,7 +377,7 @@ class LineThermalModelCalculationsSpec
           6.381502194, // (lambda1m'=0.206) * 30.85W see Anders 1997 p. 160
         ), // Anders 2005 Cable No.1 p. 311
         (
-          "flat-distance",
+          LayoutFormation.FlatDistance,
           0.0781e-3,
           0.94692081e-3, // see Anders 1997 Example 7.5
           2 * 0.0358,
@@ -1120,5 +1129,183 @@ class LineThermalModelCalculationsSpec
     stationary.currentLineTemp5 should approximate(
       expectedCableSurfaceTemperature
     )
+  }
+
+  "return None from the non-uniform soil T4 when fewer than two layers are present" in {
+    val singleLayer = LineSegmentThermalModel.SoilLayerInfo(
+      defaultSoilType,
+      Meters(0.0),
+      Meters(-1.0),
+    )
+    val temperatureDifference = Quantities.getQuantity(20.0, CELSIUS)
+    calcThermalResistanceToSoilNonUniform(
+      LayoutFormation.FlatDistance,
+      Meters(-0.5),
+      Meters(0.044),
+      Meters(0.098),
+      WattsPerMeter(30.0),
+      WattsPerMeter(33.59),
+      WattsPerMeter(31.0),
+      Seq(singleLayer),
+      temperatureDifference,
+    ) should be(None)
+
+    calcThermalResistanceToSoilNonUniform(
+      LayoutFormation.FlatDistance,
+      Meters(-0.5),
+      Meters(0.044),
+      Meters(0.098),
+      WattsPerMeter(30.0),
+      WattsPerMeter(33.59),
+      WattsPerMeter(31.0),
+      Seq.empty,
+      temperatureDifference,
+    ) should be(None)
+  }
+
+  "calculate the non-uniform soil T4 for a cable within the topmost layer" in {
+    val topSoilType = new SoilType(
+      UUID.randomUUID(),
+      "topSoil",
+      Quantities.getQuantity(1.0, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(2.5, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(1.0, JOULE_PER_CUBIC_METRE_KELVIN),
+      Quantities.getQuantity(15.0, CELSIUS),
+    )
+    val belowSoilType = new SoilType(
+      UUID.randomUUID(),
+      "belowSoil",
+      Quantities.getQuantity(2.0, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(1.5, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(1.0, JOULE_PER_CUBIC_METRE_KELVIN),
+      Quantities.getQuantity(15.0, CELSIUS),
+    )
+    val soilLayers = Seq(
+      LineSegmentThermalModel.SoilLayerInfo(
+        topSoilType,
+        Meters(0.0),
+        Meters(-0.7),
+      ),
+      LineSegmentThermalModel.SoilLayerInfo(
+        belowSoilType,
+        Meters(-0.7),
+        Meters(-2.0),
+      ),
+    )
+    val temperatureDifference = Quantities.getQuantity(20.0, CELSIUS)
+    val topResistivity =
+      topSoilType.currentThermalResistivity(temperatureDifference).toSquants
+    val belowResistivity =
+      belowSoilType.currentThermalResistivity(temperatureDifference).toSquants
+    val depth = Meters(-0.5)
+    val diameter = Meters(0.044)
+    val distance = Meters(0.098)
+    val lossLeading = WattsPerMeter(30.0)
+    val lossMiddle = WattsPerMeter(33.59)
+    val lossLagging = WattsPerMeter(31.0)
+
+    val expected = calcThermalResistanceToSoilHorizontalLayerWithin(
+      topResistivity,
+      belowResistivity,
+      Meters(0.2),
+      Meters(0.5),
+      diameter,
+    ) + calcThermalResistanceMutualHorizontalLayerWithin(
+      topResistivity,
+      belowResistivity,
+      Meters(0.2),
+      Meters(0.5),
+      distance,
+    ) * ((lossLeading + lossLagging) / lossMiddle)
+
+    val actual = calcThermalResistanceToSoilNonUniform(
+      LayoutFormation.FlatDistance,
+      depth,
+      diameter,
+      distance,
+      lossLeading,
+      lossMiddle,
+      lossLagging,
+      soilLayers,
+      temperatureDifference,
+    )
+
+    actual match {
+      case Some(value) => value should approximate(expected)
+      case None        => fail("expected Some(non-uniform T4) but got None")
+    }
+  }
+
+  "calculate the non-uniform soil T4 for a cable beneath the topmost layer" in {
+    val topSoilType = new SoilType(
+      UUID.randomUUID(),
+      "topSoil",
+      Quantities.getQuantity(1.0, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(2.5, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(1.0, JOULE_PER_CUBIC_METRE_KELVIN),
+      Quantities.getQuantity(15.0, CELSIUS),
+    )
+    val belowSoilType = new SoilType(
+      UUID.randomUUID(),
+      "belowSoil",
+      Quantities.getQuantity(2.0, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(1.5, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(1.0, JOULE_PER_CUBIC_METRE_KELVIN),
+      Quantities.getQuantity(15.0, CELSIUS),
+    )
+    val soilLayers = Seq(
+      LineSegmentThermalModel.SoilLayerInfo(
+        topSoilType,
+        Meters(0.0),
+        Meters(-0.4),
+      ),
+      LineSegmentThermalModel.SoilLayerInfo(
+        belowSoilType,
+        Meters(-0.4),
+        Meters(-2.0),
+      ),
+    )
+    val temperatureDifference = Quantities.getQuantity(20.0, CELSIUS)
+    val topResistivity =
+      topSoilType.currentThermalResistivity(temperatureDifference).toSquants
+    val belowResistivity =
+      belowSoilType.currentThermalResistivity(temperatureDifference).toSquants
+    val diameter = Meters(0.044)
+    val distance = Meters(0.098)
+    val lossLeading = WattsPerMeter(30.0)
+    val lossMiddle = WattsPerMeter(33.59)
+    val lossLagging = WattsPerMeter(31.0)
+
+    val expected = calcThermalResistanceToSoilHorizontalLayerBeneath(
+      belowResistivity,
+      topResistivity,
+      Meters(-0.6),
+      diameter,
+      Meters(0.4),
+    ) + calcThermalResistanceMutualHorizontalLayerBeneath(
+      belowResistivity,
+      topResistivity,
+      Meters(0.6),
+      distance,
+      Meters(0.2),
+      Meters(0.4),
+    ) * ((lossLeading + lossLagging) / lossMiddle)
+
+    val actual = calcThermalResistanceToSoilNonUniform(
+      LayoutFormation.FlatDistance,
+      Meters(-0.6),
+      diameter,
+      distance,
+      lossLeading,
+      lossMiddle,
+      lossLagging,
+      soilLayers,
+      temperatureDifference,
+    )
+
+    actual match {
+      case Some(value) => value should approximate(expected)
+      case None        => fail("expected Some(non-uniform T4) but got None")
+    }
   }
 }
