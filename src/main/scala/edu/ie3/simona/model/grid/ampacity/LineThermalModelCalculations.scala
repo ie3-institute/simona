@@ -8,7 +8,7 @@ package edu.ie3.simona.model.grid.ampacity
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.{KelvinMetersPerWatt, ThermalResistivity}
+import edu.ie3.util.quantities.thermal.{KelvinMetersPerWatt, ThermalResistivity}
 import squants.electro.{ElectricPotential, Kilovolts}
 import squants.space.Length
 import squants.thermal.Celsius

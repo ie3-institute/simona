@@ -23,8 +23,10 @@ import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
+import edu.ie3.util.quantities.thermal.{ThermalCapacitance, ThermalResistivity}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import edu.ie3.util.scala.quantities.SquantsUtils.*
 import squants.electro.ElectricPotential
 import squants.space.{Length, Meters, SquareMeters}
 import squants.{ElectricCurrent, Temperature}

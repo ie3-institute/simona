@@ -9,7 +9,7 @@ package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCableGroup.*
 
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.scala.quantities.{KelvinMetersPerWatt, ThermalResistivity}
+import edu.ie3.util.quantities.thermal.{KelvinMetersPerWatt, ThermalResistivity}
 
 import squants.thermal.{Celsius, Temperature}
 import squants.Meters

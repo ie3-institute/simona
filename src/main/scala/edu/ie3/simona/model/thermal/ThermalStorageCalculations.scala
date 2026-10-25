@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.model.thermal
 
-import edu.ie3.util.scala.quantities.SquantsUtils.calcVolume
 import edu.ie3.util.quantities.thermal.ThermalCapacitance
-import squants.space.Volume
+import squants.space.{CubicMeters, Volume}
+import squants.energy.*
 import squants.{Energy, Temperature}
 
 trait ThermalStorageCalculations {
@@ -56,6 +56,6 @@ trait ThermalStorageCalculations {
   ): Volume = {
     val energyDensity = c.calcEnergyDensity(returnTemp, inletTemp)
 
-    energy.calcVolume(energyDensity)
+    CubicMeters(energy.toJoules / energyDensity.toJoulesPerCubicMeter)
   }
 }

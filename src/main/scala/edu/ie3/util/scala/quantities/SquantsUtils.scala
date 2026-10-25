@@ -6,6 +6,8 @@
 
 package edu.ie3.util.scala.quantities
 
+import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
+import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
 import squants.electro.{Capacitance, ElectricPotential, Resistivity, Volts}
 import squants.energy.{Energy, Power, Watts}
 import squants.radio.Irradiance
@@ -88,8 +90,16 @@ object SquantsUtils {
   implicit class RichResistivity(
       electricResistivity: Resistivity
   ) {
-    def /(area: Area): ElectricalResistancePerLength = OhmsPerMeter(
+    def /(area: Area): SpecificResistance = OhmsPerMeter(
       electricResistivity.toOhmMeters / area.toSquareMeters
     )
+  }
+  extension (
+      thermalCapacitance: edu.ie3.util.quantities.thermal.ThermalCapacitance
+  ) {
+    def *(area: Area): ThermalCapacityPerLength =
+      JoulesPerMeterKelvin(
+        thermalCapacitance.toJoulesPerCubicMeterKelvin * area.toSquareMeters
+      )
   }
 }

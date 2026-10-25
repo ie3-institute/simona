@@ -11,7 +11,8 @@ import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.simona.model.grid.ampacity.LayoutFormation
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.scala.quantities.{FaradsPerMeter, OhmsPerMeter}
+import edu.ie3.util.scala.quantities.FaradsPerMeter
+import edu.ie3.util.quantities.electro.OhmsPerMeter
 import squants.electro.{Kilovolts, OhmMeters}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
@@ -30,7 +31,9 @@ object CigreT880LandCable33kV {
       Millimeters(0),
       Millimeters(18.4),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       Some(SquareMeters(0.00024)),
     )
   }
@@ -43,7 +46,9 @@ object CigreT880LandCable33kV {
       Millimeters(18.4),
       Millimeters(19.4),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -56,7 +61,9 @@ object CigreT880LandCable33kV {
       Millimeters(19.4),
       Millimeters(34.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -69,7 +76,9 @@ object CigreT880LandCable33kV {
       Millimeters(34.8),
       Millimeters(35.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -82,7 +91,9 @@ object CigreT880LandCable33kV {
       Millimeters(35.8),
       Millimeters(36.8),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -112,7 +123,9 @@ object CigreT880LandCable33kV {
       Millimeters(38.6),
       Millimeters(39.2),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -125,7 +138,9 @@ object CigreT880LandCable33kV {
       Millimeters(39.2),
       Millimeters(43.6),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }
@@ -138,7 +153,9 @@ object CigreT880LandCable33kV {
       Millimeters(43.6),
       Millimeters(44.0),
       mat.getThermalProperties.resistivity().toSquants,
-      mat.getThermalProperties.specificHeatCapacity().toSquantsJoulePerCubicMeterKelvin,
+      mat.getThermalProperties
+        .specificHeatCapacity()
+        .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
   }

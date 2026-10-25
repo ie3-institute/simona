@@ -15,7 +15,8 @@ import edu.ie3.simona.model.grid.ampacity.{
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.scala.quantities.{FaradsPerMeter, OhmsPerMeter}
+import edu.ie3.util.scala.quantities.FaradsPerMeter
+import edu.ie3.util.quantities.electro.OhmsPerMeter
 import squants.electro.Kilovolts
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius

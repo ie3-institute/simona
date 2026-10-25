@@ -15,7 +15,8 @@ import org.apache.commons.math3.linear.{
 }
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.container.SoilType
+import edu.ie3.datamodel.models.input.SoilType
+import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
   PI_OVER_FOUR,
   TREFOIL_ADJUSTMENT,
@@ -23,19 +24,18 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
   TWO_PI,
   LineTemperatures,
 }
-import edu.ie3.util.scala.quantities.SquantsUtils.{
-  RichResistivity,
-  RichSpecificCapacitance,
-}
+import edu.ie3.util.scala.quantities.SquantsUtils.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.{
+import edu.ie3.util.quantities.energy.PowerPerLength
+import edu.ie3.util.quantities.thermal.{
   JoulesPerCubicMeterKelvin,
-  JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
-  PowerPerLength,
   ThermalCapacitance,
-  ThermalCapacityPerLength,
   ThermalResistivity,
+}
+import edu.ie3.util.scala.quantities.{
+  JoulesPerMeterKelvin,
+  ThermalCapacityPerLength,
 }
 import squants.electro.*
 import squants.space.*

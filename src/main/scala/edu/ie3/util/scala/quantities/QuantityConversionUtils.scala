@@ -8,9 +8,18 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.interfaces.*
+import edu.ie3.util.quantities.thermal.{
+  JoulesPerCubicMeterKelvin,
+  KelvinMetersPerWatt,
+  KilowattHoursPerCubicMeterKelvin,
+  ThermalCapacitance,
+  ThermalResistivity,
+}
+import edu.ie3.util.quantities.electro.{
+  OhmsPerKilometer,
+  SpecificResistance as SquantsSpecificResistance,
+}
 import edu.ie3.util.scala.quantities
-import edu.ie3.util.scala.quantities.ThermalCapacitance
-import edu.ie3.util.scala.quantities.ThermalResistivity
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.motion.MetersPerSecond
@@ -212,7 +221,7 @@ object QuantityConversionUtils {
       *   a quantity with unit [[OhmsPerKilometer]].
       */
     @targetName("specificResistanceSquants")
-    def toResistancePerLength: ElectricalResistancePerLength =
+    def toResistancePerLength: SquantsSpecificResistance =
       OhmsPerKilometer(quantity.to(OHM_PER_KILOMETRE).getValue.doubleValue)
   }
 
@@ -301,8 +310,7 @@ object QuantityConversionUtils {
   }
 
   /** Extension for [[ComparableQuantity]] of type [[SpecificHeatCapacity]] that
-    * allows conversion into a
-    * [[edu.ie3.util.scala.quantities.ThermalCapacitance]] squants quantity.
+    * allows conversion into a [[ThermalCapacitance]] squants quantity.
     */
   extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
     def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitance =
@@ -315,12 +323,10 @@ object QuantityConversionUtils {
   }
 
   /** Extension for [[ComparableQuantity]] of type [[SpecificHeatCapacity]] that
-    * allows conversion into a
-    * [[edu.ie3.util.scala.quantities.ThermalCapacitance]] squants quantity.
+    * allows conversion into a [[ThermalCapacitance]] squants quantity.
     */
   extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
-    def toSquantsJoulePerCubicMeterKelvin
-        : edu.ie3.util.scala.quantities.ThermalCapacitance =
+    def toSquantsJoulePerCubicMeterKelvin: ThermalCapacitance =
       JoulesPerCubicMeterKelvin(
         quantity
           .to(JOULE_PER_CUBIC_METRE_KELVIN)
@@ -328,7 +334,7 @@ object QuantityConversionUtils {
           .doubleValue
       )
 
-    def toSquants: edu.ie3.util.scala.quantities.ThermalCapacitance =
+    def toSquants: ThermalCapacitance =
       toSquantsJoulePerCubicMeterKelvin
   }
 

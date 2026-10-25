@@ -21,7 +21,7 @@ import edu.ie3.simona.test.common.input.HpInputTestData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import edu.ie3.util.scala.quantities.WattsPerKelvin
+import edu.ie3.util.quantities.thermal.WattsPerKelvin
 import org.scalatest.prop.{TableFor2, TableFor3, TableFor4, TableFor7}
 import squants.energy.*
 import squants.space.Litres

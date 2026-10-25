@@ -24,6 +24,14 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   KELVIN_METRE_PER_WATT,
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
+import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
+import edu.ie3.util.quantities.thermal.{
+  JoulesPerCubicMeterKelvin,
+  KelvinMetersPerWatt,
+  ThermalCapacitance,
+  ThermalResistivity,
+}
 import edu.ie3.util.scala.quantities.*
 
 import squants.electro.*
@@ -44,8 +52,8 @@ class LineThermalModelCalculationsSpec
   implicit val resistanceTolerance: ThermalResistivity = KelvinMetersPerWatt(
     1e-10
   )
-  implicit val electricResistancePerLengthTolerance
-      : ElectricalResistancePerLength = OhmsPerMeter(1e-10)
+  implicit val electricResistancePerLengthTolerance: SpecificResistance =
+    OhmsPerMeter(1e-10)
   implicit val powerPerLengthTolerance: PowerPerLength = WattsPerMeter(1e-7)
   implicit val tolerance: Double = 1e-10
   implicit val thermalCapacitanceTolerance: ThermalCapacitance =

@@ -8,7 +8,7 @@ package edu.ie3.simona.model.grid.ampacity
 
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.grid.ampacity.SoilBoundaryReflection.calcBoundaryReflectionFactor
-import edu.ie3.util.scala.quantities.{KelvinMetersPerWatt, ThermalResistivity}
+import edu.ie3.util.quantities.thermal.{KelvinMetersPerWatt, ThermalResistivity}
 
 import squants.space.Length
 import scala.math.*

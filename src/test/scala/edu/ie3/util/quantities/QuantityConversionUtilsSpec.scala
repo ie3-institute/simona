@@ -8,6 +8,12 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.electro.OhmsPerKilometer
+import edu.ie3.util.quantities.thermal.{
+  JoulesPerCubicMeterKelvin,
+  KelvinMetersPerWatt,
+  KilowattHoursPerCubicMeterKelvin,
+}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.*
