@@ -27,6 +27,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.LoadInputTestData
 import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
+import edu.ie3.util.quantities.energy.{ApparentPower, Voltamperes}
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
@@ -34,7 +35,6 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
 import squants.energy.*
 import squants.time.{Hours, Minutes}
 import squants.{Energy, Percent}

@@ -30,7 +30,7 @@ import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.{EnergyPrice, EuroPerKilowattHour}
+import edu.ie3.util.quantities.prices.{EnergyPrice, EuroPerKilowattHours}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -71,7 +71,7 @@ class EnergyPriceServiceSpec
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
-  private given EnergyPrice = EuroPerKilowattHour(1e-3)
+  private given EnergyPrice = EuroPerKilowattHours(1e-3)
 
   "A price service" must {
 
@@ -150,9 +150,9 @@ class EnergyPriceServiceSpec
           data match {
             case ProsumerPrice(priceSell, priceBuy) =>
               // 0.216 c/kWh minus 20% tax = 0.1728 c/kWh
-              priceSell should approximate(EuroPerKilowattHour(0.001728))
+              priceSell should approximate(EuroPerKilowattHours(0.001728))
               // 0.216 c/kWh plus 15 c/kWh fees plus 20% tax on top = 18.2592 c/kWh
-              priceBuy should approximate(EuroPerKilowattHour(0.182592))
+              priceBuy should approximate(EuroPerKilowattHours(0.182592))
             case unexpected =>
               fail(s"Received unexpected data $unexpected")
           }

@@ -18,7 +18,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.{
   SlackVoltageResponse,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.quantities.energy.{Megavars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.TestProbe
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power

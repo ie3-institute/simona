@@ -37,7 +37,7 @@ import edu.ie3.simona.util.TickUtil.*
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.{EnergyPrice, EuroPerMegawattHour}
+import edu.ie3.util.quantities.prices.{EnergyPrice, EuroPerMegawattHours}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import org.slf4j.Logger
@@ -357,14 +357,14 @@ object EnergyPriceService extends SimonaService {
       wholesalePrice: EnergyPrice,
       adjustments: PriceAdjustments,
   ): EnergyPrice =
-    (wholesalePrice + EuroPerMegawattHour(adjustments.fees)) *
+    (wholesalePrice + EuroPerMegawattHours(adjustments.fees)) *
       (1d + adjustments.tax)
 
   private def calculateSellingPrice(
       wholesalePrice: EnergyPrice,
       adjustments: PriceAdjustments,
   ): EnergyPrice =
-    (wholesalePrice - EuroPerMegawattHour(adjustments.fees)) *
+    (wholesalePrice - EuroPerMegawattHours(adjustments.fees)) *
       (1d - adjustments.tax)
 
 }

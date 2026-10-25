@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.model.grid
 
-import scala.math.{max, pow}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
@@ -24,8 +23,8 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 }
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.energy.ApparentPower
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
@@ -37,6 +36,7 @@ import java.util.UUID
 import javax.measure.Quantity
 import javax.measure.quantity.ElectricPotential
 import scala.math.BigDecimal.RoundingMode
+import scala.math.{max, pow}
 
 /** This model represents a three winding transformer incorporating a virtual
   * node between the three voltage levels. From node A --> node Temp the

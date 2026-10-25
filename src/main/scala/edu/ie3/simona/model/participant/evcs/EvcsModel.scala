@@ -33,10 +33,10 @@ import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.Data.SecondaryData.*
 import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.util.quantities.energy.{ApparentPower, ReactivePower}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt, asPu}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toApparent
-import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.PowerConversions.PowerNumeric
 import squants.energy.{Kilowatts, Watts}

@@ -11,11 +11,11 @@ import tech.units.indriya.ComparableQuantity
 import javax.measure.quantity.Temperature
 import edu.ie3.util.quantities.interfaces.ThermalResistivity
 
-/** Small extension providing functionality previously available in the PSDM
-  * SoilType class. The method mirrors the semantics described in the original
-  * Java implementation: it returns the dry thermal resistivity when the
-  * supplied over-temperature is greater than or equal to the soil's critical
-  * temperature difference, otherwise the wet thermal resistivity.
+/** Extension providing functionality previously available in the PSDM SoilType
+  * class. The method mirrors the semantics described in the original Java
+  * implementation: it returns the dry thermal resistivity when the supplied
+  * over-temperature is greater than or equal to the soil's critical temperature
+  * difference, otherwise the wet thermal resistivity.
   */
 object SoilTypeExtensions {
 

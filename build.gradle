@@ -75,7 +75,7 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation files('/home/smdafeis/github/PowerSystemUtils/build/libs/PowerSystemUtils-3.2.4-all.jar')
+  implementation files('/home/smdafeis/simona/PowerSystemUtils-3.2.4-all.jar')
   //    exclude group: 'org.apache.logging.log4j'
   //    exclude group: 'org.slf4j'
   //    /* Exclude our own nested dependencies */

@@ -9,6 +9,8 @@ package edu.ie3.util.quantities
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.electro.OhmsPerKilometer
+import edu.ie3.util.quantities.energy.Kilovoltamperes
+import edu.ie3.util.quantities.prices.EuroPerKilowattHours
 import edu.ie3.util.quantities.thermal.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
@@ -99,7 +101,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
 
     "properly convert energy price quantities" in {
       val price = Quantities.getQuantity(0.25, EURO_PER_KILOWATTHOUR)
-      price.toSquants shouldBe EuroPerKilowattHour(0.25)
+      price.toSquants shouldBe EuroPerKilowattHours(0.25)
     }
 
     "properly convert electrical resistance quantities from different units" in {
@@ -161,7 +163,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
 
     "properly convert energy price quantities from different units" in {
       val price = Quantities.getQuantity(50.0, EURO_PER_KILOWATTHOUR)
-      price.toSquants shouldBe EuroPerKilowattHour(50.0)
+      price.toSquants shouldBe EuroPerKilowattHours(50.0)
     }
 
     "properly convert electric capacitance quantities from different units" in {

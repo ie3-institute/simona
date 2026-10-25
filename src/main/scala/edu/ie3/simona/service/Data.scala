@@ -9,9 +9,10 @@ package edu.ie3.simona.service
 import edu.ie3.datamodel.models.value.*
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.util.quantities.energy.{Kilovars, ReactivePower}
+import edu.ie3.util.quantities.prices.EnergyPrice
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{EnergyPrice, Kilovars, ReactivePower}
 import squants.electro.ElectricPotential
 import squants.energy.{Kilowatts, Power}
 import squants.radio.Irradiance

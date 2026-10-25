@@ -6,12 +6,10 @@
 
 package edu.ie3.util.quantities
 
+import edu.ie3.util.quantities.electro.FaradsPerKilometer
+import edu.ie3.util.quantities.radio.WattHoursPerSquareMeter
 import edu.ie3.util.scala.quantities.SquantsUtils.*
-import edu.ie3.util.scala.quantities.{
-  FaradsPerMeter,
-  KilowattHoursPerCubicMeter,
-  WattHoursPerSquareMeter,
-}
+import edu.ie3.util.scala.quantities.KilowattHoursPerCubicMeter
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.Each
@@ -64,7 +62,7 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
     val voltage = Kilovolts(19.0525588) // 33kV * sqrt(3)
     val frequency = Hertz(50)
     val tanDelta = 0.004
-    FaradsPerMeter(0.237683304e-9)
+    FaradsPerKilometer(0.237683304e-6)
       .calculateSpecificDielectricLosses(voltage, frequency, tanDelta)
       .toWattsPerMeter should be(0.10842143752723088)
   }

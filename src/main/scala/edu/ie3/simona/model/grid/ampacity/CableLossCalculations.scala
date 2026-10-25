@@ -12,11 +12,14 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
   TWO_PI,
   calcLayFactor,
 }
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
+import edu.ie3.util.quantities.electro.{
+  OhmsPerMeter,
+  SpecificCapacitance,
+  SpecificResistance,
+}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
 import edu.ie3.util.quantities.thermal.{KelvinMetersPerWatt, ThermalResistivity}
-import edu.ie3.util.scala.quantities.SpecificCapacitance
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.SquantsUtils.{
   RichResistivity,
   RichSpecificCapacitance,

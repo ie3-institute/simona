@@ -11,9 +11,9 @@ import edu.ie3.datamodel.models.input.system.characteristic.ReactivePowerCharact
 import edu.ie3.simona.exceptions.QControlException
 import edu.ie3.simona.model.system.Characteristic
 import edu.ie3.simona.model.system.Characteristic.XYPair
+import edu.ie3.util.quantities.energy.{ApparentPower, Megavars, ReactivePower}
 import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{ApparentPower, Megavars, ReactivePower}
 import squants.{Dimensionless, Each, Power}
 
 import scala.collection.SortedSet

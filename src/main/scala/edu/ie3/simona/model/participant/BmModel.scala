@@ -28,13 +28,14 @@ import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.util.quantities.energy.ApparentPower
+import edu.ie3.util.quantities.prices.EnergyPrice
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import edu.ie3.util.scala.quantities.{ApparentPower, EnergyPrice}
 import squants.energy.Megawatts
 import squants.thermal.Temperature
 import squants.{Dimensionless, Power}

@@ -22,11 +22,11 @@ import edu.ie3.simona.model.participant.flex.{
 }
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
+import edu.ie3.util.quantities.energy.ApparentPower
 import squants.Power
 import squants.time.Days
 

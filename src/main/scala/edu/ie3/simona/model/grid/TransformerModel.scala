@@ -6,18 +6,17 @@
 
 package edu.ie3.simona.model.grid
 
-import edu.ie3.powerflow.math.Complex
-import scala.math.pow
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
   Transformer2WInput,
 }
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.energy.ApparentPower
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
@@ -29,6 +28,7 @@ import java.util.UUID
 import javax.measure.Quantity
 import javax.measure.quantity.ElectricCurrent
 import scala.math.BigDecimal.RoundingMode
+import scala.math.pow
 
 /** This model represents a two winding transformer with tapping capabilities
   *

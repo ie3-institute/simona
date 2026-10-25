@@ -15,7 +15,7 @@ import edu.ie3.simona.model.grid.ampacity.{
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.scala.quantities.FaradsPerMeter
+import edu.ie3.util.quantities.electro.FaradsPerKilometer
 import edu.ie3.util.quantities.electro.OhmsPerMeter
 import squants.electro.Kilovolts
 import squants.space.{Millimeters, SquareMeters}
@@ -135,7 +135,7 @@ object Anders1997SingleCoreCable10kV {
     OhmsPerMeter(0.0601e-3),
     1.0,
     1.0,
-    FaradsPerMeter(0.0), // No capacity provided
+    FaradsPerKilometer(0.0), // No capacity provided
     0.004,
     0.09,
     0.0,

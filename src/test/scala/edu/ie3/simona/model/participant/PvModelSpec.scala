@@ -19,9 +19,9 @@ import edu.ie3.simona.ontology.messages.flex.{
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
+import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.radio.WattsPerSquareMeter
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen

@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.SoilType
+import edu.ie3.util.quantities.electro.FaradsPerKilometer
 import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
@@ -188,7 +189,7 @@ class LineThermalModelCalculationsSpec
         (
           "phaseToGroundVoltage",
           "tanDelta",
-          "dielectricCapaNanoF",
+          "dielectricCapaMicroFPerKm",
           "expected",
         ),
         (
@@ -215,15 +216,14 @@ class LineThermalModelCalculationsSpec
         (
             phaseToGroundVoltage,
             tanDelta,
-            dielectricCapaNanoF,
+            dielectricCapaMircoFPerKm,
             expected,
         ) =>
 
           val voltageU0 = Volts(phaseToGroundVoltage)
           val frequency = Hertz(50)
           val dielectricSpecificCapacity =
-            edu.ie3.util.scala.quantities
-              .FaradsPerMeter(dielectricCapaNanoF * 1e-9)
+            FaradsPerKilometer(dielectricCapaMircoFPerKm * 1e-6)
           val expectedResult = WattsPerMeter(expected)
 
           val actual = calcDielectricLosses(

@@ -11,7 +11,7 @@ import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
 import edu.ie3.simona.model.grid.ampacity.LayoutFormation
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.scala.quantities.FaradsPerMeter
+import edu.ie3.util.quantities.electro.FaradsPerKilometer
 import edu.ie3.util.quantities.electro.OhmsPerMeter
 import squants.electro.{Kilovolts, OhmMeters}
 import squants.space.{Millimeters, SquareMeters}
@@ -176,7 +176,7 @@ object CigreT880LandCable33kV {
     OhmsPerMeter(0.0754e-3),
     1.0,
     1.0,
-    FaradsPerMeter(0.237683304e-9),
+    FaradsPerKilometer(0.237683304e-6),
     0.004,
     0.0435122656,
     0.0,

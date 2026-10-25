@@ -7,17 +7,24 @@
 package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.electro.{
+  FaradsPerKilometer,
+  OhmsPerKilometer,
+  SpecificCapacitance,
+  SpecificResistance as SquantsSpecificResistance,
+}
+import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.quantities.interfaces.*
+import edu.ie3.util.quantities.prices.{
+  EnergyPrice as SquantsEnergyPrice,
+  EuroPerKilowattHours,
+}
 import edu.ie3.util.quantities.thermal.{
   JoulesPerCubicMeterKelvin,
   KelvinMetersPerWatt,
   KilowattHoursPerCubicMeterKelvin,
   ThermalCapacitance,
   ThermalResistivity,
-}
-import edu.ie3.util.quantities.electro.{
-  OhmsPerKilometer,
-  SpecificResistance as SquantsSpecificResistance,
 }
 import edu.ie3.util.scala.quantities
 import squants.electro.*
@@ -130,7 +137,7 @@ object QuantityConversionUtils {
     */
   extension (quantity: ComparableQuantity[EnergyPrice]) {
 
-    def toSquants: quantities.EnergyPrice = EuroPerKilowattHour(
+    def toSquants: SquantsEnergyPrice = EuroPerKilowattHours(
       quantity.to(EURO_PER_KILOWATTHOUR).getValue.doubleValue
     )
   }
@@ -389,10 +396,9 @@ object QuantityConversionUtils {
       ]
   ) {
 
-    def toSquants: edu.ie3.util.scala.quantities.SpecificCapacitance =
-      edu.ie3.util.scala.quantities.SpecificCapacitance(
-        quantity.to(FARAD_PER_KILOMETRE).getValue.doubleValue / 1000,
-        edu.ie3.util.scala.quantities.FaradsPerMeter,
+    def toSquants: SpecificCapacitance =
+      FaradsPerKilometer(
+        quantity.to(FARAD_PER_KILOMETRE).getValue.doubleValue
       )
   }
 }

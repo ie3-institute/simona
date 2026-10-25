@@ -6,8 +6,17 @@
 
 package edu.ie3.util.scala.quantities
 
-import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
-import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
+import edu.ie3.util.quantities.electro.{
+  OhmsPerMeter,
+  SpecificCapacitance,
+  SpecificResistance,
+}
+import edu.ie3.util.quantities.energy.{
+  PowerPerLength,
+  ReactivePower,
+  WattsPerMeter,
+}
+import edu.ie3.util.quantities.radio.{Irradiation, WattHoursPerSquareMeter}
 import squants.electro.{Capacitance, ElectricPotential, Resistivity, Volts}
 import squants.energy.{Energy, Power, Watts}
 import squants.radio.Irradiance
@@ -83,7 +92,7 @@ object SquantsUtils {
         frequency: Frequency,
         tanDelta: Double,
     ): PowerPerLength = WattsPerMeter(
-      specificCapacity.toFaradsPerMeter * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
+      specificCapacity.toFaradsPerKilometer * 1e-3 * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
     )
   }
 
