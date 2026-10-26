@@ -60,7 +60,7 @@ trait EmInputTestData
     ChargingPointTypeUtils.ChargingStationType2,
     2,
     0.95,
-    EvcsLocationType.HOME,
+    List(EvcsLocationType.HOME).asJava,
     true,
   )
 

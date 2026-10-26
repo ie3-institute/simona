@@ -6,11 +6,10 @@
 
 package edu.ie3.simona.model.grid
 
-import edu.ie3.powerflow.math.DenseMatrix
-import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.*
-import edu.ie3.datamodel.models.input.container.SubGridContainer
+import edu.ie3.datamodel.models.input.container.{SoilLayer, SubGridContainer}
+import edu.ie3.powerflow.math.{Complex, DenseMatrix}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.GridInconsistencyException
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
@@ -22,6 +21,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
+import edu.ie3.simona.model.grid.ampacity.*
 import edu.ie3.simona.util.CollectionUtils
 import org.jgrapht.Graph
 import org.jgrapht.alg.connectivity.ConnectivityInspector
@@ -72,6 +72,7 @@ object GridModel {
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
+      neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] = Seq.empty,
   ): GridModel = buildAndValidate(
     subGridContainer,
     refSystem,
@@ -79,6 +80,7 @@ object GridModel {
     startDate,
     endDate,
     simonaConfig,
+    neighbourLines,
   )
 
   /** structure that represents all grid components that are needed by a grid
@@ -87,9 +89,11 @@ object GridModel {
   final case class GridComponents(
       nodes: Seq[NodeModel],
       lines: Set[LineModel],
+      thermalLineSegments: Set[LineSegmentThermalModel],
       transformers: Set[TransformerModel],
       transformers3w: Set[Transformer3wModel],
       switches: Set[SwitchModel],
+      soilLayers: Seq[SoilLayer],
   )
 
   /** Checks the availability of node calculation models, that are connected by
@@ -494,6 +498,7 @@ object GridModel {
       startDate: ZonedDateTime,
       endDate: ZonedDateTime,
       simonaConfig: SimonaConfig,
+      neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] = Seq.empty,
   ): GridModel = {
 
     // build
@@ -505,14 +510,34 @@ object GridModel {
       nodeInput => NodeModel(nodeInput, startDate, endDate)
     }
 
-    // / lines
+    // lines
     val lines: Set[LineModel] =
       subGridContainer.getRawGrid.getLines.asScala.map { lineInput =>
         getConnectedNodes(lineInput, nodes)
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
-    // / transformers
+    // Build thermal line segments and soil layers when ampacity calculation
+    // is activated; otherwise no soil layers and no thermal line segments.
+    val (soilLayers, thermalLineSegments) =
+      if simonaConfig.ampacityCalculation.activateAmpacityCalculation then
+        val buildResult =
+          ThermalSegmentBuilder.build(
+            subGridContainer,
+            simonaConfig,
+            neighbourLines,
+          )
+        (
+          buildResult.soilLayers,
+          buildResult.thermalLineSegments,
+        )
+      else
+        (
+          Seq.empty[SoilLayer],
+          Set.empty[LineSegmentThermalModel],
+        )
+
+    // transformers2w
     val transformers: Set[TransformerModel] =
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
@@ -531,7 +556,7 @@ object GridModel {
           }
       }.toSet
 
-    // / transformers3w
+    // transformers3w
     val transformer3ws: Set[Transformer3wModel] =
       subGridContainer.getRawGrid.getTransformer3Ws.asScala.map {
         transformer3wInput =>
@@ -560,7 +585,7 @@ object GridModel {
     val relevantNodes =
       nodes.filterNot(node => nodesToNeglect.contains(node.uuid))
 
-    // / switches
+    // switches
     val switches: Set[SwitchModel] =
       subGridContainer.getRawGrid.getSwitches.asScala.map { switchInput =>
         getConnectedNodes(switchInput, nodes)
@@ -572,9 +597,11 @@ object GridModel {
       GridComponents(
         relevantNodes,
         lines,
+        thermalLineSegments,
         transformers,
         transformer3ws,
         switches,
+        soilLayers,
       )
 
     /* Build transformer control groups */
