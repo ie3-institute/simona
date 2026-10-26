@@ -15,6 +15,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.*
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.Data.SecondaryData.{
   LoadDataFunction,
+  MarkovDataFunction,
   SecondarySeriesData,
 }
 import edu.ie3.simona.service.ServiceStateData.{
@@ -172,7 +173,7 @@ object LoadProfileService extends SimonaService {
       ctx: ActorContext[Message],
   ): LoadProfileInitializedStateData = {
 
-    getRegistrantsContainer(powerProfileKey) match {
+    getRegistrantsContainer(powerProfileKey, dataTimeType) match {
       case Success(registrants) =>
         if registrants.registrantsMap.contains(
             dataTimeType,
@@ -183,14 +184,19 @@ object LoadProfileService extends SimonaService {
             "Sending actor {} is already registered",
             agentToBeRegistered,
           )
-        else
+        else {
+          val loadProfileStore = serviceStateData.loadProfileStore
+
           agentToBeRegistered ! RegistrationSuccessfulMessage(
             ctx.self,
             FIRST_TICK_IN_SIMULATION,
-            serviceStateData.loadProfileStore.getProfileLoadFactoryData(
-              powerProfileKey
-            ),
+            loadProfileStore
+              .getProfileLoadFactoryData(powerProfileKey)
+              .orElse(
+                loadProfileStore.getMarkovLoadFactoryData(powerProfileKey)
+              ),
           )
+        }
 
         val updatedRegistrants =
           registrants.copy(registrantsMap =
@@ -215,12 +221,23 @@ object LoadProfileService extends SimonaService {
   }
 
   /** Retrieves or creates the [[RegistrantsContainer]] for given load profile.
+    * Forecasts are not supported for Markov load profiles.
     */
-  private def getRegistrantsContainer(loadProfile: PowerProfileKey)(using
+  private def getRegistrantsContainer(
+      loadProfile: PowerProfileKey,
+      dataTimeType: DataTimeType,
+  )(using
       serviceStateData: LoadProfileInitializedStateData
   ): Try[RegistrantsContainer] =
-    serviceStateData.registeredAgents.get(loadProfile) match {
-      case None =>
+    (serviceStateData.registeredAgents.get(loadProfile), dataTimeType) match {
+      case (_, _: DataTimeType.CurrentAndForecast)
+          if loadProfile.getType == PowerProfileKey.Type.MARKOV =>
+        Failure(
+          InvalidRegistrationRequestException(
+            s"Forecasts are not supported for Markov load profile $loadProfile!"
+          )
+        )
+      case (None, _) =>
         if serviceStateData.loadProfileStore.contains(loadProfile) then
           Success(RegistrantsContainer())
         else
@@ -229,7 +246,7 @@ object LoadProfileService extends SimonaService {
               s"Cannot register an agent for load profile $loadProfile, which is not available!"
             )
           )
-      case Some(container) => Success(container)
+      case (Some(container), _) => Success(container)
     }
 
   override protected def announceInformation(tick: Long)(using
@@ -256,7 +273,11 @@ object LoadProfileService extends SimonaService {
     activations.foreach { case (loadProfile, nextTick) =>
       registeredAgents.get(loadProfile).foreach { registrantsContainer =>
         def dataRetrievalFunc(time: ZonedDateTime): SecondaryData =
-          LoadDataFunction(loadProfileStore.entryFunc(time, loadProfile))
+          if loadProfile.getType == PowerProfileKey.Type.MARKOV then
+            MarkovDataFunction(
+              loadProfileStore.markovEntryFunc(time, loadProfile)
+            )
+          else LoadDataFunction(loadProfileStore.entryFunc(time, loadProfile))
 
         registrantsContainer.registrantsMap.foreach {
           case (dataTimeType, actors) =>
