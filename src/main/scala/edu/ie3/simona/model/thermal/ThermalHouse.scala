@@ -15,11 +15,11 @@ import edu.ie3.datamodel.models.input.thermal.{
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
 import edu.ie3.simona.model.participant.hp.HpModel.HpState
 import edu.ie3.simona.model.thermal.ThermalGrid.ThermalEnergyDemand
+import edu.ie3.simona.model.thermal.ThermalHouse.*
 import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTargetTemperatureReached,
   HouseTemperatureLowerBoundaryReached,
 }
-import edu.ie3.simona.model.thermal.ThermalHouse.*
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
