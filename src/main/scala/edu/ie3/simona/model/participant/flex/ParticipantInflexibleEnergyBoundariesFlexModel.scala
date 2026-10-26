@@ -58,8 +58,7 @@ class ParticipantInflexibleEnergyBoundariesFlexModel[S <: ModelState](
     val assetBoundaries =
       if allowCurtailment then {
         val powerLimits = powerMap.map { case (tick, power) =>
-          val maxPower =
-            if allowCurtailment && power < zeroKW then zeroKW else power
+          val maxPower = zeroKW.max(power)
           tick -> new ClosedInterval(power, maxPower)
         }
 
