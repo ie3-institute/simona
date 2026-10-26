@@ -63,6 +63,7 @@ class PrimaryServiceProxySqlIT
       "time_series_p.sql",
       "time_series_pqh.sql",
       "time_series_mapping.sql",
+      "load_profiles.sql",
     ).foreach { file =>
       val res = container.execInContainer("psql", "-Utest", "-f/home/" + file)
       res.getStderr shouldBe empty
