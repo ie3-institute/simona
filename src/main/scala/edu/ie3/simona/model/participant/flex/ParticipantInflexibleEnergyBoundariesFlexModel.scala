@@ -62,16 +62,7 @@ class ParticipantInflexibleEnergyBoundariesFlexModel[S <: ModelState](
           tick -> new ClosedInterval(power, maxPower)
         }
 
-        val forecastResolution = dataTimeType match {
-          case DataTimeType.CurrentAndForecast(_, resolution) =>
-            resolution
-          case other =>
-            throw new CriticalFailureException(
-              s"Unexpected date time type $other"
-            )
-        }
-
-        AssetEnergyBoundaries(powerLimits, forecastResolution)
+        AssetEnergyBoundaries.createFromSeries(powerLimits)
       } else {
         AssetEnergyBoundaries(powerMap)
       }

@@ -259,35 +259,70 @@ object EnergyBoundariesFlexOptions
       )
     }
 
-    /** Creating energy boundaries for a time series of power limits.
+    /** Creating energy boundaries for a time series of power limits. Assumes
+      * equidistant power series entries - otherwise, results are not defined!
       *
       * @param powerLimits
       *   The power limits time series (at equidistant ticks). Has to consist of
-      *   at least one entry.
-      * @param resolution
-      *   The resolution of the time series.
+      *   at least two entries.
       * @return
       *   The [[AssetEnergyBoundaries]].
       */
-    def apply(
-        powerLimits: SortedMap[Long, ClosedInterval[Power]],
-        resolution: Time,
+    def createFromSeries(
+        powerLimits: SortedMap[Long, ClosedInterval[Power]]
     ): AssetEnergyBoundaries = {
 
-      val (firstTick, _) = powerLimits.headOption.getOrElse(
+      val (firstTick, firstLimits) = powerLimits.headOption.getOrElse(
         throw new CriticalFailureException("Empty power time series!")
       )
 
-      val limits = powerLimits.map { case (_, limits) =>
-        limits
-      }
-      val minEnergy = limits.map(_.getLower).sum * resolution
-      val maxEnergy = limits.map(_.getUpper).sum * resolution
+      // adding a dummy tick at the end, so that the last actual power entry
+      // in the power time series is used
+      val lastSeriesTick = powerLimits.lastOption
+        .map { case (tick, _) => tick }
+        .getOrElse(
+          throw new CriticalFailureException("Empty power time series!")
+        )
+      // dummy tick is the next logical tick of the tick series
+      // (e.g. (5, 10, 15, 20) -> 25)
+      val dummyTick =
+        lastSeriesTick + (lastSeriesTick - firstTick) / (powerLimits.size - 1)
+
+      val (energyLimits, _) =
+        powerLimits
+          // excluding first data, which we already extracted above
+          .tail
+          // adding dummy tick so that last actual power entry is recognized
+          .updated(dummyTick, new ClosedInterval(zeroKW, zeroKW))
+          .foldLeft(
+            (
+              SortedMap(firstTick -> new ClosedInterval(zeroKWh, zeroKWh)),
+              firstLimits,
+            )
+          ) { case ((previousSeries, previousLimits), (tick, powerLimit)) =>
+            val (lastTick, lastEnergyInterval) = previousSeries
+              .maxBefore(tick)
+              .getOrElse(
+                throw new CriticalFailureException(
+                  s"No value before $tick in previous values $previousSeries"
+                )
+              )
+
+            val duration = Seconds(tick - lastTick)
+            val eMin =
+              lastEnergyInterval.getLower + previousLimits.getLower * duration
+            val eMax =
+              lastEnergyInterval.getUpper + previousLimits.getUpper * duration
+
+            (
+              previousSeries.updated(tick, new ClosedInterval(eMin, eMax)),
+              powerLimit,
+            )
+          }
 
       AssetEnergyBoundaries(
         currentEnergy = zeroKWh,
-        energyLimits =
-          SortedMap(firstTick -> new ClosedInterval(minEnergy, maxEnergy)),
+        energyLimits = energyLimits,
         powerLimits = powerLimits,
       )
     }

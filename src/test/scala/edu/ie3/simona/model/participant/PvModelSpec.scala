@@ -20,11 +20,11 @@ import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
-import squants.energy.{Power, Watts}
+import squants.energy.{Energy, Power, WattHours, Watts}
 import squants.radio.WattsPerSquareMeter
 import squants.time.Hours
 import tech.units.indriya.quantity.Quantities.getQuantity
@@ -43,6 +43,7 @@ class PvModelSpec
   // testing tolerances
   private given Power = Watts(1e-6)
   private given ApparentPower = Kilovoltamperes(1e-6)
+  private given Energy = WattHours(1e-6)
 
   // build the NodeInputModel (which defines the location of the pv input model)
   // the NodeInputModel needs a GeoReference for the Pv to work
@@ -190,7 +191,22 @@ class PvModelSpec
           boundaries should have size 1
           val assetBoundaries = boundaries.headOption.value
 
-          assetBoundaries.energyLimits should have size 1
+          assetBoundaries.energyLimits should have size 5
+          assetBoundaries.powerLimits should have size 4
+
+          expectedResults
+            // adding dummy value so that last energy is tested
+            .appended(14400L -> zeroKW)
+            .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
+              assetBoundaries.energyLimits(tick).getUpper should approximate(
+                zeroKWh
+              )
+              assetBoundaries.energyLimits(tick).getLower should approximate(
+                expectedEnergy
+              )
+
+              expectedEnergy + expectedPower * Hours(1)
+            }
 
           expectedResults
             .foreach { case (tick, expectedPower) =>

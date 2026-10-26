@@ -24,8 +24,8 @@ import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW}
-import squants.energy.{Power, Watts}
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
+import squants.energy.{Energy, Power, WattHours, Watts}
 import squants.motion.{MetersPerSecond, Pascals}
 import squants.thermal.Celsius
 import squants.time.Hours
@@ -40,6 +40,7 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
 
   // testing tolerances
   private given Power = Watts(1e-6)
+  private given Energy = WattHours(1e-6)
   private given Dimensionless = Each(1e-12)
   private given Double = 1e-9
 
@@ -224,7 +225,22 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
           boundaries should have size 1
           val assetBoundaries = boundaries.headOption.value
 
-          assetBoundaries.energyLimits should have size 1
+          assetBoundaries.energyLimits should have size 13
+          assetBoundaries.powerLimits should have size 12
+
+          expectedResults
+            // adding dummy value so that last energy is tested
+            .appended(43200L -> zeroKW)
+            .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
+              assetBoundaries.energyLimits(tick).getUpper should approximate(
+                zeroKWh
+              )
+              assetBoundaries.energyLimits(tick).getLower should approximate(
+                expectedEnergy
+              )
+
+              expectedEnergy + expectedPower * Hours(1)
+            }
 
           expectedResults
             .foreach { case (tick, expectedPower) =>
