@@ -82,11 +82,16 @@ final case class OptimizingFlexStrat(
         currentTick = currentTick,
       ),
       objectiveFactory = objectiveFactory,
-      solverLib = SolverLib.oJSolver,
+      solverLib = SolverLib.Gurobi,
       tightenBoundaries = true,
     )
 
     val result = FlexibilityOptimization.optimize(optimizationParams)
+
+    // FIXME debugging - remove this
+    println(
+      s"$currentTick - ${currentTick + predictionHorizon.toSeconds.toLong}: ${result.objectiveValue}"
+    )
 
     if result.solutionStatus != SolutionStatus.OPTIMAL then
       throw new CriticalFailureException(

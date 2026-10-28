@@ -24,6 +24,7 @@ import optimus.optimization.MPModel
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import optimus.optimization.model.MPVar
 import squants.energy.EnergyConversions.EnergyNumeric
+import squants.energy.{KilowattHours, Kilowatts}
 import squants.energy.PowerConversions.PowerNumeric
 import squants.{Dimensionless, Energy, Power, Time}
 
@@ -63,6 +64,25 @@ object FlexibilityOptimization {
       timeMeasurements: TimeMeasurements,
       model: MPModel,
   ) {
+
+    // FIXME debugging - remove this
+    def varSolutions: String = {
+      assetSymbols
+        .map { container =>
+          s"\n\t\t${container.assetUuid}:" +
+            container.results
+              .map { sortedSymbols =>
+                s"\n\t\t\tTrajectory: ${sortedSymbols
+                    .map { case (_, symbols) =>
+                      symbols.getOperatingPowerResult.in(Kilowatts).rounded(6).toString
+                        + s" (-> ${symbols.getStepEndEnergyResult.in(KilowattHours).rounded(6).toString})"
+                    }
+                    .mkString(", ")}"
+              }
+              .mkString("")
+        }
+        .mkString("")
+    }
 
     def energyTrajectories: Iterable[EmTrajectoryStepResult] = {
       val flexOptionsMap = params.flexOptionsById.toMap
