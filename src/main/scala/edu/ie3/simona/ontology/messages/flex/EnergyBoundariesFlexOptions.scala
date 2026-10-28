@@ -24,7 +24,7 @@ import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
 import squants.energy.WattHours
 import squants.time.Seconds
-import squants.{Dimensionless, Energy, Power, Time}
+import squants.{Dimensionless, Energy, Power}
 
 import java.time.ZonedDateTime
 import java.util.UUID

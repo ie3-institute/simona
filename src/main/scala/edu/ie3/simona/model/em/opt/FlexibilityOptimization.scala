@@ -254,13 +254,11 @@ object FlexibilityOptimization {
     * @param target
     *   The target power to aim for. This parameter might not be considered by
     *   all objective factories.
-    *
     * @param receivedData
     *   The secondary data received by the EM agent. Empty if none was received.
     * @param objectiveFactory
     *   The factory creating asset symbols and the optimization objective to
     *   use.
-    *
     * @param model
     *   The optimization model to add variables and constraints to.
     * @tparam AS
