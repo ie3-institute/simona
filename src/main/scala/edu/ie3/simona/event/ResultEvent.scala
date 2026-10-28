@@ -182,6 +182,8 @@ object ResultEvent {
       state: squants.Energy,
       eMin: squants.Energy,
       eMax: squants.Energy,
+      tightEMin: squants.Energy,
+      tightEMax: squants.Energy,
   ) extends ResultEvent
 
 }

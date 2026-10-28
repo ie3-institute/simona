@@ -86,6 +86,25 @@ object FlexibilityOptimization {
           // results can be empty in some edge cases, e.g. EVCS with no connected EV
           if resultsByTick.nonEmpty then {
 
+            def getLimits(
+                flex: EnergyBoundariesFlexOptions,
+                tick: Long,
+                default: Energy,
+            ) = {
+              val energyLimits = flex.energyBoundaries.flatMap {
+                _.energyLimits.maxBefore(tick + 1).map(_._2)
+              }
+              if energyLimits.nonEmpty then {
+                (
+                  energyLimits.map(_.getLower).sum,
+                  energyLimits.map(_.getUpper).sum,
+                )
+              } else {
+                // in case energy limits are empty, there was no flexibility
+                (default, default)
+              }
+            }
+
             val (currentTick, firstSymbols) =
               resultsByTick.headOption.getOrElse(
                 throw new CriticalFailureException(
@@ -95,11 +114,16 @@ object FlexibilityOptimization {
 
             val currentState = firstSymbols.map(_.getStepStartEnergyResult).sum
 
+            val (startMin, startMax) =
+              getLimits(flex, currentTick, currentState)
+
             val currentStepRes = EmTrajectoryStepResult(
               uuid,
               currentTick,
               currentTick,
               currentState,
+              startMin,
+              startMax,
               currentState,
               currentState,
             )
@@ -117,19 +141,9 @@ object FlexibilityOptimization {
 
                 val state = allSymbols.map(_.getStepEndEnergyResult).sum
 
-                val energyLimits = tightenedFlex.energyBoundaries.flatMap {
-                  _.energyLimits.maxBefore(stepEndTick + 1).map(_._2)
-                }
-                val (eMin, eMax) =
-                  if energyLimits.nonEmpty then {
-                    (
-                      energyLimits.map(_.getLower).sum,
-                      energyLimits.map(_.getUpper).sum,
-                    )
-                  } else {
-                    // in case energy limits are empty, there was no flexibility
-                    (state, state)
-                  }
+                val (eMin, eMax) = getLimits(flex, stepEndTick, state)
+                val (tightEMin, tightEMax) =
+                  getLimits(tightenedFlex, stepEndTick, state)
 
                 EmTrajectoryStepResult(
                   uuid,
@@ -138,6 +152,8 @@ object FlexibilityOptimization {
                   state,
                   eMin,
                   eMax,
+                  tightEMin,
+                  tightEMax,
                 )
 
               }

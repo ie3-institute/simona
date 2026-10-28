@@ -125,7 +125,16 @@ object ResultServiceProxy {
         // FIXME very hacky
         val writer = new BufferedCsvWriter(
           Paths.get(".").resolve("em_trajectories.csv").toAbsolutePath,
-          Array("assetUuid", "currentTick", "tick", "state", "eMin", "eMax"),
+          Array(
+            "assetUuid",
+            "currentTick",
+            "tick",
+            "state",
+            "eMin",
+            "eMax",
+            "tightEMin",
+            "tightEMax",
+          ),
           ",",
           false,
         )
@@ -433,6 +442,8 @@ object ResultServiceProxy {
           "state" -> res.state.toKilowattHours.toString,
           "eMin" -> res.eMin.toKilowattHours.toString,
           "eMax" -> res.eMax.toKilowattHours.toString,
+          "tightEMin" -> res.tightEMin.toKilowattHours.toString,
+          "tightEMax" -> res.tightEMax.toKilowattHours.toString,
         ).asJava
       )
     }
