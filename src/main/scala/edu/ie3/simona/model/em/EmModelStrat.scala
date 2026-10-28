@@ -138,6 +138,12 @@ object EmModelStrat {
             segmentCount = 10,
           )
       )
+    case "OPT_SPM_BIN_PRICE" =>
+      singleOpt(
+        SplitPowerVarsObjectiveFactory.PriceObjectiveFactory(
+          BinaryConstraint
+        )
+      )
     case "OPT_CLM_PRICE" =>
       singleOpt(
         CommonLossObjectiveFactory.PriceObjectiveFactory(variant =
