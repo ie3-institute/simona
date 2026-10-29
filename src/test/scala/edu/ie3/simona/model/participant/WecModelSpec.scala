@@ -223,18 +223,33 @@ class WecModelSpec extends UnitSpec with WeatherTestData {
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>
           boundaries should have size 1
+          val assetBoundaries = boundaries.headOption.value
 
-          val energyLimits = boundaries.headOption.value.energyLimits
-          energyLimits should have size expectedResults.size + 1
+          assetBoundaries.energyLimits should have size 13
+          assetBoundaries.powerLimits should have size 12
 
           expectedResults
             // adding dummy value so that last energy is tested
             .appended(43200L -> zeroKW)
             .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
-              energyLimits(tick).getUpper should approximate(expectedEnergy)
-              energyLimits(tick).getLower should approximate(expectedEnergy)
+              assetBoundaries.energyLimits(tick).getUpper should approximate(
+                zeroKWh
+              )
+              assetBoundaries.energyLimits(tick).getLower should approximate(
+                expectedEnergy
+              )
 
               expectedEnergy + expectedPower * Hours(1)
+            }
+
+          expectedResults
+            .foreach { case (tick, expectedPower) =>
+              assetBoundaries.powerLimits(tick).getUpper should approximate(
+                zeroKW
+              )
+              assetBoundaries.powerLimits(tick).getLower should approximate(
+                expectedPower
+              )
             }
         case unexpected => fail(s"Received unexpected flex options $unexpected")
       }

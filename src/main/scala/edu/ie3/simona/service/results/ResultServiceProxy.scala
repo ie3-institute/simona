@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.results
 
+import edu.ie3.datamodel.io.csv.BufferedCsvWriter
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.connector.Transformer3WResult
 import edu.ie3.datamodel.models.result.system.{
@@ -32,8 +33,10 @@ import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.slf4j.Logger
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
@@ -118,6 +121,26 @@ object ResultServiceProxy {
       lastUpdate: Map[UUID, Long] = Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
+      emTrajectoryWriter: BufferedCsvWriter = {
+        // FIXME very hacky
+        val writer = new BufferedCsvWriter(
+          Paths.get(".").resolve("em_trajectories.csv").toAbsolutePath,
+          Array(
+            "assetUuid",
+            "currentTick",
+            "tick",
+            "state",
+            "eMin",
+            "eMax",
+            "tightEMin",
+            "tightEMax",
+          ),
+          ",",
+          false,
+        )
+        writer.writeFileHeader()
+        writer
+      },
   ) extends ServiceBaseStateData {
 
     /** This method is used to forward results to all known listeners.
@@ -407,6 +430,23 @@ object ResultServiceProxy {
 
       equal
     }
+
+    def printEmTrajectoryRes(
+        res: EmTrajectoryStepResult
+    ): Unit = {
+      emTrajectoryWriter.write(
+        Map(
+          "assetUuid" -> res.assetUuid.toString,
+          "currentTick" -> res.currentTick.toString,
+          "tick" -> res.tick.toString,
+          "state" -> res.state.toKilowattHours.toString,
+          "eMin" -> res.eMin.toKilowattHours.toString,
+          "eMax" -> res.eMax.toKilowattHours.toString,
+          "tightEMin" -> res.tightEMin.toKilowattHours.toString,
+          "tightEMax" -> res.tightEMax.toKilowattHours.toString,
+        ).asJava
+      )
+    }
   }
 
   /** Used to create a [[ResultServiceProxy]].
@@ -553,6 +593,12 @@ object ResultServiceProxy {
         stateData.notifyListener(flexOptionsResult)
 
         stateData.addResult(flexOptionsResult)
+
+      case emTrajectoryRes: EmTrajectoryStepResult =>
+        // notify listener
+        stateData.printEmTrajectoryRes(emTrajectoryRes)
+        stateData
+
     }
 
   /** Method for handling three-winding results. This is necessary, since a

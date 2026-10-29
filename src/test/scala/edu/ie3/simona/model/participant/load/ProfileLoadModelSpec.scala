@@ -29,15 +29,15 @@ import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
-import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
+import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
 import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
-import squants.energy.*
+import squants.{Percent, Power}
+import squants.energy.{KilowattHours, Kilowatts, Watts}
 import squants.time.{Hours, Minutes}
-import squants.{Energy, Percent}
 import tech.units.indriya.quantity.Quantities
 
 import scala.collection.immutable.SortedMap
@@ -55,7 +55,7 @@ class ProfileLoadModelSpec
 
   // testing tolerances
   private given ApparentPower = Voltamperes(1e-2)
-  private given Energy = WattHours(1e-6)
+  private given Power = Watts(1e-6)
   private given Double = 1e-6
 
   "A profile load model" should {
@@ -263,18 +263,18 @@ class ProfileLoadModelSpec
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>
           boundaries should have size 1
+          val assetBoundaries = boundaries.headOption.value
 
-          val energyLimits = boundaries.headOption.value.energyLimits
-          energyLimits should have size sampleDataSeries.series.size + 1
+          assetBoundaries.energyLimits should have size 0
 
           samplePowerSeries
-            // adding dummy value so that last energy is tested
-            .updated(3600L, zeroKW)
-            .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
-              energyLimits(tick).getUpper should approximate(expectedEnergy)
-              energyLimits(tick).getLower should approximate(expectedEnergy)
-
-              expectedEnergy + expectedPower * dataTimeType.forecastResolution
+            .foreach { case (tick, expectedPower) =>
+              assetBoundaries.powerLimits(tick).getUpper should approximate(
+                expectedPower
+              )
+              assetBoundaries.powerLimits(tick).getLower should approximate(
+                expectedPower
+              )
             }
         case unexpected => fail(s"Received unexpected flex options $unexpected")
       }

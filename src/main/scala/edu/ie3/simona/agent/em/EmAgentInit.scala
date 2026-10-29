@@ -133,6 +133,7 @@ object EmAgentInit extends SecondaryServiceRegistration[Message, Unit] {
       inputModel.getControlStrategy,
       modelConfig,
     )
+    modelShell.modelStrategy.resultListener = listener
 
     // Since we do not expect any additional data, create a dummy consumer
     val dummyFactoryUpdater: AdditionalDataConsumer =
