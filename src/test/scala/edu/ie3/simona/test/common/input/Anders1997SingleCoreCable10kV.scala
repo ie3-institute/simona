@@ -36,7 +36,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(20.5),
       mat.getThermalProperties.resistivity().toSquants,
       mat.getThermalProperties
-        .specificHeatCapacity()
+        .volumetricHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       Some(SquareMeters(0.00024)),
     )
@@ -51,7 +51,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(21.7),
       mat.getThermalProperties.resistivity().toSquants,
       mat.getThermalProperties
-        .specificHeatCapacity()
+        .volumetricHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
@@ -66,7 +66,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(28.5),
       mat.getThermalProperties.resistivity().toSquants,
       mat.getThermalProperties
-        .specificHeatCapacity()
+        .volumetricHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
@@ -81,7 +81,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(30.1),
       mat.getThermalProperties.resistivity().toSquants,
       mat.getThermalProperties
-        .specificHeatCapacity()
+        .volumetricHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       None,
     )
@@ -94,7 +94,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(31.4), // This is 31.4 mm, not 31.2mm (Anders 2005)
       CableMaterial.COPPER.getThermalProperties.resistivity().toSquants,
       CableMaterial.COPPER.getThermalProperties
-        .specificHeatCapacity()
+        .volumetricHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       None,
       76,
@@ -113,7 +113,7 @@ object Anders1997SingleCoreCable10kV {
       Millimeters(35.8),
       mat.getThermalProperties.resistivity().toSquants,
       mat.getThermalProperties
-        .specificHeatCapacity()
+        .volumetricHeatCapacity()
         .toSquantsJoulePerCubicMeterKelvin,
       None,
     )

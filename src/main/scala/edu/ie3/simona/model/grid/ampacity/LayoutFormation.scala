@@ -12,11 +12,6 @@ package edu.ie3.simona.model.grid.ampacity
   * The formation determines the arrangement of the conductor axes relative to
   * each other and to the ground surface. It therefore drives the selection of
   * the corresponding external thermal resistance and sheath loss calculations.
-  *
-  * Note that this type only captures the geometric arrangement. The number of
-  * conductors carried by a cable (e.g. a single-core cable versus a three-core
-  * cable in a single sheath) is a separate, orthogonal dimension that is
-  * currently not represented by a dedicated input field.
   */
 sealed trait LayoutFormation
 

@@ -13,7 +13,6 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
   LineState,
   SoilLayerInfo,
 }
-import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.*
@@ -23,7 +22,11 @@ import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
-import edu.ie3.util.quantities.thermal.{ThermalCapacitance, ThermalResistivity}
+import edu.ie3.util.quantities.thermal.{
+  JoulesPerMeterKelvin,
+  ThermalCapacityPerLength,
+  ThermalResistivity,
+}
 import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.SquantsUtils.*
@@ -376,7 +379,7 @@ object LineSegmentThermalModel {
     )
 
     val thermalCapacityCc = calcThermalCapacityCylindrical(
-      cableSetup.conductor.thermalCapacitance,
+      cableSetup.conductor.volumetricHeatCapacity,
       cableSetup.conductor.innerDiameter,
       cableSetup.conductor.outerDiameter,
     )
@@ -386,7 +389,7 @@ object LineSegmentThermalModel {
         JoulesPerMeterKelvin(0)
       ) { (acc, layer) =>
         acc + calcThermalCapacityCylindrical(
-          layer.thermalCapacitance,
+          layer.volumetricHeatCapacity,
           layer.innerDiameter,
           layer.outerDiameter,
         )
@@ -395,7 +398,7 @@ object LineSegmentThermalModel {
       cableSetup.layersFillerElements.foldLeft(JoulesPerMeterKelvin(0)) {
         (acc, layer) =>
           acc + calcThermalCapacityCylindrical(
-            layer.thermalCapacitance,
+            layer.volumetricHeatCapacity,
             layer.innerDiameter,
             layer.outerDiameter,
           )
@@ -406,7 +409,7 @@ object LineSegmentThermalModel {
     val thermalCapacityCs =
       cableSetup.screenLayer.fold(JoulesPerMeterKelvin(0d))(layer =>
         calcThermalCapacityCylindrical(
-          layer.thermalCapacitance,
+          layer.volumetricHeatCapacity,
           layer.innerDiameter,
           layer.outerDiameter,
         )
@@ -416,7 +419,7 @@ object LineSegmentThermalModel {
       cableSetup.layersArmorElements.foldLeft(JoulesPerMeterKelvin(0)) {
         (acc, layer) =>
           acc + calcThermalCapacityCylindrical(
-            layer.thermalCapacitance,
+            layer.volumetricHeatCapacity,
             layer.innerDiameter,
             layer.outerDiameter,
           )
@@ -426,7 +429,7 @@ object LineSegmentThermalModel {
       cableSetup.layersJackElements.foldLeft(JoulesPerMeterKelvin(0)) {
         (acc, layer) =>
           acc + calcThermalCapacityCylindrical(
-            layer.thermalCapacitance,
+            layer.volumetricHeatCapacity,
             layer.innerDiameter,
             layer.outerDiameter,
           )
@@ -435,7 +438,7 @@ object LineSegmentThermalModel {
     val thermalCapacityCj = thermalCapacityCj1 + thermalCapacityCj2
 
     val thermalCapacityCe: ThermalCapacityPerLength =
-      lineSegmentModel.soilType.getSpecificHeatCapacity.toSquantsJoulePerCubicMeterKelvin * SquareMeters(
+      lineSegmentModel.soilType.getVolumetricHeatCapacity.toSquantsJoulePerCubicMeterKelvin * SquareMeters(
         1d
       ) // FIXME DF Proper size of the area need to be determined.
 
@@ -443,7 +446,7 @@ object LineSegmentThermalModel {
       JoulesPerMeterKelvin(0d)
     ) { bed =>
       calcThermalCapacityRectangular(
-        bed.soilType.getSpecificHeatCapacity.toSquants,
+        bed.soilType.getVolumetricHeatCapacity.toSquantsJoulePerCubicMeterKelvin, // TODO DF check units
         bed.width,
         bed.height,
       )

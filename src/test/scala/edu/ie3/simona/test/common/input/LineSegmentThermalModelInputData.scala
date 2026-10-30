@@ -11,9 +11,9 @@ import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.quantities.thermal.{
   JoulesPerCubicMeterKelvin,
+  JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
 }
-import edu.ie3.util.scala.quantities.JoulesPerMeterKelvin
 import squants.Meters
 import squants.thermal.Celsius
 

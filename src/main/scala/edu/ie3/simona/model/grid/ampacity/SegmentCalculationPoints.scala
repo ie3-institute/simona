@@ -8,12 +8,8 @@ package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.util.Coordinate
-import org.locationtech.jts.geom.{
-  Geometry,
-  GeometryFactory,
-  Point,
-  Coordinate as JtsCoordinate,
-}
+import edu.ie3.util.geo.GeoUtils
+import org.locationtech.jts.geom.{Geometry, Point, Coordinate as JtsCoordinate}
 
 import java.util.UUID
 
@@ -25,12 +21,10 @@ import java.util.UUID
   */
 object SegmentCalculationPoints {
 
-  private val geometryFactory = new GeometryFactory()
-
   /** Calculates the calculation point for the given thermal line segment.
     *
     * @param segmentUuid
-    *   The uuid of the segment (used for the error message).
+    *   The uuid of the segment.
     * @param start
     *   The segment start coordinate.
     * @param end
@@ -57,12 +51,13 @@ object SegmentCalculationPoints {
           s"the segment geometry from (${start.longitude}, ${start.latitude}) to (${end.longitude}, ${end.latitude}) is invalid."
       )
 
-    val centroid = geometryFactory.createPoint(
-      new JtsCoordinate(
-        (start.longitude + end.longitude) / 2.0,
-        (start.latitude + end.latitude) / 2.0,
+    val centroid =
+      GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
+        new JtsCoordinate(
+          (start.longitude + end.longitude) / 2.0,
+          (start.latitude + end.latitude) / 2.0,
+        )
       )
-    )
 
     val calculationPoint: Point = centroid
 

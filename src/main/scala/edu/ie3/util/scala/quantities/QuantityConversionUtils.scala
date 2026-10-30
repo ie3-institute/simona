@@ -16,16 +16,10 @@ import edu.ie3.util.quantities.electro.{
 import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.quantities.interfaces.*
 import edu.ie3.util.quantities.prices.{
-  EnergyPrice as SquantsEnergyPrice,
   EuroPerKilowattHours,
+  EnergyPrice as SquantsEnergyPrice,
 }
-import edu.ie3.util.quantities.thermal.{
-  JoulesPerCubicMeterKelvin,
-  KelvinMetersPerWatt,
-  KilowattHoursPerCubicMeterKelvin,
-  ThermalCapacitance,
-  ThermalResistivity,
-}
+import edu.ie3.util.quantities.thermal.{ThermalResistivity, *}
 import edu.ie3.util.scala.quantities
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
@@ -316,33 +310,54 @@ object QuantityConversionUtils {
     )
   }
 
-  /** Extension for [[ComparableQuantity]] of type [[SpecificHeatCapacity]] that
-    * allows conversion into a [[ThermalCapacitance]] squants quantity.
+  /** Extension for [[ComparableQuantity]] of type
+    * [[edu.ie3.util.quantities.interfaces.VolumetricHeatCapacity]] that allows
+    * conversion into a
+    * [[edu.ie3.util.quantities.thermal.VolumetricHeatCapacity]] squants
+    * quantity.
     */
-  extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
-    def toSquantsKWhPerCubicMeterKelvin: ThermalCapacitance =
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.VolumetricHeatCapacity
+      ]
+  ) {
+    def toSquantsKWhPerCubicMeterKelvin
+        : edu.ie3.util.quantities.thermal.VolumetricHeatCapacity =
       KilowattHoursPerCubicMeterKelvin(
         quantity
           .to(KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE)
           .getValue
           .doubleValue
       )
-  }
 
-  /** Extension for [[ComparableQuantity]] of type [[SpecificHeatCapacity]] that
-    * allows conversion into a [[ThermalCapacitance]] squants quantity.
-    */
-  extension (quantity: ComparableQuantity[SpecificHeatCapacity]) {
-    def toSquantsJoulePerCubicMeterKelvin: ThermalCapacitance =
+    def toSquantsJoulePerCubicMeterKelvin
+        : edu.ie3.util.quantities.thermal.VolumetricHeatCapacity =
       JoulesPerCubicMeterKelvin(
         quantity
           .to(JOULE_PER_CUBIC_METRE_KELVIN)
           .getValue
           .doubleValue
       )
+  }
 
-    def toSquants: ThermalCapacitance =
-      toSquantsJoulePerCubicMeterKelvin
+  /** Extension for [[ComparableQuantity]] of type
+    * [[edu.ie3.util.quantities.interfaces.ThermalCapacityPerLength]] that
+    * allows conversion into a
+    * [[edu.ie3.util.quantities.thermal.ThermalCapacityPerLength]] squants
+    * quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.ThermalCapacityPerLength
+      ]
+  ) {
+    def toSquants: edu.ie3.util.quantities.thermal.ThermalCapacityPerLength =
+      JoulesPerMeterKelvin(
+        quantity
+          .to(JOULE_PER_METER_KELVIN)
+          .getValue
+          .doubleValue
+      )
   }
 
   /** Extension for [[ComparableQuantity]] of type [[Irradiance]] that allows

@@ -10,10 +10,11 @@ import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
-import edu.ie3.util.scala.quantities.JoulesPerMeterKelvin
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import org.scalatest.matchers.should.Matchers
 import squants.electro.Kilovolts
 import squants.energy.{KilowattHours, Kilowatts}
+import squants.space.SquareMeters
 import squants.thermal.Celsius
 import squants.{Amperes, Energy, Kelvin, Meters, Power, Temperature}
 
@@ -269,12 +270,18 @@ class LineSegmentThermalModelSpec
         )
         .currentLineSegmentThermalModel
 
-      initialized.thermalCapacityCe shouldBe JoulesPerMeterKelvin(
-        model.soilType.getSpecificHeatCapacity.getValue.doubleValue
+      val volumetricHeatCapacity =
+        model.soilType.getVolumetricHeatCapacity.toSquantsJoulePerCubicMeterKelvin
+      val bed = model.cableBed match {
+        case Some(bedValue) => bedValue
+        case None           => fail("Test model must provide a cable bed.")
+      }
+      val bedArea = bed.width * bed.height
+
+      initialized.thermalCapacityCe shouldBe volumetricHeatCapacity * SquareMeters(
+        1d
       )
-      initialized.thermalCapacityCb shouldBe JoulesPerMeterKelvin(
-        0.24 * model.soilType.getSpecificHeatCapacity.getValue.doubleValue
-      )
+      initialized.thermalCapacityCb shouldBe volumetricHeatCapacity * bedArea
     }
 
   }

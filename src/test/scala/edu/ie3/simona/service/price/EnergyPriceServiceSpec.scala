@@ -178,15 +178,21 @@ class EnergyPriceServiceSpec
               series.size shouldBe 7
 
               // data for current time is unchanged
-              series.get(0L).value shouldBe ProsumerPrice(
-                priceSell = EuroPerKilowattHour(0.0017280000000000002),
-                priceBuy = EuroPerKilowattHour(0.18259199999999998),
+              series.getOrElse(
+                0L,
+                fail("No price data for tick 0"),
+              ) shouldBe ProsumerPrice(
+                priceSell = EuroPerKilowattHours(0.0017280000000000002),
+                priceBuy = EuroPerKilowattHours(0.18259199999999998),
               )
 
               // data for a couple of hours into the future has noise addition
-              series.get(21600L).value shouldBe ProsumerPrice(
-                priceSell = EuroPerKilowattHour(-0.05057134387184811),
-                priceBuy = EuroPerKilowattHour(0.12939265612815187),
+              series.getOrElse(
+                21600L,
+                fail("No price data for tick 21600"),
+              ) shouldBe ProsumerPrice(
+                priceSell = EuroPerKilowattHours(-0.05057134387184811),
+                priceBuy = EuroPerKilowattHours(0.12939265612815187),
               )
             case unexpected =>
               fail(s"Received unexpected data $unexpected")

@@ -9,7 +9,10 @@ package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.util.quantities.electro.SpecificCapacitance
 import edu.ie3.util.quantities.electro.SpecificResistance
-import edu.ie3.util.quantities.thermal.{ThermalCapacitance, ThermalResistivity}
+import edu.ie3.util.quantities.thermal.{
+  ThermalResistivity,
+  VolumetricHeatCapacity,
+}
 import edu.ie3.util.scala.quantities.*
 import squants.Temperature
 import squants.electro.{ElectricPotential, Resistivity}
@@ -30,7 +33,7 @@ import java.util.UUID
   *   Outer diameter of the layer
   * @param thermalResistivity
   *   Thermal resistivity of the layer material
-  * @param thermalCapacitance
+  * @param volumetricHeatCapacity
   *   Thermal capacitance per meter of the layer
   * @param area
   *   Optional cross-sectional area of the layer
@@ -41,7 +44,7 @@ final case class Layer(
     innerDiameter: Length,
     outerDiameter: Length,
     thermalResistivity: ThermalResistivity,
-    thermalCapacitance: ThermalCapacitance,
+    volumetricHeatCapacity: VolumetricHeatCapacity,
     area: Option[Area],
 )
 
@@ -55,7 +58,7 @@ final case class Layer(
   *   Outer diameter of the screen layer
   * @param thermalResistivity
   *   Thermal resistivity of the material
-  * @param thermalCapacitance
+  * @param volumetricHeatCapacity
   *   Thermal capacitance per meter
   * @param area
   *   Optional cross-sectional area
@@ -73,7 +76,7 @@ final case class ScreenLayer(
     innerDiameter: Length,
     outerDiameter: Length,
     thermalResistivity: ThermalResistivity,
-    thermalCapacitance: ThermalCapacitance,
+    volumetricHeatCapacity: VolumetricHeatCapacity,
     area: Option[Area],
     wiresNumber: Int,
     wireDiameter: Length,

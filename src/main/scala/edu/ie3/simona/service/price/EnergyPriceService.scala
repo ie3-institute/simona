@@ -157,7 +157,7 @@ object EnergyPriceService extends SimonaService {
 
       val applyToPrice = (data: ProsumerPrice, noise: Double) => {
         if noiseVariance > 0d then
-          val noiseInUnit = EuroPerMegawattHour(
+          val noiseInUnit = EuroPerMegawattHours(
             noise * noiseVariance
           )
           val adaptVal = (price: EnergyPrice) => {

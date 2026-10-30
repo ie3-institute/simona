@@ -6,47 +6,23 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import org.apache.commons.math3.linear.{
-  Array2DRowRealMatrix,
-  ArrayRealVector,
-  LUDecomposition,
-  RealMatrix,
-  RealVector,
-}
-
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.SoilType
-import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
   PI_OVER_FOUR,
   TREFOIL_ADJUSTMENT,
   TREFOIL_COEFFICIENT,
   TWO_PI,
-  LineTemperatures,
 }
-import edu.ie3.util.scala.quantities.SquantsUtils.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.util.quantities.energy.PowerPerLength
-import edu.ie3.util.quantities.thermal.{
-  JoulesPerCubicMeterKelvin,
-  KelvinMetersPerWatt,
-  ThermalCapacitance,
-  ThermalResistivity,
-}
-import edu.ie3.util.scala.quantities.{
-  JoulesPerMeterKelvin,
-  ThermalCapacityPerLength,
-}
-import squants.electro.*
+import edu.ie3.util.quantities.thermal.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import squants.Meters
 import squants.space.*
-import squants.thermal.Celsius
-import squants.time.{Frequency, Hertz}
-import squants.{ElectricCurrent, Kelvin, Meters, Temperature}
 import tech.units.indriya.ComparableQuantity
-import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.CELSIUS
-import javax.measure.quantity.Temperature as MeasureTemperature
 
+import javax.measure.quantity.Temperature as MeasureTemperature
 import scala.math.*
 
 /** A collection of methods for calculating external thermal resistance (T4) to
@@ -276,7 +252,7 @@ object SoilThermalResistanceCalculations extends LazyLogging {
   /** Calculates the thermal resistivity per length unit for a cylindrical area.
     */
   def calcThermalCapacityCylindrical(
-      thermalCapacitanceMaterial: ThermalCapacitance,
+      volumetricHeatCapacityMaterial: VolumetricHeatCapacity,
       innerDiameter: Length,
       outerDiameter: Length,
   ): ThermalCapacityPerLength = {
@@ -285,18 +261,18 @@ object SoilThermalResistanceCalculations extends LazyLogging {
         pow(innerDiameter.toMeters, 2)) * PI_OVER_FOUR
     )
 
-    thermalCapacitanceMaterial * areaDifference
+    volumetricHeatCapacityMaterial * areaDifference
   }
 
   /** Calculates the thermal resistivity per length unit for a rectangular area.
     */
   def calcThermalCapacityRectangular(
-      thermalCapacitanceMaterial: ThermalCapacitance,
+      volumetricHeatCapacityMaterial: VolumetricHeatCapacity,
       width: Length,
       height: Length,
   ): ThermalCapacityPerLength =
     val area = width * height
-    thermalCapacitanceMaterial * area
+    volumetricHeatCapacityMaterial * area
 
   /** Calculates the equivalent radius of a rectangular cable bed cross-section
     * according to Anders (1997), Eq. (9.61).
@@ -382,10 +358,10 @@ object SoilThermalResistanceCalculations extends LazyLogging {
     * length.
     */
   def calcSoilThermalCapacity(
-      specificHeatCapacity: ThermalCapacitance,
+      specificHeatCapacity: VolumetricHeatCapacity,
       depth: Length,
       innerRadius: Length,
-  ): ThermalCapacitance = {
+  ): VolumetricHeatCapacity = {
     val outerRadius = calcSoilModelOuterRadius(depth, innerRadius)
     val area =
       Pi * (pow(outerRadius.toMeters, 2) - pow(innerRadius.toMeters, 2))
@@ -405,8 +381,8 @@ object SoilThermalResistanceCalculations extends LazyLogging {
       cableOuterRadius: Length,
       bedRadius: Length,
       soilOuterRadius: Length,
-      bedHeatCapacity: ThermalCapacitance,
-      soilHeatCapacity: ThermalCapacitance,
+      bedHeatCapacity: VolumetricHeatCapacity,
+      soilHeatCapacity: VolumetricHeatCapacity,
   ): Seq[EnvironmentalCell] = {
     if cableOuterRadius >= bedRadius || bedRadius >= soilOuterRadius then {
       val message =
@@ -428,7 +404,7 @@ object SoilThermalResistanceCalculations extends LazyLogging {
         innerRadius: Length,
         outerRadius: Length,
         resistance: ThermalResistivity,
-        heatCapacity: ThermalCapacitance,
+        heatCapacity: VolumetricHeatCapacity,
     ): Seq[EnvironmentalCell] = {
       val inner = innerRadius.toMeters
       val outer = outerRadius.toMeters

@@ -13,18 +13,17 @@ import org.apache.commons.math3.linear.{
   RealMatrix,
   RealVector,
 }
-
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
-  TWO_PI,
   LineTemperatures,
+  TWO_PI,
 }
 import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.{
   EnvironmentalCell,
-  calcCableBedEquivalentRadius,
   calcCableBedEnvironmentalCells,
+  calcCableBedEquivalentRadius,
   calcCableBedLossWeightFactor,
   calcCableBedT4OuterCorrection,
   calcCableBedT4Split,
@@ -36,13 +35,12 @@ import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.{
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
-import edu.ie3.util.quantities.thermal.KelvinMetersPerWatt
-import edu.ie3.util.scala.quantities.{
-  JoulesPerMeterKelvin,
+import edu.ie3.util.quantities.thermal.{
+  KelvinMetersPerWatt,
   ThermalCapacityPerLength,
 }
 import squants.electro.*
-import squants.space.{Length, Millimeters, Meters}
+import squants.space.{Length, Meters, Millimeters}
 import squants.thermal.Celsius
 import squants.time.{Frequency, Hertz}
 import squants.{ElectricCurrent, Kelvin, Temperature}
@@ -474,8 +472,8 @@ object RCNetworkCalculations extends LazyLogging {
           cableOuterRadius,
           bedRadius,
           soilOuterRadius,
-          bed.soilType.getSpecificHeatCapacity.toSquants,
-          currentLineModel.soilType.getSpecificHeatCapacity.toSquants,
+          bed.soilType.getVolumetricHeatCapacity.toSquantsKWhPerCubicMeterKelvin, // TODO DF check units!
+          currentLineModel.soilType.getVolumetricHeatCapacity.toSquantsKWhPerCubicMeterKelvin, // TODO DF check units!
         )
         val cellResistances = cells.map(_.resistance.toKelvinMetersPerWatt)
         val cellConductances = Array.tabulate(cells.size) { index =>

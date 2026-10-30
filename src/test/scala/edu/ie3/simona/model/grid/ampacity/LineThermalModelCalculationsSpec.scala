@@ -26,14 +26,16 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   JOULE_PER_CUBIC_METRE_KELVIN,
   KELVIN_METRE_PER_WATT,
 }
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
 import edu.ie3.util.quantities.thermal.{
   JoulesPerCubicMeterKelvin,
+  JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
-  ThermalCapacitance,
+  ThermalCapacityPerLength,
   ThermalResistivity,
+  VolumetricHeatCapacity,
 }
 import edu.ie3.util.scala.quantities.*
 
@@ -58,7 +60,7 @@ class LineThermalModelCalculationsSpec
     OhmsPerMeter(1e-10)
   implicit val powerPerLengthTolerance: PowerPerLength = WattsPerMeter(1e-7)
   implicit val tolerance: Double = 1e-10
-  implicit val thermalCapacitanceTolerance: ThermalCapacitance =
+  implicit val thermalCapacitanceTolerance: VolumetricHeatCapacity =
     JoulesPerCubicMeterKelvin(1e-10)
   implicit val thermalCapacitancePerLengthTolerance: ThermalCapacityPerLength =
     JoulesPerMeterKelvin(1e-10)
@@ -764,8 +766,8 @@ class LineThermalModelCalculationsSpec
       cableOuterRadius,
       bedRadius,
       soilOuterRadius,
-      bed.soilType.getSpecificHeatCapacity.toSquants,
-      defaultSoilType.getSpecificHeatCapacity.toSquants,
+      bed.soilType.getVolumetricHeatCapacity.toSquantsJoulePerCubicMeterKelvin,
+      defaultSoilType.getVolumetricHeatCapacity.toSquantsJoulePerCubicMeterKelvin,
     )
 
     val phaseToGroundVoltage =

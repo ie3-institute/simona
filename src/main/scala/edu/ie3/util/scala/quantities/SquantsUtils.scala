@@ -6,6 +6,7 @@
 
 package edu.ie3.util.scala.quantities
 
+import edu.ie3.util.quantities.QuantityUtils.toKilowattHoursPerCubicMeter
 import edu.ie3.util.quantities.electro.{
   OhmsPerMeter,
   SpecificCapacitance,
@@ -18,7 +19,7 @@ import edu.ie3.util.quantities.energy.{
 }
 import edu.ie3.util.quantities.radio.{Irradiation, WattHoursPerSquareMeter}
 import squants.electro.{Capacitance, ElectricPotential, Resistivity, Volts}
-import squants.energy.{Energy, Power, Watts}
+import squants.energy.{Energy, EnergyDensity, Power, Watts}
 import squants.radio.Irradiance
 import squants.space.{Area, CubicMeters, Volume}
 import squants.thermal.ThermalCapacity
@@ -92,7 +93,7 @@ object SquantsUtils {
         frequency: Frequency,
         tanDelta: Double,
     ): PowerPerLength = WattsPerMeter(
-      specificCapacity.toFaradsPerKilometer * 1e-3 * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
+      specificCapacity.toFaradsPerMeter * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
     )
   }
 
@@ -102,13 +103,5 @@ object SquantsUtils {
     def /(area: Area): SpecificResistance = OhmsPerMeter(
       electricResistivity.toOhmMeters / area.toSquareMeters
     )
-  }
-  extension (
-      thermalCapacitance: edu.ie3.util.quantities.thermal.ThermalCapacitance
-  ) {
-    def *(area: Area): ThermalCapacityPerLength =
-      JoulesPerMeterKelvin(
-        thermalCapacitance.toJoulesPerCubicMeterKelvin * area.toSquareMeters
-      )
   }
 }

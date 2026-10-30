@@ -26,7 +26,7 @@ import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import squants.Meters
 import squants.thermal.Celsius
-import squants.space.Length
+import squants.space.{Length, Millimeters}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.{CELSIUS, METRE}
 import java.nio.file.{Files, Path}
@@ -130,6 +130,46 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     val segments = ThermalSegmentBuilder.splitAndAssignSegments(context)
     (segments, generatedSegments)
   }
+  private def makeContext(
+      coordinates: Seq[(Double, Double)],
+      soilLayers: Seq[SoilLayer],
+      neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] = Seq.empty,
+      ppThreshold: Option[Double] = None,
+      cableBed: Option[LineSegmentThermalModel.CableBed] = None,
+      inputSoilTypes: Seq[SoilType] = soilTypes,
+  ): ThermalSegmentBuilder.SegmentBuildContext = {
+    val generatedSegments =
+      ListBuffer.empty[ThermalSegmentBuilder.BuiltSegment]
+    val warnedPairs = scala.collection.mutable.Set.empty[(UUID, UUID)]
+    ThermalSegmentBuilder.SegmentBuildContext(
+      lineInput,
+      cable,
+      coordinates,
+      Meters(-1.0),
+      Meters(0.5),
+      soilLayers,
+      inputSoilTypes,
+      limitTemperature,
+      generatedSegments,
+      neighbourLines,
+      ppThreshold,
+      warnedPairs,
+      cableBed,
+    )
+  }
+  private def straightLine(
+      start: (Double, Double),
+      end: (Double, Double),
+  ): (org.locationtech.jts.geom.Geometry, LengthIndexedLine) = {
+    val jtsLine = geometryFactory.createLineString(
+      Array(
+        new JtsCoordinate(start._1, start._2),
+        new JtsCoordinate(end._1, end._2),
+      )
+    )
+    (jtsLine, new LengthIndexedLine(jtsLine))
+  }
+
   private def makeSegment(): ThermalSegmentBuilder.BuiltSegment = {
     val layer = makeSoilLayer(0.0, -0.1, 1.0, 0.1)
     val (_, generated) = run(
@@ -209,7 +249,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       segment.pointB.height shouldBe -1.0
       segment.soilType.getThermalResistivityWet.getValue
         .doubleValue() shouldBe 0.5
-      segment.soilType.getSpecificHeatCapacity.getValue
+      segment.soilType.getVolumetricHeatCapacity.getValue
         .doubleValue() shouldBe 1.5e6
     }
 
@@ -273,7 +313,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       segment.pointB.height shouldBe -1.0
       segment.soilType.getThermalResistivityWet.getValue
         .doubleValue() shouldBe 0.5
-      segment.soilType.getSpecificHeatCapacity.getValue
+      segment.soilType.getVolumetricHeatCapacity.getValue
         .doubleValue() shouldBe 1.5e6
     }
 
@@ -532,6 +572,334 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       thrown.getMessage should include("2")
     }
   }
+  "ThermalSegmentBuilder.requireValue" should {
+    "return the value when the option is defined" in {
+      val result = ThermalSegmentBuilder.requireValue(Some(42), "missing")
+      result shouldBe 42
+    }
+    "throw an exception with the given message when the option is empty" in {
+      val thrown = the[GridAgentInitializationException] thrownBy {
+        ThermalSegmentBuilder.requireValue(Option.empty[Int], "missing value")
+      }
+      thrown.getMessage shouldBe "missing value"
+    }
+  }
+  "ThermalSegmentBuilder.requireQuantity" should {
+    "return the quantity when the option is defined" in {
+      val result =
+        ThermalSegmentBuilder.requireQuantity(Some(Meters(1.5)), "missing")
+      result shouldBe Meters(1.5)
+    }
+    "throw an exception with the given message when the option is empty" in {
+      val thrown = the[GridAgentInitializationException] thrownBy {
+        val emptyOpt: Option[Length] = None
+        ThermalSegmentBuilder.requireQuantity(emptyOpt, "missing quantity")
+      }
+      thrown.getMessage shouldBe "missing quantity"
+    }
+  }
+  "ThermalSegmentBuilder.computeSoilIndices" should {
+    "return the boundary intersection indices for two adjacent soil layers" in {
+      val leftLayer = makeSoilLayer(0.0, -0.1, 0.5, 0.1)
+      val rightLayer = makeSoilLayer(0.5, -0.1, 1.0, 0.1)
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(leftLayer, rightLayer),
+      )
+      val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+
+      val indices =
+        ThermalSegmentBuilder.computeSoilIndices(context, jtsLine, indexedLine)
+
+      // Each layer contributes its entry and exit intersection with the line.
+      // Left layer: indices 0.0 and 0.5. Right layer: indices 0.5 and 1.0.
+      indices.distinct.sorted shouldBe Seq(0.0, 0.5, 1.0)
+    }
+    "return no indices when no soil boundary crosses the segment" in {
+      val layer = makeSoilLayer(-0.5, -0.1, 1.5, 0.1)
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(layer),
+      )
+      val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+
+      val indices =
+        ThermalSegmentBuilder.computeSoilIndices(context, jtsLine, indexedLine)
+
+      indices shouldBe empty
+    }
+  }
+  "ThermalSegmentBuilder.computePpIndices" should {
+    "return no indices when the parallel-proximity threshold is not set" in {
+      val neighbourUuid = UUID.randomUUID()
+      val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
+        neighbourUuid,
+        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        hasDeployment = true,
+      )
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
+        neighbourLines = Seq(neighbour),
+        ppThreshold = None,
+      )
+      val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+      val neighbourLine =
+        geometryFactory.createLineString(
+          Array(
+            new JtsCoordinate(0.3, 0.00005),
+            new JtsCoordinate(0.7, 0.00005),
+          )
+        )
+      val rejected = scala.collection.mutable.Set.empty[UUID]
+
+      val indices = ThermalSegmentBuilder.computePpIndices(
+        context,
+        Seq(neighbour -> neighbourLine),
+        indexedLine,
+        jtsLine.getLength,
+        jtsLine,
+        rejected,
+      )
+
+      indices shouldBe empty
+    }
+    "return the transition indices for a deployed neighbour within threshold" in {
+      val neighbourUuid = UUID.randomUUID()
+      val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
+        neighbourUuid,
+        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        hasDeployment = true,
+      )
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
+        neighbourLines = Seq(neighbour),
+        ppThreshold = Some(10.0),
+      )
+      val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+      val neighbourLine =
+        geometryFactory.createLineString(
+          Array(
+            new JtsCoordinate(0.3, 0.00005),
+            new JtsCoordinate(0.7, 0.00005),
+          )
+        )
+      val rejected = scala.collection.mutable.Set.empty[UUID]
+
+      val indices = ThermalSegmentBuilder.computePpIndices(
+        context,
+        Seq(neighbour -> neighbourLine),
+        indexedLine,
+        jtsLine.getLength,
+        jtsLine,
+        rejected,
+      )
+
+      indices.size shouldBe 2
+      rejected shouldBe empty
+    }
+    "skip an undeployed neighbour and record a warning pair" in {
+      val neighbourUuid = UUID.randomUUID()
+      val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
+        neighbourUuid,
+        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        hasDeployment = false,
+      )
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
+        neighbourLines = Seq(neighbour),
+        ppThreshold = Some(10.0),
+      )
+      val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+      val neighbourLine =
+        geometryFactory.createLineString(
+          Array(
+            new JtsCoordinate(0.3, 0.00005),
+            new JtsCoordinate(0.7, 0.00005),
+          )
+        )
+      val rejected = scala.collection.mutable.Set.empty[UUID]
+
+      val indices = ThermalSegmentBuilder.computePpIndices(
+        context,
+        Seq(neighbour -> neighbourLine),
+        indexedLine,
+        jtsLine.getLength,
+        jtsLine,
+        rejected,
+      )
+
+      indices shouldBe empty
+      context.warnedPairs should contain((lineUuid, neighbourUuid))
+    }
+    "reject a parallel stretch shorter than the minimum overlap" in {
+      val neighbourUuid = UUID.randomUUID()
+      val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
+        neighbourUuid,
+        Seq((0.00004, 0.000005), (0.00006, 0.000005)),
+        hasDeployment = true,
+      )
+      val context = makeContext(
+        Seq((0.0, 0.0), (0.0001, 0.0)),
+        Seq(makeSoilLayer(-0.0005, -0.0005, 0.0005, 0.0005)),
+        neighbourLines = Seq(neighbour),
+        ppThreshold = Some(1.0),
+      )
+      val (jtsLine, indexedLine) =
+        straightLine((0.0, 0.0), (0.0001, 0.0))
+      val neighbourLine =
+        geometryFactory.createLineString(
+          Array(
+            new JtsCoordinate(0.00004, 0.000005),
+            new JtsCoordinate(0.00006, 0.000005),
+          )
+        )
+      val rejected = scala.collection.mutable.Set.empty[UUID]
+
+      val indices = ThermalSegmentBuilder.computePpIndices(
+        context,
+        Seq(neighbour -> neighbourLine),
+        indexedLine,
+        jtsLine.getLength,
+        jtsLine,
+        rejected,
+      )
+
+      indices shouldBe empty
+      rejected should contain(neighbourUuid)
+    }
+  }
+  "ThermalSegmentBuilder.buildSubsegments" should {
+    "build one segment per index interval from the given split indices" in {
+      val leftLayer = makeSoilLayer(0.0, -0.1, 0.5, 0.1)
+      val rightLayer = makeSoilLayer(0.5, -0.1, 1.0, 0.1)
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(leftLayer, rightLayer),
+      )
+      val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+
+      val segments = ThermalSegmentBuilder.buildSubsegments(
+        context,
+        indexedLine,
+        jtsLine.getLength,
+        Seq(0.5),
+        Seq.empty,
+        scala.collection.mutable.Set.empty[UUID],
+        Seq.empty,
+        -1.0,
+        scala.collection.mutable.Set.empty[UUID],
+        ThermalSegmentBuilder.calcCableThermalCapacities(cable),
+      )
+
+      segments.size shouldBe 2
+      context.generatedSegments.size shouldBe 2
+      val sorted = context.generatedSegments.sortBy(_.start.longitude)
+      sorted.head.end.longitude shouldBe 0.5
+      sorted.last.start.longitude shouldBe 0.5
+    }
+    "mark segments with the parallel influence of non-rejected neighbours" in {
+      val neighbourUuid = UUID.randomUUID()
+      val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
+        neighbourUuid,
+        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        hasDeployment = true,
+      )
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
+        neighbourLines = Seq(neighbour),
+        ppThreshold = Some(10.0),
+      )
+      val (_, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+      val neighbourLine =
+        geometryFactory.createLineString(
+          Array(
+            new JtsCoordinate(0.3, 0.00005),
+            new JtsCoordinate(0.7, 0.00005),
+          )
+        )
+
+      val segments = ThermalSegmentBuilder.buildSubsegments(
+        context,
+        indexedLine,
+        1.0,
+        Seq.empty,
+        Seq.empty,
+        scala.collection.mutable.Set.empty[UUID],
+        Seq(neighbour -> neighbourLine),
+        -1.0,
+        scala.collection.mutable.Set.empty[UUID],
+        ThermalSegmentBuilder.calcCableThermalCapacities(cable),
+      )
+
+      segments.size shouldBe 1
+      segments.head.parallelInfluence.map(_._1) should contain(neighbourUuid)
+    }
+    "exclude rejected neighbours from the parallel influence" in {
+      val neighbourUuid = UUID.randomUUID()
+      val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
+        neighbourUuid,
+        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        hasDeployment = true,
+      )
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
+        neighbourLines = Seq(neighbour),
+        ppThreshold = Some(10.0),
+      )
+      val (_, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+      val neighbourLine =
+        geometryFactory.createLineString(
+          Array(
+            new JtsCoordinate(0.3, 0.00005),
+            new JtsCoordinate(0.7, 0.00005),
+          )
+        )
+      val rejected = scala.collection.mutable.Set(neighbourUuid)
+
+      val segments = ThermalSegmentBuilder.buildSubsegments(
+        context,
+        indexedLine,
+        1.0,
+        Seq.empty,
+        Seq.empty,
+        rejected,
+        Seq(neighbour -> neighbourLine),
+        -1.0,
+        scala.collection.mutable.Set.empty[UUID],
+        ThermalSegmentBuilder.calcCableThermalCapacities(cable),
+      )
+
+      segments.size shouldBe 1
+      segments.head.parallelInfluence shouldBe empty
+    }
+    "throw an exception if no soil layer covers a subsegment midpoint" in {
+      val context = makeContext(
+        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(makeSoilLayer(5.0, 5.0, 6.0, 6.0)),
+      )
+      val (_, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
+
+      an[GridAgentInitializationException] should be thrownBy {
+        ThermalSegmentBuilder.buildSubsegments(
+          context,
+          indexedLine,
+          1.0,
+          Seq.empty,
+          Seq.empty,
+          scala.collection.mutable.Set.empty[UUID],
+          Seq.empty,
+          -1.0,
+          scala.collection.mutable.Set.empty[UUID],
+          ThermalSegmentBuilder.calcCableThermalCapacities(cable),
+        )
+      }
+    }
+  }
   "ThermalSegmentBuilder.sampledProximityIndices" should {
     "return two in/out transition indices for a nearby parallel neighbour" in {
       val candidate = geometryFactory.createLineString(
@@ -554,7 +922,6 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         segLength,
         neighbour,
         10.0,
-        geometryFactory,
       )
 
       // A mid-segment parallel stretch yields exactly an entry and an exit.
@@ -588,7 +955,6 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         segLength,
         neighbour,
         10.0,
-        geometryFactory,
       )
       idxs shouldBe empty
     }
@@ -612,7 +978,6 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         segLength,
         neighbour,
         10.0,
-        geometryFactory,
       )
       idxs.size shouldBe 2
       idxs.head should be > 0.0
@@ -641,7 +1006,6 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         segLength,
         neighbour,
         10.0,
-        geometryFactory,
       )
       idxs shouldBe empty
     }
