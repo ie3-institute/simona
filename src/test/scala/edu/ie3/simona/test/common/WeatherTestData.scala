@@ -10,7 +10,7 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   SecondarySeriesData,
   WeatherData,
 }
-import squants.radio.{Irradiance, WattsPerSquareMeter}
+import squants.radio.WattsPerSquareMeter
 import squants.motion.KilometersPerHour
 import squants.thermal.Celsius
 

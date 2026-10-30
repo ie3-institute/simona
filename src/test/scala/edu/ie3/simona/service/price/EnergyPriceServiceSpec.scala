@@ -8,7 +8,12 @@ package edu.ie3.simona.service.price
 
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.ConfigParams.BaseCsvParams
-import edu.ie3.simona.config.InputConfig.{PriceAdjustments, PriceDatasource}
+import edu.ie3.simona.config.InputConfig.{
+  NoiseConfig,
+  PriceAdjustments,
+  PriceDatasource,
+  PriceForecast,
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -67,6 +72,10 @@ class EnergyPriceServiceSpec
     ),
   )
 
+  private val forecastConfig = PriceForecast(
+    noise = NoiseConfig(variance = 20d, seed = 1L)
+  )
+
   private val scheduler = TestProbe[SchedulerMessage]("scheduler")
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
@@ -84,6 +93,7 @@ class EnergyPriceServiceSpec
         scheduler.ref,
         InitPriceServiceStateData(
           dataSourceConfig,
+          forecastConfig,
           simulationStartDate,
         ),
         serviceKey,
@@ -166,6 +176,18 @@ class EnergyPriceServiceSpec
           data match {
             case SecondarySeriesData(series) =>
               series.size shouldBe 7
+
+              // data for current time is unchanged
+              series.get(0L).value shouldBe ProsumerPrice(
+                priceSell = EuroPerKilowattHour(0.0017280000000000002),
+                priceBuy = EuroPerKilowattHour(0.18259199999999998),
+              )
+
+              // data for a couple of hours into the future has noise addition
+              series.get(21600L).value shouldBe ProsumerPrice(
+                priceSell = EuroPerKilowattHour(-0.05057134387184811),
+                priceBuy = EuroPerKilowattHour(0.12939265612815187),
+              )
             case unexpected =>
               fail(s"Received unexpected data $unexpected")
           }

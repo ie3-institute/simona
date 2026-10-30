@@ -228,11 +228,7 @@ object EnergyBoundariesFlexOptions
         forecastType: DataTimeType.CurrentAndForecast,
     ): AssetEnergyBoundaries = {
 
-      val ticks = DataTimeType.createTicks(
-        forecastType.forecastLength,
-        forecastType.forecastResolution,
-        currentTick,
-      )
+      val ticks = forecastType.ticks(currentTick)
 
       val powerSeries = ticks.map { _ -> constantPower }.to(SortedMap)
 

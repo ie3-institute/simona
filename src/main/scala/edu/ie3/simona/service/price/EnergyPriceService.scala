@@ -23,12 +23,14 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
 }
+import edu.ie3.simona.service.NoiseGenerator.applyNoise
 import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
 import edu.ie3.simona.service.{
   DataTimeType,
+  NoiseGenerator,
   ServiceStateData,
   SimonaService,
   TimeSeriesUtil,
@@ -60,11 +62,14 @@ object EnergyPriceService extends SimonaService {
     *
     * @param sourceDefinition
     *   The definition of the source to use.
+    * @param forecastConfig
+    *   The forecast configuration to use.
     * @param startDateTime
     *   Date and time of the very first tick in the simulation.
     */
   final case class InitPriceServiceStateData(
       sourceDefinition: InputConfig.PriceDatasource,
+      forecastConfig: InputConfig.PriceForecast,
       startDateTime: ZonedDateTime,
   ) extends InitializeServiceStateData
 
@@ -79,6 +84,8 @@ object EnergyPriceService extends SimonaService {
     * @param subscribers
     *   A map of data type to agent references, which registered to receive
     *   price data throughout the simulation.
+    * @param forecastData
+    *   Data related to forecasts.
     */
   final case class PriceBaseStateData(
       activationTicks: ActivationTickQueue,
@@ -87,6 +94,7 @@ object EnergyPriceService extends SimonaService {
       subscribers: Map[DataTimeType, Set[
         ActorRef[ServiceMessage.Response]
       ]] = Map.empty,
+      forecastData: ForecastData,
   ) extends ServiceBaseStateData
 
   /** Configuration data for the service.
@@ -104,12 +112,90 @@ object EnergyPriceService extends SimonaService {
       startDateTime: ZonedDateTime,
   )
 
+  /** Holds all relevant data and configuration related to forecasts.
+    *
+    * @param noiseGenerator
+    *   The noise generator for price data.
+    * @param noiseVariance
+    *   The noise variance for price data.
+    */
+  final case class ForecastData(
+      noiseGenerator: NoiseGenerator,
+      noiseVariance: Double,
+  ) {
+
+    /** Updates all noise generators for the current tick.
+      *
+      * @param currentTick
+      *   The current tick.
+      * @param forecastParams
+      *   The forecast parameters specifying resolution and forecast horizon.
+      * @return
+      *   Updated ForecastData.
+      */
+    def update(
+        currentTick: Long,
+        forecastParams: DataTimeType.CurrentAndForecast,
+    ): ForecastData =
+      copy(
+        noiseGenerator = noiseGenerator.update(currentTick, forecastParams)
+      )
+
+    /** Adds noise to all values in ProsumerPrice data.
+      *
+      * @param data
+      *   The price data series to which noise is to be added.
+      * @param forecastParams
+      *   The forecast parameters specifying resolution and forecast horizon.
+      * @return
+      *   Price data series with added noise.
+      */
+    def applyToSeries(
+        data: SortedMap[Long, ProsumerPrice],
+        forecastParams: DataTimeType.CurrentAndForecast,
+    ): SortedMap[Long, ProsumerPrice] = {
+
+      val applyToPrice = (data: ProsumerPrice, noise: Double) => {
+        if noiseVariance > 0d then
+          val noiseInUnit = EuroPerMegawattHour(
+            noise * noiseVariance
+          )
+          val adaptVal = (price: EnergyPrice) => {
+            price + noiseInUnit
+          }
+          data.copy(
+            priceSell = adaptVal(data.priceSell),
+            priceBuy = adaptVal(data.priceBuy),
+          )
+        else data
+      }
+
+      data
+        .applyNoise(
+          noiseGenerator,
+          applyToPrice,
+          forecastParams,
+        )
+    }
+  }
+
+  private object ForecastData {
+
+    def apply(config: InputConfig.PriceForecast): ForecastData =
+      ForecastData(
+        noiseGenerator = NoiseGenerator(config.noise),
+        noiseVariance = config.noise.variance,
+      )
+
+  }
+
   override def init(
       initServiceData: ServiceStateData.InitializeServiceStateData
   )(using log: Logger): Try[(PriceBaseStateData, Option[Long])] = {
     initServiceData match {
       case InitPriceServiceStateData(
             sourceDefinition,
+            forecastConfig,
             startDateTime,
           ) =>
         given simulationStart: ZonedDateTime = startDateTime
@@ -182,6 +268,7 @@ object EnergyPriceService extends SimonaService {
                     sourceDefinition.sellingPrice,
                     simulationStart,
                   ),
+                  forecastData = ForecastData(forecastConfig),
                 )
 
               (initializedStateData, activationTicks.nextTick)
@@ -280,6 +367,8 @@ object EnergyPriceService extends SimonaService {
     val updatedStateData =
       serviceStateData.copy(activationTicks = remainingTicks)
 
+    var forecastData = updatedStateData.forecastData
+
     // get the price data and send it to the subscribed agents
     updatedStateData.subscribers.foreach { case (dataType, actors) =>
       val priceData = dataType match {
@@ -294,7 +383,10 @@ object EnergyPriceService extends SimonaService {
 
           createProsumerPrice(value)
 
-        case DataTimeType.CurrentAndForecast(length, resolution) =>
+        case forecastParams @ DataTimeType.CurrentAndForecast(
+              length,
+              resolution,
+            ) =>
           val endTick = tick + length.toSeconds.toLong
           val interval = ClosedInterval(tick.toDateTime, endTick.toDateTime)
 
@@ -315,8 +407,14 @@ object EnergyPriceService extends SimonaService {
               case (tick, value) =>
                 tick -> createProsumerPrice(value)
             }
+          forecastData = forecastData.update(
+            currentTick = tick,
+            forecastParams = forecastParams,
+          )
 
-          SecondarySeriesData(priceSeries)
+          SecondarySeriesData(
+            forecastData.applyToSeries(priceSeries, forecastParams)
+          )
       }
 
       actors.foreach {
@@ -330,7 +428,7 @@ object EnergyPriceService extends SimonaService {
     }
 
     (
-      updatedStateData,
+      updatedStateData.copy(forecastData = forecastData),
       maybeNextTick,
     )
   }
