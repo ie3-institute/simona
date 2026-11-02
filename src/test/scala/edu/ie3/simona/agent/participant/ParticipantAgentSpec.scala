@@ -56,8 +56,8 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.quantities.energy.{Kilovars, ReactivePower}
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Each, Power}

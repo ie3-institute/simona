@@ -6,18 +6,27 @@
 
 package edu.ie3.util.scala.quantities
 
+import edu.ie3.util.quantities.electro.{
+  OhmsPerMeter,
+  SpecificCapacitance,
+  SpecificResistance,
+}
 import edu.ie3.util.quantities.energy.{
+  PowerPerLength,
   ReactivePower,
+  WattsPerMeter,
   toKilowattHoursPerCubicMeter,
 }
 import edu.ie3.util.quantities.radio.{Irradiation, WattHoursPerSquareMeter}
-import squants.electro.{ElectricPotential, Volts}
-import squants.energy.{Energy, EnergyDensity}
+import squants.electro.{Capacitance, ElectricPotential, Resistivity, Volts}
+import squants.energy.{Energy, EnergyDensity, Power, Watts}
 import squants.radio.Irradiance
-import squants.space.{CubicMeters, Volume}
+import squants.space.{Area, CubicMeters, Volume}
 import squants.thermal.ThermalCapacity
-import squants.time.Hours
+import squants.time.{Frequency, Hours}
 import squants.{Dimensionless, Each, Time}
+
+import scala.math.Pi
 
 object SquantsUtils {
   extension (energy: Energy) {
@@ -56,6 +65,43 @@ object SquantsUtils {
   ) {
     def *(that: Time): Irradiation = WattHoursPerSquareMeter(
       irradiance.toWattsPerSquareMeter * that.toSeconds / Hours(1).toSeconds
+    )
+  }
+
+  implicit class RichCapacitance(
+      electricCapacity: Capacitance
+  ) {
+
+    def calculateDielectricLosses(
+        voltage: ElectricPotential,
+        frequency: Frequency,
+        tanDelta: Double,
+    ): Power = Watts(
+      electricCapacity.toFarads * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
+    )
+  }
+
+  implicit class RichSpecificCapacitance(
+      specificCapacity: SpecificCapacitance
+  ) {
+
+    /** Calculates the voltage dependent dielectric losses per unit cable
+      * length.
+      */
+    def calculateSpecificDielectricLosses(
+        voltage: ElectricPotential,
+        frequency: Frequency,
+        tanDelta: Double,
+    ): PowerPerLength = WattsPerMeter(
+      specificCapacity.toFaradsPerMeter * voltage.toVolts * voltage.toVolts * 2 * Pi * frequency.toHertz * tanDelta
+    )
+  }
+
+  implicit class RichResistivity(
+      electricResistivity: Resistivity
+  ) {
+    def /(area: Area): SpecificResistance = OhmsPerMeter(
+      electricResistivity.toOhmMeters / area.toSquareMeters
     )
   }
 }

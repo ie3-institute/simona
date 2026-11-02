@@ -8,10 +8,10 @@ package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.MockParticipantModel.*
-import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.ParticipantModel
 import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
+import edu.ie3.simona.model.participant.control.QControl.CosPhiFixed
 import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.{
@@ -22,8 +22,8 @@ import edu.ie3.simona.ontology.messages.flex.{
 import edu.ie3.simona.service.Data.{PrimaryData, SecondaryData}
 import edu.ie3.simona.service.{Data, DataTimeType, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless

@@ -97,7 +97,7 @@ abstract class ParticipantModel[
   ): S
 
   /** Handles input data (primary or secondary) by integrating into the current
-    * mode state. Is only called with new input received data or an empty
+    * model state. Is only called with new input received data or an empty
     * sequence as received data.
     *
     * @param state
