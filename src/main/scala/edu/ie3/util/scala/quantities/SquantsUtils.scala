@@ -6,8 +6,13 @@
 
 package edu.ie3.util.scala.quantities
 
+import edu.ie3.util.quantities.energy.{
+  ReactivePower,
+  toKilowattHoursPerCubicMeter,
+}
+import edu.ie3.util.quantities.radio.{Irradiation, WattHoursPerSquareMeter}
 import squants.electro.{ElectricPotential, Volts}
-import squants.energy.Energy
+import squants.energy.{Energy, EnergyDensity}
 import squants.radio.Irradiance
 import squants.space.{CubicMeters, Volume}
 import squants.thermal.ThermalCapacity

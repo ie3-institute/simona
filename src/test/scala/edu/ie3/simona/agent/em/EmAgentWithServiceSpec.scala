@@ -33,9 +33,9 @@ import edu.ie3.simona.test.matchers.SquantsMatchers
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityMatchers.equalWithTolerance
+import edu.ie3.util.quantities.QuantityMatchers
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
-import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
+import edu.ie3.util.quantities.energy.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -55,7 +55,8 @@ class EmAgentWithServiceSpec
     with should.Matchers
     with EmInputTestData
     with MockitoSugar
-    with SquantsMatchers {
+    with SquantsMatchers
+    with QuantityMatchers {
 
   protected given simulationStartDate: ZonedDateTime =
     TimeUtil.withDefaults.toZonedDateTime("2020-01-01T00:00:00Z")

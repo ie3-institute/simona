@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.grid.congestion.CongestedComponents
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import squants.electro.{Amperes, Kilovolts}
 
 class CongestedComponentsSpec

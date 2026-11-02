@@ -76,7 +76,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       Quantities.getQuantity(300.0, Units.LITRE),
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(10.0, StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(1.16, StandardUnits.VOLUMETRIC_HEAT_CAPACITY),
       Quantities.getQuantity(11.0, PowerSystemUnits.KILOWATT),
     )
 
@@ -110,7 +110,7 @@ trait HpInputTestData extends NodeInputTestData with ThermalGridTestData {
       Quantities.getQuantity(300.0, Units.LITRE),
       Quantities.getQuantity(60.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(30.0, StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(1.16, StandardUnits.VOLUMETRIC_HEAT_CAPACITY),
       Quantities.getQuantity(11.0, StandardUnits.ACTIVE_POWER_IN),
     )
 

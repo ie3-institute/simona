@@ -6,11 +6,9 @@
 
 package edu.ie3.util.quantities
 
+import edu.ie3.util.quantities.energy.KilowattHoursPerCubicMeter
+import edu.ie3.util.quantities.radio.WattHoursPerSquareMeter
 import edu.ie3.util.scala.quantities.SquantsUtils.*
-import edu.ie3.util.scala.quantities.{
-  KilowattHoursPerCubicMeter,
-  WattHoursPerSquareMeter,
-}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.Each
