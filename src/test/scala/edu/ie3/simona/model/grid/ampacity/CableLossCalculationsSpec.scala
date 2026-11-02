@@ -16,10 +16,10 @@ import edu.ie3.util.quantities.electro.FaradsPerKilometer
 import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
 import edu.ie3.util.quantities.thermal.KelvinMetersPerWatt
-
+import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
+import edu.ie3.util.scala.quantities.SquantsUtils.RichSpecificCapacitance
 import squants.electro.Volts
 import squants.thermal.{Celsius, Temperature}
-import squants.time.Hertz
 import squants.{Amperes, Meters}
 
 class CableLossCalculationsSpec
@@ -189,17 +189,16 @@ class CableLossCalculationsSpec
         ) =>
 
           val voltageU0 = Volts(phaseToGroundVoltage)
-          val frequency = Hertz(50)
           val dielectricSpecificCapacity =
             FaradsPerKilometer(dielectricCapaMircoFPerKm * 1e-6)
           val expectedResult = WattsPerMeter(expected)
 
-          val actual = calcDielectricLosses(
-            voltageU0,
-            frequency,
-            tanDelta,
-            dielectricSpecificCapacity,
-          )
+          val actual =
+            dielectricSpecificCapacity.calculateSpecificDielectricLosses(
+              voltageU0,
+              europeanSystemFrequency,
+              tanDelta,
+            )
 
           actual should approximate(expectedResult)
       }

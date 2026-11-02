@@ -10,13 +10,13 @@ The losses per unit cable length, which act as the heat sources of the thermal m
 The ampacity functionality is located in `src/main/scala/edu/ie3/simona/model/grid/ampacity/`
 and consists of the following components:
 
-| Component                        | Role                                                                                                                                               |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `CableSetup`                     | Data model of the cable: conductor, insulation, screen, filler, armor and jacket layers, plus limit temperature, rated voltage, frequency, specific resistance, skin and proximity coefficients, capacitance, dielectric loss tangent and screen loss factors. It is the central input for all loss calculations. |
-| `LayoutFormation`                | Describes the geometric arrangement of the cable axes (`flat-distance`, `flat-touching`, `trefoil-touching`, `trefoil-not-touching`). The formation determines the formulas used for the external thermal resistance and the screen (sheath) loss factors. |
-| `LineSegmentThermalModel`        | Thermal model of a single line segment: internal and external thermal resistances (T1-T4), thermal capacities of the cable elements and the surrounding soil (Cc-Ce), cable depth, soil type and optional soil layers, an optional cable bed, and the parallel influence of neighbouring cables. Its `LineState` carries the current layer temperatures, the ground temperature and the dry-zone flag. |
-| `LineThermalModelCalculations`   | Shared constants and helper methods, such as the lay factor of the screen layer, used by the thermal model and the loss calculations. |
-| `CableLossCalculations`          | The loss engine: calculates the AC resistances and the conductor, screen (sheath), armor and dielectric losses per unit cable length of a line segment. |
+| Component                      | Role                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `CableSetup`                   | Data model of the cable (layers, temperatures, electrical and loss parameters).            |
+| `LayoutFormation`              | Geometric arrangement of the cable axes; selects the loss and resistance formulas.         |
+| `LineSegmentThermalModel`      | Thermal model of one line segment (resistances, capacities, soil, depth, neighbours).      |
+| `LineThermalModelCalculations` | Shared constants and helpers, e.g. the lay factor of the screen layer.                     |
+| `CableLossCalculations`        | Loss engine: AC resistances and conductor, screen, armor and dielectric losses.            |
 
 ## Methods of `CableLossCalculations`
 
@@ -83,12 +83,14 @@ conductor losses and the armor loss factor `lambda_2`, which is the sum of a par
 from circulating currents `lambda_2'` and a part from eddy currents `lambda_2''`,
 both of which are given as parameters (e.g. from the cable data sheet).
 
-### `calcDielectricLosses`
+### Dielectric losses
 
 Calculates the **voltage-dependent dielectric losses** per unit cable length from
 the phase-to-ground voltage, the system frequency, the dielectric loss tangent
 `tan delta` and the specific capacitance of the cable dielectric. Unlike the
-conductor, screen and armor losses, these losses are not current-dependent.
+conductor, screen and armor losses, these losses are not current-dependent. This
+calculation is provided by the `RichSpecificCapacitance` extension in
+`edu.ie3.util.scala.quantities.SquantsUtils` (`calculateSpecificDielectricLosses`).
 
 ## Notes
 

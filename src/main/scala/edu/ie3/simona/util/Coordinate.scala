@@ -33,8 +33,8 @@ final case class Coordinate(
   * @param longitude
   *   The longitude of the coordinate.
   * @param height
-  *   The height above ground level longitude of the coordinate. Negative values
-  *   refer to depth accordingly.
+  *   The height above ground level of the coordinate. Negative values refer to
+  *   depth accordingly.
   */
 final case class Coordinate3D(
     latitude: Double,

@@ -12,22 +12,14 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
   TWO_PI,
   calcLayFactor,
 }
-import edu.ie3.util.quantities.electro.{
-  OhmsPerMeter,
-  SpecificCapacitance,
-  SpecificResistance,
-}
+import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
-import edu.ie3.util.quantities.thermal.{KelvinMetersPerWatt, ThermalResistivity}
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.SquantsUtils.{
-  RichResistivity,
-  RichSpecificCapacitance,
-}
+import edu.ie3.util.quantities.thermal.ThermalResistivity
+import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
+import edu.ie3.util.scala.quantities.SquantsUtils.RichResistivity
 import squants.electro.*
-import squants.space.{Length, Millimeters, SquareMeters}
-import squants.thermal.Celsius
-import squants.time.{Frequency, Hertz}
+import squants.space.{Length, SquareMeters}
+import squants.time.Frequency
 import squants.{ElectricCurrent, Kelvin, Temperature}
 
 import scala.math.*
@@ -59,9 +51,6 @@ object CableLossCalculations {
       cableSetup: CableSetup,
       distanceCables: Length,
   ): SpecificResistance = {
-    // ALTERNATIVE 1: Calculate R0 by specific resistivity / conductorArea
-    // ALTERNATIVE 2: We are not using the limitTemperature because this overestimates the losses at lower operating temperatures. Therefore, we use the mean value between the limiting temperature and the current line temperature
-    // (1 + temperatureCorrectionFactor * ((limitTemperature.toCelsiusScale - operatingTemperature.toCelsiusScale)/2 - REFERENCE_TEMPERATURE.toCelsiusScale))
     val rDc =
       electricalResistanceCable * (1 + temperatureCorrectionFactor * (cableSetup.limitTemperature.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
 
@@ -154,14 +143,12 @@ object CableLossCalculations {
       frequency: Frequency,
       ks: Double,
   ): Double = {
-    val xsSquared =
-      (8 * Pi * frequency.toHertz / rDc.toOhmsPerMeter) * 1e-7 * ks
-    val xsFourth = pow(xsSquared, 2)
+    val (xsSquared, xsFourth) = calculateXSquaredAndFourth(rDc, frequency, ks)
     val xs = sqrt(xsSquared)
 
     // Apply the piecewise formulas based on the value of x_s
     xs match {
-      case x if x <= 2.8 => xsFourth / (192.0 + 0.8 * xsFourth)
+      case x if x <= 2.8 => calculateXFourthFactor(xsFourth)
       case x if x <= 3.8 => -0.136 - (0.0177 * xs) + (0.0563 * xsSquared)
       case _             => (0.354 * xs) - 0.733
     }
@@ -189,14 +176,12 @@ object CableLossCalculations {
       conductorDiameter: Length,
       s: Length,
   ): Double = {
-    val xpSquared =
-      (8 * Pi * frequency.toHertz / rDc.toOhmsPerMeter) * 1e-7 * kp
-    val xpFourth = pow(xpSquared, 2)
+    val (_, xpFourth) = calculateXSquaredAndFourth(rDc, frequency, kp)
 
     val ratioDcToS = conductorDiameter / s
     val ratioSquared = pow(ratioDcToS, 2)
 
-    val baseFactor = xpFourth / (192.0 + 0.8 * xpFourth)
+    val baseFactor = calculateXFourthFactor(xpFourth)
 
     val bracketTerm = (0.312 * ratioSquared) + (1.18 / (baseFactor + 0.27))
     baseFactor * ratioSquared * bracketTerm
@@ -239,6 +224,8 @@ object CableLossCalculations {
     * @param conductorLosses
     *   The thermal losses of the conductor.
     * @return
+    *   The thermal losses of the sheath of this line segment in power per unit
+    *   cable length.
     */
   def calcLossesSheath(
       layoutFormation: LayoutFormation,
@@ -251,7 +238,11 @@ object CableLossCalculations {
       conductorLosses: PowerPerLength,
   ): PowerPerLength = {
     val (x, xm) =
-      calculateReactance(Hertz(50), axialCableDistance, averageDiameterSheath)
+      calculateReactance(
+        europeanSystemFrequency,
+        axialCableDistance,
+        averageDiameterSheath,
+      )
     val lambda1Dash = layoutFormation match {
       case LayoutFormation.FlatDistance =>
         calcLambda1DashFlatDistance(r, rs, x, xm, phase)
@@ -264,7 +255,7 @@ object CableLossCalculations {
       case LayoutFormation.TrefoilTouching =>
         calcLambda1DashTrefoilTouching(r, rs, x)
     }
-    // lambda_1 = lambda_1_dash + lambda_1_dash_dash
+    // lambda_1 is the sum of lambda_1_dash and lambda_1_dash_dash
     val lambdaOne = lambda1Dash + eddyCurrentsSheathLossFactor
 
     conductorLosses * lambdaOne
@@ -302,12 +293,12 @@ object CableLossCalculations {
     val term1 = (0.25 * qSq) / (rsSq + qSq)
     val term2 = (0.75 * pSq) / (rsSq + pSq)
 
-    // Asymmetric part (adds up for leading phase, subtracts for lagging phase)
-    // val term3 = (sqrt(3.0) * rs * p * q * xm) / ((rsSq + pSq) * (rsSq + qSq))
+    // Asymmetric part (subtracts up for leading phase, add for lagging phase)
+    // val term3 defined as  2* rs * p * q * xm) / (sqrt(3) * (rsSq + qSq) * (rsSq + pSq))
     val term3 =
       (2 * rs.toOhmsPerMeter * p * q * xm.toOhmsPerMeter) / (sqrt(
         3.0
-      ) * (rsSq + pSq) * (rsSq + qSq))
+      ) * (rsSq + qSq) * (rsSq + pSq))
 
     phase match {
       case "leading" =>
@@ -372,41 +363,48 @@ object CableLossCalculations {
     *   Determines the losses in the armor caused by eddy currents. Often given
     *   as lambda_2_dash_dash.
     * @return
+    *   The thermal losses of the armor of this line segment in power per unit
+    *   cable length.
     */
   def calcLossesArmor(
       circulatingArmorLossFactor: Double,
       eddyCurrentsArmorLossFactor: Double,
       conductorLosses: PowerPerLength,
   ): PowerPerLength = {
-    // lambda_2 = lambda_2_dash + lambda_2_dash_dash
+    // lambda_2 is the sum of lambda_2_dash and lambda_2_dash_dash
     val lambdaTwo =
       circulatingArmorLossFactor + eddyCurrentsArmorLossFactor
     conductorLosses * lambdaTwo
   }
 
-  /** Calculates the losses within the cable that are not current-dependent, per
-    * unit cable length.
-    * @param phaseToGroundVoltage
-    *   The phase-to-ground voltage U0 of the cable system
+  /** Calculates the squared and fourth power of the IEC 60287 x-factor, where
+    * x² = 8πf·10⁻⁷·k / r_DC.
+    * @param rDc
+    *   DC resistance of the conductor at operating temperature
     * @param frequency
-    *   The frequency of the system (50 Hz) in general.
-    * @param tanDelta
-    *   The dissipation factor of the cable.
-    * @param specificDielectricCapacity
-    *   The specific capacitance per unit length of the cable dielectric.
+    *   System frequency
+    * @param k
+    *   Effect coefficient (skin or proximity)
     * @return
-    *   The voltage dependent dielectric losses per unit cable length.
+    *   Tuple of (x², x⁴)
     */
-  def calcDielectricLosses(
-      phaseToGroundVoltage: ElectricPotential,
+  private def calculateXSquaredAndFourth(
+      rDc: SpecificResistance,
       frequency: Frequency,
-      tanDelta: Double,
-      specificDielectricCapacity: SpecificCapacitance,
-  ): PowerPerLength = {
-    specificDielectricCapacity.calculateSpecificDielectricLosses(
-      phaseToGroundVoltage,
-      frequency,
-      tanDelta,
-    )
+      k: Double,
+  ): (Double, Double) = {
+    val xSquared = (8 * Pi * frequency.toHertz / rDc.toOhmsPerMeter) * 1e-7 * k
+    val xFourth = pow(xSquared, 2)
+    (xSquared, xFourth)
   }
+
+  /** Calculates the low-frequency x⁴-based factor x⁴ / (192 + 0.8·x⁴) shared by
+    * the skin effect and proximity effect formulas.
+    * @param xFourth
+    *   Fourth power of the x-factor
+    * @return
+    *   The x⁴-based factor
+    */
+  private def calculateXFourthFactor(xFourth: Double): Double =
+    xFourth / (192.0 + 0.8 * xFourth)
 }
