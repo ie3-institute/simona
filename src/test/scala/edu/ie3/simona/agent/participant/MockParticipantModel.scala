@@ -24,6 +24,7 @@ import edu.ie3.simona.service.{Data, DataTimeType, ServiceType}
 import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import org.apache.pekko.actor.typed.ActorRef
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless

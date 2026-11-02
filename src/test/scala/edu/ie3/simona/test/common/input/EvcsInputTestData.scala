@@ -19,6 +19,7 @@ import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.simona.test.common.model.MockEvModel
 import edu.ie3.util.quantities.QuantityUtils.*
 
+import java.util
 import java.util.UUID
 import scala.jdk.CollectionConverters.*
 

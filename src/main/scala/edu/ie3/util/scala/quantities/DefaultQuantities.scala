@@ -8,11 +8,11 @@ package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.energy.{Kilovars, Megavars, ReactivePower}
 import edu.ie3.util.quantities.prices.{EnergyPrice, EuroPerKilowattHours}
+import squants.*
 import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
 import squants.motion.MetersPerSecond
 import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.thermal.Celsius
-import squants.*
 
 object DefaultQuantities {
 

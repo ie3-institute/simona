@@ -6,7 +6,6 @@
 
 package edu.ie3.simona.agent.grid
 
-import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
@@ -14,6 +13,7 @@ import edu.ie3.datamodel.models.result.connector.{
   SwitchResult,
   Transformer2WResult,
 }
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
@@ -41,9 +41,10 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.energy.Voltamperes
 import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
 import edu.ie3.util.quantities.QuantityUtil
+import edu.ie3.util.quantities.energy.Voltamperes
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
-import edu.ie3.util.scala.quantities.{QuantityUtil as ScalaQuantityUtil}
+import edu.ie3.util.scala.quantities.QuantityUtil as ScalaQuantityUtil
 import org.scalatest.prop.TableDrivenPropertyChecks
 import squants.electro.{Amperes, Volts}
 import squants.energy.Kilowatts

@@ -16,8 +16,8 @@ import edu.ie3.simona.model.em.opt.PowerVariableObjectiveFactory.{
 }
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroEurPerKWh, zeroKW}
 import edu.ie3.util.quantities.prices.EnergyPrice
+import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroEurPerKWh, zeroKW}
 import optimus.algebra.{Const, Expression, Zero}
 import optimus.optimization.MPModel
 import optimus.optimization.model.{MPFloatVar, MPVar}

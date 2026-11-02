@@ -7,8 +7,8 @@
 package edu.ie3.simona.model.thermal
 
 import edu.ie3.util.quantities.thermal.VolumetricHeatCapacity
-import squants.space.{CubicMeters, Volume}
-import squants.energy.*
+import edu.ie3.util.scala.quantities.SquantsUtils.calcVolume
+import squants.space.Volume
 import squants.{Energy, Temperature}
 
 trait ThermalStorageCalculations {

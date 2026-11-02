@@ -37,6 +37,7 @@ import edu.ie3.util.quantities.energy.{ApparentPower, ReactivePower}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt, asPu}
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toApparent
+import edu.ie3.util.quantities.energy.{ApparentPower, ReactivePower}
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.PowerConversions.PowerNumeric
 import squants.energy.{Kilowatts, Watts}

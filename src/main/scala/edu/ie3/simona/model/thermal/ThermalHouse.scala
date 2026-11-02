@@ -21,15 +21,15 @@ import edu.ie3.simona.model.thermal.ThermalHouse.ThermalHouseThreshold.{
   HouseTemperatureLowerBoundaryReached,
 }
 import edu.ie3.util.quantities.PowerSystemUnits
-import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.QuantityUtil.*
-import edu.ie3.util.scala.quantities.SquantsUtils.toWattSecondsPerKelvin
 import edu.ie3.util.quantities.thermal.{
   KilowattHoursPerCubicMeterKelvin,
   ThermalConductance,
   WattsPerKelvin,
 }
+import edu.ie3.util.scala.quantities.DefaultQuantities.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import edu.ie3.util.scala.quantities.QuantityUtil.*
+import edu.ie3.util.scala.quantities.SquantsUtils.toWattSecondsPerKelvin
 import squants.energy.{Joules, KilowattHours}
 import squants.space.Litres
 import squants.thermal.{Celsius, Kelvin, ThermalCapacity}

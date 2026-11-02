@@ -9,6 +9,7 @@ package edu.ie3.simona.model.grid
 import edu.ie3.powerflow.math.Complex
 import edu.ie3.util.quantities.energy.{ReactivePower, Vars}
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.energy.{ReactivePower, Vars}
 import squants.electro.*
 import squants.energy.{Megawatts, Watts}
 import squants.{Dimensionless, Each, Power}

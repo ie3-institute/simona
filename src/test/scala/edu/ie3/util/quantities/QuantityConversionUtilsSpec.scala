@@ -16,7 +16,9 @@ import edu.ie3.util.quantities.thermal.{
   KelvinMetersPerWatt,
   KilowattHoursPerCubicMeterKelvin,
 }
-import edu.ie3.util.scala.quantities.*
+import edu.ie3.util.quantities.energy.Kilovoltamperes
+import edu.ie3.util.quantities.prices.EuroPerKilowattHours
+import edu.ie3.util.quantities.thermal.KilowattHoursPerCubicMeterKelvin
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.*
 import squants.energy.{Energy, KilowattHours, Kilowatts}
@@ -205,12 +207,12 @@ class QuantityConversionUtilsSpec extends UnitSpec {
       volume.toSquants shouldBe CubicMeters(7.5)
     }
 
-    "properly convert specific heat capacity quantities" in {
-      val specHeatCapacity = Quantities.getQuantity(
+    "properly convert volumetric heat capacity quantities" in {
+      val volHeatCapacity = Quantities.getQuantity(
         1.15,
         KILOWATTHOUR_PER_KELVIN_TIMES_CUBICMETRE,
       )
-      specHeatCapacity.toSquantsKWhPerCubicMeterKelvin shouldBe KilowattHoursPerCubicMeterKelvin(
+      volHeatCapacity.toSquantsKWhPerCubicMeterKelvin shouldBe KilowattHoursPerCubicMeterKelvin(
         1.15
       )
     }

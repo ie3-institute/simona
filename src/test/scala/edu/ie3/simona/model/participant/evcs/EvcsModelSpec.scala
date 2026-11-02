@@ -22,6 +22,7 @@ import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.energy.Kilovars
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
+import edu.ie3.util.quantities.energy.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import org.apache.pekko.actor.typed.Behavior
 import org.apache.pekko.actor.typed.scaladsl.Behaviors
