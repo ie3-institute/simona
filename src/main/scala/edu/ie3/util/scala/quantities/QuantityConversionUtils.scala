@@ -7,14 +7,16 @@
 package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.electro.{
+  FaradsPerKilometer,
+  OhmsPerKilometer,
+  SpecificCapacitance,
+  SpecificResistance as SquantsSpecificResistance,
+}
 import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.quantities.interfaces
 import edu.ie3.util.quantities.prices.{EnergyPrice, EuroPerKilowattHours}
-import edu.ie3.util.quantities.thermal.{
-  JoulesPerCubicMeterKelvin,
-  KilowattHoursPerCubicMeterKelvin,
-  VolumetricHeatCapacity,
-}
+import edu.ie3.util.quantities.thermal.*
 import edu.ie3.util.scala.quantities
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
@@ -202,7 +204,6 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Ohms]].
       */
-    @targetName("specificResistanceToElectricalResistanceSquants")
     def toSquants(implicit
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalResistance = Ohms(
@@ -216,7 +217,6 @@ object QuantityConversionUtils {
     /** @return
       *   a quantity with unit [[OhmsPerKilometer]].
       */
-    @targetName("specificResistanceSquants")
     def toResistancePerLength: SquantsSpecificResistance =
       OhmsPerKilometer(quantity.to(OHM_PER_KILOMETRE).getValue.doubleValue)
   }
@@ -319,8 +319,7 @@ object QuantityConversionUtils {
           .doubleValue
       )
 
-    def toSquantsJoulePerCubicMeterKelvin
-        : edu.ie3.util.quantities.thermal.VolumetricHeatCapacity =
+    def toSquantsJoulePerCubicMeterKelvin: VolumetricHeatCapacity =
       JoulesPerCubicMeterKelvin(
         quantity
           .to(JOULE_PER_CUBIC_METRE_KELVIN)
@@ -336,12 +335,15 @@ object QuantityConversionUtils {
     * quantity.
     */
   extension (
-      quantity: ComparableQuantity[
-        edu.ie3.util.quantities.interfaces.ThermalCapacityPerLength
-      ]
+      quantity: ComparableQuantity[interfaces.ThermalCapacityPerLength]
   ) {
-    def toSquants: edu.ie3.util.quantities.thermal.ThermalCapacityPerLength =
+    def toSquants: ThermalCapacityPerLength =
       JoulesPerMeterKelvin(
+        quantity
+          .to(JOULE_PER_METER_KELVIN)
+          .getValue
+          .doubleValue
+      )
   }
 
   /** Extension for [[ComparableQuantity]] of type [[interfaces.Irradiance]]

@@ -22,19 +22,16 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmFlexMessage,
   EmServiceRegistration,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
+import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.test.common.input.EmInputTestData
-import edu.ie3.simona.test.matchers.QuantityMatchers
-import edu.ie3.simona.test.matchers.SquantsMatchers
+import edu.ie3.simona.test.matchers.{QuantityMatchers, SquantsMatchers}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.QuantityMatchers
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.quantities.energy.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
