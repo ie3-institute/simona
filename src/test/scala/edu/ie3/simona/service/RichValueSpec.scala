@@ -10,7 +10,6 @@ import edu.ie3.datamodel.models.value.*
 import edu.ie3.simona.service.Data.PrimaryData
 import edu.ie3.simona.service.Data.PrimaryData.*
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.util.quantities.energy.Kilovars
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.energy.Kilovars
 import org.scalatest.prop.TableDrivenPropertyChecks

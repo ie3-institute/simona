@@ -14,7 +14,6 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentBaseData
 import edu.ie3.simona.event.ResultEvent.PowerFlowResultEvent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.result.CongestedComponentsTestData
-import edu.ie3.util.quantities.energy.Kilovoltamperes
 import edu.ie3.util.quantities.QuantityUtils.asPercent
 import edu.ie3.util.quantities.energy.Kilovoltamperes
 import org.mockito.Mockito.when

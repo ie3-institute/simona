@@ -16,9 +16,6 @@ import edu.ie3.util.quantities.thermal.{
   KelvinMetersPerWatt,
   KilowattHoursPerCubicMeterKelvin,
 }
-import edu.ie3.util.quantities.energy.Kilovoltamperes
-import edu.ie3.util.quantities.prices.EuroPerKilowattHours
-import edu.ie3.util.quantities.thermal.KilowattHoursPerCubicMeterKelvin
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.*
 import squants.energy.{Energy, KilowattHours, Kilowatts}

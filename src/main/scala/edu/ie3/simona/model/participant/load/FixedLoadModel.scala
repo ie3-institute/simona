@@ -27,7 +27,6 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import edu.ie3.util.quantities.energy.ApparentPower
 import squants.Power
 import squants.time.Days
 

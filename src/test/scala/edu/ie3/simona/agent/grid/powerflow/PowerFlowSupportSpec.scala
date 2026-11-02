@@ -38,7 +38,6 @@ import edu.ie3.simona.test.common.model.grid.{
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
 import edu.ie3.simona.util.TestGridFactory
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.energy.Megavars
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.quantities.energy.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{

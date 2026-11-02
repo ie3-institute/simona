@@ -15,8 +15,8 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexResponse,
 }
 import edu.ie3.simona.scheduler.ScheduleLock.ScheduleKey
-import edu.ie3.simona.service.Data.PrimaryDataExtra
 import edu.ie3.simona.service.{Data, DataTimeType}
+import edu.ie3.simona.service.Data.PrimaryDataExtra
 import org.apache.pekko.actor.typed.ActorRef
 
 import java.util.UUID

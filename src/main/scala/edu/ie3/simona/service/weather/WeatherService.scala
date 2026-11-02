@@ -22,7 +22,6 @@ import edu.ie3.simona.service.ServiceStateData.{
 }
 import edu.ie3.simona.service.{DataTimeType, NoiseGenerator, SimonaService}
 import edu.ie3.simona.service.weather.WeatherSource.WeightedCoordinates
-import edu.ie3.simona.service.{DataTimeType, SimonaService}
 import edu.ie3.simona.util.TickUtil.toTick
 import edu.ie3.simona.util.{Coordinate, SimonaConstants}
 import edu.ie3.util.scala.collection.immutable.ActivationTickQueue

@@ -38,7 +38,6 @@ import edu.ie3.simona.test.common.model.grid.{
 }
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.quantities.energy.Voltamperes
 import edu.ie3.util.quantities.PowerSystemUnits.{DEGREE_GEOM, PU}
 import edu.ie3.util.quantities.QuantityUtil
 import edu.ie3.util.quantities.energy.Voltamperes

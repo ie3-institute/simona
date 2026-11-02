@@ -7,12 +7,17 @@
 package edu.ie3.simona.test.common.input
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
-import edu.ie3.simona.model.grid.ampacity.{CableSetup, Layer, ScreenLayer}
-import edu.ie3.simona.model.grid.ampacity.LayoutFormation
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquantsJoulePerCubicMeterKelvin
-import edu.ie3.util.quantities.electro.FaradsPerKilometer
-import edu.ie3.util.quantities.electro.OhmsPerMeter
+import edu.ie3.simona.model.grid.ampacity.{
+  CableSetup,
+  Layer,
+  LayoutFormation,
+  ScreenLayer,
+}
+import edu.ie3.util.quantities.electro.{FaradsPerKilometer, OhmsPerMeter}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toSquants,
+  toSquantsJoulePerCubicMeterKelvin,
+}
 import squants.electro.{Kilovolts, OhmMeters}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius

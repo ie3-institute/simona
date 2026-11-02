@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.api.data.model.ev.EvModel
-import edu.ie3.util.quantities.energy.ApparentPower
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
 import edu.ie3.util.quantities.energy.ApparentPower
@@ -15,8 +14,8 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import squants.energy.{Power, Energy, KilowattHours}
-import squants.time.{Time, Seconds}
+import squants.energy.{Energy, KilowattHours, Power}
+import squants.time.{Seconds, Time}
 
 import java.util.UUID
 

@@ -9,7 +9,6 @@ package edu.ie3.simona.agent.grid
 import edu.ie3.datamodel.models.input.container.SubGridContainer
 import edu.ie3.datamodel.utils.ContainerUtils
 import edu.ie3.simona.agent.EnvironmentRefs
-import edu.ie3.simona.agent.grid.AmpacityCalculationMessages.DoAmpacityCalculation
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
 import edu.ie3.simona.agent.grid.congestion.CongestionManagementMessages.{
   DoCongestionManagement,

@@ -24,7 +24,6 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.ServiceType
-import edu.ie3.util.quantities.energy.ApparentPower
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
 import edu.ie3.util.quantities.energy.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toApparent
