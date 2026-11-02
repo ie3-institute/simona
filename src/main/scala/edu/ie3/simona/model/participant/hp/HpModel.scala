@@ -37,7 +37,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
 import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
-import edu.ie3.util.scala.quantities.*
+import edu.ie3.util.quantities.energy.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroCelsius, zeroKW}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,

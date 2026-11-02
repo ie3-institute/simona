@@ -28,7 +28,7 @@ import edu.ie3.simona.service.{Data, DataTimeType}
 import edu.ie3.simona.util.SimonaConstants.FIRST_TICK_IN_SIMULATION
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.quantities.energy.ReactivePower
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
 import squants.energy.Power
