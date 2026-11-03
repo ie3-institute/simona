@@ -52,11 +52,10 @@ object LayoutFormation {
     *   if the string does not correspond to a known layout formation.
     */
   def fromString(formation: String): LayoutFormation =
-    byName
-      .get(formation.trim.toLowerCase)
-      .getOrElse(
-        throw new IllegalArgumentException(
-          s"Unknown layout formation: $formation"
-        )
-      )
+    byName.getOrElse(
+      formation.trim.toLowerCase,
+      throw new IllegalArgumentException(
+        s"Unknown layout formation: $formation"
+      ),
+    )
 }

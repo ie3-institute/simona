@@ -17,7 +17,6 @@ import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
 import edu.ie3.util.quantities.thermal.ThermalResistivity
 import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
 import edu.ie3.util.scala.quantities.SquantsUtils.RichResistivity
-import squants.electro.*
 import squants.space.{Length, SquareMeters}
 import squants.time.Frequency
 import squants.{ElectricCurrent, Kelvin, Temperature}
@@ -75,8 +74,8 @@ object CableLossCalculations {
     * effect).
     * @param screenLayer
     *   Cable layer of the screen with type [[ScreenLayer]].
-    * @param limitTemperature
-    *   Limit temperature of the cable.
+    * @param currentConductorTemperature
+    *   The current temperature of the conductor in this line segment.
     * @param thermalResistanceT1
     *   The resistance T1 (between conductor and screen) of this line segment.
     * @param conductorLosses
@@ -90,7 +89,7 @@ object CableLossCalculations {
     */
   def calcAcResistanceSheath(
       screenLayer: Option[ScreenLayer],
-      limitTemperature: Temperature,
+      currentConductorTemperature: Temperature,
       thermalResistanceT1: ThermalResistivity,
       conductorLosses: PowerPerLength,
       dielectricLosses: PowerPerLength,
@@ -113,10 +112,9 @@ object CableLossCalculations {
         val r0Screen = (layer.materialResistivity / area) * layFactor
 
         // calculate operating temperatur of the screen
-        val screenTemp: Temperature =
-          limitTemperature - Kelvin(
-            (conductorLosses.toWattsPerMeter + 0.5 * dielectricLosses.toWattsPerMeter) * thermalResistanceT1.toKelvinMetersPerWatt
-          )
+        val screenTemp = currentConductorTemperature - Kelvin(
+          (conductorLosses.toWattsPerMeter + 0.5 * dielectricLosses.toWattsPerMeter) * thermalResistanceT1.toKelvinMetersPerWatt
+        )
 
         // ac resistance of screen wires at operating temp
         r0Screen * (1 + layer.material.getElectricalResistivityTemperatureCoefficient * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
@@ -133,8 +131,7 @@ object CableLossCalculations {
     * @param frequency
     *   System frequency
     * @param ks
-    *   Skin effect coefficient (e.g., 1.0 for solid/stranded copper or
-    *   aluminum)
+    *   Skin effect coefficient
     * @return
     *   Skin effect factor (y_s)
     */
@@ -245,9 +242,9 @@ object CableLossCalculations {
       )
     val lambda1Dash = layoutFormation match {
       case LayoutFormation.FlatDistance =>
-        calcLambda1DashFlatDistance(r, rs, x, xm, phase)
+        calcLambda1DashFlat(r, rs, x, xm, phase)
       case LayoutFormation.FlatTouching =>
-        calcLambda1DashFlatDistance(r, rs, x, xm, phase)
+        calcLambda1DashFlat(r, rs, x, xm, phase)
       case LayoutFormation.TrefoilNotTouching =>
         throw new IllegalArgumentException(
           s"Trefoil not touching layout formation is currently not supported"
@@ -262,7 +259,8 @@ object CableLossCalculations {
   }
 
   /** Calculates the sheath loss factor for circulating currents in case of
-    * systems in flat formation and bonded on both ends.
+    * systems in flat formation (with distance or touching) and bonded on both
+    * ends.
     * @param r
     *   AC-Resistance per Length of conductor at operating temperature.
     * @param rs
@@ -272,9 +270,9 @@ object CableLossCalculations {
     * @param xm
     *   Mutual Reactance per Length.
     * @return
-    *   Loss factor lambda1.
+    *   Loss factor lambda1'.
     */
-  private def calcLambda1DashFlatDistance(
+  private def calcLambda1DashFlat(
       r: SpecificResistance,
       rs: SpecificResistance,
       x: SpecificResistance,
@@ -294,7 +292,7 @@ object CableLossCalculations {
     val term2 = (0.75 * pSq) / (rsSq + pSq)
 
     // Asymmetric part (subtracts up for leading phase, add for lagging phase)
-    // val term3 defined as  2* rs * p * q * xm) / (sqrt(3) * (rsSq + qSq) * (rsSq + pSq))
+    // val term3 defined as  (2* rs * p * q * xm) / (sqrt(3) * (rsSq + qSq) * (rsSq + pSq))
     val term3 =
       (2 * rs.toOhmsPerMeter * p * q * xm.toOhmsPerMeter) / (sqrt(
         3.0

@@ -6,31 +6,20 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.SoilType
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.SoilLayerInfo
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.LineTemperatures
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
-import edu.ie3.simona.model.thermal.ThermalThreshold
-import edu.ie3.simona.service.Data
-import edu.ie3.simona.service.Data.SecondaryData.WeatherData
-import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.quantities.thermal.{
   JoulesPerMeterKelvin,
   ThermalCapacityPerLength,
   ThermalResistivity,
 }
-import edu.ie3.util.scala.quantities.*
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.SquantsUtils.*
+import squants.Temperature
 import squants.electro.ElectricPotential
-import squants.space.{Length, Meters, SquareMeters}
-import squants.{ElectricCurrent, Temperature}
-import tech.units.indriya.quantity.Quantities
+import squants.space.Length
 
-import java.lang.Double as JDouble
-import java.time.ZonedDateTime
 import java.util.UUID
 
 /** A thermal model for a line segment

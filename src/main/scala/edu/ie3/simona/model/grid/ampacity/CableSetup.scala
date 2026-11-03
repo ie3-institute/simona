@@ -34,7 +34,7 @@ import java.util.UUID
   * @param thermalResistivity
   *   Thermal resistivity of the layer material
   * @param volumetricHeatCapacity
-  *   Thermal capacitance per meter of the layer
+  *   Volumetric heat capacity per meter of the layer
   * @param area
   *   Optional cross-sectional area of the layer
   */
@@ -59,7 +59,7 @@ final case class Layer(
   * @param thermalResistivity
   *   Thermal resistivity of the material
   * @param volumetricHeatCapacity
-  *   Thermal capacitance per meter
+  *   Volumetric heat capacity per meter of the material
   * @param area
   *   Optional cross-sectional area
   * @param wiresNumber
