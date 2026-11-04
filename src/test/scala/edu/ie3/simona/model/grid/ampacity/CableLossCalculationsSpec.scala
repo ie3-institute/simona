@@ -15,8 +15,6 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.electro.FaradsPerKilometer
 import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
-import edu.ie3.util.quantities.thermal.KelvinMetersPerWatt
-
 import squants.electro.Volts
 import squants.thermal.{Celsius, Temperature}
 import squants.time.Hertz
@@ -114,38 +112,28 @@ class CableLossCalculationsSpec
     "calculate correctly the AC resistance of the screen" in {
       val cases = Table(
         (
-          "limitTemperature",
-          "thermalResistanceT1",
-          "conductorLosses",
-          "dielectricLosses",
+          "screenTemperature",
           "expected",
         ),
-        (90.0, 0.4110322351, 28.20166532, 0.10842143853,
-          6.635010635e-4), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification", TB 880, p 199ff
+        (
+          78.3859241165,
+          6.635010635e-4,
+        ), // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification", TB 880, p 199ff
       )
 
       forAll(cases) {
         (
-            limitTemperature,
-            thermalResistanceT1,
-            conductorLosses,
-            dielectricLosses,
+            screenTemperature,
             expected,
         ) =>
 
           val screenLayer = CigreT880LandCable33kV.cable.screenLayer
-          val limitTemp = Celsius(limitTemperature)
-          val t1 = KelvinMetersPerWatt(thermalResistanceT1)
-          val wC = WattsPerMeter(conductorLosses)
-          val wD = WattsPerMeter(dielectricLosses)
+          val screenTemp = Celsius(screenTemperature)
           val expectedResult = OhmsPerMeter(expected)
 
           val actual = calcAcResistanceSheath(
             screenLayer,
-            limitTemp,
-            t1,
-            wC,
-            wD,
+            screenTemp,
           )
 
           actual should approximate(expectedResult)

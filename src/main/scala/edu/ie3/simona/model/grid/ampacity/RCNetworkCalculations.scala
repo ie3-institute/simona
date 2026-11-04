@@ -6,44 +6,21 @@
 
 package edu.ie3.simona.model.grid.ampacity
 
-import org.apache.commons.math3.linear.{
-  Array2DRowRealMatrix,
-  ArrayRealVector,
-  LUDecomposition,
-  RealMatrix,
-  RealVector,
-}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
-import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
-  LineTemperatures,
-  TWO_PI,
-}
+import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.LineTemperatures
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.*
 import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
-import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.{
-  EnvironmentalCell,
-  calcCableBedEnvironmentalCells,
-  calcCableBedEquivalentRadius,
-  calcCableBedLossWeightFactor,
-  calcCableBedT4OuterCorrection,
-  calcCableBedT4Split,
-  calcSoilModelOuterRadius,
-  calcThermalResistanceToSoilNonUniform,
-  calcThermalResistanceToSoilThreeSingleCoreFlatFormationDistance,
-  calcThermalResistanceToSoilThreeSingleCoreFlatFormationTouching,
-  calcThermalResistanceToSoilThreeSingleCoreTrefoilTouching,
-}
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
+import edu.ie3.util.quantities.electro.OhmsPerMeter
 import edu.ie3.util.quantities.thermal.{
   KelvinMetersPerWatt,
   ThermalCapacityPerLength,
 }
-import squants.electro.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import org.apache.commons.math3.linear.*
 import squants.space.{Length, Meters, Millimeters}
 import squants.thermal.Celsius
-import squants.time.{Frequency, Hertz}
-import squants.{ElectricCurrent, Kelvin, Temperature}
+import squants.{ElectricCurrent, Temperature}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.CELSIUS
 
@@ -173,10 +150,7 @@ object RCNetworkCalculations extends LazyLogging {
         case Some(layer) =>
           val resistance = CableLossCalculations.calcAcResistanceSheath(
             cableSetup.screenLayer,
-            cableSetup.limitTemperature,
-            state.currentLineSegmentThermalModel.thermalResistanceT1,
-            conductorLosses,
-            dielectricLosses,
+            state.lineTemperatures.currentLineTemp3,
           )
           val diameter = (layer.innerDiameter + layer.outerDiameter) / 2
           (resistance, diameter)

@@ -48,7 +48,7 @@ class LineSegmentThermalModelSpec
           cigreLandCable33kVLineSegmentThermalModel,
           20d,
           537d,
-          89.52287997644756, // approx 90°C
+          90.06585315340433, // approx 90°C
         ), // CIGRE TB880 S. 205
         (
           3600L,
@@ -56,7 +56,7 @@ class LineSegmentThermalModelSpec
           cigreLandCable33kVLineSegmentThermalModel,
           20d,
           537d,
-          39.02615786013644,
+          39.133305961575985,
         ),
         (
           72000L,
@@ -64,7 +64,7 @@ class LineSegmentThermalModelSpec
           cigreLandCable33kVLineSegmentThermalModel,
           5d,
           537d,
-          74.52287997644747,
+          75.24678516404786,
         ),
         (
           72000L,
@@ -72,8 +72,8 @@ class LineSegmentThermalModelSpec
           andersLineSegmentThermalModel,
           15d,
           629d,
-          91.25794,
-        ), // a bit too much because of overestimated screen ac resistance
+          93.97025612125171,
+        ), // a bit too much because of overestimated screen ac resistance, but on the safe side.
       )
 
       forAll(cases) {

@@ -18,17 +18,14 @@ import edu.ie3.util.quantities.electro.{
   SpecificResistance,
 }
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
-import edu.ie3.util.quantities.thermal.{KelvinMetersPerWatt, ThermalResistivity}
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.scala.quantities.SquantsUtils.{
   RichResistivity,
   RichSpecificCapacitance,
 }
 import squants.electro.*
-import squants.space.{Length, Millimeters, SquareMeters}
-import squants.thermal.Celsius
+import squants.space.{Length, SquareMeters}
 import squants.time.{Frequency, Hertz}
-import squants.{ElectricCurrent, Kelvin, Temperature}
+import squants.{ElectricCurrent, Temperature}
 
 import scala.math.*
 
@@ -86,25 +83,14 @@ object CableLossCalculations {
     * effect).
     * @param screenLayer
     *   Cable layer of the screen with type [[ScreenLayer]].
-    * @param limitTemperature
-    *   Limit temperature of the cable.
-    * @param thermalResistanceT1
-    *   The resistance T1 (between conductor and screen) of this line segment.
-    * @param conductorLosses
-    *   The thermal losses of the conductor of this line segment in power per
-    *   unit cable length.
-    * @param dielectricLosses
-    *   The thermal losses caused by dielectric losses of this line segment in
-    *   power per unit cable length.
+    * @param screenTemperature
+    *   Current temperature of the screen node in this line segment.
     * @return
     *   The AC resistance per unit of length.
     */
   def calcAcResistanceSheath(
       screenLayer: Option[ScreenLayer],
-      limitTemperature: Temperature,
-      thermalResistanceT1: ThermalResistivity,
-      conductorLosses: PowerPerLength,
-      dielectricLosses: PowerPerLength,
+      screenTemperature: Temperature,
   ): SpecificResistance = {
     // Calculation of cross-sectional area of the sheath
     screenLayer match {
@@ -119,18 +105,11 @@ object CableLossCalculations {
         )
 
         val layFactor = calcLayFactor(screenLayer)
-
         // ac resistance per unit length of screen at 20°C
         val r0Screen = (layer.materialResistivity / area) * layFactor
 
-        // calculate operating temperatur of the screen
-        val screenTemp: Temperature =
-          limitTemperature - Kelvin(
-            (conductorLosses.toWattsPerMeter + 0.5 * dielectricLosses.toWattsPerMeter) * thermalResistanceT1.toKelvinMetersPerWatt
-          )
-
         // ac resistance of screen wires at operating temp
-        r0Screen * (1 + layer.material.getElectricalResistivityTemperatureCoefficient * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
+        r0Screen * (1 + layer.material.getElectricalResistivityTemperatureCoefficient * (screenTemperature.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
       case None =>
         throw new IllegalArgumentException(
           "Screen layer expected but not found."

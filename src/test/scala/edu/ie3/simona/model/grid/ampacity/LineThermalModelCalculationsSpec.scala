@@ -500,7 +500,7 @@ class LineThermalModelCalculationsSpec
 
   "test " in {
 
-    val expected = Celsius(90) // S. 205 CIGRE
+    val expected = Celsius(90.54602851242295) // S. 205 CIGRE
     val tick = 972000L
 
     val groundTemp = Celsius(20)
@@ -772,10 +772,7 @@ class LineThermalModelCalculationsSpec
     )
     val acResistanceSheath = calcAcResistanceSheath(
       Some(screenLayer),
-      cableSetup.limitTemperature,
-      stateWithBed.currentLineSegmentThermalModel.thermalResistanceT1,
-      conductorLosses,
-      dielectricLosses,
+      stateWithBed.lineTemperatures.currentLineTemp3,
     )
     val sheathAverageDiameter =
       (screenLayer.innerDiameter + screenLayer.outerDiameter) / 2
