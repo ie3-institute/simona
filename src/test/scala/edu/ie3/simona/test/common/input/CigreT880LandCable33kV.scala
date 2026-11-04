@@ -14,6 +14,7 @@ import edu.ie3.simona.model.grid.ampacity.{
   ScreenLayer,
 }
 import edu.ie3.util.quantities.electro.{FaradsPerKilometer, OhmsPerMeter}
+import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toSquants,
   toSquantsJoulePerCubicMeterKelvin,
@@ -21,7 +22,6 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
 import squants.electro.{Kilovolts, OhmMeters}
 import squants.space.{Millimeters, SquareMeters}
 import squants.thermal.Celsius
-import squants.time.Hertz
 
 import java.util.UUID
 
@@ -177,7 +177,7 @@ object CigreT880LandCable33kV {
     LayoutFormation.TrefoilTouching,
     Celsius(90),
     Kilovolts(33),
-    Hertz(50),
+    europeanSystemFrequency,
     OhmsPerMeter(0.0754e-3),
     1.0,
     1.0,

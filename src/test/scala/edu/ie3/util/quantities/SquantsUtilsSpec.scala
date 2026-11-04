@@ -9,6 +9,7 @@ package edu.ie3.util.quantities
 import edu.ie3.util.quantities.electro.FaradsPerKilometer
 import edu.ie3.util.quantities.energy.KilowattHoursPerCubicMeter
 import edu.ie3.util.quantities.radio.WattHoursPerSquareMeter
+import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
 import edu.ie3.util.scala.quantities.SquantsUtils.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -49,10 +50,9 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
   it should "calculate the dielectric losses of a Capacitance correctly" in {
     // Reference: // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 198f
     val voltage = Kilovolts(19.0525588) // 33kV * sqrt(3)
-    val frequency = Hertz(50)
     val tanDelta = 0.004
     Nanofarads(0.237683304)
-      .calculateDielectricLosses(voltage, frequency, tanDelta)
+      .calculateDielectricLosses(voltage, europeanSystemFrequency, tanDelta)
       .toWatts should be(0.10842143752723091)
 
   }
@@ -60,10 +60,13 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
   it should "calculate the specific dielectric losses of a SpecificCapacitance correctly" in {
     // Reference: // CIGRÉ Working Group B1.56, "Power cable rating examples for calculation tool verification, TB 880, p 198f
     val voltage = Kilovolts(19.0525588) // 33kV * sqrt(3)
-    val frequency = Hertz(50)
     val tanDelta = 0.004
     FaradsPerKilometer(0.237683304e-6)
-      .calculateSpecificDielectricLosses(voltage, frequency, tanDelta)
+      .calculateSpecificDielectricLosses(
+        voltage,
+        europeanSystemFrequency,
+        tanDelta,
+      )
       .toWattsPerMeter should be(0.10842143752723088)
   }
 }

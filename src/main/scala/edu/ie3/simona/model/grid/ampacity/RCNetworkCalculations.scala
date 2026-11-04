@@ -17,6 +17,7 @@ import edu.ie3.util.quantities.thermal.{
   ThermalCapacityPerLength,
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
+import edu.ie3.util.scala.quantities.SquantsUtils.RichSpecificCapacitance
 import org.apache.commons.math3.linear.*
 import squants.space.{Length, Meters, Millimeters}
 import squants.thermal.Celsius
@@ -138,17 +139,17 @@ object RCNetworkCalculations extends LazyLogging {
 
     val phaseToGroundVoltage = state.currentVoltage / sqrt(3)
 
-    val dielectricLosses = CableLossCalculations.calcDielectricLosses(
-      phaseToGroundVoltage,
-      cableSetup.frequency,
-      cableSetup.tanDelta,
-      cableSetup.electricCapacitance,
-    )
+    val dielectricLosses =
+      cableSetup.electricCapacitance.calculateSpecificDielectricLosses(
+        phaseToGroundVoltage,
+        cableSetup.frequency,
+        cableSetup.tanDelta,
+      )
 
     val (acResistanceSheath, sheatAverageDiameter) =
       cableSetup.screenLayer match {
         case Some(layer) =>
-          val resistance = CableLossCalculations.calcAcResistanceSheath(
+          val resistance = CableLossCalculations.calcAcResistanceScreen(
             cableSetup.screenLayer,
             state.lineTemperatures.currentLineTemp3,
           )
@@ -158,7 +159,7 @@ object RCNetworkCalculations extends LazyLogging {
         case None => (OhmsPerMeter(0d), Millimeters(0d))
       }
 
-    val sheathLossesLeadingPhase = CableLossCalculations.calcLossesSheath(
+    val sheathLossesLeadingPhase = CableLossCalculations.calcLossesScreen(
       cableSetup.layoutFormation,
       acResistance,
       acResistanceSheath,
@@ -168,7 +169,7 @@ object RCNetworkCalculations extends LazyLogging {
       cableSetup.eddyCurrentsLossFactorScreen,
       conductorLosses,
     )
-    val sheathLossesMiddlePhase = CableLossCalculations.calcLossesSheath(
+    val sheathLossesMiddlePhase = CableLossCalculations.calcLossesScreen(
       cableSetup.layoutFormation,
       acResistance,
       acResistanceSheath,
@@ -178,7 +179,7 @@ object RCNetworkCalculations extends LazyLogging {
       cableSetup.eddyCurrentsLossFactorScreen,
       conductorLosses,
     )
-    val sheathLossesLaggingPhase = CableLossCalculations.calcLossesSheath(
+    val sheathLossesLaggingPhase = CableLossCalculations.calcLossesScreen(
       cableSetup.layoutFormation,
       acResistance,
       acResistanceSheath,

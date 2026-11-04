@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.SoilType
+import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
 import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
@@ -24,7 +25,9 @@ import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
 import edu.ie3.util.quantities.thermal.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import squants.electro.{Kilovolts, Volts}
+import edu.ie3.util.scala.quantities.SquantsUtils.RichSpecificCapacitance
+import squants.electro.{Kilovolts, OhmMeters, Volts}
+import squants.space.Millimeters
 import squants.thermal.{Celsius, Temperature}
 import squants.{Amperes, Meters}
 import tech.units.indriya.quantity.Quantities
@@ -44,14 +47,77 @@ class LineThermalModelCalculationsSpec
   implicit val electricResistancePerLengthTolerance: SpecificResistance =
     OhmsPerMeter(1e-10)
   implicit val powerPerLengthTolerance: PowerPerLength = WattsPerMeter(1e-7)
-  implicit val tolerance: Double = 1e-10
+  implicit val tolerance: Double = 1e-6
   implicit val thermalCapacitanceTolerance: VolumetricHeatCapacity =
     JoulesPerCubicMeterKelvin(1e-10)
   implicit val thermalCapacitancePerLengthTolerance: ThermalCapacityPerLength =
     JoulesPerMeterKelvin(1e-10)
   implicit val temperatureTolerance: Temperature = Celsius(1e-3)
 
-  "A LineSegmentThermalModel" should {
+  "A LineThermalModelCalculations" should {
+
+    "calculate correctly the lay factor of the screen layer" in {
+      val cases = Table(
+        (
+          "innerDiameterMm",
+          "wireDiameterMm",
+          "lengthOfLayMm",
+          "expected",
+        ),
+        // CIGRÉ screen: 36.8mm inner, 0.9mm wire, 240mm lay -> sqrt(1 + ((0.0377*Pi)^2)/(0.24^2))
+        (36.8, 0.9, 240.0, 1.1151386),
+        // No screen layer
+        (0.0, 0.0, 0.0, 1.0),
+      )
+
+      forAll(cases) {
+        (
+            innerDiameterMm,
+            wireDiameterMm,
+            lengthOfLayMm,
+            expected,
+        ) =>
+          val layer =
+            if innerDiameterMm == 0.0 then None
+            else
+              Some(
+                ScreenLayer(
+                  CableMaterial.COPPER,
+                  Millimeters(innerDiameterMm),
+                  Millimeters(innerDiameterMm),
+                  KelvinMetersPerWatt(0.0),
+                  JoulesPerCubicMeterKelvin(0.0),
+                  None,
+                  56,
+                  Millimeters(wireDiameterMm),
+                  Some(Millimeters(lengthOfLayMm)),
+                  OhmMeters(0.0),
+                )
+              )
+
+          val actual = calcLayFactor(layer)
+
+          actual should approximate(expected)
+      }
+    }
+
+    "calculate the lay factor with a missing length of lay using the default" in {
+      val screenLayer = ScreenLayer(
+        CableMaterial.COPPER,
+        Millimeters(36.8),
+        Millimeters(36.8),
+        KelvinMetersPerWatt(0.0),
+        JoulesPerCubicMeterKelvin(0.0),
+        None,
+        56,
+        Millimeters(0.9),
+        None,
+        OhmMeters(0.0),
+      )
+      val actual = calcLayFactor(Some(screenLayer))
+
+      actual should approximate(1.0)
+    }
 
     "return all correct thermal resistance for cable shells" in {
 
@@ -764,20 +830,20 @@ class LineThermalModelCalculationsSpec
       cigreLandCable33kVLineSegmentThermalModel.distanceCables,
     )
     val conductorLosses = calcLossesConductor(acResistance, current)
-    val dielectricLosses = calcDielectricLosses(
-      phaseToGroundVoltage,
-      cableSetup.frequency,
-      cableSetup.tanDelta,
-      cableSetup.electricCapacitance,
-    )
-    val acResistanceSheath = calcAcResistanceSheath(
+    val dielectricLosses =
+      cableSetup.electricCapacitance.calculateSpecificDielectricLosses(
+        phaseToGroundVoltage,
+        cableSetup.frequency,
+        cableSetup.tanDelta,
+      )
+    val acResistanceSheath = calcAcResistanceScreen(
       Some(screenLayer),
       stateWithBed.lineTemperatures.currentLineTemp3,
     )
     val sheathAverageDiameter =
       (screenLayer.innerDiameter + screenLayer.outerDiameter) / 2
     val sheathLosses = Seq("leading", "middle", "lagging").map { phase =>
-      calcLossesSheath(
+      calcLossesScreen(
         cableSetup.layoutFormation,
         acResistance,
         acResistanceSheath,

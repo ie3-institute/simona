@@ -32,7 +32,7 @@ import java.util.UUID
   * @param thermalResistivity
   *   Thermal resistivity of the layer material
   * @param volumetricHeatCapacity
-  *   Thermal capacitance per meter of the layer
+  *   Volumetric heat capacity per meter of the layer
   * @param area
   *   Optional cross-sectional area of the layer
   */
@@ -57,7 +57,7 @@ final case class Layer(
   * @param thermalResistivity
   *   Thermal resistivity of the material
   * @param volumetricHeatCapacity
-  *   Thermal capacitance per meter
+  *   Volumetric heat capacity per meter of the material
   * @param area
   *   Optional cross-sectional area
   * @param wiresNumber
@@ -142,6 +142,6 @@ final case class CableSetup(
     proximityEffectCoefficient: Double,
     electricCapacitance: SpecificCapacitance,
     tanDelta: Double,
-    circulatingLossFactorScreen: Double, //Dead field: CableSetup.circulatingLossFactorScreen (CableSetup.scala:147) is never read — calcLossesSheath computes λ′ itself and takes only the eddy factor as a parameter.
+    circulatingLossFactorScreen: Double, // Dead field: CableSetup.circulatingLossFactorScreen (CableSetup.scala:147) is never read — calcLossesSheath computes λ′ itself and takes only the eddy factor as a parameter.
     eddyCurrentsLossFactorScreen: Double,
 )

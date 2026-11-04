@@ -72,6 +72,17 @@ object SquantsUtils {
       electricCapacity: Capacitance
   ) {
 
+    /** Calculates the dielectric losses in watts as C · U² · 2πf · tan δ.
+      *
+      * @param voltage
+      *   The voltage
+      * @param frequency
+      *   The system frequency
+      * @param tanDelta
+      *   Tangent of the loss angle (δ)
+      * @return
+      *   The dielectric losses in watts
+      */
     def calculateDielectricLosses(
         voltage: ElectricPotential,
         frequency: Frequency,
