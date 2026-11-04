@@ -142,6 +142,6 @@ final case class CableSetup(
     proximityEffectCoefficient: Double,
     electricCapacitance: SpecificCapacitance,
     tanDelta: Double,
-    circulatingLossFactorScreen: Double,
+    circulatingLossFactorScreen: Double, //Dead field: CableSetup.circulatingLossFactorScreen (CableSetup.scala:147) is never read — calcLossesSheath computes λ′ itself and takes only the eddy factor as a parameter.
     eddyCurrentsLossFactorScreen: Double,
 )
