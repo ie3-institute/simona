@@ -57,7 +57,7 @@ import java.util.UUID
   *   the thermal capacity of the dielectric (isolation and filler) per unit of
   *   length
   * @param thermalCapacityCs
-  *   the thermal capacity of the screen (sheath) per unit of length
+  *   the thermal capacity of the screen per unit of length
   * @param thermalCapacityCj
   *   the thermal capacity of the armor and jack (outer covering) per unit of
   *   length

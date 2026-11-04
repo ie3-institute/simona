@@ -136,7 +136,7 @@ class CableLossCalculationsSpec
           val screenTemp = Celsius(screenTemperature)
           val expectedResult = OhmsPerMeter(expected)
 
-          val actual = calcAcResistanceSheath(
+          val actual = calcAcResistanceScreen(
             screenLayer,
             screenTemp,
           )
@@ -204,11 +204,11 @@ class CableLossCalculationsSpec
           "conductorResistance",
           "screenResistance",
           "axialDistanceCables",
-          "averageSheathDiameter",
+          "averageScreenDiameter",
           "phase",
-          "eddyCurrentsSheathLossFactor",
+          "eddyCurrentsScreenLossFactor",
           "conductorLosses",
-          "expectedSheathLosses",
+          "expectedScreenLosses",
         ),
         (
           LayoutFormation.TrefoilTouching,
@@ -262,27 +262,27 @@ class CableLossCalculationsSpec
             conductorResist,
             screenResist,
             axialDistance,
-            averageSheathDia,
+            averageScreenDia,
             phase,
-            eddyCurrentsSheathLossFactor,
+            eddyCurrentsScreenLossFactor,
             conductorLosses,
-            expectedSheathLosses,
+            expectedScreenLosses,
         ) =>
           val conductorResistance = OhmsPerMeter(conductorResist)
           val screenResistance = OhmsPerMeter(screenResist)
           val axialDistanceCables = Meters(axialDistance)
-          val averageSheathDiameter = Meters(averageSheathDia)
+          val averageScreenDiameter = Meters(averageScreenDia)
           val conductorLossesW = WattsPerMeter(conductorLosses)
-          val expectedLosses = WattsPerMeter(expectedSheathLosses)
+          val expectedLosses = WattsPerMeter(expectedScreenLosses)
 
-          val actual = calcLossesSheath(
+          val actual = calcLossesScreen(
             layoutFormation,
             conductorResistance,
             screenResistance,
             axialDistanceCables,
-            averageSheathDiameter,
+            averageScreenDiameter,
             phase,
-            eddyCurrentsSheathLossFactor,
+            eddyCurrentsScreenLossFactor,
             conductorLossesW,
           )
 

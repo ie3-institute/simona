@@ -40,9 +40,9 @@ temperature, accounting for high-frequency effects:
 
 The result is the DC resistance multiplied by `(1 + y_s + y_p)`.
 
-### `calcAcResistanceSheath`
+### `calcAcResistanceScreen`
 
-Calculates the **AC resistance per unit length of the screen (sheath)** at the
+Calculates the **AC resistance per unit length of the screen** at the
 operating temperature. The screen's DC resistance is derived from the material
 resistivity and the cross-sectional area (or, if not given, from the number and
 diameter of the screen wires), corrected by the **lay factor** of the screen
@@ -57,9 +57,9 @@ coefficient of electrical resistivity.
 Calculates the **conductor (I²R) losses** per unit cable length: the square of the
 line current multiplied by the AC resistance of the conductor.
 
-### `calcLossesSheath`
+### `calcLossesScreen`
 
-Calculates the **losses in the screen (sheath)** per unit cable length as a product
+Calculates the **losses in the screen** per unit cable length as a product
 of the conductor losses and the screen loss factor `lambda_1`, which is split into
 a part from circulating currents `lambda_1'` and a part from eddy currents
 `lambda_1''` (given in the cable setup):
@@ -74,7 +74,7 @@ a part from circulating currents `lambda_1'` and a part from eddy currents
 
 The screen reactance `x` and the mutual reactance `x_m` are calculated internally
 from the system frequency, the axial distance between the cables and the average
-diameter of the sheath.
+diameter of the screen.
 
 ### `calcLossesArmor`
 

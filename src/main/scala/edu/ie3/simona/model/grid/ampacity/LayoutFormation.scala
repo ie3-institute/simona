@@ -11,7 +11,7 @@ package edu.ie3.simona.model.grid.ampacity
   *
   * The formation determines the arrangement of the conductor axes relative to
   * each other and to the ground surface. It therefore drives the selection of
-  * the corresponding external thermal resistance and sheath loss calculations.
+  * the corresponding external thermal resistance and screen loss calculations.
   */
 sealed trait LayoutFormation
 

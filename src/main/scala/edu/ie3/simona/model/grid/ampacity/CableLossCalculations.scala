@@ -14,17 +14,16 @@ import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.{
 }
 import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
-import edu.ie3.util.quantities.thermal.ThermalResistivity
 import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
 import edu.ie3.util.scala.quantities.SquantsUtils.RichResistivity
 import squants.space.{Length, SquareMeters}
 import squants.time.Frequency
-import squants.{ElectricCurrent, Kelvin, Temperature}
+import squants.{ElectricCurrent, Temperature}
 
 import scala.math.*
 
 /** A collection of methods for calculating AC resistances and thermal losses
-  * (conductor, sheath, armor, dielectric) of a cable segment.
+  * (conductor, screen, armor, dielectric) of a cable segment.
   */
 object CableLossCalculations {
 
@@ -69,7 +68,7 @@ object CableLossCalculations {
     rDc * (1 + factorSkinEffect + factorProximityEffect)
   }
 
-  /** Calculates the AC resistance per unit of length of the sheath accounting
+  /** Calculates the AC resistance per unit of length of the screen accounting
     * for temperature and high-frequency effects (skin effect, proximity
     * effect).
     * @param screenLayer
@@ -79,11 +78,11 @@ object CableLossCalculations {
     * @return
     *   The AC resistance per unit of length.
     */
-  def calcAcResistanceSheath(
+  def calcAcResistanceScreen(
       screenLayer: Option[ScreenLayer],
       screenTemperature: Temperature,
   ): SpecificResistance = {
-    // Calculation of cross-sectional area of the sheath
+    // Calculation of cross-sectional area of the screen
     screenLayer match {
       case Some(layer) =>
         val area = layer.area.getOrElse(
@@ -183,45 +182,45 @@ object CableLossCalculations {
     WattsPerMeter(currentSquared * acResistance.toOhmsPerMeter)
   }
 
-  /** Calculates the losses within the cable sheath. Zero / Not applicable if
-    * cable has no sheath.
+  /** Calculates the losses within the cable screen. Zero / Not applicable if
+    * cable has no screen.
     * @param layoutFormation
     *   Formation in which the cables are laid.
     * @param r
     *   AC-Resistance per Length of conductor at operating temperature.
     * @param rs
-    *   AC-Resistance per Length of sheath at operating temperature.
+    *   AC-Resistance per Length of screen at operating temperature.
     * @param axialCableDistance
     *   Axial distance of the cables (Center to Center).
-    * @param averageDiameterSheath
-    *   Average diameter of the sheath.
+    * @param averageDiameterScreen
+    *   Average diameter of the screen.
     * @param phase
     *   String that indicates whether the phase is the leading, the middle, or
     *   the lagging phase within the three-phase-system.
-    * @param eddyCurrentsSheathLossFactor
-    *   Determines the losses in the sheath caused by eddy currents. Often given
+    * @param eddyCurrentsScreenLossFactor
+    *   Determines the losses in the screen caused by eddy currents. Often given
     *   as lambda_1''.
     * @param conductorLosses
     *   The thermal losses of the conductor.
     * @return
-    *   The thermal losses of the sheath of this line segment in power per unit
+    *   The thermal losses of the screen of this line segment in power per unit
     *   cable length.
     */
-  def calcLossesSheath(
+  def calcLossesScreen(
       layoutFormation: LayoutFormation,
       r: SpecificResistance,
       rs: SpecificResistance,
       axialCableDistance: Length,
-      averageDiameterSheath: Length,
+      averageDiameterScreen: Length,
       phase: String,
-      eddyCurrentsSheathLossFactor: Double,
+      eddyCurrentsScreenLossFactor: Double,
       conductorLosses: PowerPerLength,
   ): PowerPerLength = {
     val (x, xm) =
       calculateReactance(
         europeanSystemFrequency,
         axialCableDistance,
-        averageDiameterSheath,
+        averageDiameterScreen,
       )
     val lambda1Dash = layoutFormation match {
       case LayoutFormation.FlatDistance =>
@@ -236,20 +235,20 @@ object CableLossCalculations {
         calcLambda1DashTrefoilTouching(r, rs, x)
     }
     // lambda_1 is the sum of lambda_1_dash and lambda_1_dash_dash
-    val lambdaOne = lambda1Dash + eddyCurrentsSheathLossFactor
+    val lambdaOne = lambda1Dash + eddyCurrentsScreenLossFactor
 
     conductorLosses * lambdaOne
   }
 
-  /** Calculates the sheath loss factor for circulating currents in case of
+  /** Calculates the screen loss factor for circulating currents in case of
     * systems in flat formation (with distance or touching) and bonded on both
     * ends.
     * @param r
     *   AC-Resistance per Length of conductor at operating temperature.
     * @param rs
-    *   AC-Resistance per Length of sheath at operating temperature.
+    *   AC-Resistance per Length of screen at operating temperature.
     * @param x
-    *   Reactance per Length of the sheath.
+    *   Reactance per Length of the screen.
     * @param xm
     *   Mutual Reactance per Length.
     * @return
@@ -290,14 +289,14 @@ object CableLossCalculations {
     }
   }
 
-  /** Calculates the sheath loss factor for circulating currents in case of
+  /** Calculates the screen loss factor for circulating currents in case of
     * systems in trefoil-touching formation and bonded on both ends.
     * @param r
     *   AC-Resistance per Length of conductor at operating temperature
     * @param rs
-    *   AC-Resistance per Length of sheath at operating temperature
+    *   AC-Resistance per Length of screen at operating temperature
     * @param x
-    *   Reactance per Length of the sheath
+    *   Reactance per Length of the screen
     * @return
     *   loss factor lambda1'
     */
@@ -314,21 +313,21 @@ object CableLossCalculations {
     *   System frequency.
     * @param axialCableDistance
     *   Axial distance of the cables (Center to Center).
-    * @param averageDiameterSheath
-    *   Average diameter of the sheath.
+    * @param averageDiameterScreen
+    *   Average diameter of the screen.
     * @return
-    *   Tuple of sheath reactance X, and mutual reactance Xm.
+    *   Tuple of screen reactance X, and mutual reactance Xm.
     */
   private def calculateReactance(
       f: Frequency,
       axialCableDistance: Length,
-      averageDiameterSheath: Length,
+      averageDiameterScreen: Length,
   ): (SpecificResistance, SpecificResistance) = {
     val omega = f.toHertz * TWO_PI
 
     // 2*10^-7 results from μ0/(2*PI) in Henry per Meter (H/m)
     val x = OhmsPerMeter(
-      omega * 2e-7 * log((axialCableDistance * 2.0) / averageDiameterSheath)
+      omega * 2e-7 * log((axialCableDistance * 2.0) / averageDiameterScreen)
     )
     val xm = OhmsPerMeter(omega * 2e-7 * log(2.0))
 
