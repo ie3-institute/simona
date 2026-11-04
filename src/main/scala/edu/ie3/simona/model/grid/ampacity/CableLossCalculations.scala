@@ -74,25 +74,14 @@ object CableLossCalculations {
     * effect).
     * @param screenLayer
     *   Cable layer of the screen with type [[ScreenLayer]].
-    * @param currentConductorTemperature
-    *   The current temperature of the conductor in this line segment.
-    * @param thermalResistanceT1
-    *   The resistance T1 (between conductor and screen) of this line segment.
-    * @param conductorLosses
-    *   The thermal losses of the conductor of this line segment in power per
-    *   unit cable length.
-    * @param dielectricLosses
-    *   The thermal losses caused by dielectric losses of this line segment in
-    *   power per unit cable length.
+    * @param screenTemperature
+    *   Current temperature of the screen node in this line segment.
     * @return
     *   The AC resistance per unit of length.
     */
   def calcAcResistanceSheath(
       screenLayer: Option[ScreenLayer],
-      currentConductorTemperature: Temperature,
-      thermalResistanceT1: ThermalResistivity,
-      conductorLosses: PowerPerLength,
-      dielectricLosses: PowerPerLength,
+      screenTemperature: Temperature,
   ): SpecificResistance = {
     // Calculation of cross-sectional area of the sheath
     screenLayer match {
@@ -107,17 +96,11 @@ object CableLossCalculations {
         )
 
         val layFactor = calcLayFactor(screenLayer)
-
         // ac resistance per unit length of screen at 20°C
         val r0Screen = (layer.materialResistivity / area) * layFactor
 
-        // calculate operating temperatur of the screen
-        val screenTemp = currentConductorTemperature - Kelvin(
-          (conductorLosses.toWattsPerMeter + 0.5 * dielectricLosses.toWattsPerMeter) * thermalResistanceT1.toKelvinMetersPerWatt
-        )
-
         // ac resistance of screen wires at operating temp
-        r0Screen * (1 + layer.material.getElectricalResistivityTemperatureCoefficient * (screenTemp.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
+        r0Screen * (1 + layer.material.getElectricalResistivityTemperatureCoefficient * (screenTemperature.toCelsiusScale - REFERENCE_TEMPERATURE.toCelsiusScale))
       case None =>
         throw new IllegalArgumentException(
           "Screen layer expected but not found."
