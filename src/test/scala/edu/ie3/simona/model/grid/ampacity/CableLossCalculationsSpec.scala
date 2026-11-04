@@ -254,6 +254,72 @@ class CableLossCalculationsSpec
           30.85,
           6.868629568, // (lambda1m'=0.222) * 30.85W see Anders 1997 p. 160
         ), // Anders 2005 Cable No.1 p. 311
+        (
+          LayoutFormation.FlatTouching,
+          0.0781e-3,
+          0.94692081e-3,
+          0.0312, // s = d (touching geometry)
+          0.0312,
+          "middle",
+          0.0,
+          30.85,
+          0.35132616953933, // computed per Anders 1997 eqs. (8.53), (8.57), (8.61)-(8.62)
+        ),
+        (
+          LayoutFormation.FlatTouching,
+          0.0781e-3,
+          0.94692081e-3,
+          0.0312,
+          0.0312,
+          "leading",
+          0.0,
+          30.85,
+          2.38609134983911, // computed per Anders 1997 eqs. (8.53), (8.57), (8.61)-(8.62)
+        ),
+        (
+          LayoutFormation.FlatTouching,
+          0.0781e-3,
+          0.94692081e-3,
+          0.0312,
+          0.0312,
+          "lagging",
+          0.0,
+          30.85,
+          2.49710170671668, // computed per Anders 1997 eqs. (8.53), (8.57), (8.61)-(8.62)
+        ),
+        (
+          LayoutFormation.FlatDistance,
+          0.0781e-3,
+          0.94692081e-3,
+          0.1, // s/d = 3.205 (widely spaced)
+          0.0312,
+          "middle",
+          0.0,
+          30.85,
+          4.30837889925639, // xm = omega*2e-7*ln(2) is spacing-invariant (Anders 1997 eq. 8.57: P - X = ln(2s/d) - ln(4s/d) = ln(2))
+        ),
+        (
+          LayoutFormation.FlatDistance,
+          0.0781e-3,
+          0.94692081e-3,
+          0.1,
+          0.0312,
+          "leading",
+          0.0,
+          30.85,
+          8.54240111372417, // computed per Anders 1997 eqs. (8.53), (8.57), (8.61)-(8.62)
+        ),
+        (
+          LayoutFormation.FlatDistance,
+          0.0781e-3,
+          0.94692081e-3,
+          0.1,
+          0.0312,
+          "lagging",
+          0.0,
+          30.85,
+          9.24000172234417, // computed per Anders 1997 eqs. (8.53), (8.57), (8.61)-(8.62)
+        ),
       )
 
       forAll(cases) {

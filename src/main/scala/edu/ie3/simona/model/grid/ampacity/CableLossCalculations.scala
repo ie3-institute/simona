@@ -308,7 +308,8 @@ object CableLossCalculations {
     (rs / r) * (1 / (1 + pow(rs / x, 2)))
   }
 
-  /** Helper method to calculate the geometric reactance.
+  /** Helper method to calculate the geometric reactance. See Anders 1997,
+    * Section 8.3.5.
     * @param f
     *   System frequency.
     * @param axialCableDistance
