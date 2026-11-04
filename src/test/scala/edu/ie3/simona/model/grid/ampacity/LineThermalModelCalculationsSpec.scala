@@ -7,17 +7,11 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.SoilType
-import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.{
-  calcAcResistance,
-  calcAcResistanceSheath,
-  calcDielectricLosses,
-  calcLossesConductor,
-  calcLossesSheath,
-}
+import edu.ie3.simona.model.grid.ampacity.CableLossCalculations.*
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
-import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCableGroup.*
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceSingleCable.*
 import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
@@ -26,27 +20,18 @@ import edu.ie3.util.quantities.PowerSystemUnits.{
   JOULE_PER_CUBIC_METRE_KELVIN,
   KELVIN_METRE_PER_WATT,
 }
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
-import edu.ie3.util.quantities.thermal.{
-  JoulesPerCubicMeterKelvin,
-  JoulesPerMeterKelvin,
-  KelvinMetersPerWatt,
-  ThermalCapacityPerLength,
-  ThermalResistivity,
-  VolumetricHeatCapacity,
-}
-import edu.ie3.util.scala.quantities.*
-
+import edu.ie3.util.quantities.thermal.*
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.{Kilovolts, Volts}
 import squants.thermal.{Celsius, Temperature}
 import squants.{Amperes, Meters}
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.CELSIUS
-import scala.math.sqrt
 
 import java.util.UUID
+import scala.math.sqrt
 
 class LineThermalModelCalculationsSpec
     extends UnitSpec

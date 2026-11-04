@@ -7,7 +7,7 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.LineState
-import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
+import edu.ie3.simona.service.Data.SecondaryData.CurrentVoltage
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import edu.ie3.simona.test.common.{UnitSpec, WeatherTestData}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*

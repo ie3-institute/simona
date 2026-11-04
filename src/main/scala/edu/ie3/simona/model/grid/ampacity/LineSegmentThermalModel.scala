@@ -27,9 +27,7 @@ import edu.ie3.util.quantities.thermal.{
   ThermalCapacityPerLength,
   ThermalResistivity,
 }
-import edu.ie3.util.scala.quantities.*
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import edu.ie3.util.scala.quantities.SquantsUtils.*
 import squants.electro.ElectricPotential
 import squants.space.{Length, Meters, SquareMeters}
 import squants.{ElectricCurrent, Temperature}

@@ -7,13 +7,11 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import edu.ie3.datamodel.models.input.connector.`type`.CableMaterial
-import edu.ie3.util.quantities.electro.SpecificCapacitance
-import edu.ie3.util.quantities.electro.SpecificResistance
+import edu.ie3.util.quantities.electro.{SpecificCapacitance, SpecificResistance}
 import edu.ie3.util.quantities.thermal.{
   ThermalResistivity,
   VolumetricHeatCapacity,
 }
-import edu.ie3.util.scala.quantities.*
 import squants.Temperature
 import squants.electro.{ElectricPotential, Resistivity}
 import squants.space.{Area, Length}
