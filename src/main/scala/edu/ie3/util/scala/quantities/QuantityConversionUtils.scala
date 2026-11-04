@@ -7,14 +7,16 @@
 package edu.ie3.util.scala.quantities
 
 import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.electro.{
+  FaradsPerKilometer,
+  OhmsPerKilometer,
+  SpecificCapacitance,
+  SpecificResistance as SquantsSpecificResistance,
+}
 import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.quantities.interfaces
 import edu.ie3.util.quantities.prices.{EnergyPrice, EuroPerKilowattHours}
-import edu.ie3.util.quantities.thermal.{
-  JoulesPerCubicMeterKelvin,
-  KilowattHoursPerCubicMeterKelvin,
-  VolumetricHeatCapacity,
-}
+import edu.ie3.util.quantities.thermal.*
 import edu.ie3.util.scala.quantities
 import squants.electro.*
 import squants.energy.{KilowattHours, Kilowatts}
@@ -211,6 +213,12 @@ object QuantityConversionUtils {
         .getValue
         .doubleValue
     )
+
+    /** @return
+      *   a quantity with unit [[OhmsPerKilometer]].
+      */
+    def toResistancePerLength: SquantsSpecificResistance =
+      OhmsPerKilometer(quantity.to(OHM_PER_KILOMETRE).getValue.doubleValue)
   }
 
   /** Extension for [[ComparableQuantity]] of type [[ElectricConductance]] that
@@ -344,5 +352,36 @@ object QuantityConversionUtils {
         .getValue
         .doubleValue
     )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[ThermalResistivity]] that
+    * allows conversion into a [[ThermalResistivity]] squants quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.ThermalResistivity
+      ]
+  ) {
+    def toSquants: ThermalResistivity = KelvinMetersPerWatt(
+      quantity
+        .to(KELVIN_METRE_PER_WATT)
+        .getValue
+        .doubleValue
+    )
+  }
+
+  /** Extension for [[ComparableQuantity]] of type [[SpecificCapacitance]] that
+    * allows conversion into a [[SpecificCapacitance]] squants quantity.
+    */
+  extension (
+      quantity: ComparableQuantity[
+        edu.ie3.util.quantities.interfaces.SpecificCapacitance
+      ]
+  ) {
+
+    def toSquants: SpecificCapacitance =
+      FaradsPerKilometer(
+        quantity.to(FARAD_PER_KILOMETRE).getValue.doubleValue
+      )
   }
 }

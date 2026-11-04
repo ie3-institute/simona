@@ -13,8 +13,8 @@ import edu.ie3.simona.model.grid.{
 }
 import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.quantities.energy.{ApparentPower, Megavoltamperes}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import squants.{Amperes, Dimensionless, Each, ElectricCurrent, Percent}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities

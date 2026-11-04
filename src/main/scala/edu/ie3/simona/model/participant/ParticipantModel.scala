@@ -23,8 +23,8 @@ import edu.ie3.simona.service.Data.PrimaryData.{
   PrimaryDataWithComplexPower,
 }
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import edu.ie3.util.quantities.energy.{ApparentPower, ReactivePower}
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
 import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.Dimensionless
 import squants.energy.Power
@@ -97,7 +97,7 @@ abstract class ParticipantModel[
   ): S
 
   /** Handles input data (primary or secondary) by integrating into the current
-    * mode state. Is only called with new input received data or an empty
+    * model state. Is only called with new input received data or an empty
     * sequence as received data.
     *
     * @param state
