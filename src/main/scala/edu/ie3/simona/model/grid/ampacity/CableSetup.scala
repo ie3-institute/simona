@@ -31,8 +31,8 @@ import java.util.UUID
   *   Outer diameter of the layer
   * @param thermalResistivity
   *   Thermal resistivity of the layer material
-  * @param specificHeatCapacity
-  *   Thermal capacitance per meter of the layer
+  * @param volumetricHeatCapacity
+  *   Volumetric heat capacity per meter of the layer
   * @param area
   *   Optional cross-sectional area of the layer
   */
@@ -42,7 +42,7 @@ final case class Layer(
     innerDiameter: Length,
     outerDiameter: Length,
     thermalResistivity: ThermalResistivity,
-    specificHeatCapacity: VolumetricHeatCapacity,
+    volumetricHeatCapacity: VolumetricHeatCapacity,
     area: Option[Area],
 )
 
@@ -56,8 +56,8 @@ final case class Layer(
   *   Outer diameter of the screen layer
   * @param thermalResistivity
   *   Thermal resistivity of the material
-  * @param thermalCapacitance
-  *   Thermal capacitance per meter
+  * @param volumetricHeatCapacity
+  *   Volumetric heat capacity per meter of the material
   * @param area
   *   Optional cross-sectional area
   * @param wiresNumber
@@ -74,7 +74,7 @@ final case class ScreenLayer(
     innerDiameter: Length,
     outerDiameter: Length,
     thermalResistivity: ThermalResistivity,
-    thermalCapacitance: VolumetricHeatCapacity,
+    volumetricHeatCapacity: VolumetricHeatCapacity,
     area: Option[Area],
     wiresNumber: Int,
     wireDiameter: Length,

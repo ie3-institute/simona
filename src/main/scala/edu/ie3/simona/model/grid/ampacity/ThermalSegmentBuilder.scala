@@ -1174,7 +1174,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     *   Thermal capacity of the dielectric (isolation and filler) per unit of
     *   length.
     * @param cs
-    *   Thermal capacity of the screen (sheath) per unit of length.
+    *   Thermal capacity of the screen per unit of length.
     * @param cj
     *   Thermal capacity of the armor and jacket (outer covering) per unit of
     *   length.
@@ -1259,7 +1259,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       cable: CableSetup
   ): CableThermalCapacities = {
     val cc = perLengthCapacity(
-      cable.conductor.specificHeatCapacity,
+      cable.conductor.volumetricHeatCapacity,
       cable.conductor.innerDiameter,
       cable.conductor.outerDiameter,
       cable.conductor.area,
@@ -1268,7 +1268,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       (cable.layersIsolationElements ++ cable.layersFillerElements)
         .map(layer =>
           perLengthCapacity(
-            layer.specificHeatCapacity,
+            layer.volumetricHeatCapacity,
             layer.innerDiameter,
             layer.outerDiameter,
             layer.area,
@@ -1279,7 +1279,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     val cs = cable.screenLayer match {
       case Some(screen) =>
         perLengthCapacity(
-          screen.thermalCapacitance,
+          screen.volumetricHeatCapacity,
           screen.innerDiameter,
           screen.outerDiameter,
           screen.area,
@@ -1290,7 +1290,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       (cable.layersArmorElements ++ cable.layersJackElements)
         .map(layer =>
           perLengthCapacity(
-            layer.specificHeatCapacity,
+            layer.volumetricHeatCapacity,
             layer.innerDiameter,
             layer.outerDiameter,
             layer.area,

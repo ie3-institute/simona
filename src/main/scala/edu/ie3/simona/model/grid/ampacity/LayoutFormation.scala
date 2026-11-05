@@ -11,7 +11,7 @@ package edu.ie3.simona.model.grid.ampacity
   *
   * The formation determines the arrangement of the conductor axes relative to
   * each other and to the ground surface. It therefore drives the selection of
-  * the corresponding external thermal resistance and sheath loss calculations.
+  * the corresponding external thermal resistance and screen loss calculations.
   */
 sealed trait LayoutFormation
 
@@ -52,11 +52,10 @@ object LayoutFormation {
     *   if the string does not correspond to a known layout formation.
     */
   def fromString(formation: String): LayoutFormation =
-    byName
-      .get(formation.trim.toLowerCase)
-      .getOrElse(
-        throw new IllegalArgumentException(
-          s"Unknown layout formation: $formation"
-        )
-      )
+    byName.getOrElse(
+      formation.trim.toLowerCase,
+      throw new IllegalArgumentException(
+        s"Unknown layout formation: $formation"
+      ),
+    )
 }
