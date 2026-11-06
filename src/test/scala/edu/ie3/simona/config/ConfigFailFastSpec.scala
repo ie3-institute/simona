@@ -1527,8 +1527,33 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }
       }
 
-      "pass even when threshold is negative" in {
+      "pass when threshold is positive" in {
         noException shouldBe thrownBy {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = false,
+              parallelProximityThreshold = Some(10.0),
+            )
+          )
+        }
+      }
+
+      "throw an exception when threshold is zero" in {
+        val ex = intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkAmpacityCalculation(
+            AmpacityCalculation(
+              activateAmpacityCalculation = true,
+              activateParallelProximitySplitting = false,
+              parallelProximityThreshold = Some(0.0),
+            )
+          )
+        }
+        ex.getMessage should include("must be a positive value")
+      }
+
+      "throw an exception when threshold is negative" in {
+        val ex = intercept[InvalidConfigParameterException] {
           ConfigFailFast invokePrivate checkAmpacityCalculation(
             AmpacityCalculation(
               activateAmpacityCalculation = true,
@@ -1537,6 +1562,7 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
             )
           )
         }
+        ex.getMessage should include("must be a positive value")
       }
     }
   }

@@ -452,7 +452,6 @@ object ThermalSegmentBuilder extends LazyLogging {
               val coordinates = Option(lineInput.getGeoPosition)
                 .map(_.getCoordinates.toSeq.map(c => (c.x, c.y)))
                 .getOrElse(Seq.empty)
-              // TODO DF: In case some information are missing in the provided input data, these might be filled by data in PSDM (Cable Material Data). Might worth an improvement in PSDM, noted here to keep track.
               val conductor = mapConductor(cableTypeInput.getConductor)
               val isolation = layersList(cableTypeInput.getIsolation)
               val screen = cableTypeInput.getScreen.toScala.map(mapScreen)
