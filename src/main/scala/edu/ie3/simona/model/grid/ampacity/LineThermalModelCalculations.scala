@@ -48,6 +48,30 @@ object LineThermalModelCalculations extends LazyLogging {
     }
   }
 
+  /** The temperatures of the line segment's thermal model nodes at the current
+    * point in time.
+    *
+    * @param currentLineTemp1
+    *   the current temperature of the first node
+    * @param currentLineTemp2
+    *   the current temperature of the second node
+    * @param currentLineTemp3
+    *   the current temperature of the third node
+    * @param currentLineTemp4
+    *   the current temperature of the fourth node
+    * @param currentLineTemp5
+    *   the current temperature of the fifth node
+    * @param currentLineTemp6
+    *   the current temperature of the sixth node
+    * @param currentLineTemp7
+    *   the current temperature of the seventh node
+    * @param currentLineTemp8
+    *   the current temperature of the eighth node
+    * @param currentLineTemp9
+    *   the current temperature of the ninth node
+    * @param currentLineTemp10
+    *   the current temperature of the tenth node
+    */
   final case class LineTemperatures(
       currentLineTemp1: Temperature,
       currentLineTemp2: Temperature,

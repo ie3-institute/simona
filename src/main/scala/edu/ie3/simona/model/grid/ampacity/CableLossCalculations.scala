@@ -223,9 +223,7 @@ object CableLossCalculations {
         averageDiameterScreen,
       )
     val lambda1Dash = layoutFormation match {
-      case LayoutFormation.FlatDistance =>
-        calcLambda1DashFlat(r, rs, x, xm, phase)
-      case LayoutFormation.FlatTouching =>
+      case LayoutFormation.FlatDistance | LayoutFormation.FlatTouching =>
         calcLambda1DashFlat(r, rs, x, xm, phase)
       case LayoutFormation.TrefoilNotTouching =>
         throw new IllegalArgumentException(
