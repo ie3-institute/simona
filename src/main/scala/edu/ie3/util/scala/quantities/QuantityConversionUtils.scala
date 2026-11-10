@@ -376,9 +376,7 @@ object QuantityConversionUtils {
     * allows conversion into a [[ThermalResistivity]] squants quantity.
     */
   extension (
-      quantity: ComparableQuantity[
-        edu.ie3.util.quantities.interfaces.ThermalResistivity
-      ]
+      quantity: ComparableQuantity[interfaces.ThermalResistivity]
   ) {
     def toSquants: ThermalResistivity = KelvinMetersPerWatt(
       quantity
@@ -392,9 +390,7 @@ object QuantityConversionUtils {
     * allows conversion into a [[SpecificCapacitance]] squants quantity.
     */
   extension (
-      quantity: ComparableQuantity[
-        edu.ie3.util.quantities.interfaces.SpecificCapacitance
-      ]
+      quantity: ComparableQuantity[interfaces.SpecificCapacitance]
   ) {
 
     def toSquants: SpecificCapacitance =

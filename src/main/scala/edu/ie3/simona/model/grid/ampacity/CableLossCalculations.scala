@@ -23,7 +23,7 @@ import squants.{ElectricCurrent, Temperature}
 import scala.math.*
 
 /** A collection of methods for calculating AC resistances and thermal losses
-  * (conductor, sheath, armor, dielectric) of a cable segment.
+  * (conductor, screen, armor, dielectric) of a cable segment.
   */
 object CableLossCalculations {
 
@@ -226,9 +226,7 @@ object CableLossCalculations {
         averageDiameterScreen,
       )
     val lambda1Dash = layoutFormation match {
-      case LayoutFormation.FlatDistance =>
-        calcLambda1DashFlat(r, rs, x, xm, phase)
-      case LayoutFormation.FlatTouching =>
+      case LayoutFormation.FlatDistance | LayoutFormation.FlatTouching =>
         calcLambda1DashFlat(r, rs, x, xm, phase)
       case LayoutFormation.TrefoilNotTouching =>
         throw new IllegalArgumentException(
