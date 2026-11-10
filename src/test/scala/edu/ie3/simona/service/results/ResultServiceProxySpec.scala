@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.results
 
+import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.simona.event.ResultEvent.{
   ParticipantResultEvent,
   PowerFlowResultEvent,
