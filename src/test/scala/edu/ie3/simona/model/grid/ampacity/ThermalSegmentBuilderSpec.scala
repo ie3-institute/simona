@@ -5,30 +5,29 @@
  */
 
 package edu.ie3.simona.model.grid.ampacity
-import edu.ie3.datamodel.models.input.SoilLayer
-import edu.ie3.datamodel.models.input.SoilType
-import edu.ie3.datamodel.models.input.connector.{
-  CableDeploymentInput,
-  LineInput,
-}
+import com.typesafe.config.ConfigFactory
+import edu.ie3.datamodel.models.input.connector.`type`.{CableMaterial, CableTypeInput, ConductorInput, LineTypeInput}
+import edu.ie3.datamodel.models.input.connector.{CableDeploymentInput, LineInput}
+import edu.ie3.datamodel.models.input.container.*
+import edu.ie3.datamodel.models.input.{EmInput, NodeInput, SoilLayer, SoilType}
+import edu.ie3.datamodel.models.voltagelevels.VoltageLevel
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.CigreT880LandCable33kV
-import com.typesafe.config.ConfigFactory
-import edu.ie3.util.quantities.PowerSystemUnits.{
-  KELVIN_METRE_PER_WATT,
-  JOULE_PER_CUBIC_METRE_KELVIN,
-}
-import org.locationtech.jts.geom.{Coordinate as JtsCoordinate, GeometryFactory}
+import edu.ie3.simona.util.Coordinate
+import edu.ie3.util.quantities.PowerSystemUnits.*
+import edu.ie3.util.quantities.thermal.JoulesPerCubicMeterKelvin
+import org.locationtech.jts.geom.{GeometryFactory, Coordinate as JtsCoordinate}
 import org.locationtech.jts.linearref.LengthIndexedLine
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import squants.Meters
+import squants.space.{Length, Millimeters, SquareMeters}
 import squants.thermal.Celsius
-import squants.space.{Length, Millimeters}
 import tech.units.indriya.quantity.Quantities
-import tech.units.indriya.unit.Units.{CELSIUS, METRE}
+import tech.units.indriya.unit.Units.*
+
 import java.nio.file.{Files, Path}
 import java.util.UUID
 import scala.collection.mutable.ListBuffer
@@ -425,7 +424,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val markedSegments = segments.filter(_.parallelInfluence.nonEmpty)
       markedSegments should not be empty
       val allNeighbourUuids =
-        markedSegments.flatMap(_.parallelInfluence).map(_._1).toSet
+        markedSegments.flatMap(_.parallelInfluence).map(_._1)
       allNeighbourUuids should contain(neighbourUuid)
     }
 
@@ -1284,4 +1283,457 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       )
     }
   }
+
+  "ThermalSegmentBuilder.neighbourLineDistanceMeters" should {
+    "return the geodesic distance between a line and a point at the same location" in {
+      val line = geometryFactory.createLineString(
+        Array(new JtsCoordinate(8.5, 51.5), new JtsCoordinate(8.6, 51.5))
+      )
+      val point = geometryFactory.createPoint(new JtsCoordinate(8.55, 51.5))
+
+      val dist = ThermalSegmentBuilder.neighbourLineDistanceMeters(line, point)
+      dist should be < 1.0
+    }
+
+    "return a non-zero distance for a distant neighbour" in {
+      val line = geometryFactory.createLineString(
+        Array(new JtsCoordinate(8.5, 51.5), new JtsCoordinate(8.6, 51.5))
+      )
+      val point = geometryFactory.createPoint(new JtsCoordinate(8.5, 51.51))
+
+      val dist = ThermalSegmentBuilder.neighbourLineDistanceMeters(line, point)
+      dist should be > 100.0
+    }
+  }
+
+  "ThermalSegmentBuilder.crossSectionArea" should {
+    "return the given area when one is provided" in {
+      val result = ThermalSegmentBuilder.crossSectionArea(
+        Millimeters(10),
+        Millimeters(20),
+        Some(SquareMeters(0.002)),
+      )
+      result.toSquareMeters shouldBe 0.002
+    }
+
+    "compute the annular area when no area is provided" in {
+      val inner = Meters(0.01)
+      val outer = Meters(0.03)
+      val result = ThermalSegmentBuilder.crossSectionArea(
+        inner,
+        outer,
+        None,
+      )
+      val expected = math.Pi / 4d * (0.03d * 0.03d - 0.01d * 0.01d)
+      result.toSquareMeters should be(expected +- 1e-12)
+    }
+
+    "compute the circular area for a solid conductor with zero inner diameter" in {
+      val result = ThermalSegmentBuilder.crossSectionArea(
+        Meters(0.0),
+        Meters(0.02),
+        None,
+      )
+      val expected = math.Pi / 4d * 0.02d * 0.02d
+      result.toSquareMeters should be(expected +- 1e-12)
+    }
+  }
+
+  "ThermalSegmentBuilder.perLengthCapacity" should {
+    "multiply volumetric heat capacity by cross-section area" in {
+      val volCap = JoulesPerCubicMeterKelvin(1000.0)
+      val result = ThermalSegmentBuilder.perLengthCapacity(
+        volCap,
+        Meters(0.0),
+        Meters(0.02),
+        None,
+      )
+      val expectedArea = math.Pi / 4d * 0.02d * 0.02d
+      result.toJoulesPerMeterKelvin should be(
+        (1000.0 * expectedArea) +- 1e-9
+      )
+    }
+
+    "use the explicit area when provided" in {
+      val volCap = JoulesPerCubicMeterKelvin(500.0)
+      val result = ThermalSegmentBuilder.perLengthCapacity(
+        volCap,
+        Meters(0.01),
+        Meters(0.03),
+        Some(SquareMeters(0.001)),
+      )
+      result.toJoulesPerMeterKelvin should be(0.5 +- 1e-9)
+    }
+  }
+
+  "ThermalSegmentBuilder.calcCableThermalCapacities" should {
+    "return non-zero capacities for a cable with a screen" in {
+      val result = ThermalSegmentBuilder.calcCableThermalCapacities(cable)
+      result.cc.toJoulesPerMeterKelvin should be > 0.0
+      result.cd.toJoulesPerMeterKelvin should be > 0.0
+      result.cs.toJoulesPerMeterKelvin should be > 0.0
+      result.cj.toJoulesPerMeterKelvin should be > 0.0
+    }
+
+    "return zero screen capacity for a cable without a screen" in {
+      val cableNoScreen = cable.copy(screenLayer = None)
+      val result =
+        ThermalSegmentBuilder.calcCableThermalCapacities(cableNoScreen)
+      result.cs.toJoulesPerMeterKelvin shouldBe 0.0
+    }
+  }
+
+  "ThermalSegmentBuilder.validateCableTypesPresent" should {
+    "throw an exception when no line has a cable type" in {
+      val container = new SubGridContainer(
+        "testGrid",
+        0,
+        new RawGridElements(
+          Set(makeTestNode()).asJava,
+          Set(makeLineWithoutCableType()).asJava,
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+        ),
+        makeEmptySystemParticipants,
+        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+      )
+      val thrown = the[GridAgentInitializationException] thrownBy {
+        ThermalSegmentBuilder.validateCableTypesPresent(container)
+      }
+      thrown.getMessage should include("no cable types")
+    }
+
+    "not throw an exception when at least one line has a cable type" in {
+      val cableType = makeCableTypeInput()
+      val lineType = makeLineTypeInput(cableType)
+      val line = makeLineWithCableType(lineType)
+      val container = new SubGridContainer(
+        "testGrid",
+        0,
+        new RawGridElements(
+          Set(makeTestNode()).asJava,
+          Set(line).asJava,
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+        ),
+        makeEmptySystemParticipants,
+        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+      )
+      noException should be thrownBy {
+        ThermalSegmentBuilder.validateCableTypesPresent(container)
+      }
+    }
+  }
+
+  "ThermalSegmentBuilder.validateCableDeployments" should {
+    "throw an exception when no deployments are provided" in {
+      val cableType = makeCableTypeInput()
+      val lineType = makeLineTypeInput(cableType)
+      val line = makeLineWithCableType(lineType)
+      val container = new SubGridContainer(
+        "testGrid",
+        0,
+        new RawGridElements(
+          Set(makeTestNode()).asJava,
+          Set(line).asJava,
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+        ),
+        makeEmptySystemParticipants,
+        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+      )
+      val thrown = the[GridAgentInitializationException] thrownBy {
+        ThermalSegmentBuilder.validateCableDeployments(
+          container,
+          Map.empty,
+        )
+      }
+      thrown.getMessage should include("no cable deployment entries")
+    }
+
+    "throw an exception when a line with a cable type has no deployment" in {
+      val cableType = makeCableTypeInput()
+      val lineType = makeLineTypeInput(cableType)
+      val line = makeLineWithCableType(lineType)
+      val container = new SubGridContainer(
+        "testGrid",
+        0,
+        new RawGridElements(
+          Set(makeTestNode()).asJava,
+          Set(line).asJava,
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+        ),
+        makeEmptySystemParticipants,
+        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+      )
+      val emptyMap: scala.collection.Map[UUID, java.util.List[
+        CableDeploymentInput
+      ]] = Map.empty
+      val thrown = the[GridAgentInitializationException] thrownBy {
+        ThermalSegmentBuilder.validateCableDeployments(
+          container,
+          emptyMap,
+        )
+      }
+      thrown.getMessage should include("no cable deployment entries")
+    }
+
+    "not throw an exception when all lines with cable types have deployments" in {
+      val cableType = makeCableTypeInput()
+      val lineType = makeLineTypeInput(cableType)
+      val lineUuid = UUID.randomUUID()
+      val line = makeLineWithCableType(lineType, lineUuid)
+      val deployment = new CableDeploymentInput(
+        UUID.randomUUID(),
+        lineUuid,
+        "trefoil-touching",
+        Quantities.getQuantity(1.0, METRE),
+        Quantities.getQuantity(0.5, METRE),
+      )
+      val layer = makeSoilLayer(0.0, -0.1, 1.0, 0.1)
+      val rawGrid = new RawGridElements(
+        Set(makeTestNode()).asJava,
+        Set(line).asJava,
+        java.util.Collections.emptySet(),
+        java.util.Collections.emptySet(),
+        java.util.Collections.emptySet(),
+        java.util.Collections.emptySet(),
+        java.util.Map.of(lineUuid, Seq(deployment).asJava),
+      )
+      val container = new SubGridContainer(
+        "testGrid",
+        0,
+        rawGrid,
+        makeEmptySystemParticipants,
+        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+        new SoilData(Set(soilType).asJava, Set(layer).asJava),
+      )
+      val deployments: scala.collection.Map[UUID, java.util.List[
+        CableDeploymentInput
+      ]] = Map(lineUuid -> Seq(deployment).asJava)
+      noException should be thrownBy {
+        ThermalSegmentBuilder.validateCableDeployments(
+          container,
+          deployments,
+        )
+      }
+    }
+  }
+
+  "ThermalSegmentBuilder.build" should {
+    "return a BuildResult with soil layers and no segments when no cable type is present" in {
+      val tempDir = Files.createTempDirectory("test_thermal_build")
+      try {
+        val layer = makeSoilLayer(0.0, -0.1, 1.0, 0.1)
+        val container = new SubGridContainer(
+          "testGrid",
+          0,
+          new RawGridElements(
+            Set(makeTestNode()).asJava,
+            Set(makeLineWithoutCableType()).asJava,
+            java.util.Collections.emptySet(),
+            java.util.Collections.emptySet(),
+            java.util.Collections.emptySet(),
+            java.util.Collections.emptySet(),
+          ),
+          makeEmptySystemParticipants,
+          new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+          new SoilData(Set(soilType).asJava, Set(layer).asJava),
+        )
+        val simonaConfig = buildTestConfig(tempDir.toString)
+        val result = ThermalSegmentBuilder.build(container, simonaConfig)
+        result.soilLayers should contain(layer)
+        result.thermalLineSegments shouldBe empty
+      } finally {
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
+      }
+    }
+
+    "generate thermal segments for a line with a cable type and deployment" in {
+      val tempDir = Files.createTempDirectory("test_thermal_build2")
+      try {
+        val cableType = makeCableTypeInput()
+        val lineType = makeLineTypeInput(cableType)
+        val lineUuid = UUID.randomUUID()
+        val line = makeLineWithCableType(lineType, lineUuid)
+        val deployment = new CableDeploymentInput(
+          UUID.randomUUID(),
+          lineUuid,
+          "trefoil-touching",
+          Quantities.getQuantity(-1.0, METRE),
+          Quantities.getQuantity(0.5, METRE),
+        )
+        val layer = makeSoilLayer(0.0, -0.1, 1.0, 0.1)
+        val rawGrid = new RawGridElements(
+          Set(makeTestNode()).asJava,
+          Set(line).asJava,
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Collections.emptySet(),
+          java.util.Map.of(lineUuid, Seq(deployment).asJava),
+        )
+        val container = new SubGridContainer(
+          "testGrid",
+          0,
+          rawGrid,
+          makeEmptySystemParticipants,
+          new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+          new SoilData(Set(soilType).asJava, Set(layer).asJava),
+        )
+        val simonaConfig = buildTestConfig(tempDir.toString)
+        val result = ThermalSegmentBuilder.build(container, simonaConfig)
+        result.thermalLineSegments.size should be >= 1
+        result.thermalLineSegments.forall(_.lineUuid == lineUuid) shouldBe true
+      } finally {
+        Files
+          .walk(tempDir)
+          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .forEach(p => Files.deleteIfExists(p))
+      }
+    }
+  }
+
+  private val testVoltageLevel =
+    new VoltageLevel(
+      "testVoltageLevel",
+      Quantities.getQuantity(0.4, KILOVOLT),
+    )
+
+  private def makeTestNode(): NodeInput =
+    new NodeInput(
+      UUID.randomUUID(),
+      "testNode",
+      Quantities.getQuantity(1.0, PU),
+      false,
+      geometryFactory.createPoint(new JtsCoordinate(0.5, 0.0)),
+      testVoltageLevel,
+      0,
+    )
+
+  private def makeCableTypeInput(): CableTypeInput = {
+    val conductor = new ConductorInput(
+      UUID.randomUUID(),
+      "conductor",
+      CableMaterial.COPPER,
+      Quantities.getQuantity(0.0001, SQUARE_METRE),
+      Quantities.getQuantity(12.7, MILLIMETRE),
+      false,
+      Quantities.getQuantity(0.7, KELVIN_METRE_PER_WATT),
+      Quantities.getQuantity(3.5e6, JOULE_PER_CUBIC_METRE_KELVIN),
+      Quantities.getQuantity(0.0001267, SQUARE_METRE),
+    )
+    new CableTypeInput(
+      UUID.randomUUID(),
+      "testCableType",
+      3,
+      conductor,
+      java.util.List.of(),
+      null,
+      java.util.List.of(),
+      java.util.List.of(),
+      java.util.List.of(),
+      Quantities.getQuantity(90.0, CELSIUS),
+      Quantities.getQuantity(50.0, HERTZ),
+      1.0,
+      1.0,
+      Quantities.getQuantity(0.2, FARAD_PER_KILOMETRE),
+      0.004,
+      0.04,
+      0.0,
+    )
+  }
+
+  private def makeLineTypeInput(
+      cableType: CableTypeInput
+  ): LineTypeInput =
+    new LineTypeInput(
+      UUID.randomUUID(),
+      "testLineType",
+      Quantities.getQuantity(1.0, SIEMENS_PER_KILOMETRE),
+      Quantities.getQuantity(0.0, SIEMENS_PER_KILOMETRE),
+      Quantities.getQuantity(0.1, OHM_PER_KILOMETRE),
+      Quantities.getQuantity(0.1, OHM_PER_KILOMETRE),
+      Quantities.getQuantity(200.0, AMPERE),
+      Quantities.getQuantity(0.4, KILOVOLT),
+      java.util.Optional.of(cableType),
+    )
+
+  private def makeLineWithCableType(
+      lineType: LineTypeInput,
+      uuid: UUID = UUID.randomUUID(),
+  ): LineInput = {
+    val nodeA = makeTestNode()
+    val nodeB = makeTestNode()
+    val geoPosition = geometryFactory.createLineString(
+      Array(new JtsCoordinate(0.0, 0.0), new JtsCoordinate(1.0, 0.0))
+    )
+    new LineInput(
+      uuid,
+      "testLineId",
+      nodeA,
+      nodeB,
+      1,
+      lineType,
+      Quantities.getQuantity(1.0, METRE),
+      geoPosition,
+      null,
+    )
+  }
+
+  private def makeLineWithoutCableType(): LineInput = {
+    val nodeA = makeTestNode()
+    val nodeB = makeTestNode()
+    val lineType = new LineTypeInput(
+      UUID.randomUUID(),
+      "testLineTypeNoCable",
+      Quantities.getQuantity(1.0, SIEMENS_PER_KILOMETRE),
+      Quantities.getQuantity(0.0, SIEMENS_PER_KILOMETRE),
+      Quantities.getQuantity(0.1, OHM_PER_KILOMETRE),
+      Quantities.getQuantity(0.1, OHM_PER_KILOMETRE),
+      Quantities.getQuantity(200.0, AMPERE),
+      Quantities.getQuantity(0.4, KILOVOLT),
+    )
+    val geoPosition = geometryFactory.createLineString(
+      Array(new JtsCoordinate(0.0, 0.0), new JtsCoordinate(1.0, 0.0))
+    )
+    new LineInput(
+      UUID.randomUUID(),
+      "testLineNoCable",
+      nodeA,
+      nodeB,
+      1,
+      lineType,
+      Quantities.getQuantity(1.0, METRE),
+      geoPosition,
+      null,
+    )
+  }
+
+  private def makeEmptySystemParticipants: SystemParticipants =
+    new SystemParticipants(
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+      java.util.Collections.emptySet(),
+    )
 }

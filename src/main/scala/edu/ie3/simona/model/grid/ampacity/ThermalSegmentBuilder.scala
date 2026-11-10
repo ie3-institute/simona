@@ -925,7 +925,7 @@ object ThermalSegmentBuilder extends LazyLogging {
   /** Converts a JTS coordinate (x = longitude, y = latitude) to a
     * [[Coordinate]].
     */
-  private def toCoordinate(c: JtsCoordinate): Coordinate =
+  private[ampacity] def toCoordinate(c: JtsCoordinate): Coordinate =
     Coordinate(c.y, c.x)
 
   /** Computes the minimum geodesic distance in meters between a neighbour line
@@ -940,7 +940,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @return
     *   The minimum distance in meters.
     */
-  private def neighbourLineDistanceMeters(
+  private[ampacity] def neighbourLineDistanceMeters(
       neighbourLine: Geometry,
       geom: Geometry,
   ): Double = {
@@ -1202,7 +1202,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @return
     *   The effective cross-sectional area of the layer.
     */
-  private def crossSectionArea(
+  private[ampacity] def crossSectionArea(
       innerDiameter: Length,
       outerDiameter: Length,
       area: Option[Area],
@@ -1230,7 +1230,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @return
     *   The thermal capacity of the layer per unit of length.
     */
-  private def perLengthCapacity(
+  private[ampacity] def perLengthCapacity(
       specificHeatCapacity: VolumetricHeatCapacity,
       innerDiameter: Length,
       outerDiameter: Length,
