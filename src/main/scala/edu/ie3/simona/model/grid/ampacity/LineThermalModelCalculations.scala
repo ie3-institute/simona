@@ -203,6 +203,29 @@ object LineThermalModelCalculations extends LazyLogging {
   ): ThermalResistivity =
     (specificThermalResistivity / TWO_PI) * log(outerRadius / innerRadius)
 
+  /** A case class holding the calculated temperatures of the line segment.
+    *
+    * @param currentLineTemp1
+    *   The current temperature of the line at the first measurement point.
+    * @param currentLineTemp2
+    *   The current temperature of the line at the second measurement point.
+    * @param currentLineTemp3
+    *   The current temperature of the line at the third measurement point.
+    * @param currentLineTemp4
+    *   The current temperature of the line at the fourth measurement point.
+    * @param currentLineTemp5
+    *   The current temperature of the line at the fifth measurement point.
+    * @param currentLineTemp6
+    *   The current temperature of the line at the sixth measurement point.
+    * @param currentLineTemp7
+    *   The current temperature of the line at the seventh measurement point.
+    * @param currentLineTemp8
+    *   The current temperature of the line at the eighth measurement point.
+    * @param currentLineTemp9
+    *   The current temperature of the line at the ninth measurement point.
+    * @param currentLineTemp10
+    *   The current temperature of the line at the tenth measurement point.
+    */
   final case class LineTemperatures(
       currentLineTemp1: Temperature,
       currentLineTemp2: Temperature,
