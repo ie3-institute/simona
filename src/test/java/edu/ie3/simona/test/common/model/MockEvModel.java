@@ -109,12 +109,16 @@ public class MockEvModel implements EvModel {
   public ComparableQuantity<Energy> getStoredEnergy() {
     return storedEnergy;
   }
-  
-  @Override
-  public ComparableQuantity<Dimensionless> getEtaCharging() { return etaCharging; }
 
   @Override
-  public ComparableQuantity<Dimensionless> getEtaDischarging() { return etaDischarging; }
+  public ComparableQuantity<Dimensionless> getEtaCharging() {
+    return etaCharging;
+  }
+
+  @Override
+  public ComparableQuantity<Dimensionless> getEtaDischarging() {
+    return etaDischarging;
+  }
 
   @Override
   public Long getDepartureTick() {
@@ -123,11 +127,29 @@ public class MockEvModel implements EvModel {
 
   @Override
   public MockEvModel copyWith(ComparableQuantity<Energy> newStoredEnergy) {
-    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, newStoredEnergy, etaCharging, etaDischarging, departureTick);
+    return new MockEvModel(
+        uuid,
+        id,
+        sRatedAC,
+        sRatedDC,
+        eStorage,
+        newStoredEnergy,
+        etaCharging,
+        etaDischarging,
+        departureTick);
   }
 
   public MockEvModel copyWithDeparture(Long departureTick) {
-    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, storedEnergy, etaCharging, etaDischarging, departureTick);
+    return new MockEvModel(
+        uuid,
+        id,
+        sRatedAC,
+        sRatedDC,
+        eStorage,
+        storedEnergy,
+        etaCharging,
+        etaDischarging,
+        departureTick);
   }
 
   @Override
