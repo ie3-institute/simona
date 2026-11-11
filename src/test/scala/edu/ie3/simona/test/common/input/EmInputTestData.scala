@@ -75,6 +75,7 @@ trait EmInputTestData
     Quantities.getQuantity(5d, KILOWATT),
     Quantities.getQuantity(0.03, PU_PER_HOUR),
     Quantities.getQuantity(0.95, PU),
+    Quantities.getQuantity(0.95, PU),
   )
 
   protected val storageInput = new StorageInput(

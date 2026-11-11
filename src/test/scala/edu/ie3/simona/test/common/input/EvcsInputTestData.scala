@@ -63,6 +63,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     10.0.asKiloWatt,
     10.0.asKiloWattHour,
     5.0.asKiloWattHour,
+    1.0.asPu,
+    1.0.asPu,
     18000L,
   )
 
@@ -73,6 +75,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     10.0.asKiloWatt,
     10.0.asKiloWattHour,
     7.5.asKiloWattHour,
+    1.0.asPu,
+    1.0.asPu,
     18000L,
   )
 
@@ -83,6 +87,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     20.0.asKiloWatt, // DC is not
     20.0.asKiloWattHour,
     15.0.asKiloWattHour,
+    1.0.asPu,
+    1.0.asPu,
     10800L,
   )
 
@@ -93,6 +99,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     20.0.asKiloWatt, // DC is not
     10.0.asKiloWattHour,
     0.0.asKiloWattHour,
+    1.0.asPu,
+    1.0.asPu,
     10800L,
   )
 
@@ -103,6 +111,8 @@ trait EvcsInputTestData extends DefaultTestData with NodeInputTestData {
     10.0.asKiloWatt, // DC is not
     15.0.asKiloWattHour,
     0.0.asKiloWattHour,
+    1.0.asPu,
+    1.0.asPu,
     14400L,
   )
 

@@ -51,7 +51,8 @@ class StorageModel private (
     override val qControl: QControl,
     val eStorage: Energy,
     val pMax: Power,
-    val eta: Dimensionless,
+    val etaCharging: Dimensionless,
+    val etaDischarging: Dimensionless,
     targetSoc: Option[Double],
 ) extends ParticipantModel[
       ActivePowerOperatingPoint,
@@ -88,21 +89,21 @@ class StorageModel private (
   /** Minimal allowed energy with tolerance margin added.
     */
   private val minEnergyWithMargin: Energy =
-    minEnergy + (toleranceMargin / eta.toEach)
+    minEnergy + (toleranceMargin / etaDischarging.toEach)
 
   /** Maximum allowed energy with tolerance margin added.
     */
   private val maxEnergyWithMargin: Energy =
-    eStorage - (toleranceMargin * eta.toEach)
+    eStorage - (toleranceMargin * etaCharging.toEach)
 
   val refTargetSoc: Option[RefTargetSocParams] = targetSoc.map { target =>
     val targetEnergy = eStorage * target
 
     val targetWithPosMargin =
-      targetEnergy + (toleranceMargin / eta.toEach)
+      targetEnergy + (toleranceMargin / etaDischarging.toEach)
 
     val targetWithNegMargin =
-      targetEnergy - (toleranceMargin * eta.toEach)
+      targetEnergy - (toleranceMargin * etaCharging.toEach)
 
     RefTargetSocParams(
       targetEnergy,
@@ -133,7 +134,8 @@ class StorageModel private (
       tick,
       eStorage,
       minEnergy,
-      eta,
+      etaCharging,
+      etaDischarging,
     )
 
     StorageState(currentEnergy, tick)
@@ -270,7 +272,8 @@ object StorageModel {
         QControl.apply(input.getqCharacteristics),
         eStorage,
         input.getType.getpMax.toSquants,
-        input.getType.getEta.toSquants,
+        input.getType.getEtaCharging.toSquants,
+        input.getType.getEtaDischarging.toSquants,
         config.targetSoc,
       )
 
