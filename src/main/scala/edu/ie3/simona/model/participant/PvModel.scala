@@ -37,7 +37,8 @@ import edu.ie3.simona.service.Data.SecondaryData.{
 }
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.QuantityUtils.{asMegaVar, asMegaWatt}
-import edu.ie3.util.scala.quantities.*
+import edu.ie3.util.quantities.energy.ApparentPower
+import edu.ie3.util.scala.quantities.DefaultQuantities.zeroMW
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
@@ -240,7 +241,7 @@ class PvModel private (
       )
 
     /* If the output is marginally small, suppress the output, as we are likely to be in night and then only produce incorrect output */
-    if proposal.compareTo(activationThreshold) > 0 then DefaultQuantities.zeroMW
+    if proposal.compareTo(activationThreshold) > 0 then zeroMW
     else proposal
   }
 

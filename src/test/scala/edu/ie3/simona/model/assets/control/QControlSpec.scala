@@ -22,7 +22,7 @@ import edu.ie3.simona.model.participant.control.QControl.{
 import edu.ie3.simona.model.system.Characteristic.XYPair
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.{Megavars, ReactivePower}
+import edu.ie3.util.quantities.energy.{Megavars, ReactivePower}
 import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import squants.Each
 import tech.units.indriya.quantity.Quantities.*

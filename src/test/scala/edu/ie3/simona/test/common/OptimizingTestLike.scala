@@ -16,7 +16,7 @@ import edu.ie3.simona.service.Data.SecondaryData.{
   ProsumerPrice,
   SecondarySeriesData,
 }
-import edu.ie3.util.scala.quantities.EuroPerKilowattHour
+import edu.ie3.util.quantities.prices.EuroPerKilowattHours
 import org.scalatest.matchers.should.Matchers
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Energy, Power}
@@ -34,7 +34,7 @@ trait OptimizingTestLike extends Matchers {
     def toPriceData(timeParams: TimeParams): SecondarySeriesData =
       SecondarySeriesData(SortedMap.from(timeParams.ticks.zip(seq.map {
         case (sell, buy) =>
-          ProsumerPrice(EuroPerKilowattHour(sell), EuroPerKilowattHour(buy))
+          ProsumerPrice(EuroPerKilowattHours(sell), EuroPerKilowattHours(buy))
       })))
 
   extension (symbols: AssetStepSymbols) {

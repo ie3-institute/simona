@@ -35,7 +35,7 @@ import edu.ie3.simona.test.common.{TestSpawnerTyped, UnitSpec}
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.{EnergyPrice, EuroPerKilowattHour}
+import edu.ie3.util.quantities.prices.{EnergyPrice, EuroPerKilowattHours}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -80,7 +80,7 @@ class EnergyPriceServiceSpec
   private val agent1 = TestProbe[ParticipantAgent.Message]("agent1")
   private val agent2 = TestProbe[ParticipantAgent.Message]("agent2")
 
-  private given EnergyPrice = EuroPerKilowattHour(1e-3)
+  private given EnergyPrice = EuroPerKilowattHours(1e-3)
 
   "A price service" must {
 
@@ -160,9 +160,9 @@ class EnergyPriceServiceSpec
           data match {
             case ProsumerPrice(priceSell, priceBuy) =>
               // 0.216 c/kWh minus 20% tax = 0.1728 c/kWh
-              priceSell should approximate(EuroPerKilowattHour(0.001728))
+              priceSell should approximate(EuroPerKilowattHours(0.001728))
               // 0.216 c/kWh plus 15 c/kWh fees plus 20% tax on top = 18.2592 c/kWh
-              priceBuy should approximate(EuroPerKilowattHour(0.182592))
+              priceBuy should approximate(EuroPerKilowattHours(0.182592))
             case unexpected =>
               fail(s"Received unexpected data $unexpected")
           }
@@ -179,14 +179,14 @@ class EnergyPriceServiceSpec
 
               // data for current time is unchanged
               series.get(0L).value shouldBe ProsumerPrice(
-                priceSell = EuroPerKilowattHour(0.0017280000000000002),
-                priceBuy = EuroPerKilowattHour(0.18259199999999998),
+                priceSell = EuroPerKilowattHours(0.0017280000000000002),
+                priceBuy = EuroPerKilowattHours(0.18259199999999998),
               )
 
               // data for a couple of hours into the future has noise addition
               series.get(21600L).value shouldBe ProsumerPrice(
-                priceSell = EuroPerKilowattHour(-0.05057134387184811),
-                priceBuy = EuroPerKilowattHour(0.12939265612815187),
+                priceSell = EuroPerKilowattHours(-0.05057134387184811),
+                priceBuy = EuroPerKilowattHours(0.12939265612815187),
               )
             case unexpected =>
               fail(s"Received unexpected data $unexpected")

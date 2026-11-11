@@ -559,6 +559,24 @@ simona.input = {
         sqlParams = None
         timestampPattern = None
     }
+    
+    weather.forecast = {
+        irradianceNoise = {
+            variance = 5
+            autoregression = 0.8
+            seed = 0
+        }
+        temperatureNoise = {
+            variance = 2
+            autoregression = 0.8
+            seed = 0
+        }
+        windVelocityNoise = {
+            variance = 2
+            autoregression = 0.8
+            seed = 0
+        }
+    }
 
     prices.datasource = {
         buyingPrice = {
@@ -570,6 +588,14 @@ simona.input = {
             tax: 0
         }
         csvParams = None
+    }
+    
+    prices.forecast = {
+        noise = {
+            variance = 20
+            autoregression = 0.8
+            seed = 0
+        }
     }
 }
 ```
