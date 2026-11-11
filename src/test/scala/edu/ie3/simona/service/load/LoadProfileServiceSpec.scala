@@ -164,7 +164,8 @@ class LoadProfileServiceSpec
           serviceRef shouldBe loadProfileService
           data match {
             case LoadDataFunction(powerFunc) =>
-              powerFunc() shouldBe Kilowatts(0.0683)
+              // data for 2:00 local time because of time zone/dst
+              powerFunc() shouldBe Kilowatts(0.0512)
             case unexpected =>
               fail(s"Received unexpected data $unexpected")
           }
@@ -199,7 +200,8 @@ class LoadProfileServiceSpec
           serviceRef shouldBe loadProfileService
           data match {
             case LoadDataFunction(powerFunc) =>
-              powerFunc() shouldBe Kilowatts(0.0665)
+              // data for 2:00 local time because of time zone/dst
+              powerFunc() shouldBe Kilowatts(0.0495)
             case unexpected =>
               fail(s"Received unexpected data $unexpected")
           }

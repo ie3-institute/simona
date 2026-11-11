@@ -50,7 +50,7 @@ import scala.jdk.OptionConverters.RichOptional
   */
 object ParticipantAgentFactory {
 
-  final case class BuildData(
+  private final case class BuildData(
       simonaConfig: SimonaConfig,
       resolution: Long,
       simStartTime: ZonedDateTime,
@@ -136,31 +136,32 @@ object ParticipantAgentFactory {
   private def filterValidSysParts(
       systemParticipants: SystemParticipants,
       environmentRefs: EnvironmentRefs,
-  )(using ctx: ActorContext[?]): Seq[SystemParticipantInput] = {
+  )(using ctx: ActorContext[?]): Seq[ExtendedSystemParticipantInput] = {
 
     val (notProcessedElements, availableSysParts) =
       systemParticipants
         .allEntitiesAsList()
         .asScala
-        .foldLeft((Set.empty[String], Seq.empty[SystemParticipantInput])) {
+        .foldLeft(
+          (Set.empty[String], Seq.empty[ExtendedSystemParticipantInput])
+        ) {
           case (
                 (notProcessedElements, availableSystemParticipants),
                 curSysPart,
               ) =>
             curSysPart match {
-              case entity @ (_: ChpInput | _: EvInput) =>
-                (
-                  notProcessedElements + entity.getClass.getSimpleName,
-                  availableSystemParticipants,
-                )
-              // only include evcs if ev data service is present
               case evcsInput: EvcsInput
                   if environmentRefs.evDataService.isEmpty =>
                 throw new CriticalFailureException(
                   s"EVCS ${evcsInput.getId} requires an external simulation, but no ev data service is present."
                 )
-              case entity =>
+              case entity: ExtendedSystemParticipantInput =>
                 (notProcessedElements, availableSystemParticipants :+ entity)
+              case other =>
+                (
+                  notProcessedElements + other.getClass.getSimpleName,
+                  availableSystemParticipants,
+                )
             }
         }
 
@@ -190,7 +191,7 @@ object ParticipantAgentFactory {
     */
   private def buildParticipantToActorRef(
       emAgents: Map[UUID, ActorRef[FlexResponse]],
-      participants: Seq[SystemParticipantInput],
+      participants: Seq[ExtendedSystemParticipantInput],
       thermalIslandGridsByBusId: Map[UUID, ThermalGrid],
   )(using
       environmentRefs: EnvironmentRefs,
