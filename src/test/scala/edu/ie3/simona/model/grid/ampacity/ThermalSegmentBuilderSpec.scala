@@ -6,8 +6,16 @@
 
 package edu.ie3.simona.model.grid.ampacity
 import com.typesafe.config.ConfigFactory
-import edu.ie3.datamodel.models.input.connector.`type`.{CableMaterial, CableTypeInput, ConductorInput, LineTypeInput}
-import edu.ie3.datamodel.models.input.connector.{CableDeploymentInput, LineInput}
+import edu.ie3.datamodel.models.input.connector.`type`.{
+  CableMaterial,
+  CableTypeInput,
+  ConductorInput,
+  LineTypeInput,
+}
+import edu.ie3.datamodel.models.input.connector.{
+  CableDeploymentInput,
+  LineInput,
+}
 import edu.ie3.datamodel.models.input.container.*
 import edu.ie3.datamodel.models.input.{EmInput, NodeInput, SoilLayer, SoilType}
 import edu.ie3.datamodel.models.voltagelevels.VoltageLevel

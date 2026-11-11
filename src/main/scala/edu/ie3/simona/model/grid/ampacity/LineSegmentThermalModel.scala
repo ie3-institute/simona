@@ -67,7 +67,7 @@ import java.util.UUID
   * @param thermalCapacityCe
   *   the thermal capacity of the surrounding soil per unit of length
   * @param upperBoundaryTemperature
-  *   Upper boundary temperature
+  *   the upper boundary temperature
   * @param soilType
   *   the type of the surrounding soil, outside an optional existing cable bed
   * @param calculationPoint
@@ -77,6 +77,9 @@ import java.util.UUID
   *   influence factor)
   * @param cableBed
   *   the optional cable bed surrounding the cable
+  * @param soilLayers
+  *   the sequence of horizontal soil layers of the surrounding ground, ordered
+  *   from the ground surface downwards (empty if not specified)
   */
 final case class LineSegmentThermalModel(
     uuid: UUID,
@@ -122,11 +125,11 @@ object LineSegmentThermalModel {
     * downwards (lowerDepth most negative).
     *
     * @param soilType
-    *   The soil type of this layer.
+    *   the soil type of this layer
     * @param upperDepth
-    *   The depth of the upper boundary of this layer (negative below surface).
+    *   the depth of the upper boundary of this layer (negative below surface)
     * @param lowerDepth
-    *   The depth of the lower boundary of this layer (negative below surface).
+    *   the depth of the lower boundary of this layer (negative below surface)
     */
   final case class SoilLayerInfo(
       soilType: SoilType,
@@ -137,22 +140,22 @@ object LineSegmentThermalModel {
   /** State of a thermal line segment model.
     *
     * @param tick
-    *   Current tick.
+    *   current tick
     * @param lastTick
-    *   Last tick of temperature change.
+    *   last tick of temperature change
     * @param cableSetup
-    *   The setup of the cable in this line segment.
+    *   the setup of the cable in this line segment
     * @param currentLineSegmentThermalModel
-    *   The current LineSegmentThermalModel.
+    *   the current LineSegmentThermalModel
     * @param groundTemperature
-    *   The current ground temperature.
+    *   the current ground temperature
     * @param lineTemperatures
-    *   The current temperatures of the cable layers.
+    *   the current temperatures of the cable layers
     * @param currentVoltage
-    *   The current voltage at the cable, i.e. the average of the voltages at
-    *   both connected nodes from the last power flow result.
+    *   the current voltage at the cable, i.e. the average of the voltages at
+    *   both connected nodes from the last power flow result
     * @param dryZoneActive
-    *   True if a dry zone is active around the cable.
+    *   true if a dry zone is active around the cable
     */
   final case class LineState(
       override val tick: Long,
