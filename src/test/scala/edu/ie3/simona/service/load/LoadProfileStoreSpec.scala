@@ -26,7 +26,9 @@ class LoadProfileStoreSpec extends UnitSpec {
   "A LoadProfileStore" should {
 
     val time =
-      TimeUtil.withDefaults.toZonedDateTime("2024-01-03T00:00:00Z") // wednesday
+      TimeUtil.withDefaults.toZonedDateTime(
+        "2024-01-03T00:00:00+01:00"
+      ) // wednesday
 
     "contain all build-in profile sources" in {
       val profiles = store.profileToSource.keySet
