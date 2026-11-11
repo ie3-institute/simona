@@ -12,7 +12,6 @@ import edu.ie3.simona.agent.EnvironmentRefs
 import edu.ie3.simona.agent.grid.*
 import edu.ie3.simona.agent.grid.GridAgent.Message
 import edu.ie3.simona.agent.grid.GridAgentMessages.*
-import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.NodeToReceivedPower
 import edu.ie3.simona.agent.grid.powerflow.{
   PowerFlowParams,
   ReceivedValuesStore,
@@ -30,7 +29,6 @@ import edu.ie3.simona.util.ConfigUtil.{
 import edu.ie3.simona.util.{ConfigUtil, ReceiveDataMap}
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.*
 import org.apache.pekko.actor.typed.ActorRef
-import org.slf4j.Logger
 
 import java.time.ZonedDateTime
 import java.util.UUID
