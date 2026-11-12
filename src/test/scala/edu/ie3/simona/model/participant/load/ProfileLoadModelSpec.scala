@@ -34,7 +34,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import edu.ie3.util.scala.quantities.{ApparentPower, Voltamperes}
+import edu.ie3.util.quantities.energy.{ApparentPower, Voltamperes}
 import squants.energy.*
 import squants.time.{Hours, Minutes}
 import squants.{Energy, Percent}

@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added use cases for SIMONA [#1814](https://github.com/ie3-institute/simona/issues/1814)
 - Added check for data in `RunSimonaStandaloneIT` [#1491](https://github.com/ie3-institute/simona/issues/1491)
 - Introduced energy boundaries tightening algorithm [#1835](https://github.com/ie3-institute/simona/issues/1835)
+- Implemented optional noise for forecast input data [#1771](https://github.com/ie3-institute/simona/issues/1771)
 - Added external em communication to em service [#1781](https://github.com/ie3-institute/simona/issues/1781)
 
 ### Changed
@@ -122,6 +123,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapted to changes in `powerflow` v0.5.0 [#1930](https://github.com/ie3-institute/simona/issues/1930)
 - Adapted to changes in `simonaAPI` v0.16.0 [#1924](https://github.com/ie3-institute/simona/issues/1924)
 - Adapt to changes in `PSDM` [#1947](https://github.com/ie3-institute/simona/issues/1947)
+- Enhancement of `QuantityConversionUtils` and some fixes and clean up [#1940](https://github.com/ie3-institute/simona/issues/1940)
+- Updated ci.yml [#1952](https://github.com/ie3-institute/simona/issues/1952)
 
 ### Fixed
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
@@ -161,6 +164,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed handling of disconnecting tick of energy boundaries flex options [#1821](https://github.com/ie3-institute/simona/issues/1821)
 - Fixed exception thrown when providing additional main arguments [#1890](https://github.com/ie3-institute/simona/issues/1890)
 - Fixed `get_version` script [#1935](https://github.com/ie3-institute/simona/issues/1935)
+- Fixed EnergyBoundariesFlexOptions for fixed load [#1865](https://github.com/ie3-institute/simona/issues/1865)
+- Honor the configured output csv separator in `ResultEntityCsvSink` instead of always writing commas [#550](https://github.com/ie3-institute/simona/issues/550)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

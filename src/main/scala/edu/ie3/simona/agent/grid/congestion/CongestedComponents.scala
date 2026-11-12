@@ -22,7 +22,7 @@ import edu.ie3.simona.model.grid.{
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
 import edu.ie3.util.scala.quantities.QuantityUtil.*
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import squants.electro.ElectricPotential
 import squants.{Amperes, ElectricCurrent}
 import tech.units.indriya.unit.Units

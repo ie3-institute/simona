@@ -9,7 +9,12 @@ package edu.ie3.simona.service.weather
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.config.ConfigParams.SampleParams
-import edu.ie3.simona.config.InputConfig.{CoordinateSource, WeatherDatasource}
+import edu.ie3.simona.config.InputConfig.{
+  CoordinateSource,
+  NoiseConfig,
+  WeatherDatasource,
+  WeatherForecast,
+}
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -35,6 +40,7 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
 }
+import org.scalatest.OptionValues.convertOptionToValuable
 import org.scalatest.PrivateMethodTester
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.motion.MetersPerSecond
@@ -65,6 +71,12 @@ class WeatherServiceSpec
     sampleParams = Some(SampleParams()),
   )
 
+  private val forecastConfig = WeatherForecast(
+    irradianceNoise = NoiseConfig(variance = 5d, seed = 1L),
+    temperatureNoise = NoiseConfig(variance = 2d, seed = 1L),
+    windVelocityNoise = NoiseConfig(variance = 2d, seed = 1L),
+  )
+
   // setup values
   private val invalidCoordinate: Coordinate = Coordinate(180.5, 90.5)
   private val validCoordinate: Coordinate = Coordinate(52.02083574, 7.40110716)
@@ -85,6 +97,7 @@ class WeatherServiceSpec
         scheduler.ref,
         InitWeatherServiceStateData(
           dataSourceConfig,
+          forecastConfig,
           simulationStartDate,
           simulationEndDate,
         ),
@@ -186,6 +199,26 @@ class WeatherServiceSpec
           data match {
             case SecondarySeriesData(series) =>
               series.size shouldBe 7
+
+              // data for current time is unchanged
+              series.get(0L).value shouldBe WeatherData(
+                dirIrr = WattsPerSquareMeter(0d),
+                diffIrr = WattsPerSquareMeter(0d),
+                temp = Celsius(-2.3719999999999573),
+                windVel = MetersPerSecond(4.16474),
+                groundTempLvl3 = Some(Celsius(-2.3719999999999573)),
+                groundTempLvl4 = Some(Celsius(-2.3719999999999573)),
+              )
+
+              // data for a couple of hours into the future has noise addition
+              series.get(21600L).value shouldBe WeatherData(
+                dirIrr = WattsPerSquareMeter(0d),
+                diffIrr = WattsPerSquareMeter(0d),
+                temp = Celsius(-6.4829343871848035),
+                windVel = MetersPerSecond(1.3569146128151894),
+                groundTempLvl3 = Some(Celsius(-6.4829343871848035)),
+                groundTempLvl4 = Some(Celsius(-6.4829343871848035)),
+              )
             case unexpected =>
               fail(s"Received unexpected data $unexpected")
           }
@@ -216,6 +249,8 @@ class WeatherServiceSpec
           None,
         )
       )
+
+      agent2.expectMessageType[DataProvision]
     }
 
     "reduce time series resolution according to a given interval" when {

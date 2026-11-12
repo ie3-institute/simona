@@ -89,11 +89,11 @@ object SimonaSim {
 
         // External simulations have to be scheduled for initialization first,
         // so that the phase switch permanently activates them first
-        val extSimDir =
-          simonaSetup.simonaConfig.input.extSimDir.map(Path.of(_))
+        val addonDir =
+          simonaSetup.simonaConfig.input.addonDir.map(Path.of(_))
 
         val addonData =
-          simonaSetup.addons(using ctx, scheduler, resultProxy, extSimDir)
+          simonaSetup.addons(using ctx, scheduler, resultProxy, addonDir)
 
         val allResultEventListeners =
           resultEventListeners ++ addonData.resultListeners

@@ -35,6 +35,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import org.testcontainers.utility.DockerImageName
 
 import java.util.UUID
+import scala.concurrent.duration.DurationInt
 import scala.language.implicitConversions
 
 class PrimaryServiceProxySqlIT
@@ -63,6 +64,7 @@ class PrimaryServiceProxySqlIT
       "time_series_p.sql",
       "time_series_pqh.sql",
       "time_series_mapping.sql",
+      "load_profiles.sql", // small workaround to prevent sql error while creating meta information source
     ).foreach { file =>
       val res = container.execInContainer("psql", "-Utest", "-f/home/" + file)
       res.getStderr shouldBe empty
@@ -112,7 +114,7 @@ class PrimaryServiceProxySqlIT
       scheduler.expectMessageType[ScheduleActivation]
 
       proxyRef ! Activation(INIT_SIM_TICK)
-      scheduler.expectMessageType[Completion]
+      scheduler.expectMessageType[Completion](5.minutes)
     }
 
     "handle participant request correctly if participant has primary data" in {

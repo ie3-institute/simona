@@ -29,7 +29,7 @@ import edu.ie3.simona.service.Data.PrimaryData.{
 }
 import edu.ie3.simona.service.Data.{PrimaryData, PrimaryDataExtra}
 import edu.ie3.simona.service.{Data, DataTimeType, ServiceType}
-import edu.ie3.util.scala.quantities.{ApparentPower, ReactivePower}
+import edu.ie3.util.quantities.energy.{ApparentPower, ReactivePower}
 import squants.{Dimensionless, Power}
 
 import java.time.ZonedDateTime

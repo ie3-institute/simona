@@ -3,8 +3,8 @@ plugins {
   id 'scala' // scala support
   id 'signing'
   id 'maven-publish' // publish to a maven repo (local or mvn central, has to be defined)
-  id 'com.diffplug.spotless' version '8.10.3' // code format
-  id "com.github.ben-manes.versions" version '0.64.0'
+  id 'com.diffplug.spotless' version '8.11.0' // code format
+  id "com.github.ben-manes.versions" version '0.67.0'
   id "de.undercouch.download" version "5.7.0" // downloads plugin
   id "kr.motd.sphinx" version "2.10.1" // documentation generation
   id 'com.gradleup.shadow' version '9.6.1' // fat jar
@@ -20,11 +20,11 @@ ext {
   javaVersion = JavaVersion.VERSION_25
 
   scalaVersion = '3'
-  scalaBinaryVersion = '3.9.0'
-  pekkoVersion = '1.7.1'
+  scalaBinaryVersion = '3.10.0'
+  pekkoVersion = '2.0.0'
   jtsVersion = '1.20.0'
   confluentKafkaVersion = '8.2.0'
-  scapegoatVersion = '3.4.0'
+  scapegoatVersion = '3.4.1'
 
   junitVersion = '6.1.3'
   testContainerVersion = '0.44.1'
@@ -75,13 +75,13 @@ repositories {
 dependencies {
 
   // ie³ internal repository
-  implementation('com.github.ie3-institute:PowerSystemUtils:3.2.3') {
+  implementation('com.github.ie3-institute:PowerSystemUtils:3.3.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
     exclude group: 'com.github.ie3-institute'
   }
-  implementation('com.github.ie3-institute:PowerSystemDataModel:9.2.0') {
+  implementation('com.github.ie3-institute:PowerSystemDataModel:9.3.0') {
     exclude group: 'org.apache.logging.log4j'
     exclude group: 'org.slf4j'
     /* Exclude our own nested dependencies */
@@ -102,7 +102,7 @@ dependencies {
 
   /* logging */
   implementation "com.typesafe.scala-logging:scala-logging_${scalaVersion}:3.9.6" // pekko scala logging
-  implementation "ch.qos.logback:logback-classic:1.6.5"
+  implementation "ch.qos.logback:logback-classic:1.6.6"
 
   /* testing */
   // scalatest & junit
@@ -136,10 +136,10 @@ dependencies {
   implementation "org.apache.pekko:pekko-slf4j_3:${pekkoVersion}"
 
   /* config */
-  implementation 'com.typesafe:config:1.4.9'
-  implementation "com.github.scopt:scopt_${scalaVersion}:4.1.0" // cmd args parser
-  implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.10"
-  implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.10"
+  implementation 'com.typesafe:config:1.4.10'
+  implementation "com.github.scopt:scopt_${scalaVersion}:4.2.0" // cmd args parser
+  implementation "com.github.pureconfig:pureconfig-core_${scalaVersion}:0.17.11"
+  implementation "com.github.pureconfig:pureconfig-generic-scala3_${scalaVersion}:0.17.11"
 
   // JTS
   implementation("org.locationtech.jts:jts-core:${jtsVersion}") {
@@ -176,7 +176,7 @@ tasks.withType(JavaCompile).configureEach {
 jar {
   manifest {
     attributes(
-    'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
+        'Main-Class': 'edu.ie3.simona.main.RunSimonaStandalone'
     )
   }
 }

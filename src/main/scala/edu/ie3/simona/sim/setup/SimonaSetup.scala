@@ -213,6 +213,7 @@ class SimonaSetup(
         scheduler,
         InitWeatherServiceStateData(
           simonaConfig.input.weather.datasource,
+          simonaConfig.input.weather.forecast,
           simonaConfig.time.simStartTime,
           simonaConfig.time.simEndTime,
         ),
@@ -240,6 +241,7 @@ class SimonaSetup(
           scheduler,
           InitPriceServiceStateData(
             dataSource,
+            simonaConfig.input.prices.forecast,
             simonaConfig.time.simStartTime,
           ),
           ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
@@ -294,8 +296,6 @@ class SimonaSetup(
       extSimPath: Option[Path],
   ): AddonSetupData = extSimPath match {
     case Some(path) =>
-      given ZonedDateTime = simonaConfig.time.simStartTime
-
       val setupData = new SetupData(
         args,
         typeSafeConfig,
@@ -307,9 +307,7 @@ class SimonaSetup(
       val loader: Seq[AddonLoader] = Seq(new JarLoader())
       val data = ProvidedData.empty()
 
-      loader.foreach { l =>
-        data.add(l.load(path, setupData))
-      }
+      loader.foreach(l => data.add(l.load(path, setupData)))
 
       setupAddons(data)
 

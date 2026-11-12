@@ -31,7 +31,7 @@ trait ThermalStorageTestData extends ThermalGridTestData {
       getQuantity(100, StandardUnits.VOLUME),
       getQuantity(30, StandardUnits.TEMPERATURE),
       getQuantity(40, StandardUnits.TEMPERATURE),
-      getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      getQuantity(1.15, StandardUnits.VOLUMETRIC_HEAT_CAPACITY),
       getQuantity(20.0, PowerSystemUnits.KILOWATT),
     )
 
@@ -52,7 +52,7 @@ trait ThermalStorageTestData extends ThermalGridTestData {
       getQuantity(350, Units.LITRE),
       getQuantity(30, StandardUnits.TEMPERATURE),
       getQuantity(60, StandardUnits.TEMPERATURE),
-      getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      getQuantity(1.16, StandardUnits.VOLUMETRIC_HEAT_CAPACITY),
       getQuantity(11.0, PowerSystemUnits.KILOWATT),
     )
 
