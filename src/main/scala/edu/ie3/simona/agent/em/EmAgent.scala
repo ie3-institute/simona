@@ -159,7 +159,7 @@ object EmAgent {
     val force = msg.force
 
     val flexOptionsCore = if force then {
-      core.gotoTick(tick).activateAll(tick)
+      core.activateWithTick(tick)
     } else core.activate(tick)
 
     val (toActivate, newCore) = flexOptionsCore.takeNewFlexRequests()

@@ -30,7 +30,7 @@ object EmDataCore {
     * @param startDate
     *   The start date of the simulation.
     */
-  def create(implicit startDate: ZonedDateTime): Inactive =
+  def create(using startDate: ZonedDateTime): Inactive =
     Inactive(
       Map.empty,
       PriorityMultiBiSet.empty,
@@ -81,20 +81,27 @@ object EmDataCore {
         modelToActor = modelToActor.updated(asset, actor)
       )
 
-    def gotoTick(newTick: Long): Inactive = {
-      // remove the activations
-      activationQueue.headKeyOption.foreach { nextScheduledTick =>
-        if newTick > nextScheduledTick then {
-          val toActivate = activationQueue.getAndRemoveSet(nextScheduledTick)
-          activationQueue.set(newTick, toActivate)
-        }
-      }
+    /** Method to move all activations to a new tick and to activate all actors.
+      * This is needed when using external communication.
+      * @param newTick
+      *   To use for activations.
+      * @param activateAll
+      *   True, if all agent should be activated.
+      * @return
+      *   A new [[AwaitingFlexOptions]] core.
+      */
+    def activateWithTick(
+        newTick: Long,
+        activateAll: Boolean = false,
+    ): AwaitingFlexOptions = {
+      // remove the old activations
+      val toActivate = activationQueue.keySet
+        .rangeUntil(newTick)
+        .toSet
+        .flatMap(activationQueue.getAndRemoveSet)
 
-      this
-    }
-
-    def activateAll(newTick: Long): AwaitingFlexOptions = {
-      activationQueue.set(newTick, modelToActor.keySet)
+      if activateAll then activationQueue.set(newTick, modelToActor.keySet)
+      else activationQueue.set(newTick, toActivate)
 
       AwaitingFlexOptions(
         modelToActor,
