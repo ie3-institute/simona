@@ -10,6 +10,7 @@ import edu.ie3.simona.api.data.model.ev.EvModel;
 import edu.ie3.util.quantities.PowerSystemUnits;
 import java.util.Objects;
 import java.util.UUID;
+import javax.measure.quantity.Dimensionless;
 import javax.measure.quantity.Energy;
 import javax.measure.quantity.Power;
 import tech.units.indriya.ComparableQuantity;
@@ -23,6 +24,8 @@ public class MockEvModel implements EvModel {
   private final double cosPhi;
   private final ComparableQuantity<Energy> eStorage;
   private final ComparableQuantity<Energy> storedEnergy;
+  private final ComparableQuantity<Dimensionless> etaCharging;
+  private final ComparableQuantity<Dimensionless> etaDischarging;
   private final Long departureTick;
 
   public MockEvModel(
@@ -32,6 +35,8 @@ public class MockEvModel implements EvModel {
       ComparableQuantity<Power> sRatedDC,
       ComparableQuantity<Energy> eStorage,
       ComparableQuantity<Energy> storedEnergy,
+      ComparableQuantity<Dimensionless> etaCharging,
+      ComparableQuantity<Dimensionless> etaDischarging,
       Long departureTick) {
     this.uuid = uuid;
     this.id = id;
@@ -40,6 +45,8 @@ public class MockEvModel implements EvModel {
     this.cosPhi = 1d;
     this.eStorage = eStorage;
     this.storedEnergy = storedEnergy;
+    this.etaCharging = etaCharging;
+    this.etaDischarging = etaDischarging;
     this.departureTick = departureTick;
   }
 
@@ -49,6 +56,8 @@ public class MockEvModel implements EvModel {
       ComparableQuantity<Power> sRatedAC,
       ComparableQuantity<Power> sRatedDC,
       ComparableQuantity<Energy> eStorage,
+      ComparableQuantity<Dimensionless> etaCharging,
+      ComparableQuantity<Dimensionless> etaDischarging,
       Long departureTick) {
     this.uuid = uuid;
     this.id = id;
@@ -57,6 +66,8 @@ public class MockEvModel implements EvModel {
     this.cosPhi = 1d;
     this.eStorage = eStorage;
     this.storedEnergy = Quantities.getQuantity(0d, PowerSystemUnits.KILOWATTHOUR);
+    this.etaCharging = etaCharging;
+    this.etaDischarging = etaDischarging;
     this.departureTick = departureTick;
   }
 
@@ -100,17 +111,45 @@ public class MockEvModel implements EvModel {
   }
 
   @Override
+  public ComparableQuantity<Dimensionless> getEtaCharging() {
+    return etaCharging;
+  }
+
+  @Override
+  public ComparableQuantity<Dimensionless> getEtaDischarging() {
+    return etaDischarging;
+  }
+
+  @Override
   public Long getDepartureTick() {
     return departureTick;
   }
 
   @Override
   public MockEvModel copyWith(ComparableQuantity<Energy> newStoredEnergy) {
-    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, newStoredEnergy, departureTick);
+    return new MockEvModel(
+        uuid,
+        id,
+        sRatedAC,
+        sRatedDC,
+        eStorage,
+        newStoredEnergy,
+        etaCharging,
+        etaDischarging,
+        departureTick);
   }
 
   public MockEvModel copyWithDeparture(Long departureTick) {
-    return new MockEvModel(uuid, id, sRatedAC, sRatedDC, eStorage, storedEnergy, departureTick);
+    return new MockEvModel(
+        uuid,
+        id,
+        sRatedAC,
+        sRatedDC,
+        eStorage,
+        storedEnergy,
+        etaCharging,
+        etaDischarging,
+        departureTick);
   }
 
   @Override

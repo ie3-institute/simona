@@ -113,7 +113,8 @@ class StoragePowerLimitFlexModel(private val model: StorageModel)
       state.tick,
       chargingEnergyTarget,
       dischargingEnergyTarget,
-      model.eta,
+      model.etaCharging,
+      model.etaDischarging,
     )(using model.powerTolerance)
 
     OperationChangeIndicator(

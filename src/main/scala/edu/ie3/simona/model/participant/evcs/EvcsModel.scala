@@ -41,7 +41,7 @@ import org.apache.pekko.actor.typed.scaladsl.ActorContext
 import squants.energy.PowerConversions.PowerNumeric
 import squants.energy.{Kilowatts, Watts}
 import squants.time.Seconds
-import squants.{Dimensionless, Energy, Power}
+import squants.{Dimensionless, Each, Energy, Power}
 import tech.units.indriya.unit.Units.PERCENT
 
 import java.time.ZonedDateTime
@@ -88,6 +88,8 @@ class EvcsModel private (
             lastState.tick,
             tick,
             ev.eStorage,
+            etaCharging = ev.etaCharging,
+            etaDischarging = ev.etaDischarging,
           )
 
           ev.copy(storedEnergy = currentEnergy)
@@ -359,6 +361,8 @@ class EvcsModel private (
       currentTick,
       chargingEnergyTarget,
       dischargingEnergyTarget,
+      ev.etaCharging,
+      ev.etaDischarging,
     )
   }
 
@@ -430,7 +434,9 @@ class EvcsModel private (
     *   energy allowed (minus a tolerance margin)
     */
   def isFull(ev: EvModelWrapper): Boolean =
-    ev.storedEnergy >= (ev.eStorage - calcToleranceMargin(ev))
+    ev.storedEnergy >= (ev.eStorage - calcToleranceMargin(
+      ev
+    ) * ev.etaCharging.toEach)
 
   /** @param ev
     *   The EV whose stored energy is to be checked.
@@ -439,7 +445,7 @@ class EvcsModel private (
     *   margin).
     */
   def isEmpty(ev: EvModelWrapper): Boolean =
-    ev.storedEnergy <= calcToleranceMargin(ev)
+    ev.storedEnergy <= (calcToleranceMargin(ev) / ev.etaDischarging.toEach)
 
   /** Determines whether given EV requires charging with maximum power to reach
     * (or come as close as possible to) the target SOC at departure. Returns
@@ -456,12 +462,14 @@ class EvcsModel private (
   def requiresMaxCharging(ev: EvModelWrapper, tick: Long): Boolean = {
     val maxPower = getMaxAvailableChargingPower(ev)
     val maxCharged =
-      ev.storedEnergy + maxPower * ev.timeToDeparture(tick)
+      ev.storedEnergy + maxPower * ev.etaCharging.toEach * ev.timeToDeparture(
+        tick
+      )
 
     val targetEnergy = ev.eStorage * departureTargetSoc
     val tolerance = calcToleranceMargin(ev)
 
-    maxCharged < (targetEnergy + tolerance)
+    maxCharged < (targetEnergy + tolerance * ev.etaCharging.toEach)
   }
 
   private def calcToleranceMargin(ev: EvModelWrapper): Energy =
