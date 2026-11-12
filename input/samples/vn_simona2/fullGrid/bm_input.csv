@@ -1,0 +1,2 @@
+uuid,cost_controlled,feed_in_tariff,id,market_reaction,node,operates_from,operates_until,operator,q_characteristics,type
+29ecf4b6-b00e-4422-a774-33f8df8eac77,true,51.0,BM_Test,true,ae28a289-0bfd-4d5f-93b3-8fdd228de2cd,,,,"cosPhiFixed:{(0.0,1.0)}",43fd8b49-349f-42db-a3d5-7313616cb2a6
