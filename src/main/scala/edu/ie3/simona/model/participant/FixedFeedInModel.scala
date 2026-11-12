@@ -14,7 +14,7 @@ import edu.ie3.datamodel.models.result.system.{
 import edu.ie3.simona.model.participant.ParticipantModel.*
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
-  ParticipantConstantEnergyLimitFlexModel,
+  ParticipantConstantEnergyBounadariesFlexModel,
   ParticipantFlexModel,
   ParticipantInflexiblePowerLimitFlexModel,
 }
@@ -50,7 +50,9 @@ class FixedFeedInModel(
   ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
-      FlexType.EnergyBoundaries -> ParticipantConstantEnergyLimitFlexModel(this),
+      FlexType.EnergyBoundaries -> ParticipantConstantEnergyBounadariesFlexModel(
+        this
+      ),
     )
 
   override def determineOperatingPoint(

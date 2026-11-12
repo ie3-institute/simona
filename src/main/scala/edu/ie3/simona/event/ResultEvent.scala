@@ -175,4 +175,15 @@ object ResultEvent {
       flexOptionsResult: FlexOptionsResult
   ) extends ResultEvent
 
+  final case class EmTrajectoryStepResult(
+      assetUuid: UUID,
+      currentTick: Long,
+      tick: Long,
+      state: squants.Energy,
+      eMin: squants.Energy,
+      eMax: squants.Energy,
+      tightEMin: squants.Energy,
+      tightEMax: squants.Energy,
+  ) extends ResultEvent
+
 }

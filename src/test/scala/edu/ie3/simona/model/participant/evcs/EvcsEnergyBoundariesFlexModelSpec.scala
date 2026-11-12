@@ -165,9 +165,12 @@ class EvcsEnergyBoundariesFlexModelSpec
           forecastEnd,
         )
         .powerLimits shouldBe
-        new ClosedInterval(
-          -ev.pRatedAc,
-          ev.pRatedAc,
+        SortedMap(
+          currentTick ->
+            new ClosedInterval(
+              -ev.pRatedAc,
+              ev.pRatedAc,
+            )
         )
 
       // disallow discharging if V2G is disabled
@@ -179,11 +182,13 @@ class EvcsEnergyBoundariesFlexModelSpec
           forecastEnd,
         )
         .powerLimits shouldBe
-        new ClosedInterval(
-          zeroKW,
-          ev.pRatedAc,
+        SortedMap(
+          currentTick ->
+            new ClosedInterval(
+              zeroKW,
+              ev.pRatedAc,
+            )
         )
-
     }
 
     "create flex options for a state and forecast parameters" in {
@@ -219,9 +224,11 @@ class EvcsEnergyBoundariesFlexModelSpec
                 ev.eStorage,
               ),
             ),
-            powerLimits = new ClosedInterval(
-              -ev.pRatedAc,
-              ev.pRatedAc,
+            powerLimits = SortedMap(
+              currentTick -> new ClosedInterval(
+                -ev.pRatedAc,
+                ev.pRatedAc,
+              )
             ),
             tickDisconnect = Some(departureTick),
           )

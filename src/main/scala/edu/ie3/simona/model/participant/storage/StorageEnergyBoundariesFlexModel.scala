@@ -18,7 +18,7 @@ import edu.ie3.simona.service.DataTimeType
 class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
     extends AbstractEnergyBoundariesFlexModel[StorageState] {
 
-  override val hasEnergyFlexibility: Boolean = true
+  override val hasEnergyState: Boolean = true
 
   override def determineFlexOptions(
       state: StorageState,
@@ -29,8 +29,8 @@ class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
         eStorage = model.eStorage,
         currentEnergy = state.storedEnergy,
         pMax = model.pMax,
-        etaCharge = model.eta,
-        etaDischarge = model.eta,
+        etaCharge = model.etaCharging,
+        etaDischarge = model.etaDischarging,
         currentTick = state.tick,
       )
     )
