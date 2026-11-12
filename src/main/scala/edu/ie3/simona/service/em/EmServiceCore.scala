@@ -8,10 +8,12 @@ package edu.ie3.simona.service.em
 
 import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.FlexConversion
-import edu.ie3.simona.api.FlexConversion.convertOptions
+import edu.ie3.simona.api.FlexConversion.{convert, convertOptions}
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em.{
+  DisaggregatedFlexOptions,
+  EmCommunicationMessage,
   EmData,
   FlexOptionRequest,
   SetPoint,
@@ -29,9 +31,7 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmServiceRegistration,
   ServiceResponseMessage,
 }
-import edu.ie3.simona.ontology.messages.flex.FlexType.PowerLimit
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.service.DataTimeType.Current
 import edu.ie3.simona.service.em.EmServiceCore.EmAgentState
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{
@@ -42,10 +42,13 @@ import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
-import java.time.ZonedDateTime
 import java.util.{OptionalLong, UUID}
 import scala.collection.mutable
-import scala.jdk.CollectionConverters.MapHasAsScala
+import scala.jdk.CollectionConverters.{
+  CollectionHasAsScala,
+  MapHasAsJava,
+  MapHasAsScala,
+}
 import scala.jdk.OptionConverters.RichOptionalLong
 
 /** Basic service core for an [[ExtEmDataService]].
@@ -104,6 +107,7 @@ case class EmServiceCore(
     internal: Set[UUID] = Set.empty,
     canHandleSetPoints: Boolean = false,
     setPointOption: Option[Map[UUID, SetPoint]] = None,
+    openMsg: mutable.Set[UUID] = mutable.Set.empty,
 ) {
 
   given Conversion[OptionalLong, Option[Long]] =
@@ -111,10 +115,6 @@ case class EmServiceCore(
   given Conversion[Option[Long], OptionalLong] = {
     case Some(value) => OptionalLong.of(value)
     case None        => OptionalLong.empty
-  }
-
-  final def init(): Unit = {
-    uncontrolled.foreach(uuidToAgent(_) ! FlexInit(PowerLimit, Current))
   }
 
   /** Method to handle a registration message.
@@ -195,6 +195,30 @@ case class EmServiceCore(
     case requestEmCompletion: RequestEmCompletion =>
       handleExtCompletion(tick, requestEmCompletion)
 
+    case provideEmData: ProvideEmData if mode == EmMode.EM_COMMUNICATION =>
+      checkTick(tick, provideEmData.tick)
+
+      // handling of requests
+      val requestMapping =
+        handleExtFlexRequests(tick, provideEmData.flexRequests.asScala)
+
+      // handling of set points
+      val setPointMapping =
+        handleSetPoints(tick, provideEmData.setPoints().asScala)
+
+      /* update internal state */
+      val mapping = requestMapping ++ setPointMapping
+
+      val updatedExpectDataFrom = emDataStore.addExpectedKeys(mapping)
+
+      // update state data
+      val newState = copy(
+        emDataStore = updatedExpectDataFrom,
+        completions = completions.addExpectedKeys(mapping.keySet),
+      )
+
+      (newState, None)
+
     case provideEmData: ProvideEmData =>
       checkTick(tick, provideEmData.tick)
 
@@ -204,8 +228,9 @@ case class EmServiceCore(
         )
       }
 
+      // we only need the keys here
       val flexRequests =
-        handleExtFlexRequests(tick, provideEmData.flexRequests.asScala)
+        handleExtFlexRequests(tick, provideEmData.flexRequests.asScala).keySet
 
       val updatedState = copy(
         emDataStore = emDataStore.addExpectedKeys(flexRequests),
@@ -219,7 +244,7 @@ case class EmServiceCore(
       if setPoints.nonEmpty then {
 
         if canHandleSetPoints then {
-          handleSetPoint(tick, setPoints, log)
+          handleSetPoints(tick, setPoints)
 
           (updatedState, None)
         } else {
@@ -248,7 +273,22 @@ case class EmServiceCore(
 
       } else (updatedState, None)
 
-    case other =>
+    case comMsg: EmCommunicationMessages if mode == EmMode.EM_COMMUNICATION =>
+      checkTick(tick, comMsg.tick)
+
+      val mapping = handleCommunicationMessage(tick, comMsg.messages.asScala)
+
+      // update state data
+      val newState = copy(
+        emDataStore = emDataStore.addExpectedKeys(mapping),
+        completions = completions.addExpectedKeys(mapping.keySet),
+      )
+
+      log.warn(s"Open messages: $openMsg")
+
+      (newState, None)
+
+    case _ =>
       throw new CriticalFailureException(
         s"The EmServiceBaseCore is not able to handle the message: $extMsg"
       )
@@ -326,20 +366,54 @@ case class EmServiceCore(
     *   The set points to handle.
     * @param log
     *   Logger for logging messages.
+    * @return
+    *   A map of uuids of activated em agents to inferior agent count.
+    */
+  final def handleSetPoints(
+      tick: Long,
+      setPoints: Iterable[(UUID, SetPoint)],
+  )(using log: Logger): Map[UUID, Int] = {
+    setPoints.flatMap { case (receiver, setPoint) =>
+      handleSetPoint(tick, receiver, setPoint)
+    }.toMap
+  }
+
+  /** Method to handle a set point.
+    * @param tick
+    *   Current tick of the service.
+    * @param receiver
+    *   Of the set point.
+    * @param setPoint
+    *   The set point to handle.
+    * @param log
+    *   Logger for logging messages.
+    * @return
+    *   An option for an uuid and count. The option is [[None]] if no agent was
+    *   activated.
     */
   final def handleSetPoint(
       tick: Long,
-      setPoints: Map[UUID, SetPoint],
-      log: Logger,
-  ): Unit = {
-    setPoints.foreach { case (agent, setPoint) =>
-      uuidToAgent.get(agent) match {
-        case Some(receiver) =>
-          receiver ! FlexConversion.convert(tick, setPoint)
+      receiver: UUID,
+      setPoint: SetPoint,
+  )(using log: Logger): Option[(UUID, Int)] = {
+    uuidToAgent.get(receiver) match {
+      case Some(agent) =>
+        // updates the em state
+        emStates(receiver).setReceivedSetPoint()
 
-        case None =>
-          log.warn(s"No em agent with uuid '$agent' registered!")
-      }
+        agent ! FlexConversion.convert(tick, setPoint)
+
+        val count = uuidToInferior
+          .get(receiver)
+          .map(_.count(id => emStates(id).isActivated))
+          .getOrElse(0)
+
+        // sender -> number of set points to send
+        Some(receiver -> count)
+
+      case None =>
+        log.warn(s"No em agent with uuid '$receiver' registered!")
+        None
     }
   }
 
@@ -389,12 +463,125 @@ case class EmServiceCore(
 
         (this, None)
 
+      case WaitingForData(modelUuid)
+          if mode == EmMode.EM_COMMUNICATION && internal.isEmpty =>
+        val msgToExt =
+          if !emDataStore.expects(modelUuid) && emStates(
+              modelUuid
+            ).isWaitingForExtern
+          then {
+            Some(new EmResultResponse(Map.empty.asJava))
+          } else None
+
+        (this, msgToExt)
+
+      case provideFlexOptions @ ProvideFlexOptions(sender, flexOptions)
+          if mode == EmMode.EM_COMMUNICATION =>
+        if internal.nonEmpty then {
+          receiver match {
+            case Left(uuid) =>
+              uuidToAgent(uuid) ! IssueNoControl(tick)
+            case Right(ref) =>
+              ref ! provideFlexOptions
+          }
+
+          (this, None)
+
+        } else {
+          // flex option to ext
+          val convertedOption =
+            convertOptions(flexOptions, receiverUuid, sender)
+
+          val resultToExt = if emStates(sender).sentDisaggregated then {
+            val disaggregatedOptions = uuidToInferior(receiverUuid)
+              .map { uuid =>
+                uuid -> allFlexOptions(uuid)
+              }
+              .toMap
+              .asJava
+
+            new DisaggregatedFlexOptions(receiverUuid, disaggregatedOptions)
+          } else convertedOption
+
+          // wrap the result, if sender and receiver are not the same, since we want to use ext communication
+          val msg = if receiverUuid != sender then {
+            val msgId = UUID.randomUUID()
+            openMsg.add(msgId)
+
+            new EmCommunicationMessage(receiverUuid, sender, msgId, resultToExt)
+          } else resultToExt
+
+          val updated = emDataStore.addData(sender, msg)
+
+          if updated.isComplete || updated.hasCompleted then {
+            val (data, updatedExpectDataFrom) = updated.getFinished
+
+            // should no longer wait for internal data
+            data.keys.foreach(emStates(_).setWaitingForInternal(false))
+
+            (
+              copy(
+                emDataStore = updatedExpectDataFrom,
+                allFlexOptions = allFlexOptions.updated(sender, convertedOption),
+              ),
+              Some(new EmResultResponse(data.asJava)),
+            )
+          } else {
+            (
+              copy(
+                emDataStore = updated,
+                allFlexOptions = allFlexOptions.updated(sender, convertedOption),
+              ),
+              None,
+            )
+          }
+        }
+
       case provideFlexOptions: ProvideFlexOptions =>
         handleFlexOptionProvision(
           tick,
           receiverUuid,
           provideFlexOptions,
         )
+
+      case completion @ FlexCompletion(modelUuid, _, _)
+          if mode == EmMode.EM_COMMUNICATION =>
+        receiver.foreach(_ ! completion)
+
+        val agent = uuidToAgent(receiverUuid)
+
+        if tick < FIRST_TICK_IN_SIMULATION && uncontrolled.contains(modelUuid)
+        then {
+          scheduler ! Completion(agent)
+        }
+
+        emStates(modelUuid).setWaitingForInternal(false)
+
+        val updatedData = completions.addData(modelUuid, completion)
+
+        if updatedData.isComplete then {
+          emStates.foreach(_._2.clear())
+
+          // the next activations
+          val additionalActivation = updatedData.receivedData.flatMap {
+            case (uuid, msg) =>
+              msg.requestAtTick.map(uuid -> _)
+          }
+
+          val updatedStateData = copy(
+            completions = ReceiveDataMap.empty,
+            emDataStore = ReceiveMultiDataMap.empty,
+            nextActivation = nextActivation ++ additionalActivation,
+            internal = Set.empty,
+          )
+
+          (
+            updatedStateData,
+            Some(new EmCompletion(updatedStateData.getMaybeNextTick(tick))),
+          )
+        } else {
+          (copy(completions = updatedData), getMsgToExtOption)
+        }
 
       case completion: FlexCompletion =>
         receiver.foreach(_ ! completion)
@@ -426,7 +613,10 @@ case class EmServiceCore(
     val uuids = uncontrolled
       .filter { uuid => nextActivation(uuid) == internalTick }
       .map { uuid =>
-        uuidToAgent(uuid) ! FlexActivation(internalTick)
+        uuidToAgent(uuid) ! FlexActivation(
+          internalTick,
+          mode == EmMode.EM_COMMUNICATION,
+        )
         uuid
       }
 
@@ -481,13 +671,15 @@ case class EmServiceCore(
     *   For which the request should be handled.
     * @param flexRequests
     *   The requests to handle.
+    * @param log
+    *   Logger for logging messages.
     * @return
-    *   A set of uuids of activated em agents.
+    *   A map of uuids of activated em agents to inferior agent count.
     */
   private def handleExtFlexRequests(
       tick: Long,
       flexRequests: Iterable[(UUID, FlexOptionRequest)],
-  ): Set[UUID] = {
+  )(using log: Logger): Map[UUID, Int] = {
     val agents = if tick == 0 then {
       uuidToAgent
     } else {
@@ -496,7 +688,7 @@ case class EmServiceCore(
 
     flexRequests.flatMap { case (uuid, request) =>
       handleExtFlexRequest(tick, uuid, request, agents)
-    }.toSet
+    }.toMap
   }
 
   /** Method to handle an external flex request.
@@ -509,25 +701,80 @@ case class EmServiceCore(
     *   The request to handle.
     * @param agents
     *   A map: uuid to activatable em agents.
+    * @param log
+    *   Logger for logging messages.
     * @return
-    *   An option for an uuid. The option is [[None]] if no agent was activated.
+    *   An option for an uuid and count. The option is [[None]] if no agent was
+    *   activated.
     */
   private def handleExtFlexRequest(
       tick: Long,
       receiver: UUID,
       request: FlexOptionRequest,
       agents: Map[UUID, ActorRef[EmAgent.Message]],
-  ): Option[UUID] =
+  )(using log: Logger): Option[(UUID, Int)] =
     if emStates(receiver).isWaitingForActivation then {
       agents.get(receiver).map { ref =>
         // update the em state
         emStates(receiver).setReceivedRequest(request.disaggregated)
 
         ref ! FlexActivation(tick)
-        receiver
+
+        val count = uuidToInferior
+          .get(receiver)
+          .map(_.count(id => nextActivation(id) <= tick))
+          .getOrElse(0)
+
+        receiver -> count
       }
 
-    } else None
+    } else {
+      log.warn(s"Cannot send flex request to receiver '$receiver'.")
+      None
+    }
+
+  /** Method for handling external communication messages.
+    * @param tick
+    *   For which the message should be handled.
+    * @param messages
+    *   The communication messages to handle.
+    * @param log
+    *   Logger for logging messages. A map of uuids of activated em agents to
+    *   inferior agent count.
+    */
+  private def handleCommunicationMessage(
+      tick: Long,
+      messages: Iterable[EmCommunicationMessage],
+  )(using log: Logger): Map[UUID, Int] = messages.flatMap { msg =>
+    openMsg.remove(msg.msgId)
+
+    val receiver = msg.receiver
+    val sender = msg.sender
+
+    msg.content match {
+      case request: FlexOptionRequest =>
+        handleExtFlexRequests(tick, Iterable(receiver -> request))
+
+      case flexOption: ExtFlexOptions =>
+        val agent = uuidToAgent(receiver)
+        val emState = emStates(receiver)
+
+        // update the em state
+        emState.handleReceivedFlexOption(sender)
+
+        agent ! ProvideFlexOptions(
+          sender,
+          convertOptions(flexOption),
+        )
+
+        // receiver -> number of received flex options
+        Some(receiver -> 1)
+
+      case setPoint: SetPoint =>
+        handleSetPoint(tick, receiver, setPoint)
+
+    }
+  }.toMap
 
   /** Method to handle flex requests to the em agents.
     * @param flexRequest
@@ -544,14 +791,101 @@ case class EmServiceCore(
       flexRequest: FlexRequest,
       receiver: ActorRef[FlexRequest],
   )(using log: Logger): (EmServiceCore, Option[EmDataResponseMessageToExt]) = {
-    log.debug(s"$receiver: $flexRequest")
-    receiver ! flexRequest
+    if mode == EmMode.BASE then {
 
-    val uuid = agentToUuid(receiver)
-    (
-      copy(completions = completions.addExpectedKey(uuid)),
-      None,
-    )
+      log.debug(s"$receiver: $flexRequest")
+      receiver ! flexRequest
+
+      val uuid = agentToUuid(receiver)
+      (copy(completions = completions.addExpectedKey(uuid)), None)
+
+    } else {
+      val receiverUuid = agentToUuid(receiver) // the controlled em
+      val sender = uuidToParent(receiverUuid) // the controlling em
+
+      if internal.nonEmpty then {
+        receiver ! flexRequest
+
+        (copy(completions = completions.addExpectedKey(receiverUuid)), None)
+
+      } else {
+
+        val updated = flexRequest match {
+          case flexInit: FlexInit =>
+            receiver ! flexInit
+            emDataStore
+
+          case FlexActivation(tick, _) =>
+            // update the em state => waiting for external flex option provision
+            emStates(sender).addSendRequest(receiverUuid)
+            val msgId = UUID.randomUUID()
+            openMsg.add(msgId)
+
+            // send request to ext
+            emDataStore.addData(
+              sender,
+              new EmCommunicationMessage(
+                receiverUuid,
+                sender,
+                msgId,
+                new FlexOptionRequest(receiverUuid),
+              ),
+            )
+
+          case control: IssueFlexControl =>
+            val state = emStates(receiverUuid)
+
+            if state.isWaitingForRelease then {
+              // we are waiting for release, therefore, we are not sending data to ext
+
+              state.setReceivedRelease()
+              receiver ! control
+
+              // since we don't expect data, we simply return this store
+              emDataStore
+
+            } else {
+              state.setWaitingForInternal(false)
+
+              val msgId = UUID.randomUUID()
+              openMsg.add(msgId)
+
+              // send set point to ext
+              emDataStore.addData(
+                sender,
+                new EmCommunicationMessage(
+                  receiverUuid,
+                  sender,
+                  msgId,
+                  convert(receiverUuid, control),
+                ),
+              )
+            }
+
+          case other =>
+            log.warn(s"$other is not supported!")
+            emDataStore
+        }
+
+        if updated.isComplete || updated.hasCompleted then {
+          val (data, updatedExpectDataFrom) = updated.getFinished
+
+          // should no longer wait for internal data
+          data.keys.foreach(emStates(_).setWaitingForInternal(false))
+
+          (
+            copy(emDataStore = updatedExpectDataFrom),
+            Some(new EmResultResponse(data.asJava)),
+          )
+        } else {
+          (
+            copy(emDataStore = updated),
+            None,
+          )
+        }
+      }
+
+    }
   }
 
   /** Method to handle flex options.
@@ -607,7 +941,7 @@ case class EmServiceCore(
         setPointOption match {
           case Some(setPoints) =>
             // we have received new set points, that are not handled yet => we will handle them now
-            handleSetPoint(tick, setPoints, log)
+            handleSetPoints(tick, setPoints)
 
             (updatedCore.copy(setPointOption = None), None)
           case None =>
@@ -707,6 +1041,19 @@ case class EmServiceCore(
     } ++ nextActivation.values.filter(_ > tick) ++ option
 
     allActivations.minOption
+  }
+
+  private def getMsgToExtOption: Option[EmDataResponseMessageToExt] = {
+    if emStates.exists(_._2.isWaitingForInternal) then {
+      None
+    } else {
+      val awaited = emStates.filter((_, x) => x.isWaitingForExtern).map {
+        case (uuid, state) => uuid -> state.getAwaited
+      }
+
+      if awaited.isEmpty then None
+      else Some(new EmResultResponse(Map.empty.asJava))
+    }
   }
 }
 

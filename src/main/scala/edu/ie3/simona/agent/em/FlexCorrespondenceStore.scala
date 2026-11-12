@@ -29,7 +29,7 @@ import java.util.UUID
   */
 final case class FlexCorrespondenceStore(
     store: Map[UUID, FlexCorrespondence] = Map.empty
-)(implicit val startDate: ZonedDateTime) {
+)(using startDate: ZonedDateTime) {
 
   /** Updates the latest flex options for the flex provider, overwriting the
     * former flex options, if applicable.
