@@ -171,7 +171,7 @@ class ThermalGridWithStorageOnlySpec
         val reachedThreshold =
           thermalGrid.getThreshold(initialHpState, thermalGridOperatingPoint)
 
-        reachedThreshold shouldBe Some(StorageFull(275999))
+        reachedThreshold shouldBe Some(StorageFull(276000))
         thermalGridOperatingPoint shouldBe ThermalGridOperatingPoint(
           testGridQDotInfeed,
           zeroKW,
@@ -194,7 +194,7 @@ class ThermalGridWithStorageOnlySpec
           testGridQDotInfeed,
           zeroKW,
         )
-        nextThreshold shouldBe Some(StorageFull(275999))
+        nextThreshold shouldBe Some(StorageFull(276000))
       }
 
       "do not consume energy from storage if there is no heat sink for this consumption" in {

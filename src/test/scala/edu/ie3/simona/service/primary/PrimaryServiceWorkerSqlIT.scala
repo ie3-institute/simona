@@ -33,7 +33,7 @@ import edu.ie3.simona.test.common.input.TimeSeriesTestData
 import edu.ie3.simona.test.helper.TestResourceHelper
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.util.TimeUtil
-import edu.ie3.util.scala.quantities.Kilovars
+import edu.ie3.util.quantities.energy.Kilovars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,

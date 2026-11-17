@@ -31,7 +31,7 @@ import edu.ie3.simona.service.Data.SecondaryData.{
 }
 import edu.ie3.simona.service.ServiceType.LoadProfileService
 import edu.ie3.simona.service.{Data, ServiceType}
-import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.quantities.energy.ApparentPower
 import squants.energy.Energy
 import squants.{Dimensionless, Power}
 

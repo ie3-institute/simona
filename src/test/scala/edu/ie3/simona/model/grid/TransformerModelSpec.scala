@@ -24,7 +24,7 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestGrid,
 }
 import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
-import edu.ie3.util.scala.quantities.{
+import edu.ie3.util.quantities.energy.{
   ApparentPower,
   Kilovoltamperes,
   Voltamperes,

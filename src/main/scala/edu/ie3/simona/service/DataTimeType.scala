@@ -32,6 +32,34 @@ object DataTimeType {
   final case class CurrentAndForecast(
       forecastLength: Time,
       forecastResolution: Time = Hours(1),
-  ) extends DataTimeType
+  ) extends DataTimeType {
+
+    def ticks(currentTick: Long): Seq[Long] =
+      createTicks(forecastLength, forecastResolution, currentTick)
+
+  }
+
+  /** Creates sequence of ticks specified by parameters.
+    *
+    * @param totalLength
+    *   The length of the interval in total.
+    * @param resolution
+    *   The resolution of all steps.
+    * @param currentTick
+    *   The current tick.
+    * @return
+    *   The sequence of ticks.
+    */
+  def createTicks(
+      totalLength: Time,
+      resolution: Time,
+      currentTick: Long,
+  ): Seq[Long] = {
+    val resolutionTicks = resolution.toSeconds.toLong
+    val lastPredictedTick =
+      currentTick + totalLength.toSeconds.toLong
+
+    Range.Long.inclusive(currentTick, lastPredictedTick, resolutionTicks)
+  }
 
 }

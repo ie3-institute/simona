@@ -10,6 +10,7 @@ import com.typesafe.config.ConfigFactory
 import edu.ie3.simona.config.ConfigParams.*
 import edu.ie3.simona.config.InputConfig.{
   CoordinateSource,
+  NoiseConfig,
   WeatherDatasource,
   Primary as PrimaryConfig,
 }
@@ -1335,6 +1336,34 @@ class ConfigFailFastSpec extends UnitSpec with ConfigTestData {
         }.getMessage should startWith("Grid model 'invalid' is not supported!")
       }
 
+    }
+
+    "Checking a forecast noise configuration" should {
+      val checkNoiseConfig =
+        PrivateMethod[Unit](Symbol("checkNoiseConfig"))
+
+      "detect invalid variance configuration" in {
+        val invalidVarianceConfig = NoiseConfig(
+          variance = -0.1d
+        )
+
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkNoiseConfig(invalidVarianceConfig)
+        }
+      }
+
+      "detect invalid autoregression configuration" in {
+        val invalidAutoregressionConfig = NoiseConfig(
+          variance = 0d,
+          autoregression = -0.1d,
+        )
+
+        intercept[InvalidConfigParameterException] {
+          ConfigFailFast invokePrivate checkNoiseConfig(
+            invalidAutoregressionConfig
+          )
+        }
+      }
     }
 
     "validating the typesafe config" when {
