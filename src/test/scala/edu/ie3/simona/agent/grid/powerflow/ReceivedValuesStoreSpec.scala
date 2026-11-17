@@ -6,12 +6,13 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.datamodel.graph.SubGridGate
 import edu.ie3.simona.agent.grid.GridAgent
+import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.model.grid.SubGridGateMokka
+import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,
@@ -48,14 +49,11 @@ class ReceivedValuesStoreSpec
     )
 
   // / subnet gate mapping for inferior grids
-  val defaultInferiorSubGridGateToActorRefMap
-      : Map[SubGridGate, ActorRef[GridAgent.Message]] = Map(
-    build2wSubGridGate(
+  val defaultInferiorConnections: MultiMap[GridAgentRef, UUID] = Map(
+    gridAgent.ref -> Set(
       UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8"),
-      1,
       UUID.fromString("1676360a-c7c4-43a9-a667-90ddfe8a18e6"),
-      2,
-    ) -> gridAgent.ref
+    )
   )
 
   // / superior grid nodeUuid set
@@ -69,18 +67,17 @@ class ReceivedValuesStoreSpec
 
       val emptyNodeToAssetAgentsMap =
         Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
-      val emptyInferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
+      val emptyInferiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty
       val emptySuperiorGridNodeUuids = Set.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
           emptyNodeToAssetAgentsMap,
-          emptyInferiorSubGridGateToActorRefMap,
+          emptyInferiorConnections,
           emptySuperiorGridNodeUuids,
         )
 
-      receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
+      receivedValuesStore.slackVoltages.size shouldBe 0
       receivedValuesStore.nodeToReceivedPower.size shouldBe 0
 
     }
@@ -90,23 +87,18 @@ class ReceivedValuesStoreSpec
       val receivedValuesStore =
         ReceivedValuesStore.empty(
           defaultNodeToAssetAgentsMap,
-          defaultInferiorSubGridGateToActorRefMap,
+          defaultInferiorConnections,
           defaultSuperiorGridNodeUuids,
         )
 
-      receivedValuesStore.nodeToReceivedPower.size shouldBe 3
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(participant1.ref -> None)
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Map(participant2.ref -> None)
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
-      ) shouldBe Map(gridAgent.ref -> None)
-
-      receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 1
-      receivedValuesStore.nodeToReceivedSlackVoltage(
+      receivedValuesStore.nodeToReceivedPower.size shouldBe 0
+      receivedValuesStore.getExpectedPowerResponses shouldBe Set(
+        participant1.ref,
+        participant2.ref,
+        gridAgent.ref,
+      )
+      receivedValuesStore.nodeToSlackVoltage.size shouldBe 1
+      receivedValuesStore.getSlackVoltage(
         UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843")
       ) shouldBe None
 
@@ -125,30 +117,23 @@ class ReceivedValuesStoreSpec
           ),
         )
 
-      val inferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
+      val inferiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty
       val superiorGridNodeUuids = Set.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
-          inferiorSubGridGateToActorRefMap,
+          inferiorConnections,
           superiorGridNodeUuids,
         )
 
-      receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
-
-      receivedValuesStore.nodeToReceivedPower.size shouldBe 2
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(participant1.ref -> None)
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Map(
-        participant2.ref -> None,
-        participant3.ref -> None,
+      receivedValuesStore.slackVoltages.size shouldBe 0
+      receivedValuesStore.nodeToReceivedPower.size shouldBe 0
+      receivedValuesStore.getExpectedPowerResponses shouldBe Set(
+        participant1.ref,
+        participant2.ref,
+        participant3.ref,
       )
-
     }
 
     "initialize an empty store correctly when only a valid mapping for asset agents and inferior grid agents is provided" in {
@@ -158,22 +143,18 @@ class ReceivedValuesStoreSpec
       val receivedValuesStore =
         ReceivedValuesStore.empty(
           defaultNodeToAssetAgentsMap,
-          defaultInferiorSubGridGateToActorRefMap,
+          defaultInferiorConnections,
           superiorGridNodeUuids,
         )
 
-      receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
+      receivedValuesStore.slackVoltages.size shouldBe 0
 
-      receivedValuesStore.nodeToReceivedPower.size shouldBe 3
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(participant1.ref -> None)
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Map(participant2.ref -> None)
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("5cd55ab5-a7d2-499f-a25f-6dbc3845c5e8")
-      ) shouldBe Map(gridAgent.ref -> None)
+      receivedValuesStore.nodeToReceivedPower.size shouldBe 0
+      receivedValuesStore.getExpectedPowerResponses shouldBe Set(
+        participant1.ref,
+        participant2.ref,
+        gridAgent.ref,
+      )
 
     }
 
@@ -181,8 +162,7 @@ class ReceivedValuesStoreSpec
 
       val nodeToAssetAgentsMap =
         Map.empty[UUID, Set[ActorRef[ParticipantAgent.Request]]]
-      val inferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
+      val inferiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty
 
       val superiorGridNodeUuids = Set(
         UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843"),
@@ -192,17 +172,17 @@ class ReceivedValuesStoreSpec
       val receivedValuesStore =
         ReceivedValuesStore.empty(
           nodeToAssetAgentsMap,
-          inferiorSubGridGateToActorRefMap,
+          inferiorConnections,
           superiorGridNodeUuids,
         )
 
       receivedValuesStore.nodeToReceivedPower.size shouldBe 0
 
-      receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 2
-      receivedValuesStore.nodeToReceivedSlackVoltage(
+      receivedValuesStore.nodeToSlackVoltage.size shouldBe 2
+      receivedValuesStore.getSlackVoltage(
         UUID.fromString("baded8c4-b703-4316-b62f-75ffe09c9843")
       ) shouldBe None
-      receivedValuesStore.nodeToReceivedSlackVoltage(
+      receivedValuesStore.getSlackVoltage(
         UUID.fromString("d5040bf7-56c1-4d6a-908a-47c05b0c5c54")
       ) shouldBe None
 
@@ -210,27 +190,23 @@ class ReceivedValuesStoreSpec
 
     "initialize an empty store correctly when only an invalid mapping for asset agents with duplicates is provided" in {
 
-      val inferiorSubGridGateToActorRefMap =
-        Map.empty[SubGridGate, ActorRef[GridAgent.Message]]
+      val inferiorConnections: MultiMap[GridAgentRef, UUID] = Map.empty
       val superiorGridNodeUuids = Set.empty[UUID]
 
       val receivedValuesStore =
         ReceivedValuesStore.empty(
           defaultNodeToAssetAgentsMap,
-          inferiorSubGridGateToActorRefMap,
+          inferiorConnections,
           superiorGridNodeUuids,
         )
 
-      receivedValuesStore.nodeToReceivedSlackVoltage.size shouldBe 0
+      receivedValuesStore.slackVoltages.size shouldBe 0
 
-      receivedValuesStore.nodeToReceivedPower.size shouldBe 2
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("dd9a5b54-94bb-4201-9108-2b1b7d689546")
-      ) shouldBe Map(participant1.ref -> None)
-      receivedValuesStore.nodeToReceivedPower(
-        UUID.fromString("34e807f1-c62b-4968-b0f6-980ce500ff97")
-      ) shouldBe Map(participant2.ref -> None)
-
+      receivedValuesStore.nodeToReceivedPower.size shouldBe 0
+      receivedValuesStore.getExpectedPowerResponses shouldBe Set(
+        participant1.ref,
+        participant2.ref,
+      )
     }
 
   }

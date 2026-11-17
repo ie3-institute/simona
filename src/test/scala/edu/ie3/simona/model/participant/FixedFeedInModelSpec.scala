@@ -12,7 +12,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.FixedFeedInputTestData
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.PowerSystemUnits.MEGAVOLTAMPERE
-import edu.ie3.util.scala.quantities.{
+import edu.ie3.util.quantities.energy.{
   ApparentPower,
   Kilovoltamperes,
   Megavoltamperes,

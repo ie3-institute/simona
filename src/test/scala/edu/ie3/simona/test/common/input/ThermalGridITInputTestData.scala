@@ -37,7 +37,7 @@ trait ThermalGridITInputTestData
       Quantities.getQuantity(10.0, Units.LITRE),
       Quantities.getQuantity(55.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(10.0, StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(1.16, StandardUnits.VOLUMETRIC_HEAT_CAPACITY),
       Quantities.getQuantity(5.5, PowerSystemUnits.KILOWATT),
     )
 
@@ -51,7 +51,7 @@ trait ThermalGridITInputTestData
       Quantities.getQuantity(28.7, Units.LITRE),
       Quantities.getQuantity(55.0, StandardUnits.TEMPERATURE),
       Quantities.getQuantity(10.0, StandardUnits.TEMPERATURE),
-      Quantities.getQuantity(1.16, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+      Quantities.getQuantity(1.16, StandardUnits.VOLUMETRIC_HEAT_CAPACITY),
       Quantities.getQuantity(5.5, PowerSystemUnits.KILOWATT),
     )
 

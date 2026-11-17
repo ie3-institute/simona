@@ -81,7 +81,7 @@ class SimonaConfigSpec extends UnitSpec {
 
       // input config
       simonaConfig.input shouldBe InputConfig(
-        extSimDir = None,
+        addonDir = None,
         grid = Grid(
           GridDatasource(
             Some(

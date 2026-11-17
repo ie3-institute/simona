@@ -10,9 +10,6 @@ import java.io.File
 
 /** Common I/O information that should be used for tests e.g. default
   * directories etc.
-  *
-  * @version 0.1
-  * @since 05.03.20
   */
 trait IOTestCommons {
 
