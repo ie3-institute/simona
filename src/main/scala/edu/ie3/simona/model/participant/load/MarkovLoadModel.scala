@@ -26,8 +26,8 @@ import edu.ie3.simona.model.participant.load.MarkovLoadModel.MarkovLoadModelStat
 import edu.ie3.simona.ontology.messages.flex.FlexType
 import edu.ie3.simona.service.Data.SecondaryData.MarkovDataFunction
 import edu.ie3.simona.service.{Data, ServiceType}
+import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
 import squants.energy.Energy
 import squants.{Dimensionless, Power}
 
