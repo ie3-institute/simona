@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.model.participant.flex
 
+import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.{
   FixedState,
   OperatingPoint,
@@ -17,6 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexOptions,
 }
 import edu.ie3.simona.service.DataTimeType
+import edu.ie3.simona.service.DataTimeType.CurrentAndForecast
 
 /** Flex model implementation for [[ParticipantModel]]s with fixed state
   * producing [[EnergyBoundariesFlexOptions]] that assume a constant power
@@ -38,8 +40,16 @@ class ParticipantConstantEnergyLimitFlexModel(
 
     val (op: OperatingPoint, _) = model.determineOperatingPoint(state)
 
+    val forecastDataType = dataTimeType match {
+      case cf: CurrentAndForecast => cf
+      case _ =>
+        throw new CriticalFailureException(
+          s"Unexpected DateTimeType $dataTimeType!"
+        )
+    }
+
     EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries(op.activePower, state.tick)
+      AssetEnergyBoundaries(op.activePower, state.tick, forecastDataType)
     )
   }
 

@@ -179,34 +179,49 @@ Within the ``rawOutputData`` folder you can find the raw simulation results. For
 > That means that, for example, for a fixed load there would be only a single entry for it in its result file, since its state doesn't change throughout the simulation.
 
 
-## Setting up and running an external simulation
+## Setting up and running addons
 
-SIMONA is capable of running an external sub-simulation by integration within the same time system (ticks) as SIMONA.
-The information flow between SIMONA and the external simulation is partitioned into a control stream (see ``edu.ie3.simona.api.ExtSimAdapter``) and a number of optional data connections.
+SIMONA is capable of running addons. These can be:
+1. External simulations: sub-simulation that are integrated within the same time system (ticks) as SIMONA
+2. External listeners: listeners that receive result produces by SIMONA
+
+An addon has to depend on [SimonaAPI](https://github.com/ie3-institute/simonaAPI) and make use of some of its interfaces (see below).
+In order to run an addon, several requirements have to be fulfilled and a bunch of preparation steps have to be followed. (see [here](#implementation-requirements))
+
+> **_NOTE:_**
+> The addons are loaded via class loader. Thus, SIMONA and the addon should be built using the same JDK.
+
+**External simulation**
+
+The information flow between SIMONA and the external simulation is partitioned into a control stream (see ``edu.ie3.simona.api.data.connection.ExtSimDataConnection``) and a number of optional data connections.
 Currently, available data connections are:
 - electric vehicle movement information (see ``edu.ie3.simona.service.ev.ExtEvDataService``)
 - energy management data (see ``edu.ie3.simona.service.em.ExtEmDataService``)
 - primary data (see ``edu.ie3.simona.service.primary.ExtPrimaryDataService``)
 - result data (see ``edu.ie3.simona.service.results.ExtResultDataProvider``)
 
-An external simulation has to depend on [SimonaAPI](https://github.com/ie3-institute/simonaAPI) and make use of some of its interfaces (see below).
-In order to run an external simulation, several requirements have to be fulfilled and a bunch of preparation steps have to be followed.
+**External listener**
 
-> **_NOTE:_**
-> The external simulation is loaded via class loader. Thus, SIMONA and the external simulation should be built using the same JDK.
+The listener needs to extend ``edu.ie3.simona.api.data.connection.ExtResultListener`` in order to listen to SIMONA results.
+SIMONA will send the results to the listener after they are calculated.
 
 
 ### Implementation requirements
 
-**External simulation**
-
-- The external simulation should be implemented in its own project (repository).
-- The project should include the *shadowJar* gradle plugin (``id "com.github.johnrengelman.shadow" version "x.y.z"``).
-- A class (called *main class* here) needs to extend ``edu.ie3.simona.api.schedule.ExtSimulation`` and thus implement the three methods ``Set<ExtDataConnection> getDataConnections()``, ``Optional<Long> initialize()`` and ``Optional<Long> doActivity(long tick)``. The method ``getDataConnections`` is called to return all data connection between the external simulation and SIMONA, ``initialize`` is called when the external simulation needs to be initialized whereas the method ``doActivity`` is called when time step ``tick`` is triggered. ``initialize`` and ``doActivity`` can return a subsequent new tick that the sub simulation should be activated with next.
-- For each data, that should be exchanged with SIMONA, a data connection (see ``edu.ie3.simona.api.data.ExtDataConnection``) needs to be created, such as ``edu.ie3.simona.api.data.ev.ExtEvDataConnection``. All data connections should be returned by the implementation of ``edu.ie3.simona.api.schedule.ExtSimulation``.
-- In order for SIMONA to use the external simulation, a class that extends ``edu.ie3.simona.api.ExtLinkInterface`` has to reside inside the project. The class has to implement the corresponding methods. One method is used to set up the external simulation with the provided ``edu.ie3.simona.api.simulation.ExtSimAdapterData``. The second method is called after the setup and returns the external simulation.
-- When loading the external simulations, SIMONA is looking for the corresponding service files of the class ``edu.ie3.simona.api.ExtLinkInterface``. Therefor every external simulation needs the following service file: ``src/main/resources/META-INF/services/edu.ie3.simona.api.ExtLinkInterface``. The service file needs to contain the relative path to the class that extends ``edu.ie3.simona.api.ExtLinkInterface``.
+**General requirements**
+- The addon should be implemented in its own project (repository).
+- The project should include the *shadowJar* gradle plugin (``id "com.gradleup.shadow" version "x.y.z"``). 
+- In order for SIMONA to use the addon, a class that extends at least one sub-interface of ``edu.ie3.simona.api.ExtLinkInterface`` has to reside inside the project. The class has to implement the corresponding methods. One method is used to set up the addon with the provided ``edu.ie3.simona.api.data.SetupData``.
+- When loading the addon, SIMONA is looking for the corresponding service files of the class ``edu.ie3.simona.api.ExtLinkInterface``. Therefor, every external simulation needs the following service file: ``src/main/resources/META-INF/services/edu.ie3.simona.api.ExtLinkInterface``. The service file needs to contain the relative path to the class that extends ``edu.ie3.simona.api.ExtLinkInterface``.
 - A <em>very simple</em> example for an external simulation can be found [here](https://github.com/ie3-institute/ExtSimSample)
+
+**External simulation**
+- A class that extends ``edu.ie3.simona.api.ExtSimulationProvider``. 
+- A class (called *main class* here) needs to extend ``edu.ie3.simona.api.simulation.ExtSimulation`` and thus implement the three methods ``Set<ExtDataConnection> getDataConnections()``, ``long initialize()`` and ``OptionalLong doActivity(long tick)``. The method ``getDataConnections`` is called to return all data connection between the external simulation and SIMONA, ``initialize`` is called when the external simulation needs to be initialized whereas the method ``doActivity`` is called when time step ``tick`` is triggered. ``initialize`` and ``doActivity`` can return a subsequent new tick that the sub simulation should be activated with next.
+- For each data, that should be exchanged with SIMONA, a data connection (see ``edu.ie3.simona.api.data.connection.ExtDataConnection``) needs to be created, such as ``edu.ie3.simona.api.data.connection.ExtEvDataConnection``. All data connections should be returned by the implementation of ``edu.ie3.simona.api.simulation.ExtSimulation``.
+
+**External listener**
+- A class that extends ``edu.ie3.simona.api.ExtListenerProvider`` and implements a result handling.
 
 **SIMONA**
 

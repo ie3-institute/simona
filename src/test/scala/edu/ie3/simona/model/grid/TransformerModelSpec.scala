@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.math.Complex
-import breeze.numerics.abs
+import edu.ie3.powerflow.math.Complex
+import scala.math.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
@@ -24,10 +24,7 @@ import edu.ie3.simona.test.common.model.grid.{
   TransformerTestGrid,
 }
 import edu.ie3.simona.test.common.UnitSpec
-import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
-import edu.ie3.simona.config.OutputConfig.Base
-import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
-import edu.ie3.util.scala.quantities.{
+import edu.ie3.util.quantities.energy.{
   ApparentPower,
   Kilovoltamperes,
   Voltamperes,
@@ -431,7 +428,6 @@ class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
               epsilon,
               maxIterations,
               admittanceMatrix,
-              Option.apply(Vector(0, 1)),
             )
             val result = powerFlow.calculate(operationPoint, startData)
 

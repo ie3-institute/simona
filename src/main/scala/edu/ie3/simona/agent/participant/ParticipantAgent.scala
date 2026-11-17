@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.participant
 
-import breeze.numerics.{pow, sqrt}
+import scala.math.{pow, sqrt}
 import edu.ie3.simona.agent.DataInputHandler
 import edu.ie3.simona.agent.grid.GridAgentMessages.{
   AssetPowerChangedMessage,
