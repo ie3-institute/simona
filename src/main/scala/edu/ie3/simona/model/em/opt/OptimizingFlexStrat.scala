@@ -79,11 +79,8 @@ final case class OptimizingFlexStrat(
 
     given model: MPModel = MPModel(SolverLib.oJSolver)
 
-    val sampleTicks = sampleTime.toSeconds.toLong
-    val lastPredictedTick = currentTick + predictionHorizon.toSeconds.toLong
-
     val ticks =
-      Range.Long.inclusive(currentTick, lastPredictedTick, sampleTicks)
+      DataTimeType.createTicks(predictionHorizon, sampleTime, currentTick)
 
     val flexOptionsById =
       flexOptions.map { case (asset: AssetInput, fo) =>

@@ -32,7 +32,7 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
     getQuantity(100, StandardUnits.VOLUME),
     getQuantity(30, StandardUnits.TEMPERATURE),
     getQuantity(40, StandardUnits.TEMPERATURE),
-    getQuantity(1.15, StandardUnits.SPECIFIC_HEAT_CAPACITY),
+    getQuantity(1.15, StandardUnits.VOLUMETRIC_HEAT_CAPACITY),
     getQuantity(50, PowerSystemUnits.KILOWATT),
   )
 
@@ -94,7 +94,7 @@ class ThermalStorageSpec extends UnitSpec with Matchers with BeforeAndAfterAll {
         (
           1140.0,
           10.0,
-          ThermalStorage.ThermalStorageThreshold.StorageFull(3599L),
+          ThermalStorage.ThermalStorageThreshold.StorageFull(3600L),
         ),
         (
           10.0,

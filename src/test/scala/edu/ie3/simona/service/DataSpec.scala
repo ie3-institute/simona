@@ -9,7 +9,7 @@ package edu.ie3.simona.service
 import edu.ie3.simona.service.Data.PrimaryData.*
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.Kilovars
+import edu.ie3.util.quantities.energy.Kilovars
 import squants.energy.Kilowatts
 
 class DataSpec extends UnitSpec {

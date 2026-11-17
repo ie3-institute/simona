@@ -10,6 +10,7 @@ import com.typesafe.config.{Config, ConfigException}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.simona.config
 import edu.ie3.simona.config.ConfigParams.*
+import edu.ie3.simona.config.InputConfig.NoiseConfig
 import edu.ie3.simona.config.RuntimeConfig.{
   BaseRuntimeConfig,
   LoadRuntimeConfig,
@@ -134,6 +135,14 @@ object ConfigFailFast extends LazyLogging {
 
     /* Check if the provided combination of data source and parameters are valid */
     checkWeatherDataSource(simonaConfig.input.weather.datasource)
+
+    /* Check forecast configurations */
+    Seq(
+      simonaConfig.input.weather.forecast.irradianceNoise,
+      simonaConfig.input.weather.forecast.temperatureNoise,
+      simonaConfig.input.weather.forecast.windVelocityNoise,
+      simonaConfig.input.prices.forecast.noise,
+    ).foreach(checkNoiseConfig)
 
     checkOutputConfig(simonaConfig.output)
 
@@ -635,6 +644,21 @@ object ConfigFailFast extends LazyLogging {
         )
     }
 
+  }
+
+  private def checkNoiseConfig(noiseConfig: NoiseConfig): Unit = {
+    if noiseConfig.variance < 0 then
+      throw new InvalidConfigParameterException(
+        "The minimum permissible variance of forecast noise is 0."
+      )
+    if noiseConfig.autoregression < 0 then
+      throw new InvalidConfigParameterException(
+        "The minimum permissible autoregression coefficient of forecast noise is 0."
+      )
+    if noiseConfig.autoregression > 1 then
+      throw new InvalidConfigParameterException(
+        "The maximum permissible autoregression coefficient of forecast noise is 1."
+      )
   }
 
   /** Check the config subtree for output parameterization
