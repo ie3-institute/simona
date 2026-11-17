@@ -177,13 +177,68 @@ private[weather] final case class WeatherSourceWrapper private (
             (averagedWeather.windVel + weather.windVel * weight, weight)
           }
 
+        val (groundTempLvl3, groundTempLvl3Weight) =
+          weather.groundTempLvl3 match {
+            case None =>
+              (averagedWeather.groundTempLvl3, 0d)
+            case Some(temp) =>
+              if temp.value.isNaN then {
+                logger.warn(
+                  s"Ground temperature at level 3 is NaN at $point."
+                )
+                (averagedWeather.groundTempLvl3, 0d)
+              } else {
+                // Important: squants temperature addition is bugged.
+                // Conversion to Kelvin necessary.
+                (
+                  Some(
+                    averagedWeather.groundTempLvl3
+                      .getOrElse(Kelvin(0d)) + temp.in(Kelvin) * weight
+                  ),
+                  weight,
+                )
+              }
+          }
+
+        val (groundTempLvl4, groundTempLvl4Weight) =
+          weather.groundTempLvl4 match {
+            case None =>
+              (averagedWeather.groundTempLvl4, 0d)
+            case Some(temp) =>
+              if temp.value.isNaN then {
+                logger.warn(
+                  s"Ground temperature at level 4 is NaN at $point."
+                )
+                (averagedWeather.groundTempLvl4, 0d)
+              } else {
+                // Important: squants temperature addition is bugged.
+                // Conversion to Kelvin necessary.
+                (
+                  Some(
+                    averagedWeather.groundTempLvl4
+                      .getOrElse(Kelvin(0d)) + temp.in(Kelvin) * weight
+                  ),
+                  weight,
+                )
+              }
+          }
+
         (
-          WeatherData(diffIrradiance, dirIrradiance, temperature, windVelocity),
+          WeatherData(
+            diffIrradiance,
+            dirIrradiance,
+            temperature,
+            windVelocity,
+            groundTempLvl3,
+            groundTempLvl4,
+          ),
           weightSum.add(
             diffIrrWeight,
             dirIrrWeight,
             tempWeight,
             windVelWeight,
+            groundTempLvl3Weight,
+            groundTempLvl4Weight,
           ),
         )
     } match {
@@ -338,24 +393,36 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     *   Sum of weight for temperature
     * @param windVel
     *   Sum of weight for wind velocity
+    * @param groundTempLvl3
+    *   Sum of weight for ground temperature level 3 (28-100 cm) measured at 64
+    *   cm
+    * @param groundTempLvl4
+    *   Sum of weight for ground temperature level 4 (100-289 cm) measured at
+    *   195 cm
     */
   final case class WeightSum(
       diffIrr: Double,
       dirIrr: Double,
       temp: Double,
       windVel: Double,
+      groundTempLvl3: Double,
+      groundTempLvl4: Double,
   ) {
     def add(
         addedDiffIrr: Double,
         addedDirIrr: Double,
         addedTemp: Double,
         addedWindVel: Double,
+        addedGroundTempLvl3: Double,
+        addedGroundTempLvl4: Double,
     ): WeightSum =
       WeightSum(
         this.diffIrr + addedDiffIrr,
         this.dirIrr + addedDirIrr,
         this.temp + addedTemp,
         this.windVel + addedWindVel,
+        this.groundTempLvl3 + addedGroundTempLvl3,
+        this.groundTempLvl4 + addedGroundTempLvl4,
       )
 
     /** Scale the given [[WeatherData]] by dividing by the sum of weights per
@@ -369,7 +436,14 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
       *   Weighted weather information, which are divided by the sum of weights
       */
     def scale(weatherData: WeatherData): WeatherData = weatherData match {
-      case WeatherData(diffIrr, dirIrr, temp, windVel) =>
+      case WeatherData(
+            diffIrr,
+            dirIrr,
+            temp,
+            windVel,
+            groundTempLvl3,
+            groundTempLvl4,
+          ) =>
         implicit val precision: Double = 1e-3
         WeatherData(
           if this.diffIrr !~= 0d then diffIrr.divide(this.diffIrr)
@@ -380,12 +454,18 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
           else ZERO_WEATHER_DATA.temp,
           if this.windVel !~= 0d then windVel.divide(this.windVel)
           else ZERO_WEATHER_DATA.windVel,
+          if this.groundTempLvl3 !~= 0d then
+            groundTempLvl3.map(_.divide(this.groundTempLvl3))
+          else ZERO_WEATHER_DATA.groundTempLvl3,
+          if this.groundTempLvl4 !~= 0d then
+            groundTempLvl4.map(_.divide(this.groundTempLvl4))
+          else ZERO_WEATHER_DATA.groundTempLvl4,
         )
     }
   }
 
   object WeightSum {
-    val ZERO_WEIGHT_SUM: WeightSum = WeightSum(0d, 0d, 0d, 0d)
+    val ZERO_WEIGHT_SUM: WeightSum = WeightSum(0d, 0d, 0d, 0d, 0d, 0d)
   }
 
   /** Weather data with all values set to zero.
@@ -400,6 +480,8 @@ private[weather] object WeatherSourceWrapper extends LazyLogging {
     WattsPerSquareMeter(0d),
     Kelvin(0d),
     MetersPerSecond(0d),
+    Some(Kelvin(0d)),
+    Some(Kelvin(0d)),
   )
 
 }

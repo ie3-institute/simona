@@ -9,8 +9,9 @@ package edu.ie3.simona.agent.participant
 import edu.ie3.simona.agent.participant.ParticipantGridAdapter.*
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
+import edu.ie3.util.quantities.energy.{Megavars, ReactivePower}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroMVAr, zeroMW}
-import edu.ie3.util.scala.quantities.{Megavars, QuantityUtil, ReactivePower}
+import edu.ie3.util.scala.quantities.QuantityUtil
 import org.slf4j.Logger
 import squants.energy.Megawatts
 import squants.{Dimensionless, Each, Energy, Power, UnitOfMeasure}

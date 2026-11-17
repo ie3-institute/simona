@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.math.Complex
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.simona.exceptions.InvalidActionRequestException
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
   PowerFlowCaseA,
@@ -17,7 +17,7 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.Transformer3wInputTestData
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroPU
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
-import edu.ie3.util.scala.quantities.{
+import edu.ie3.util.quantities.energy.{
   ApparentPower,
   Megavoltamperes,
   Voltamperes,

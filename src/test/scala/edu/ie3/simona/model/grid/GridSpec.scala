@@ -6,9 +6,9 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.linalg.DenseMatrix
-import breeze.math.Complex
-import breeze.numerics.abs
+import edu.ie3.powerflow.math.DenseMatrix
+import edu.ie3.powerflow.math.Complex
+import scala.math.abs
 import edu.ie3.datamodel.models.input.MeasurementUnitInput
 import edu.ie3.datamodel.models.voltagelevels.GermanVoltageLevelUtils
 import edu.ie3.simona.exceptions.GridInconsistencyException
@@ -43,13 +43,14 @@ class GridSpec
           colIdx <- 0 until expectedMatrix.rows
         do {
           if abs(
-              actualMatrix.valueAt(rowIdx, colIdx) - expectedMatrix
-                .valueAt(rowIdx, colIdx)
+              actualMatrix(rowIdx, colIdx).abs - expectedMatrix(
+                rowIdx,
+                colIdx,
+              ).abs
             ) > 1e-12
           then
             logger.debug(
-              s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix
-                  .valueAt(rowIdx, colIdx)}, expected = ${expectedMatrix.valueAt(rowIdx, colIdx)}"
+              s"Mismatch in ($rowIdx, $colIdx): Actual = ${actualMatrix(rowIdx, colIdx)}, expected = ${expectedMatrix(rowIdx, colIdx)}"
             )
         }
       }
@@ -63,9 +64,9 @@ class GridSpec
       lines.foreach(_.enable())
 
       // method call
-      val buildAssetAdmittanceMatrix: PrivateMethod[DenseMatrix[Complex]] =
+      val addElementsToAdmittanceMatrix: PrivateMethod[DenseMatrix[Complex]] =
         PrivateMethod[DenseMatrix[Complex]](
-          Symbol("buildAssetAdmittanceMatrix")
+          Symbol("addElementsToAdmittanceMatrix")
         )
 
       val getLinesAdmittanceMethod
@@ -84,17 +85,23 @@ class GridSpec
           )
 
       // result of method call
-      val actualResult: DenseMatrix[Complex] =
-        GridModel invokePrivate buildAssetAdmittanceMatrix(
-          nodeUuidToIndexMap,
-          lines,
-          getLinesAdmittance,
-        )
+      val matrixDimension: Int = nodeUuidToIndexMap.values.toSeq.distinct.size
+      val admittanceMatrix: DenseMatrix[Complex] =
+        DenseMatrix.filled(matrixDimension, matrixDimension, Complex.zero)
 
-      _printAdmittanceMatrixOnMismatch(actualResult, lineAdmittanceMatrix)
+      GridModel invokePrivate addElementsToAdmittanceMatrix(
+        admittanceMatrix,
+        nodeUuidToIndexMap,
+        lines,
+        getLinesAdmittance,
+      )
 
-      actualResult shouldBe lineAdmittanceMatrix
+      _printAdmittanceMatrixOnMismatch(admittanceMatrix, lineAdmittanceMatrix)
 
+      admittanceMatrix.rows shouldBe lineAdmittanceMatrix.rows
+      admittanceMatrix.cols shouldBe lineAdmittanceMatrix.cols
+      admittanceMatrix.isTransposed shouldBe lineAdmittanceMatrix.isTransposed
+      admittanceMatrix.asArray2D shouldBe lineAdmittanceMatrix.asArray2D
     }
 
     "be able to build a valid line admittance matrix with switches" in new BasicGridWithSwitches {
@@ -167,7 +174,7 @@ class GridSpec
             .map { iOpen =>
               jOpenAll
                 .map { jOpen =>
-                  admittanceMatrixOpen.valueAt(iOpen, jOpen)
+                  admittanceMatrixOpen(iOpen, jOpen)
                 }
                 .reduceOption(_ + _)
                 .getOrElse(Complex.zero)
@@ -175,7 +182,7 @@ class GridSpec
             .reduceOption(_ + _)
             .getOrElse(Complex.zero)
 
-          admittanceMatixClosed.valueAt(
+          admittanceMatixClosed(
             iClosed,
             jClosed,
           ) shouldBe sumOfAdmittancesOpenSwitches withClue s" at \n\tposition ($iClosed, $jClosed) of the grid with closed switches/" +

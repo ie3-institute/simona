@@ -12,7 +12,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
   ExchangeVoltage,
 }
 import edu.ie3.simona.agent.participant.ParticipantAgent
-import edu.ie3.util.scala.quantities.ReactivePower
+import edu.ie3.util.quantities.energy.ReactivePower
 import org.apache.pekko.actor.typed.ActorRef
 import squants.Power
 import squants.electro.ElectricPotential
