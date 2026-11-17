@@ -21,6 +21,9 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
   GridAgentInitData,
 }
 import edu.ie3.simona.agent.grid.{GridAgent, GridAgentCoordinator}
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.model.grid.{GridModel, RefSystem, VoltageLimits}
 import edu.ie3.simona.ontology.messages.SchedulerMessage

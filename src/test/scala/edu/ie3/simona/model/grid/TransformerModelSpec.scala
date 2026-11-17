@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.grid
 
 import edu.ie3.powerflow.math.Complex
+
 import scala.math.abs
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
@@ -18,6 +19,9 @@ import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
 import edu.ie3.powerflow.model.{NodeData, PowerFlowResult}
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
 import edu.ie3.simona.test.common.model.grid.{
   TapTestData,
   TransformerTestData,
