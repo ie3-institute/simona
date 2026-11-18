@@ -124,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Adapt to changes in `PSDM` [#1947](https://github.com/ie3-institute/simona/issues/1947)
 - Enhancement of `QuantityConversionUtils` and some fixes and clean up [#1940](https://github.com/ie3-institute/simona/issues/1940)
 - Updated ci.yml [#1952](https://github.com/ie3-institute/simona/issues/1952)
+- Removed ConfigTestData [#1724](https://github.com/ie3-institute/simona/issues/1724)
 
 ### Fixed
 - Honor the configured output csv separator in `ResultEntityCsvSink` instead of always writing commas [#550](https://github.com/ie3-institute/simona/issues/550)

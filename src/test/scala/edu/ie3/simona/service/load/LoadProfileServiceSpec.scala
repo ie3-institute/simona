@@ -27,7 +27,10 @@ import edu.ie3.simona.service.Data.SecondaryData.{
 }
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.load.LoadProfileService.InitLoadProfileServiceStateData
-import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
+import edu.ie3.simona.test.common.TestSpawnerTyped
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -45,8 +48,38 @@ class LoadProfileServiceSpec
     with AnyWordSpecLike
     with PrivateMethodTester
     with LazyLogging
-    with ConfigTestData
     with TestSpawnerTyped {
+
+  private val simonaConfig: SimonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
+      )
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    powerflow = Some(
+      SimonaConfig.Powerflow(
+        maxSweepPowerDeviation = 1e-5,
+        newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
+          epsilon = List(1e-12),
+          iterations = 50,
+        ),
+        stopOnFailure = true,
+      )
+    ),
+    simulationName = "LoadProfileServiceSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
 
   private val sourceDefinition: Datasource = Datasource()
 
