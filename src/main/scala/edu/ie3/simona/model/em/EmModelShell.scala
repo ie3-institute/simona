@@ -281,13 +281,9 @@ object EmModelShell {
           val aggregateFlexFound =
             aggregateFlex.isDefinedAt(aggregateFlexName)
 
-          if modelStratFound && !aggregateFlexFound then
+          if modelStratFound != aggregateFlexFound then
             throw new CriticalFailureException(
-              s"Unknown aggregate flex strategy $aggregateFlexName for flex type ${flexOptionsExtra.classTag.runtimeClass.getSimpleName}."
-            )
-          else if !modelStratFound && aggregateFlexFound then
-            throw new CriticalFailureException(
-              s"Unknown model flex strategy $modelStrategyName for flex type ${flexOptionsExtra.classTag.runtimeClass.getSimpleName}."
+              s"Aggregate flex strategy $aggregateFlexName and model strategy $modelStrategyName either do not fit together or do not exist."
             )
 
           modelStratFound && aggregateFlexFound

@@ -27,11 +27,11 @@ import edu.ie3.simona.service.DataTimeType.CurrentAndForecast
   * @param model
   *   The participant model to create energy boundary flex options for.
   */
-class ParticipantConstantEnergyLimitFlexModel(
+class ParticipantConstantEnergyBounadariesFlexModel(
     model: ParticipantModel[?, FixedState]
 ) extends AbstractEnergyBoundariesFlexModel[FixedState] {
 
-  override val hasEnergyFlexibility: Boolean = false
+  override val hasEnergyState: Boolean = false
 
   override def determineFlexOptions(
       state: FixedState,
@@ -49,7 +49,7 @@ class ParticipantConstantEnergyLimitFlexModel(
     }
 
     EnergyBoundariesFlexOptions(
-      AssetEnergyBoundaries(op.activePower, state.tick, forecastDataType)
+      AssetEnergyBoundaries(op.activePower, state.tick)
     )
   }
 

@@ -26,7 +26,7 @@ import scala.collection.immutable.SortedMap
 class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
     extends AbstractEnergyBoundariesFlexModel[EvcsState] {
 
-  override val hasEnergyFlexibility: Boolean = true
+  override val hasEnergyState: Boolean = true
 
   override def determineFlexOptions(
       state: EvcsState,
@@ -97,7 +97,8 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
         val timeToDeparture = Seconds(disconnectTick - currentTick)
 
         // required power to reach the regular lower limit
-        val requiredPower = requiredEnergy / timeToDeparture
+        val requiredPower =
+          requiredEnergy / timeToDeparture / ev.etaCharging.toEach
 
         // since reaching the lower limit needs to be feasible,
         // we have to adapt the limit if the regular limit is
@@ -106,7 +107,7 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
           if requiredPower > maxPower then
             // we cannot reach regular lower limit,
             // thus we do the most we can
-            maxPower * timeToDeparture
+            maxPower * timeToDeparture * ev.etaCharging.toEach
           else
             // we can reach the regular lower limit
             requiredEnergy
@@ -128,7 +129,10 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
           ev.eStorage,
         )
       ) ++ disconnectingLimits,
-      powerLimits = ClosedInterval(minPower, maxPower),
+      powerLimits =
+        SortedMap(currentTick -> ClosedInterval(minPower, maxPower)),
+      etaCharge = ev.etaCharging,
+      etaDischarge = ev.etaDischarging,
       tickDisconnect = adaptedDisconnectTick,
     )
   }

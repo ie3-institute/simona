@@ -31,8 +31,10 @@ object ChargingHelper {
     *   The maximum allowed stored energy.
     * @param minEnergy
     *   The minimum allowed stored energy, default to 0 Wh.
-    * @param eta
-    *   The efficiency applied to charging and discharging.
+    * @param etaCharging
+    *   The efficiency applied to charging operations.
+    * @param etaDischarging
+    *   The efficiency applied to discharging operations.
     * @return
     *   The new amount of stored energy.
     */
@@ -43,10 +45,12 @@ object ChargingHelper {
       endTick: Long,
       maxEnergy: Energy,
       minEnergy: Energy = zeroKWh,
-      eta: Dimensionless = onePU,
+      etaCharging: Dimensionless,
+      etaDischarging: Dimensionless,
   ): Energy = {
     val timespan = Seconds(endTick - startTick)
-    val energyChange = calcNetPower(power, eta) * timespan
+    val energyChange =
+      calcNetPower(power, etaCharging, etaDischarging) * timespan
 
     // don't allow under- or overcharge e.g. due to tick rounding error
     minEnergy.max(maxEnergy.min(storedEnergy + energyChange))
@@ -65,8 +69,10 @@ object ChargingHelper {
     *   The target energy when charging.
     * @param dischargingEnergyTarget
     *   The target energy when discharging.
-    * @param eta
-    *   The efficiency applied to charging and discharging.
+    * @param etaCharging
+    *   The efficiency applied to charging operations.
+    * @param etaDischarging
+    *   The efficiency applied to discharging operations.
     * @param tolerance
     *   Tolerance for zero charging power.
     * @return
@@ -78,9 +84,10 @@ object ChargingHelper {
       currentTick: Long,
       chargingEnergyTarget: () => Energy,
       dischargingEnergyTarget: () => Energy,
-      eta: Dimensionless = onePU,
+      etaCharging: Dimensionless,
+      etaDischarging: Dimensionless,
   )(implicit tolerance: Power): Option[Long] = {
-    val netPower = calcNetPower(power, eta)
+    val netPower = calcNetPower(power, etaCharging, etaDischarging)
 
     val maybeTimeSpan =
       if netPower ~= zeroKW then {
@@ -105,18 +112,24 @@ object ChargingHelper {
     *
     * @param setPower
     *   The gross charging or discharging power.
-    * @param eta
-    *   The efficiency.
+    * @param etaCharging
+    *   The efficiency applied to charging operations.
+    * @param etaDischarging
+    *   The efficiency applied to discharging operations.
     * @return
     *   The net power.
     */
-  def calcNetPower(setPower: Power, eta: Dimensionless): Power =
+  def calcNetPower(
+      setPower: Power,
+      etaCharging: Dimensionless,
+      etaDischarging: Dimensionless,
+  ): Power =
     if setPower > zeroKW then {
       // multiply eta if we're charging
-      setPower * eta.toEach
+      setPower * etaCharging.toEach
     } else {
       // divide by eta if we're discharging
       // (draining the battery more than we get as output)
-      setPower / eta.toEach
+      setPower / etaDischarging.toEach
     }
 }

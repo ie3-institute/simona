@@ -135,9 +135,11 @@ object FlexConversion {
         new AssetEnergyBoundaries(
           assetBoundaries.currentEnergy.toSquants,
           energyLimits,
-          new ClosedInterval(
-            assetBoundaries.powerLimits.getLower.toSquants,
-            assetBoundaries.powerLimits.getUpper.toSquants,
+          SortedMap(
+            0L -> new ClosedInterval(
+              assetBoundaries.powerLimits.getLower.toSquants,
+              assetBoundaries.powerLimits.getUpper.toSquants,
+            )
           ),
           assetBoundaries.etaCharge.toSquants,
           assetBoundaries.etaDischarge.toSquants,

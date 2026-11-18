@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant
 
 import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
 import squants.energy.{KilowattHours, Kilowatts}
 import squants.{Each, Energy, Power}
 
@@ -64,6 +65,8 @@ class ChargingHelperSpec extends UnitSpec {
             startTick,
             endTick,
             KilowattHours(10.0),
+            etaCharging = onePU,
+            etaDischarging = onePU,
           )
 
           newEnergy should approximate(KilowattHours(expectedEnergy))
@@ -115,7 +118,8 @@ class ChargingHelperSpec extends UnitSpec {
             tick,
             () => KilowattHours(100),
             () => KilowattHours(0),
-            Each(0.8),
+            etaCharging = Each(0.8),
+            etaDischarging = Each(0.8),
           )
 
           actualNextTick.isDefined shouldBe expScheduled
@@ -149,7 +153,8 @@ class ChargingHelperSpec extends UnitSpec {
         ) =>
           val actualNetPower = ChargingHelper.calcNetPower(
             Kilowatts(setPower),
-            Each(eta),
+            etaCharging = Each(eta),
+            etaDischarging = Each(eta),
           )
 
           actualNetPower should approximate(Kilowatts(expectedNetPower))

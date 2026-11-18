@@ -42,6 +42,7 @@ trait StorageInputTestData extends DefaultTestData with NodeInputTestData {
     getQuantity(10d, KILOWATT),
     getQuantity(0.03, PU_PER_HOUR),
     getQuantity(0.9, PU),
+    getQuantity(0.9, PU),
   )
 
   protected val storageInput: StorageInput = new StorageInput(
