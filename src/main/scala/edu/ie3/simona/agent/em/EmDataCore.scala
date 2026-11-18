@@ -30,7 +30,7 @@ object EmDataCore {
     * @param startDate
     *   The start date of the simulation.
     */
-  def create(implicit startDate: ZonedDateTime): Inactive =
+  def create(using startDate: ZonedDateTime): Inactive =
     Inactive(
       Map.empty,
       PriorityMultiBiSet.empty,
@@ -80,6 +80,36 @@ object EmDataCore {
       copy(
         modelToActor = modelToActor.updated(asset, actor)
       )
+
+    /** Method to move all activations to a new tick and to activate all actors.
+      * This is needed when using external communication.
+      * @param newTick
+      *   To use for activations.
+      * @param activateAll
+      *   True, if all agent should be activated.
+      * @return
+      *   A new [[AwaitingFlexOptions]] core.
+      */
+    def activateWithTick(
+        newTick: Long,
+        activateAll: Boolean = false,
+    ): AwaitingFlexOptions = {
+      // remove the old activations
+      val toActivate = activationQueue.keySet
+        .rangeUntil(newTick)
+        .toSet
+        .flatMap(activationQueue.getAndRemoveSet)
+
+      if activateAll then activationQueue.set(newTick, modelToActor.keySet)
+      else activationQueue.set(newTick, toActivate)
+
+      AwaitingFlexOptions(
+        modelToActor,
+        activationQueue,
+        correspondences,
+        activeTick = newTick,
+      )
+    }
 
     /** Tries to handle an activation of the EmAgent for given tick. If the
       * activation for the tick is not valid, a [[CriticalFailureException]] is

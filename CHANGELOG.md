@@ -53,6 +53,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added check for data in `RunSimonaStandaloneIT` [#1491](https://github.com/ie3-institute/simona/issues/1491)
 - Introduced energy boundaries tightening algorithm [#1835](https://github.com/ie3-institute/simona/issues/1835)
 - Implemented optional noise for forecast input data [#1771](https://github.com/ie3-institute/simona/issues/1771)
+- Added external em communication to em service [#1781](https://github.com/ie3-institute/simona/issues/1781)
 
 ### Changed
 - Upgraded `scala2` to `scala3` [#53](https://github.com/ie3-institute/simona/issues/53)
@@ -126,7 +127,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated ci.yml [#1952](https://github.com/ie3-institute/simona/issues/1952)
 
 ### Fixed
-- Honor the configured output csv separator in `ResultEntityCsvSink` instead of always writing commas [#550](https://github.com/ie3-institute/simona/issues/550)
 - Fixes in Documentation, ScalaDocs, Code Style and more [#1397](https://github.com/ie3-institute/simona/issues/1397)
 - Fixed variable shadowing [#1371](https://github.com/ie3-institute/simona/issues/1371)
 - Updated dev's guide [#1409](https://github.com/ie3-institute/simona/issues/1409)
@@ -165,6 +165,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed exception thrown when providing additional main arguments [#1890](https://github.com/ie3-institute/simona/issues/1890)
 - Fixed `get_version` script [#1935](https://github.com/ie3-institute/simona/issues/1935)
 - Fixed EnergyBoundariesFlexOptions for fixed load [#1865](https://github.com/ie3-institute/simona/issues/1865)
+- Honor the configured output csv separator in `ResultEntityCsvSink` instead of always writing commas [#550](https://github.com/ie3-institute/simona/issues/550)
 
 ### Removed
 - Removed unused classes and methods related to pekko classic actors [#1389](https://github.com/ie3-institute/simona/issues/1389)

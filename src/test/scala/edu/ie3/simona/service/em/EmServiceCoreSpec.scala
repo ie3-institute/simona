@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   FlexActivation,
   IssueFlexControl,
   IssueNoControl,
+  IssuePowerControl,
   ProvideFlexOptions,
 }
 import edu.ie3.simona.ontology.messages.flex.{
@@ -126,6 +127,40 @@ class EmServiceCoreSpec
       updatedCore.setPointOption shouldBe None
     }
 
+    "handle flex option request in case of communication correctly" in {
+      val emAgent = TestProbe[EmAgent.Message]("emAgent")
+      val emUuid = UUID.randomUUID()
+
+      val core = EmServiceCore(EmMode.EM_COMMUNICATION, scheduler.ref)
+        .handleRegistration(
+          EmServiceRegistration(emAgent.ref, emUuid, None, None)
+        )
+
+      val flexRequests = new ProvideEmData(
+        0L,
+        Map(emUuid -> new FlexOptionRequest(emUuid, true)).asJava,
+        Map.empty.asJava,
+        Map.empty.asJava,
+      )
+
+      val (updatedCore, msgToExt) = core.handleExtMessage(0L, flexRequests)
+
+      // the agent should receive a flex option request
+      emAgent.expectMessage(FlexActivation(0L))
+
+      // we should have no message for the external simulation
+      msgToExt shouldBe None
+
+      // check updated state of the core
+      updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
+      updatedCore.emDataStore shouldBe ReceiveMultiDataMap(Set.empty)
+      updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
+      updatedCore.uuidToInferior shouldBe Map.empty
+      updatedCore.sendDataToExt shouldBe false
+      updatedCore.canHandleSetPoints shouldBe false
+      updatedCore.setPointOption shouldBe None
+    }
+
     "handle em set point provision" in {
       val emAgent = TestProbe[EmAgent.Message]("emAgent")
       val emUuid = UUID.randomUUID()
@@ -197,6 +232,44 @@ class EmServiceCoreSpec
       coreAfterFlexOptionProvision.sendDataToExt shouldBe false // since we didn't receive a flex option request
       coreAfterFlexOptionProvision.canHandleSetPoints shouldBe true // since all agents have provided flex options
       coreAfterFlexOptionProvision.setPointOption shouldBe None // empty, since we handled the data
+    }
+
+    "handle em set point provision in case of communication correctly" in {
+      val emAgent = TestProbe[EmAgent.Message]("emAgent")
+      val emUuid = UUID.randomUUID()
+
+      val core = EmServiceCore(EmMode.EM_COMMUNICATION, scheduler.ref)
+        .handleRegistration(
+          EmServiceRegistration(emAgent.ref, emUuid, None, None)
+        )
+
+      val setPoints =
+        Map(emUuid -> new SetPoint.AggregatedSetPoint(emUuid, 5.asKiloWatt))
+
+      val setPointData = new ProvideEmData(
+        0L,
+        Map.empty.asJava,
+        Map.empty.asJava,
+        setPoints.asJava,
+      )
+
+      val (updatedCore, msgToExt) = core.handleExtMessage(0L, setPointData)
+
+      // the agent should receive a flex option request
+      // since the agent cannot handle the set point currently
+      emAgent.expectMessage(IssuePowerControl(0L, Kilowatts(5.0)))
+
+      // we should have no message for the external simulation
+      msgToExt shouldBe None
+
+      // check updated state of the core
+      updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
+      updatedCore.emDataStore shouldBe ReceiveMultiDataMap(Set.empty)
+      updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
+      updatedCore.uuidToInferior shouldBe Map.empty
+      updatedCore.sendDataToExt shouldBe false // since we didn't receive a flex option request
+      updatedCore.canHandleSetPoints shouldBe false
+      updatedCore.setPointOption shouldBe None
     }
 
     "handle flex requests correctly" in {

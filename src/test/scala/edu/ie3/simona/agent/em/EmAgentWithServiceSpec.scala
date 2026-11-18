@@ -189,6 +189,11 @@ class EmAgentWithServiceSpec
       pvAgent.expectNoMessage()
       evcsAgent.expectNoMessage()
 
+      service.expectMessageType[EmFlexMessage].message match {
+        case WaitingForData(model) =>
+          model shouldBe emInput.getUuid
+      }
+
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
         PowerLimitFlexOptions(
@@ -203,7 +208,7 @@ class EmAgentWithServiceSpec
           flexResult.getInputModel shouldBe emInput.getUuid
           flexResult.getTime shouldBe 0.toDateTime
           flexResult.getpRef() should equalWithTolerance(0.asMegaWatt)
-          flexResult.getpMin() should equalWithTolerance(-.016.asMegaWatt)
+          flexResult.getpMin() should equalWithTolerance((-0.016).asMegaWatt)
           flexResult.getpMax() should equalWithTolerance(.006.asMegaWatt)
       }
 
@@ -532,6 +537,11 @@ class EmAgentWithServiceSpec
 
       pvAgent.expectNoMessage()
       evcsAgent.expectNoMessage()
+
+      service.expectMessageType[EmFlexMessage].message match {
+        case WaitingForData(model) =>
+          model shouldBe emInput.getUuid
+      }
 
       emAgent ! ProvideFlexOptions(
         evcsInput.getUuid,
