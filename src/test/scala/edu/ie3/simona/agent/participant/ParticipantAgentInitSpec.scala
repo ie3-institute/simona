@@ -7,6 +7,7 @@
 package edu.ie3.simona.agent.participant
 
 import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.datamodel.models.profile.PowerProfileKey
 import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
   ParticipantRefs,
   SimulationParameters,
@@ -14,6 +15,7 @@ import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
 import edu.ie3.simona.config.RuntimeConfig.{LoadRuntimeConfig, PvRuntimeConfig}
 import edu.ie3.simona.event.notifier.NotifierConfig
 import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
+import edu.ie3.simona.model.participant.load.MarkovLoadModel.MarkovLoadFactoryData
 import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
@@ -35,6 +37,7 @@ import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.simona.util.TickUtil.toDateTime
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import squants.Each
+import squants.energy.Kilowatts
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -306,6 +309,77 @@ class ParticipantAgentInitSpec
 
     }
 
+  }
+
+  "A ParticipantAgent with a Markov load model" should {
+
+    "register for the Markov load profile of its load" in {
+      val scheduler = createTestProbe[SchedulerMessage]()
+
+      val primaryService = createTestProbe[Any]()
+      val resultServiceProxy = createTestProbe[ResultServiceProxy.Message]()
+      val service = createTestProbe[Any]()
+
+      given ParticipantRefs = ParticipantRefs(
+        primaryServiceProxy = primaryService.ref,
+        resultServiceProxy = resultServiceProxy.ref,
+        services = Map(ServiceType.LoadProfileService -> service.ref),
+      )
+
+      val markovLoadInput = loadInput
+        .copy()
+        .loadProfile(new PowerProfileKey("h0", PowerProfileKey.Type.MARKOV))
+        .build()
+
+      val key = ScheduleLock.singleKey(TSpawner, scheduler.ref, PRE_INIT_TICK)
+      // lock activation scheduled
+      scheduler.expectMessageType[ScheduleActivation]
+
+      val participantAgent = spawn(
+        ParticipantAgentInit(
+          SimpleInputContainer(markovLoadInput),
+          LoadRuntimeConfig(modelBehaviour = "markov"),
+          mock[NotifierConfig],
+          Left(scheduler.ref),
+          key,
+        )
+      )
+
+      val scheduleMsg = scheduler.expectMessageType[ScheduleActivation]
+      scheduleMsg.tick shouldBe INIT_SIM_TICK
+      val activationRef = scheduleMsg.actor
+
+      activationRef ! Activation(INIT_SIM_TICK)
+
+      primaryService.expectMessage(
+        PrimaryServiceRegistrationMessage(participantAgent, loadInput.getUuid)
+      )
+
+      participantAgent ! RegistrationFailedMessage(primaryService.ref)
+
+      service.expectMessage(
+        SecondaryServiceRegistrationMessage(
+          participantAgent,
+          DataTimeType.Current,
+          markovLoadInput.getLoadProfile,
+        )
+      )
+
+      participantAgent ! RegistrationSuccessfulMessage(
+        service.ref,
+        0L,
+        Some(
+          MarkovLoadFactoryData(
+            Some(Kilowatts(4d)),
+            None,
+            900L,
+            (_, previousState, _) => (Kilowatts(1d), previousState),
+          )
+        ),
+      )
+
+      scheduler.expectMessage(Completion(activationRef, Some(0L)))
+    }
   }
 
   "A ParticipantAgent that is depending on an external service" when {
