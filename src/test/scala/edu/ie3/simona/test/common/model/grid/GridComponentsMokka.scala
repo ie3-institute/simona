@@ -11,7 +11,7 @@ import edu.ie3.simona.model.grid.*
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.*
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
-import edu.ie3.util.scala.quantities.Voltamperes
+import edu.ie3.util.quantities.energy.Voltamperes
 import org.mockito.Mockito.when
 import org.scalatestplus.mockito.MockitoSugar
 import squants.{Amperes, Percent}

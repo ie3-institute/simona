@@ -6,13 +6,12 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.linalg.max
-import breeze.math.*
-import breeze.numerics.pow
+import scala.math.{max, pow}
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.Transformer3WInput
 import edu.ie3.datamodel.models.input.connector.`type`.Transformer3WTypeInput
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.simona.exceptions.{
   InvalidActionRequestException,
   InvalidParameterException,
@@ -26,7 +25,7 @@ import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.quantities.energy.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,

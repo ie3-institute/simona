@@ -32,7 +32,7 @@ import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
-import edu.ie3.util.scala.quantities.{Kilovars, ReactivePower}
+import edu.ie3.util.quantities.energy.{Kilovars, ReactivePower}
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,

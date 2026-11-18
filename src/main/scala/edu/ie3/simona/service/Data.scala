@@ -10,8 +10,9 @@ import edu.ie3.datamodel.models.value.*
 import edu.ie3.simona.model.participant.evcs.EvModelWrapper
 import edu.ie3.simona.service.Data.PrimaryData.ComplexPower
 import edu.ie3.util.quantities.PowerSystemUnits
+import edu.ie3.util.quantities.energy.{Kilovars, ReactivePower}
+import edu.ie3.util.quantities.prices.EnergyPrice
 import edu.ie3.util.scala.quantities.DefaultQuantities.*
-import edu.ie3.util.scala.quantities.{EnergyPrice, Kilovars, ReactivePower}
 import squants.energy.{Kilowatts, Power}
 import squants.radio.Irradiance
 import squants.{Temperature, Velocity}
@@ -362,12 +363,18 @@ object Data {
       *   Temperature
       * @param windVel
       *   Wind velocity
+      * @param groundTempLvl3
+      *   Option of ground temperature at Level 3
+      * @param groundTempLvl4
+      *   Option of ground temperature at Level 4
       */
     final case class WeatherData(
         diffIrr: Irradiance,
         dirIrr: Irradiance,
         temp: Temperature,
         windVel: Velocity,
+        groundTempLvl3: Option[Temperature],
+        groundTempLvl4: Option[Temperature],
     ) extends SecondaryData
 
     /** Data class containing only the wholesale price.

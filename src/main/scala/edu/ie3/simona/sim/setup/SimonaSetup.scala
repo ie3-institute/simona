@@ -19,6 +19,8 @@ import edu.ie3.simona.agent.participant.{
   ParticipantAgent,
   ParticipantAgentFactory,
 }
+import edu.ie3.simona.api.data.SetupData
+import edu.ie3.simona.api.loading.{AddonLoader, JarLoader, ProvidedData}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.event.RuntimeEvent
 import edu.ie3.simona.event.listener.{ResultListener, RuntimeEventListener}
@@ -38,7 +40,7 @@ import edu.ie3.simona.service.results.ResultServiceProxy
 import edu.ie3.simona.service.weather.WeatherService
 import edu.ie3.simona.service.weather.WeatherService.InitWeatherServiceStateData
 import edu.ie3.simona.sim.SimonaSim
-import edu.ie3.simona.sim.setup.ExtSimSetup.setupExtSim
+import edu.ie3.simona.sim.setup.AddonSetup.setupAddons
 import edu.ie3.simona.util.ResultFileHierarchy
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.toTick
@@ -149,7 +151,7 @@ class SimonaSetup(
   def primaryServiceProxy(
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
-      extSimSetupData: ExtSimSetupData,
+      extSimSetupData: AddonSetupData,
   ): ActorRef[ServiceMessage] = {
     val simulationStart = simonaConfig.time.simStartTime
 
@@ -211,6 +213,7 @@ class SimonaSetup(
         scheduler,
         InitWeatherServiceStateData(
           simonaConfig.input.weather.datasource,
+          simonaConfig.input.weather.forecast,
           simonaConfig.time.simStartTime,
           simonaConfig.time.simEndTime,
         ),
@@ -238,6 +241,7 @@ class SimonaSetup(
           scheduler,
           InitPriceServiceStateData(
             dataSource,
+            simonaConfig.input.prices.forecast,
             simonaConfig.time.simStartTime,
           ),
           ScheduleLock.singleKey(context, scheduler, INIT_SIM_TICK),
@@ -272,8 +276,7 @@ class SimonaSetup(
       "loadProfileService",
     )
 
-  /** Loads external simulations and provides corresponding actors and init
-    * data.
+  /** Loads addons and provides corresponding actors and init data.
     *
     * @param context
     *   Actor context to use.
@@ -282,32 +285,33 @@ class SimonaSetup(
     * @param resultProxy
     *   Actor reference to the result provider.
     * @param extSimPath
-    *   Option for a directory with external simulations.
+    *   Option for a directory with addons.
     * @return
-    *   External simulations and their init data.
+    *   Addons and their init data.
     */
-  def extSimulations(
+  def addons(using
       context: ActorContext[?],
       scheduler: ActorRef[SchedulerMessage],
       resultProxy: ActorRef[ResultServiceProxy.Message],
       extSimPath: Option[Path],
-  ): ExtSimSetupData = {
-    val jars = ExtSimLoader.scanInputFolder(extSimPath)
-    val extLinks = jars.flatMap(ExtSimLoader.loadExtLink).toList
+  ): AddonSetupData = extSimPath match {
+    case Some(path) =>
+      val setupData = new SetupData(
+        args,
+        typeSafeConfig,
+        grid,
+        baseInputPath,
+        resultFileHierarchy.runOutputDir,
+      )
 
-    setupExtSim(
-      extLinks,
-      args,
-      typeSafeConfig,
-      grid,
-      baseInputPath,
-      resultFileHierarchy.runOutputDir,
-    )(using
-      context,
-      scheduler,
-      resultProxy,
-      simonaConfig.time.simStartTime,
-    )
+      val loader: Seq[AddonLoader] = Seq(new JarLoader())
+      val data = ProvidedData.empty()
+
+      loader.foreach(l => data.add(l.load(path, setupData)))
+
+      setupAddons(data)
+
+    case None => AddonSetupData.apply
   }
 
   /** Creates the time advancer.

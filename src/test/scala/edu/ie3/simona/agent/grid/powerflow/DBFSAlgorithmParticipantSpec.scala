@@ -48,7 +48,7 @@ import edu.ie3.simona.test.common.model.grid.DbfsTestGridWithParticipants
 import edu.ie3.simona.test.common.{ConfigTestData, TestSpawnerTyped}
 import edu.ie3.simona.util.ConfigUtil.{NotifierIdentifier, OutputConfigUtil}
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
-import edu.ie3.util.scala.quantities.Megavars
+import edu.ie3.util.quantities.energy.Megavars
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
   TestProbe,

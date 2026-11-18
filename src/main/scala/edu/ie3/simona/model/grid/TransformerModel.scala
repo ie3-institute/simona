@@ -6,8 +6,8 @@
 
 package edu.ie3.simona.model.grid
 
-import breeze.math.Complex
-import breeze.numerics.pow
+import edu.ie3.powerflow.math.Complex
+import scala.math.pow
 import edu.ie3.datamodel.exceptions.InvalidGridException
 import edu.ie3.datamodel.models.input.connector.{
   ConnectorPort,
@@ -17,7 +17,7 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.ApparentPower
+import edu.ie3.util.quantities.energy.ApparentPower
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,

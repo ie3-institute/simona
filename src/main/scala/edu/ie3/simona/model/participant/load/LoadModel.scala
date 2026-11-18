@@ -27,7 +27,7 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import edu.ie3.util.scala.quantities.{ApparentPower, Kilovoltamperes}
+import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import squants.{Energy, Power}
 
 import java.time.ZonedDateTime

@@ -6,7 +6,7 @@
 
 package edu.ie3.simona.agent.grid
 
-import breeze.math.Complex
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.datamodel.models.input.connector.ConnectorPort
 import edu.ie3.datamodel.models.result.NodeResult
 import edu.ie3.datamodel.models.result.connector.{
