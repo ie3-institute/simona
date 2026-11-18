@@ -19,6 +19,7 @@ import edu.ie3.simona.agent.grid.data.GridAgentData.{
 }
 import edu.ie3.simona.model.control.TappingGroupModel
 import edu.ie3.simona.model.grid.Transformer3wPowerFlowCase.{
+  PowerFlowCaseA,
   PowerFlowCaseB,
   PowerFlowCaseC,
 }
@@ -112,6 +113,8 @@ trait TransformerTapPositionChange {
       )
       val transformers3w = gridComponents.transformers3w.filter { t =>
         t.powerFlowCase match {
+          case PowerFlowCaseA =>
+            nodesInSuperiorGrid.contains(t.hvNodeUuid)
           case PowerFlowCaseB =>
             nodesInSuperiorGrid.contains(t.hvNodeUuid)
           case PowerFlowCaseC =>

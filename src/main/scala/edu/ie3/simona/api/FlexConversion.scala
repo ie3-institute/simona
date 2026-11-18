@@ -50,7 +50,7 @@ object FlexConversion {
       case setPoint: SetPoint.AggregatedSetPoint if setPoint.power.isPresent =>
         IssuePowerControl(tick, convertPower(setPoint.power.get))
 
-      case setPoint: SetPoint.AggregatedSetPoint =>
+      case _: SetPoint.AggregatedSetPoint =>
         IssueNoControl(tick)
 
       case setPoint: SetPoint.DisaggregatedSetPoints =>

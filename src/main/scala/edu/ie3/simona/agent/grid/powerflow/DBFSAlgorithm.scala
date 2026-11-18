@@ -124,7 +124,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
           // the tick should not have changed
           simulateGrid(gridAgentBaseData, currentTick)
-
         // if we receive power values as response on our request, we process them here
         case (
               receivedValue: ReceivedValue,
@@ -139,11 +138,6 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
 
               case receivedSlack: SlackVoltageResponse =>
                 gridAgentBaseData.updateWithSlackVoltageResponse(receivedSlack)
-
-              case unknownReceivedValues =>
-                throw new DBFSAlgorithmException(
-                  s"Received unknown values: $unknownReceivedValues"
-                )
             }
 
           // check if we have enough data for a power flow calculation or a
@@ -475,6 +469,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
           )
           buffer.stash(requestGridPower)
           Behaviors.same
+
+        case (msg, _) =>
+          unsupported(msg, ctx.log)
+          Behaviors.same
       }
   }
 
@@ -740,6 +738,10 @@ trait DBFSAlgorithm extends PowerFlowSupport with GridResultsSupport {
             s"Received the message $requestGridPower too early. Stashing away!"
           )
           buffer.stash(requestGridPower)
+          Behaviors.same
+
+        case (msg, _) =>
+          unsupported(msg, ctx.log)
           Behaviors.same
       }
   }

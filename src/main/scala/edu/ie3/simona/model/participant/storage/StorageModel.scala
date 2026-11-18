@@ -176,7 +176,7 @@ class StorageModel private (
       data.p.toMegawatts.asMegaWatt,
       data.q.toMegavars.asMegaVar,
       // Stored energy currently not supported by primary data time series
-      -1.asPu,
+      (-1).asPu,
     )
 
   override def determineOperatingPoint(
