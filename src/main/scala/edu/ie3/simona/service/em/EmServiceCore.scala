@@ -42,7 +42,6 @@ import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
-import java.time.ZonedDateTime
 import java.util.{OptionalLong, UUID}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -790,7 +789,7 @@ object EmServiceCore {
     def clear(): Unit = {
       receivedActivation = false
       disaggregated = false
-      awaitedFlexOptions.clear
+      awaitedFlexOptions.clear()
       awaitedSetPoint = false
       waitingForInternal = false
     }

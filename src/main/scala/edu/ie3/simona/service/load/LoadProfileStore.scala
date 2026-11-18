@@ -22,7 +22,6 @@ import java.time.ZonedDateTime
 import java.util.Optional
 import javax.measure.quantity.{Energy, Power}
 import scala.jdk.CollectionConverters.*
-import scala.jdk.FunctionConverters.enrichAsScalaFromSupplier
 import scala.jdk.OptionConverters.RichOptional
 
 /** Container class that stores all loaded load profiles.
