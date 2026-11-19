@@ -33,7 +33,9 @@ object ConstantPowerCharging extends EvcsChargingStrategy {
         ev.eStorage * chargingProps.departureTargetSoc - ev.storedEnergy
 
       val chargingPower =
-        maxChargingPower.min(requiredEnergyUntilTarget / timeToDeparture)
+        maxChargingPower.min(
+          requiredEnergyUntilTarget / timeToDeparture / ev.etaCharging.toEach
+        )
 
       ev.uuid -> chargingPower
     }
