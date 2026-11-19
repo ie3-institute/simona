@@ -62,7 +62,7 @@ object FlexConversion {
         IssueDisaggregatedControl(tick, setPowers)
 
       case other =>
-        throw new FlexException(s"Cannot convert set point: $other")
+        throw new FlexException("Cannot convert null set point")
     }
 
   def convert(receiver: UUID, ctrlMsg: IssueFlexControl): SetPoint =

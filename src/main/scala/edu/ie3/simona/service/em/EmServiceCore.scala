@@ -247,7 +247,7 @@ case class EmServiceCore(
 
       } else (updatedState, None)
 
-    case other =>
+    case _ =>
       throw new CriticalFailureException(
         s"The EmServiceBaseCore is not able to handle the message: $extMsg"
       )
@@ -316,6 +316,10 @@ case class EmServiceCore(
               handleFlexResponse(tick, flexResponse, Right(ref))
             }
         }
+      case other =>
+        throw new CriticalFailureException(
+          s"Unexpected service response in EMServiceCore: $other"
+        )
     }
 
   /** Method to handle the set points provided by the external simulation.
@@ -577,7 +581,7 @@ case class EmServiceCore(
           emDataStore.addData(modelUuid, result)
         } else emDataStore
 
-      case _ => emDataStore
+      case null => emDataStore
     }
 
     if updated.isComplete then {

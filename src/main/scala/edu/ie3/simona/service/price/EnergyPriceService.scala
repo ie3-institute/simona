@@ -250,7 +250,8 @@ object EnergyPriceService extends SimonaService {
                   )
                 }
               }
-
+          case Failure(exception) =>
+            Failure(exception)
         }).flatMap { source =>
           TimeSeriesUtil
             .getTicksAdaptedToSimulation(
@@ -276,7 +277,6 @@ object EnergyPriceService extends SimonaService {
         }
 
     }
-
   }
 
   override protected def handleRegistrationRequest(

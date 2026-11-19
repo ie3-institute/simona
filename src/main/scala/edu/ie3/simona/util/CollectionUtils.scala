@@ -54,7 +54,7 @@ object CollectionUtils {
     * @return
     *   The created map.
     */
-  def emptyOptionMap[K, V](keys: Set[K]): Map[K, Option[V]] =
+  private def emptyOptionMap[K, V](keys: Set[K]): Map[K, Option[V]] =
     keys.map(key => key -> None).toMap
 
   /** fast implementation to test if a list contains duplicates. See
@@ -105,30 +105,6 @@ object CollectionUtils {
     list match {
       case Nil          => true
       case head :: tail => !set(head) && isUniqueList(tail, set + head)
-    }
-
-  /** Checks if the provided list is sorted in accordance to the provided
-    * ordering
-    *
-    * @param list
-    *   the list to be checked
-    * @param ord
-    *   the order
-    * @tparam T
-    *   element type
-    * @return
-    *   true if the list is sorted according to the provided order, false
-    *   otherwise
-    */
-  @tailrec
-  private def isSorted[T](list: List[T])(implicit ord: Ordering[T]): Boolean =
-    list match {
-      case Nil      => true // an empty list is sorted
-      case _ :: Nil => true // a single-element list is sorted
-      case x :: xs :: tail =>
-        ord.lteq(x, xs) && isSorted(
-          xs :: tail
-        ) // if the first two elements are ordered and the rest are sorted, the full list is sorted too
     }
 
   /** Given a map with doubles (e.g. x,y pairs) and a provided key the closest

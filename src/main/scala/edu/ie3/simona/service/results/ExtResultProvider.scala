@@ -143,8 +143,8 @@ object ExtResultProvider {
             )
 
             provider(stateData.copy(lastTick = tick))
-          case other =>
-            ctx.log.warn(s"Cannot handle external result message: $other")
+          case null =>
+            ctx.log.warn("Received a null external result message.")
             Behaviors.same
         }
 

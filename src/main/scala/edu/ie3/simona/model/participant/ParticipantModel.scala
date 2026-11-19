@@ -112,8 +112,8 @@ abstract class ParticipantModel[
     */
   def handleInput(
       state: S,
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
+      _receivedData: Seq[Data],
+      _nodalVoltage: Dimensionless,
   ): S = state
 
   /** Returns a partial function that transfers the current nodal voltage and
