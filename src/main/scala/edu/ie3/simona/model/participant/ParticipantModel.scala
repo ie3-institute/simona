@@ -10,18 +10,12 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.ParticipantModel.{
-  ModelState,
-  OperatingPoint,
-}
+import edu.ie3.simona.model.participant.ParticipantModel.{ModelState, OperatingPoint}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.FlexType
-import edu.ie3.simona.service.Data.PrimaryData.{
-  ComplexPower,
-  PrimaryDataWithComplexPower,
-}
+import edu.ie3.simona.service.Data.PrimaryData.{ComplexPower, PrimaryDataWithComplexPower}
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.energy.{ApparentPower, ReactivePower}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -31,6 +25,7 @@ import squants.energy.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.annotation.unused
 
 /** Abstract model of a system participant that provides methods for determining
   * state and operating point.
@@ -112,8 +107,8 @@ abstract class ParticipantModel[
     */
   def handleInput(
       state: S,
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
+      @unused receivedData: Seq[Data],
+      @unused nodalVoltage: Dimensionless,
   ): S = state
 
   /** Returns a partial function that transfers the current nodal voltage and

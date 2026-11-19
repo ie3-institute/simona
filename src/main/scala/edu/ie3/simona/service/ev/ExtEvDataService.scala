@@ -389,6 +389,11 @@ object ExtEvDataService extends SimonaService with ExtDataSupport {
             freeLots = ReceiveDataMap.empty
           )
         }
+
+      case _: EmFlexMessage =>
+        throw new CriticalFailureException(
+          "Received an unexpected EM flex message in ExtEvDataService."
+        )
     }
   }
 }

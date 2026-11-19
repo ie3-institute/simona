@@ -50,7 +50,7 @@ object FlexConversion {
       case setPoint: SetPoint.AggregatedSetPoint if setPoint.power.isPresent =>
         IssuePowerControl(tick, convertPower(setPoint.power.get))
 
-      case setPoint: SetPoint.AggregatedSetPoint =>
+      case _: SetPoint.AggregatedSetPoint =>
         IssueNoControl(tick)
 
       case setPoint: SetPoint.DisaggregatedSetPoints =>
@@ -61,8 +61,8 @@ object FlexConversion {
 
         IssueDisaggregatedControl(tick, setPowers)
 
-      case other =>
-        throw new FlexException(s"Cannot convert set point: $other")
+      case null =>
+        throw new FlexException("Cannot convert null set point")
     }
 
   def convert(receiver: UUID, ctrlMsg: IssueFlexControl): SetPoint =

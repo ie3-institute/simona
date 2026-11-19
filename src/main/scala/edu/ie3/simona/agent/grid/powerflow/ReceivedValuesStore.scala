@@ -13,7 +13,7 @@ import edu.ie3.simona.agent.grid.GridAgentMessages.Responses.{
 }
 import edu.ie3.simona.agent.grid.data.GridAgentData.GridAgentRef
 import edu.ie3.simona.agent.grid.powerflow.ReceivedValuesStore.*
-import edu.ie3.simona.agent.grid.{GridAgent, GridEnvironment}
+import edu.ie3.simona.agent.grid.GridEnvironment
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.util.scala.collection.immutable.RichMultiMap.MultiMap
 import org.apache.pekko.actor.typed.ActorRef

@@ -37,7 +37,7 @@ object ResultListener {
       response: Map[Class[?], ResultEntitySink]
   ) extends Request
 
-  private final case class InitFailed(ex: Exception) extends Request
+  private final case class InitFailed(ex: Throwable) extends Request
 
   /** [[ResultListener]] base data containing all information the listener needs
     *
@@ -217,8 +217,8 @@ object ResultListener {
         ResultListener.initializeSinks(resultFileHierarchy)
       )
     ) {
-      case Failure(exception: Exception) => InitFailed(exception)
-      case Success(result)               => SinkResponse(result.toMap)
+      case Failure(exception) => InitFailed(exception)
+      case Success(result)    => SinkResponse(result.toMap)
     }
 
     init

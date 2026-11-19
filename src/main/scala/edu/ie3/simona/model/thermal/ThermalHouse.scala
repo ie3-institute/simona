@@ -67,11 +67,11 @@ import java.util.UUID
   *   number of people living in the building
   */
 final case class ThermalHouse(
-    uuid: UUID,
-    id: String,
-    operatorInput: OperatorInput,
-    operationTime: OperationTime,
-    bus: ThermalBusInput,
+    override val uuid: UUID,
+    override val id: String,
+    override val operatorInput: OperatorInput,
+    override val operationTime: OperationTime,
+    override val bus: ThermalBusInput,
     ethLosses: ThermalConductance,
     ethCapa: ThermalCapacity,
     targetTemperature: Temperature,
