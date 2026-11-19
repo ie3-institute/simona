@@ -159,6 +159,12 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
               None,
             )
           }
+
+        case ((_, Some(_)), _) =>
+          throw new CriticalFailureException(
+            "Expected a system participant with power-limit flex options."
+          )
+
         case ((issueCtrlMsgs, None), (_, _)) =>
           // if no excess feed-in remains, do nothing
           (issueCtrlMsgs, None)
@@ -211,6 +217,12 @@ final case class PrioritizedFlexStrat(curtailRegenerative: Boolean)
               None,
             )
           }
+
+        case ((_, Some(_)), _) =>
+          throw new CriticalFailureException(
+            "Expected a system participant with power-limit flex options."
+          )
+
         case ((issueCtrlMsgs, None), (_, _)) =>
           // if no excess load remains, do nothing
           (issueCtrlMsgs, None)

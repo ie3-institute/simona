@@ -287,6 +287,8 @@ case class EmServiceCore(
 
         receiver match {
           case ref: ActorRef[FlexRequest] =>
+            val flexRequestRef =
+              ref.asInstanceOf[ActorRef[FlexRequest]]
             if tick == INIT_SIM_TICK then {
               ref ! flexRequest
 

@@ -61,7 +61,7 @@ object FlexConversion {
 
         IssueDisaggregatedControl(tick, setPowers)
 
-      case other =>
+      case null =>
         throw new FlexException("Cannot convert null set point")
     }
 

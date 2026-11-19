@@ -211,9 +211,9 @@ object PrimaryServiceWorker extends SimonaService {
         )
     }).flatMap {
       case (
-            source: TimeSeriesSource[Value],
+            source: TimeSeriesSource[Value @unchecked],
             simulationStart,
-            valueClass: Class[Value],
+            valueClass: Class[Value @unchecked],
           ) =>
         TimeSeriesUtil
           .getTicksAdaptedToSimulation(

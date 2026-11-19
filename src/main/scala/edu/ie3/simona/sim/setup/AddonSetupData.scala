@@ -14,7 +14,8 @@ import edu.ie3.simona.service.ev.ExtEvDataService
 import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
 import edu.ie3.simona.service.results.ExtResultProvider
 import org.apache.pekko.actor.typed.ActorRef
-import org.slf4j.Logger
+
+import scala.annotation.unused
 
 /** Case class that holds information regarding the external data connections as
   * well as the actor references of the created services.
@@ -44,41 +45,28 @@ final case class AddonSetupData(
 ) {
 
   private[setup] def update(
-      connection: ExtPrimaryDataConnection,
-      ref: ActorRef[ExtPrimaryServiceWorker.Message],
-  ): AddonSetupData =
-    copy(primaryDataServices = primaryDataServices ++ Seq((connection, ref)))
+                             @unused connection: ExtEmDataConnection,
+                             ref: ActorRef[ExtEmDataService.Message],
+                           ): AddonSetupData =
+    copy(emDataService = Some(ref))
 
   private[setup] def update(
-      connection: ExtDataConnection,
-      ref: ActorRef[?],
-  )(using log: Logger): AddonSetupData = (connection, ref) match {
-    case (
-          primaryConnection: ExtPrimaryDataConnection,
-          serviceRef: ActorRef[ExtPrimaryServiceWorker.Message],
-        ) =>
-      update(primaryConnection, serviceRef)
-    case (
-          _: ExtEmDataConnection,
-          serviceRef: ActorRef[ExtEmDataService.Message],
-        ) =>
-      copy(emDataService = Some(serviceRef))
-    case (
-          _: ExtEvDataConnection,
-          serviceRef: ActorRef[ExtEvDataService.Message],
-        ) =>
-      copy(evDataService = Some(serviceRef))
-    case (_: ExtResultListener, serviceRef: ActorRef[ResultListener.Message]) =>
-      copy(resultListeners = resultListeners ++ Seq(serviceRef))
-    case (
-          _: ExtResultDataConnection,
-          serviceRef: ActorRef[ExtResultProvider.Message],
-        ) =>
-      copy(resultProviders = resultProviders ++ Seq(serviceRef))
-    case (con, ref) =>
-      log.warn(s"Cannot add service $ref with connection: $con")
-      this
-  }
+                             @unused connection: ExtEvDataConnection,
+                             ref: ActorRef[ExtEvDataService.Message],
+                           ): AddonSetupData =
+    copy(evDataService = Some(ref))
+
+  private[setup] def update(
+                             @unused connection: ExtResultListener,
+                             ref: ActorRef[ResultListener.Message],
+                           ): AddonSetupData =
+    copy(resultListeners = resultListeners :+ ref)
+
+  private[setup] def update(
+                             @unused connection: ExtResultDataConnection,
+                             ref: ActorRef[ExtResultProvider.Message],
+                           ): AddonSetupData =
+    copy(resultProviders = resultProviders :+ ref)
 
   private[setup] def updateAdapter(
       extSimAdapter: ActorRef[ExtSimAdapter.Request]
