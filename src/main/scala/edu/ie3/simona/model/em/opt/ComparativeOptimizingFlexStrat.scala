@@ -15,25 +15,24 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   TimeParams,
 }
 import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
+import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
 import edu.ie3.simona.model.em.opt.impl.{
   CommonLossObjectiveFactory,
   ObjectiveFactory,
   SignedEnergyVariableObjectiveFactory,
   SplitPowerVarsObjectiveFactory,
 }
-import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
-import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.{DataTimeType, ServiceRegistrationData}
 import optimus.optimization.enums.{SolutionStatus, SolverLib}
 import org.slf4j.{Logger, LoggerFactory}
-import squants.energy.EnergyConversions.EnergyNumeric
 import squants.{Power, Time}
 
-import scala.util.Random
 import java.util.UUID
 import scala.collection.immutable.SortedMap
+import scala.util.Random
 
 final case class ComparativeOptimizingFlexStrat(
     sampleTime: Time,
@@ -103,39 +102,9 @@ final case class ComparativeOptimizingFlexStrat(
         throw new CriticalFailureException("Reference model not found.")
       )
 
-    val referenceObjValue = referenceResult.objectiveValue.getOrElse(
-      throw new CriticalFailureException(
-        s"$referenceModelId: Reference optimization failed: $referenceResult"
-      )
-    )
-
     results.to(SortedMap).foreach { case (id, result) =>
       if result.solutionStatus != SolutionStatus.OPTIMAL then
         logger.warn(s"$id: Optimization ended with ${result.solutionStatus}")
-      else {
-        // there should always be an objective value here, since solution status is optimal
-        val objValue = result.objectiveValue.getOrElse(
-          throw new CriticalFailureException(
-            s"$id: Objective value not provided."
-          )
-        )
-        val objValueRelError = math.abs(objValue - referenceObjValue)
-
-        val stateCalcError = result.assetSymbols
-          .flatMap(_.getStateCalcErrors)
-          .sum
-
-        val totalTime =
-          (result.timeMeasurements.variables + result.timeMeasurements.objectiveFunction + result.timeMeasurements.constraints + result.timeMeasurements.solution).toDouble / 1000000d
-
-        if id.equals("OPT_CLM_SC_PS") && objValueRelError > 0.5 then
-          logger.warn("!")
-
-        // if objValueRelError > 1e-9 || stateCalcError > WattHours(1e-6) then
-        logger.warn(
-          s"$id: Objective error $objValueRelError compared to $referenceModelId, state calc error $stateCalcError, total time: $totalTime ms"
-        )
-      }
     }
 
     FlexibilityOptimization.extractSetPoints(flexOptionsById, referenceResult)
