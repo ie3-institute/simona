@@ -68,7 +68,7 @@ abstract class CommonLossObjectiveFactory
 
       case varPower: VariablePowerStepParameters =>
         val etaCh = varPower.etaCharge
-        val etaDis = varPower.etaCharge
+        val etaDis = varPower.etaDischarge
 
         // modeling the operating point (power),
         // valid between previous and new state
