@@ -17,7 +17,10 @@ import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceSingleCable.*
 import edu.ie3.simona.model.grid.ampacity.SoilTypeExtensions.*
 import edu.ie3.simona.test.common.input.LineSegmentThermalModelInputData
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec}
-import edu.ie3.util.quantities.PowerSystemUnits.{JOULE_PER_CUBIC_METRE_KELVIN, KELVIN_METRE_PER_WATT}
+import edu.ie3.util.quantities.PowerSystemUnits.{
+  JOULE_PER_CUBIC_METRE_KELVIN,
+  KELVIN_METRE_PER_WATT,
+}
 import edu.ie3.util.quantities.electro.{OhmsPerMeter, SpecificResistance}
 import edu.ie3.util.quantities.energy.{PowerPerLength, WattsPerMeter}
 import edu.ie3.util.quantities.thermal.*

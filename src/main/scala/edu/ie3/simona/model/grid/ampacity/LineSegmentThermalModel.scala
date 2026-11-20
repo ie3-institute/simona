@@ -9,7 +9,10 @@ package edu.ie3.simona.model.grid.ampacity
 import edu.ie3.datamodel.models.StandardUnits
 import edu.ie3.datamodel.models.input.SoilType
 import edu.ie3.datamodel.models.result.thermal.ThermalLineSegmentResult
-import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{LineState, SoilLayerInfo}
+import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.{
+  LineState,
+  SoilLayerInfo,
+}
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.*
 import edu.ie3.simona.model.grid.ampacity.RCNetworkCalculations.*
 import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.*
@@ -19,7 +22,11 @@ import edu.ie3.simona.service.Data
 import edu.ie3.simona.service.Data.SecondaryData.{CurrentVoltage, WeatherData}
 import edu.ie3.simona.util.TickUtil.toDateTime
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
-import edu.ie3.util.quantities.thermal.{JoulesPerMeterKelvin, ThermalCapacityPerLength, ThermalResistivity}
+import edu.ie3.util.quantities.thermal.{
+  JoulesPerMeterKelvin,
+  ThermalCapacityPerLength,
+  ThermalResistivity,
+}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.ElectricPotential
 import squants.space.{Length, Meters, SquareMeters}

@@ -7,7 +7,10 @@
 package edu.ie3.util.quantities
 
 import edu.ie3.util.quantities.electro.FaradsPerKilometer
-import edu.ie3.util.quantities.energy.{KilowattHoursPerCubicMeter, WattsPerMeter}
+import edu.ie3.util.quantities.energy.{
+  KilowattHoursPerCubicMeter,
+  WattsPerMeter,
+}
 import edu.ie3.util.quantities.radio.WattHoursPerSquareMeter
 import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
 import edu.ie3.util.scala.quantities.SquantsUtils.*
@@ -64,7 +67,6 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
     )
     actual.toWattsPerMeter shouldBe (10 * math.Pi) +- 1e-9
   }
-
 
   it should "calculate the dielectric losses of a Capacitance correctly" in {
     // Reference: // CIGRÉ Working Group B1.56, “Power cable rating examples for calculation tool verification, TB 880, p 198f
