@@ -99,7 +99,11 @@ object FlexibilityOptimization {
           )
 
           val tightenedFlex =
-            EnergyBoundariesFlexOptions.tighten(flex, params.timeParams.ticks)
+            EnergyBoundariesFlexOptions.tighten(
+              flex,
+              params.timeParams.sampleTime,
+              params.timeParams.predictionHorizon,
+            )
 
           val resultsByTick = container.resultsByTick(params.timeParams.ticks)
 
@@ -193,7 +197,11 @@ object FlexibilityOptimization {
     val adaptedFlexOptionsById =
       if params.tightenBoundaries then
         params.flexOptionsById.map { case (uuid, fo) =>
-          uuid -> EnergyBoundariesFlexOptions.tighten(fo, ticks)
+          uuid -> EnergyBoundariesFlexOptions.tighten(
+            fo,
+            params.timeParams.sampleTime,
+            params.timeParams.predictionHorizon,
+          )
         }
       else params.flexOptionsById
 

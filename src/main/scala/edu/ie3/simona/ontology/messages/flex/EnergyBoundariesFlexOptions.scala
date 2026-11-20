@@ -16,6 +16,7 @@ import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.{
   IssueNoControl,
   IssuePowerControl,
 }
+import edu.ie3.simona.service.DataTimeType
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.quantities.QuantityUtils.{asMegaWatt, asMegaWattHour}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
@@ -24,7 +25,7 @@ import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.PowerConversions.PowerNumeric
 import squants.energy.WattHours
 import squants.time.Seconds
-import squants.{Dimensionless, Energy, Power}
+import squants.{Dimensionless, Energy, Power, Time}
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -156,18 +157,22 @@ object EnergyBoundariesFlexOptions
     *
     * @param flexOptions
     *   The energy boundaries flex options to adapt.
-    * @param ticks
-    *   The ticks to base the adapted boundaries on.
+    * @param sampleTime
+    *   The sample time of the flex options, i.e. the amount of time between
+    *   steps.
+    * @param predictionHorizon
+    *   The total amount of time that the flex options stretch into the future.
     * @return
     *   The adapted flex options.
     */
   def tighten(
       flexOptions: EnergyBoundariesFlexOptions,
-      ticks: Seq[Long],
+      sampleTime: Time,
+      predictionHorizon: Time,
   ): EnergyBoundariesFlexOptions =
     EnergyBoundariesFlexOptions(
       flexOptions.energyBoundaries.map(
-        AssetEnergyBoundaries.tighten(_, ticks)
+        AssetEnergyBoundaries.tighten(_, sampleTime, predictionHorizon)
       )
     )
 
@@ -369,15 +374,19 @@ object EnergyBoundariesFlexOptions
       *
       * @param boundaries
       *   The energy boundaries to adapt.
-      * @param ticks
-      *   The ticks to base the adapted boundaries on. The first tick needs to
-      *   be equal to or later than the first tick of the original boundaries.
+      * @param sampleTime
+      *   The sample time of the flex options, i.e. the amount of time between
+      *   steps.
+      * @param predictionHorizon
+      *   The total amount of time that the flex options stretch into the
+      *   future.
       * @return
       *   The adapted energy boundaries.
       */
     def tighten(
         boundaries: AssetEnergyBoundaries,
-        ticks: Seq[Long],
+        sampleTime: Time,
+        predictionHorizon: Time,
     ): AssetEnergyBoundaries = {
       // tolerance for adapted boundaries overlapping
       given tolerance: Energy = WattHours(1e-6)
@@ -386,13 +395,18 @@ object EnergyBoundariesFlexOptions
 
       if energyLimits.nonEmpty then {
 
-        val adaptedTicks = boundaries.tickDisconnect
-          .map { tickDisconnect =>
-            // we only determine energy until tickDisconnect
-            // (after that, the asset is unavailable)
-            ticks.takeWhile(_ <= tickDisconnect)
-          }
-          .getOrElse(ticks)
+        val firstTick = boundaries.energyLimits.headOption
+          .map { case (tick, _) => tick }
+          .getOrElse(throw new CriticalFailureException(s"Empty energy limits"))
+        val totalLength = boundaries.tickDisconnect
+          .map(tickDisconnect => Seconds(tickDisconnect - firstTick))
+          .getOrElse(predictionHorizon)
+
+        val ticks = DataTimeType.createTicks(
+          totalLength,
+          sampleTime,
+          firstTick,
+        )
 
         val throwMissing: Long => Nothing = tick =>
           throw new CriticalFailureException(
@@ -400,22 +414,19 @@ object EnergyBoundariesFlexOptions
           )
 
         // fill in missing values
-        adaptedTicks.foreach { tick =>
+        ticks.foreach { tick =>
           energyLimits.maxBefore(tick + 1).map { case (_, limits) =>
             energyLimits.update(tick, limits)
           }
         }
 
         // tighten bounds of first state
-        val firstTick = adaptedTicks.headOption.getOrElse(
-          throw new CriticalFailureException("Empty ticks")
-        )
         val firstNewLimits =
           new ClosedInterval(boundaries.currentEnergy, boundaries.currentEnergy)
         energyLimits.update(firstTick, firstNewLimits)
 
         // update in forwards direction
-        adaptedTicks.sliding(2).foreach {
+        ticks.sliding(2).foreach {
           case Seq(leftTick, rightTick) =>
             val sampleTime = Seconds(rightTick - leftTick)
             val leftLimits =
@@ -464,11 +475,11 @@ object EnergyBoundariesFlexOptions
             // assets constraints need to be created at least for two time steps
             // (including eventual tickDisconnect restrictions)
             throw new CriticalFailureException(
-              s"Asset energy boundaries need at least two steps (actual size: ${adaptedTicks.size})."
+              s"Asset energy boundaries need at least two steps (actual size: ${ticks.size})."
             )
         }
 
-        adaptedTicks.reverse
+        ticks.reverse
           .sliding(2)
           .foreach {
             case Seq(rightTick, leftTick) =>
@@ -519,7 +530,7 @@ object EnergyBoundariesFlexOptions
               // assets constraints need to be created at least for two time steps
               // (including eventual tickDisconnect restrictions)
               throw new CriticalFailureException(
-                s"Asset energy boundaries need at least two steps (actual size: ${adaptedTicks.size})."
+                s"Asset energy boundaries need at least two steps (actual size: ${ticks.size})."
               )
           }
 
