@@ -25,20 +25,30 @@ import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.CigreT880LandCable33kV
 import edu.ie3.simona.util.Coordinate
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.quantities.thermal.JoulesPerCubicMeterKelvin
-import org.locationtech.jts.geom.{GeometryFactory, Coordinate as JtsCoordinate}
+import org.locationtech.jts.geom.{
+  Geometry,
+  GeometryFactory,
+  Coordinate as JtsCoordinate,
+}
 import org.locationtech.jts.linearref.LengthIndexedLine
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import squants.Meters
-import squants.space.{Length, Millimeters, SquareMeters}
+import squants.space.Length
 import squants.thermal.Celsius
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.*
 
 import java.nio.file.{Files, Path}
-import java.util.UUID
-import scala.collection.mutable.ListBuffer
+import java.util.{
+  Collections,
+  Comparator,
+  Optional,
+  UUID,
+  List as JList,
+  Map as JMap,
+}
+import scala.collection.mutable.{ListBuffer, Set as MutableSet}
 import scala.jdk.CollectionConverters.*
 
 class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
@@ -106,7 +116,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     )
 
   private def run(
-      coordinates: Seq[(Double, Double)],
+      coordinates: Seq[Coordinate],
       cableDepth: Length,
       soilLayers: Seq[SoilLayer],
       neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] = Seq.empty,
@@ -118,7 +128,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       ListBuffer[ThermalSegmentBuilder.BuiltSegment],
   ) = {
     val generatedSegments = ListBuffer.empty[ThermalSegmentBuilder.BuiltSegment]
-    val warnedPairs = scala.collection.mutable.Set.empty[(UUID, UUID)]
+    val warnedPairs = MutableSet.empty[(UUID, UUID)]
     val context = ThermalSegmentBuilder.SegmentBuildContext(
       lineInput,
       cable,
@@ -138,7 +148,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     (segments, generatedSegments)
   }
   private def makeContext(
-      coordinates: Seq[(Double, Double)],
+      coordinates: Seq[Coordinate],
       soilLayers: Seq[SoilLayer],
       neighbourLines: Seq[ThermalSegmentBuilder.NeighbourLineInfo] = Seq.empty,
       ppThreshold: Option[Double] = None,
@@ -147,7 +157,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
   ): ThermalSegmentBuilder.SegmentBuildContext = {
     val generatedSegments =
       ListBuffer.empty[ThermalSegmentBuilder.BuiltSegment]
-    val warnedPairs = scala.collection.mutable.Set.empty[(UUID, UUID)]
+    val warnedPairs = MutableSet.empty[(UUID, UUID)]
     ThermalSegmentBuilder.SegmentBuildContext(
       lineInput,
       cable,
@@ -167,7 +177,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
   private def straightLine(
       start: (Double, Double),
       end: (Double, Double),
-  ): (org.locationtech.jts.geom.Geometry, LengthIndexedLine) = {
+  ): (Geometry, LengthIndexedLine) = {
     val jtsLine = geometryFactory.createLineString(
       Array(
         new JtsCoordinate(start._1, start._2),
@@ -180,7 +190,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
   private def makeSegment(): ThermalSegmentBuilder.BuiltSegment = {
     val layer = makeSoilLayer(0.0, -0.1, 1.0, 0.1)
     val (_, generated) = run(
-      Seq((0.0, 0.0), (1.0, 0.0)),
+      Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
       Meters(-1.0),
       Seq(layer),
     )
@@ -220,7 +230,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val rightLayer = makeSoilLayer(0.5, -0.1, 1.0, 0.1)
 
       val (segments, generated) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(leftLayer, rightLayer),
       )
@@ -240,7 +250,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val layer = makeSoilLayer(-0.5, -0.1, 1.5, 0.1, 0.0, -2.0)
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
       )
@@ -266,7 +276,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val layer = makeSoilLayer(0.0, -0.1, 2.0, 0.1, 0.0, -2.0)
 
       val (segments, generated) = run(
-        Seq((0.0, 0.0), (1.0, 0.0), (2.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0), Coordinate(0.0, 2.0)),
         Meters(-1.0),
         Seq(layer),
       )
@@ -281,7 +291,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
       an[GridAgentInitializationException] should be thrownBy {
         run(
-          Seq((0.0, 0.0), (1.0, 0.0)),
+          Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
           Meters(-1.0),
           Seq(layer),
         )
@@ -293,7 +303,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
       an[GridAgentInitializationException] should be thrownBy {
         run(
-          Seq((0.0, 0.0), (1.0, 0.0)),
+          Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
           Meters(-1.0),
           Seq(layer),
         )
@@ -304,7 +314,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val layer = makeSoilLayer(0.0, -0.1, 1.0, 0.1, 0.0, -2.0)
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
       )
@@ -328,7 +338,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val layer = makeSoilLayer(0.0, -0.1, 1.0, 0.1, 0.0, -2.0)
 
       val (segments, generated) = run(
-        Seq((0.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0)),
         Meters(-1.0),
         Seq(layer),
       )
@@ -342,12 +352,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
@@ -372,12 +382,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.2, 0.00004), (0.8, 0.00004)),
+        Seq(Coordinate(0.00004, 0.2), Coordinate(0.00004, 0.8)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
@@ -396,12 +406,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.0005), (0.7, 0.0005)),
+        Seq(Coordinate(0.0005, 0.3), Coordinate(0.0005, 0.7)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
@@ -417,12 +427,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.5, -0.0005), (0.5, 0.0005)),
+        Seq(Coordinate(-0.0005, 0.5), Coordinate(0.0005, 0.5)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
@@ -441,12 +451,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.00004, 0.000005), (0.00006, 0.000005)),
+        Seq(Coordinate(0.000005, 0.00004), Coordinate(0.000005, 0.00006)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (0.0001, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 0.0001)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
@@ -462,12 +472,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
@@ -483,12 +493,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = false,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour),
@@ -505,17 +515,17 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbour2Uuid = UUID.randomUUID()
       val neighbour1 = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbour1Uuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
       val neighbour2 = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbour2Uuid,
-        Seq((0.3, -0.00005), (0.7, -0.00005)),
+        Seq(Coordinate(-0.00005, 0.3), Coordinate(-0.00005, 0.7)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(neighbour1, neighbour2),
@@ -534,12 +544,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val layer = makeSoilLayer(-1.0, -1.0, 2.0, 1.0, 0.0, -2.0)
       val selfNeighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         lineUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
 
       val (segments, _) = run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         Seq(layer),
         neighbourLines = Seq(selfNeighbour),
@@ -555,7 +565,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val deployment = mock(classOf[CableDeploymentInput])
       val result = ThermalSegmentBuilder.singleDeploymentFor(
         lineInput,
-        Some(java.util.List.of(deployment)),
+        Some(JList.of(deployment)),
       )
       result should be(Some(deployment))
     }
@@ -572,7 +582,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val thrown = the[GridAgentInitializationException] thrownBy {
         ThermalSegmentBuilder.singleDeploymentFor(
           lineInput,
-          Some(java.util.List.of(deployment1, deployment2)),
+          Some(JList.of(deployment1, deployment2)),
         )
       }
       thrown.getMessage should include(lineUuid.toString)
@@ -591,26 +601,12 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       thrown.getMessage shouldBe "missing value"
     }
   }
-  "ThermalSegmentBuilder.requireQuantity" should {
-    "return the quantity when the option is defined" in {
-      val result =
-        ThermalSegmentBuilder.requireQuantity(Some(Meters(1.5)), "missing")
-      result shouldBe Meters(1.5)
-    }
-    "throw an exception with the given message when the option is empty" in {
-      val thrown = the[GridAgentInitializationException] thrownBy {
-        val emptyOpt: Option[Length] = None
-        ThermalSegmentBuilder.requireQuantity(emptyOpt, "missing quantity")
-      }
-      thrown.getMessage shouldBe "missing quantity"
-    }
-  }
   "ThermalSegmentBuilder.computeSoilIndices" should {
     "return the boundary intersection indices for two adjacent soil layers" in {
       val leftLayer = makeSoilLayer(0.0, -0.1, 0.5, 0.1)
       val rightLayer = makeSoilLayer(0.5, -0.1, 1.0, 0.1)
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(leftLayer, rightLayer),
       )
       val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
@@ -625,7 +621,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     "return no indices when no soil boundary crosses the segment" in {
       val layer = makeSoilLayer(-0.5, -0.1, 1.5, 0.1)
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(layer),
       )
       val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
@@ -641,11 +637,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
         neighbourLines = Seq(neighbour),
         ppThreshold = None,
@@ -658,7 +654,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
             new JtsCoordinate(0.7, 0.00005),
           )
         )
-      val rejected = scala.collection.mutable.Set.empty[UUID]
+      val rejected = MutableSet.empty[UUID]
 
       val indices = ThermalSegmentBuilder.computePpIndices(
         context,
@@ -675,11 +671,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
         neighbourLines = Seq(neighbour),
         ppThreshold = Some(10.0),
@@ -692,7 +688,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
             new JtsCoordinate(0.7, 0.00005),
           )
         )
-      val rejected = scala.collection.mutable.Set.empty[UUID]
+      val rejected = MutableSet.empty[UUID]
 
       val indices = ThermalSegmentBuilder.computePpIndices(
         context,
@@ -710,11 +706,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = false,
       )
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
         neighbourLines = Seq(neighbour),
         ppThreshold = Some(10.0),
@@ -727,7 +723,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
             new JtsCoordinate(0.7, 0.00005),
           )
         )
-      val rejected = scala.collection.mutable.Set.empty[UUID]
+      val rejected = MutableSet.empty[UUID]
 
       val indices = ThermalSegmentBuilder.computePpIndices(
         context,
@@ -745,11 +741,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.00004, 0.000005), (0.00006, 0.000005)),
+        Seq(Coordinate(0.000005, 0.00004), Coordinate(0.000005, 0.00006)),
         hasDeployment = true,
       )
       val context = makeContext(
-        Seq((0.0, 0.0), (0.0001, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 0.0001)),
         Seq(makeSoilLayer(-0.0005, -0.0005, 0.0005, 0.0005)),
         neighbourLines = Seq(neighbour),
         ppThreshold = Some(1.0),
@@ -763,7 +759,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
             new JtsCoordinate(0.00006, 0.000005),
           )
         )
-      val rejected = scala.collection.mutable.Set.empty[UUID]
+      val rejected = MutableSet.empty[UUID]
 
       val indices = ThermalSegmentBuilder.computePpIndices(
         context,
@@ -783,7 +779,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val leftLayer = makeSoilLayer(0.0, -0.1, 0.5, 0.1)
       val rightLayer = makeSoilLayer(0.5, -0.1, 1.0, 0.1)
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(leftLayer, rightLayer),
       )
       val (jtsLine, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
@@ -794,11 +790,9 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         jtsLine.getLength,
         Seq(0.5),
         Seq.empty,
-        scala.collection.mutable.Set.empty[UUID],
+        MutableSet.empty[UUID],
         Seq.empty,
         -1.0,
-        scala.collection.mutable.Set.empty[UUID],
-        ThermalSegmentBuilder.calcCableThermalCapacities(cable),
       )
 
       segments.size shouldBe 2
@@ -811,11 +805,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
         neighbourLines = Seq(neighbour),
         ppThreshold = Some(10.0),
@@ -835,11 +829,9 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         1.0,
         Seq.empty,
         Seq.empty,
-        scala.collection.mutable.Set.empty[UUID],
+        MutableSet.empty[UUID],
         Seq(neighbour -> neighbourLine),
         -1.0,
-        scala.collection.mutable.Set.empty[UUID],
-        ThermalSegmentBuilder.calcCableThermalCapacities(cable),
       )
 
       segments.size shouldBe 1
@@ -849,11 +841,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val neighbourUuid = UUID.randomUUID()
       val neighbour = ThermalSegmentBuilder.NeighbourLineInfo(
         neighbourUuid,
-        Seq((0.3, 0.00005), (0.7, 0.00005)),
+        Seq(Coordinate(0.00005, 0.3), Coordinate(0.00005, 0.7)),
         hasDeployment = true,
       )
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(makeSoilLayer(-1.0, -1.0, 2.0, 1.0)),
         neighbourLines = Seq(neighbour),
         ppThreshold = Some(10.0),
@@ -866,7 +858,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
             new JtsCoordinate(0.7, 0.00005),
           )
         )
-      val rejected = scala.collection.mutable.Set(neighbourUuid)
+      val rejected = MutableSet(neighbourUuid)
 
       val segments = ThermalSegmentBuilder.buildSubsegments(
         context,
@@ -877,8 +869,6 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         rejected,
         Seq(neighbour -> neighbourLine),
         -1.0,
-        scala.collection.mutable.Set.empty[UUID],
-        ThermalSegmentBuilder.calcCableThermalCapacities(cable),
       )
 
       segments.size shouldBe 1
@@ -886,7 +876,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     }
     "throw an exception if no soil layer covers a subsegment midpoint" in {
       val context = makeContext(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Seq(makeSoilLayer(5.0, 5.0, 6.0, 6.0)),
       )
       val (_, indexedLine) = straightLine((0.0, 0.0), (1.0, 0.0))
@@ -898,11 +888,9 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
           1.0,
           Seq.empty,
           Seq.empty,
-          scala.collection.mutable.Set.empty[UUID],
+          MutableSet.empty[UUID],
           Seq.empty,
           -1.0,
-          scala.collection.mutable.Set.empty[UUID],
-          ThermalSegmentBuilder.calcCableThermalCapacities(cable),
         )
       }
     }
@@ -1047,7 +1035,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       } finally {
         Files
           .walk(tempDir)
-          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .sorted(Comparator.reverseOrder[Path]())
           .forEach(p => Files.deleteIfExists(p))
       }
     }
@@ -1075,7 +1063,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       } finally {
         Files
           .walk(tempDir)
-          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .sorted(Comparator.reverseOrder[Path]())
           .forEach(p => Files.deleteIfExists(p))
       }
     }
@@ -1107,7 +1095,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       } finally {
         Files
           .walk(tempDir)
-          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .sorted(Comparator.reverseOrder[Path]())
           .forEach(p => Files.deleteIfExists(p))
       }
     }
@@ -1218,7 +1206,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
     an[GridAgentInitializationException] should be thrownBy {
       run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         layers,
         cableBed = Some(bed),
@@ -1245,7 +1233,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
     an[GridAgentInitializationException] should be thrownBy {
       run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         layers,
         cableBed = Some(bed),
@@ -1284,7 +1272,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
     an[GridAgentInitializationException] should be thrownBy {
       run(
-        Seq((0.0, 0.0), (1.0, 0.0)),
+        Seq(Coordinate(0.0, 0.0), Coordinate(0.0, 1.0)),
         Meters(-1.0),
         layers,
         cableBed = Some(bed),
@@ -1314,63 +1302,46 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
     }
   }
 
-  "ThermalSegmentBuilder.crossSectionArea" should {
-    "return the given area when one is provided" in {
-      val result = ThermalSegmentBuilder.crossSectionArea(
-        Millimeters(10),
-        Millimeters(20),
-        Some(SquareMeters(0.002)),
-      )
-      result.toSquareMeters shouldBe 0.002
+  "ThermalSegmentBuilder.haversineDistanceMeters" should {
+    "return zero for identical coordinates" in {
+      val a = new JtsCoordinate(10.0, 51.0)
+      ThermalSegmentBuilder.haversineDistanceMeters(a, a) shouldBe 0.0
     }
 
-    "compute the annular area when no area is provided" in {
-      val inner = Meters(0.01)
-      val outer = Meters(0.03)
-      val result = ThermalSegmentBuilder.crossSectionArea(
-        inner,
-        outer,
-        None,
-      )
-      val expected = math.Pi / 4d * (0.03d * 0.03d - 0.01d * 0.01d)
-      result.toSquareMeters should be(expected +- 1e-12)
-    }
-
-    "compute the circular area for a solid conductor with zero inner diameter" in {
-      val result = ThermalSegmentBuilder.crossSectionArea(
-        Meters(0.0),
-        Meters(0.02),
-        None,
-      )
-      val expected = math.Pi / 4d * 0.02d * 0.02d
-      result.toSquareMeters should be(expected +- 1e-12)
+    "return the geodesic distance in meters for two distinct coordinates" in {
+      val a = new JtsCoordinate(10.0, 51.0)
+      val b = new JtsCoordinate(10.0, 51.001)
+      val result = ThermalSegmentBuilder.haversineDistanceMeters(a, b)
+      // ~111 m per degree of latitude
+      result should be(111.0 +- 1.0)
     }
   }
-
-  "ThermalSegmentBuilder.perLengthCapacity" should {
-    "multiply volumetric heat capacity by cross-section area" in {
-      val volCap = JoulesPerCubicMeterKelvin(1000.0)
-      val result = ThermalSegmentBuilder.perLengthCapacity(
-        volCap,
-        Meters(0.0),
-        Meters(0.02),
-        None,
-      )
-      val expectedArea = math.Pi / 4d * 0.02d * 0.02d
-      result.toJoulesPerMeterKelvin should be(
-        (1000.0 * expectedArea) +- 1e-9
-      )
+  "SoilThermalResistanceCalculations.sumCylindricalLayerThermalCapacities" should {
+    "return zero for an empty layer sequence" in {
+      val result =
+        SoilThermalResistanceCalculations.sumCylindricalLayerThermalCapacities(
+          Seq.empty
+        )
+      result.toJoulesPerMeterKelvin shouldBe 0.0
     }
 
-    "use the explicit area when provided" in {
-      val volCap = JoulesPerCubicMeterKelvin(500.0)
-      val result = ThermalSegmentBuilder.perLengthCapacity(
-        volCap,
-        Meters(0.01),
-        Meters(0.03),
-        Some(SquareMeters(0.001)),
-      )
-      result.toJoulesPerMeterKelvin should be(0.5 +- 1e-9)
+    "sum the cylindrical thermal capacity of each layer by diameter" in {
+      val layers = cable.layersIsolationElements
+      layers should not be empty
+      val result =
+        SoilThermalResistanceCalculations.sumCylindricalLayerThermalCapacities(
+          layers
+        )
+      val expected = layers.map { layer =>
+        SoilThermalResistanceCalculations
+          .calcThermalCapacityCylindrical(
+            layer.volumetricHeatCapacity,
+            layer.innerDiameter,
+            layer.outerDiameter,
+          )
+          .toJoulesPerMeterKelvin
+      }.sum
+      result.toJoulesPerMeterKelvin should be(expected +- 1e-9)
     }
   }
 
@@ -1399,13 +1370,13 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         new RawGridElements(
           Set(makeTestNode()).asJava,
           Set(makeLineWithoutCableType()).asJava,
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
         ),
         makeEmptySystemParticipants,
-        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+        new EnergyManagementUnits(Collections.emptySet[EmInput]()),
       )
       val thrown = the[GridAgentInitializationException] thrownBy {
         ThermalSegmentBuilder.validateCableTypesPresent(container)
@@ -1423,13 +1394,13 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         new RawGridElements(
           Set(makeTestNode()).asJava,
           Set(line).asJava,
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
         ),
         makeEmptySystemParticipants,
-        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+        new EnergyManagementUnits(Collections.emptySet[EmInput]()),
       )
       noException should be thrownBy {
         ThermalSegmentBuilder.validateCableTypesPresent(container)
@@ -1448,13 +1419,13 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         new RawGridElements(
           Set(makeTestNode()).asJava,
           Set(line).asJava,
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
         ),
         makeEmptySystemParticipants,
-        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+        new EnergyManagementUnits(Collections.emptySet[EmInput]()),
       )
       val thrown = the[GridAgentInitializationException] thrownBy {
         ThermalSegmentBuilder.validateCableDeployments(
@@ -1475,17 +1446,15 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         new RawGridElements(
           Set(makeTestNode()).asJava,
           Set(line).asJava,
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
         ),
         makeEmptySystemParticipants,
-        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+        new EnergyManagementUnits(Collections.emptySet[EmInput]()),
       )
-      val emptyMap: scala.collection.Map[UUID, java.util.List[
-        CableDeploymentInput
-      ]] = Map.empty
+      val emptyMap: Map[UUID, JList[CableDeploymentInput]] = Map.empty
       val thrown = the[GridAgentInitializationException] thrownBy {
         ThermalSegmentBuilder.validateCableDeployments(
           container,
@@ -1511,23 +1480,22 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       val rawGrid = new RawGridElements(
         Set(makeTestNode()).asJava,
         Set(line).asJava,
-        java.util.Collections.emptySet(),
-        java.util.Collections.emptySet(),
-        java.util.Collections.emptySet(),
-        java.util.Collections.emptySet(),
-        java.util.Map.of(lineUuid, Seq(deployment).asJava),
+        Collections.emptySet(),
+        Collections.emptySet(),
+        Collections.emptySet(),
+        Collections.emptySet(),
+        JMap.of(lineUuid, Seq(deployment).asJava),
       )
       val container = new SubGridContainer(
         "testGrid",
         0,
         rawGrid,
         makeEmptySystemParticipants,
-        new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+        new EnergyManagementUnits(Collections.emptySet[EmInput]()),
         new SoilData(Set(soilType).asJava, Set(layer).asJava),
       )
-      val deployments: scala.collection.Map[UUID, java.util.List[
-        CableDeploymentInput
-      ]] = Map(lineUuid -> Seq(deployment).asJava)
+      val deployments: Map[UUID, JList[CableDeploymentInput]] =
+        Map(lineUuid -> Seq(deployment).asJava)
       noException should be thrownBy {
         ThermalSegmentBuilder.validateCableDeployments(
           container,
@@ -1548,13 +1516,13 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
           new RawGridElements(
             Set(makeTestNode()).asJava,
             Set(makeLineWithoutCableType()).asJava,
-            java.util.Collections.emptySet(),
-            java.util.Collections.emptySet(),
-            java.util.Collections.emptySet(),
-            java.util.Collections.emptySet(),
+            Collections.emptySet(),
+            Collections.emptySet(),
+            Collections.emptySet(),
+            Collections.emptySet(),
           ),
           makeEmptySystemParticipants,
-          new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+          new EnergyManagementUnits(Collections.emptySet[EmInput]()),
           new SoilData(Set(soilType).asJava, Set(layer).asJava),
         )
         val simonaConfig = buildTestConfig(tempDir.toString)
@@ -1564,7 +1532,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       } finally {
         Files
           .walk(tempDir)
-          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .sorted(Comparator.reverseOrder[Path]())
           .forEach(p => Files.deleteIfExists(p))
       }
     }
@@ -1587,18 +1555,18 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
         val rawGrid = new RawGridElements(
           Set(makeTestNode()).asJava,
           Set(line).asJava,
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Collections.emptySet(),
-          java.util.Map.of(lineUuid, Seq(deployment).asJava),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          Collections.emptySet(),
+          JMap.of(lineUuid, Seq(deployment).asJava),
         )
         val container = new SubGridContainer(
           "testGrid",
           0,
           rawGrid,
           makeEmptySystemParticipants,
-          new EnergyManagementUnits(java.util.Collections.emptySet[EmInput]()),
+          new EnergyManagementUnits(Collections.emptySet[EmInput]()),
           new SoilData(Set(soilType).asJava, Set(layer).asJava),
         )
         val simonaConfig = buildTestConfig(tempDir.toString)
@@ -1608,7 +1576,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       } finally {
         Files
           .walk(tempDir)
-          .sorted(java.util.Comparator.reverseOrder[Path]())
+          .sorted(Comparator.reverseOrder[Path]())
           .forEach(p => Files.deleteIfExists(p))
       }
     }
@@ -1648,11 +1616,11 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       "testCableType",
       3,
       conductor,
-      java.util.List.of(),
+      JList.of(),
       null,
-      java.util.List.of(),
-      java.util.List.of(),
-      java.util.List.of(),
+      JList.of(),
+      JList.of(),
+      JList.of(),
       Quantities.getQuantity(90.0, CELSIUS),
       Quantities.getQuantity(50.0, HERTZ),
       1.0,
@@ -1676,7 +1644,7 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
       Quantities.getQuantity(0.1, OHM_PER_KILOMETRE),
       Quantities.getQuantity(200.0, AMPERE),
       Quantities.getQuantity(0.4, KILOVOLT),
-      java.util.Optional.of(cableType),
+      Optional.of(cableType),
     )
 
   private def makeLineWithCableType(
@@ -1732,16 +1700,16 @@ class ThermalSegmentBuilderSpec extends UnitSpec with Matchers {
 
   private def makeEmptySystemParticipants: SystemParticipants =
     new SystemParticipants(
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
-      java.util.Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
+      Collections.emptySet(),
     )
 }

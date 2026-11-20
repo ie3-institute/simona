@@ -8,9 +8,9 @@ package edu.ie3.simona.model.grid.ampacity
 import com.typesafe.scalalogging.LazyLogging
 import edu.ie3.datamodel.models.input.connector.`type`.{
   CableTypeInput,
-  LineTypeInput,
   ConductorInput as JConductorInput,
   LayerInput as JLayerInput,
+  LineTypeInput,
   ScreenLayerInput as JScreenLayerInput,
 }
 import edu.ie3.datamodel.models.input.connector.{
@@ -22,7 +22,11 @@ import edu.ie3.datamodel.models.input.{SoilLayer, SoilType}
 import edu.ie3.simona.config.SimonaConfig
 import edu.ie3.simona.exceptions.agent.GridAgentInitializationException
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.CableBed
-import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.calcCableBedEquivalentRadius
+import edu.ie3.simona.model.grid.ampacity.SoilThermalResistanceCalculations.{
+  calcCableBedEquivalentRadius,
+  calcThermalCapacityCylindrical,
+  sumCylindricalLayerThermalCapacities,
+}
 import edu.ie3.simona.model.grid.ampacity.{CableSetup, LineSegmentThermalModel}
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.geo.GeoUtils
@@ -31,17 +35,16 @@ import edu.ie3.util.quantities.thermal.{
   JoulesPerMeterKelvin,
   KelvinMetersPerWatt,
   ThermalCapacityPerLength,
-  VolumetricHeatCapacity,
 }
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
-import org.locationtech.jts.geom.{Geometry, Coordinate as JtsCoordinate}
+import org.locationtech.jts.geom.{Geometry, Point, Coordinate as JtsCoordinate}
 import org.locationtech.jts.linearref.LengthIndexedLine
 import org.locationtech.jts.operation.distance.DistanceOp
 import squants.Temperature
-import squants.space.{Area, Length, Millimeters, SquareMeters}
+import squants.space.{Length, Millimeters}
 
 import java.nio.file.{Files, Path, Paths, StandardOpenOption}
-import java.util.UUID
+import java.util.{UUID, List as JList}
 import scala.collection.mutable.{ListBuffer, Set as MutableSet}
 import scala.jdk.CollectionConverters.*
 import scala.jdk.OptionConverters.*
@@ -57,13 +60,13 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param lineUuid
     *   The UUID of the neighbour line.
     * @param geoPosition
-    *   The centreline coordinates as (longitude, latitude) pairs.
+    *   The centreline [[Coordinate]]s of the neighbour line.
     * @param hasDeployment
     *   Whether the line has a [[CableDeploymentInput]] (buried line).
     */
   final case class NeighbourLineInfo(
       lineUuid: UUID,
-      geoPosition: Seq[(Double, Double)],
+      geoPosition: Seq[Coordinate],
       hasDeployment: Boolean,
   )
 
@@ -118,7 +121,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param cable
     *   The cable setup.
     * @param coordinates
-    *   The line's support-point coordinates as (lon, lat) pairs.
+    *   The line's support-point [[Coordinate]]s.
     * @param cableDepth
     *   The cable burial depth.
     * @param cableDistance
@@ -139,11 +142,17 @@ object ThermalSegmentBuilder extends LazyLogging {
     *   A set of already-warned (candidate, neighbour) UUID pairs.
     * @param cableBed
     *   The cable bed for the first deployment.
+    * @param bedSoilTypeIds
+    *   A set collecting the outer-soil type UUIDs of a cable bed across all
+    *   segments of the line.
+    * @param cableCapacities
+    *   The per-unit-length thermal capacities of the cable elements, identical
+    *   for all segments of the line.
     */
   final case class SegmentBuildContext(
       lineInput: LineInput,
       cable: CableSetup,
-      coordinates: Seq[(Double, Double)],
+      coordinates: Seq[Coordinate],
       cableDepth: Length,
       cableDistance: Length,
       soilLayers: Seq[SoilLayer],
@@ -154,6 +163,13 @@ object ThermalSegmentBuilder extends LazyLogging {
       ppThreshold: Option[Double],
       warnedPairs: MutableSet[(UUID, UUID)],
       cableBed: Option[CableBed] = None,
+      bedSoilTypeIds: MutableSet[UUID] = MutableSet.empty,
+      cableCapacities: CableThermalCapacities = CableThermalCapacities(
+        JoulesPerMeterKelvin(0d),
+        JoulesPerMeterKelvin(0d),
+        JoulesPerMeterKelvin(0d),
+        JoulesPerMeterKelvin(0d),
+      ),
   )
 
   private[ampacity] def cableBedForDeployment(
@@ -198,10 +214,9 @@ object ThermalSegmentBuilder extends LazyLogging {
       .map(_.outerDiameter)
       .maxOption
       .getOrElse {
-        val message =
+        throw new GridAgentInitializationException(
           s"Cable bed validation failed: no jacket layer is defined for cable ${cable.id}."
-        logger.error(message)
-        throw new GridAgentInitializationException(message)
+        )
       }
     val (requiredWidth, requiredHeight) = cable.layoutFormation match {
       case LayoutFormation.FlatDistance | LayoutFormation.FlatTouching =>
@@ -212,32 +227,28 @@ object ThermalSegmentBuilder extends LazyLogging {
           cableDistance * (math.sqrt(3d) / 2d) + cableDiameter,
         )
       case formation =>
-        val message =
+        throw new GridAgentInitializationException(
           s"Cable bed validation failed: unsupported cable formation $formation for cable ${cable.id}."
-        logger.error(message)
-        throw new GridAgentInitializationException(message)
+        )
     }
     if bed.width < requiredWidth || bed.height < requiredHeight
     then {
-      val message =
+      throw new GridAgentInitializationException(
         s"Cable bed ${bed.width} x ${bed.height} does not enclose cable formation ${cable.layoutFormation} " +
           s"for cable ${cable.id}; required dimensions are at least $requiredWidth x $requiredHeight."
-      logger.error(message)
-      throw new GridAgentInitializationException(message)
+      )
     }
     val bedCenterDepth = -cableDepth
     if bedCenterDepth < bed.height / 2d then {
-      val message =
+      throw new GridAgentInitializationException(
         s"Cable bed top must not cross ground level for cable ${cable.id}."
-      logger.error(message)
-      throw new GridAgentInitializationException(message)
+      )
     }
     val radius = calcCableBedEquivalentRadius(bed.width, bed.height)
     if bedCenterDepth <= radius then {
-      val message =
+      throw new GridAgentInitializationException(
         s"Cable bed center depth $bedCenterDepth must exceed its equivalent radius $radius."
-      logger.error(message)
-      throw new GridAgentInitializationException(message)
+      )
     }
   }
 
@@ -312,10 +323,11 @@ object ThermalSegmentBuilder extends LazyLogging {
         .exists(line =>
           Option(line.getType).exists(_.getCableType.toScala.isDefined)
         )
-    if !hasCableType then
+    if !hasCableType then {
       throw new GridAgentInitializationException(
         "Ampacity calculation is activated, but no cable types are available. Please provide at least one cable type."
       )
+    }
   }
 
   /** Validates that cable deployment entries exist and that every line with a
@@ -323,19 +335,18 @@ object ThermalSegmentBuilder extends LazyLogging {
     */
   private[ampacity] def validateCableDeployments(
       subGridContainer: SubGridContainer,
-      deploymentsByLine: scala.collection.Map[UUID, java.util.List[
-        CableDeploymentInput
-      ]],
+      deploymentsByLine: Map[UUID, JList[CableDeploymentInput]],
   ): Unit = {
-    if deploymentsByLine.isEmpty then
+    if deploymentsByLine.isEmpty then {
       throw new GridAgentInitializationException(
         "Ampacity calculation is activated, but no cable deployment entries were provided. Please add a cable deployment entry for each line."
       )
+    }
 
     val missingDeployments =
       subGridContainer.getRawGrid.getLines.asScala.toSeq.flatMap { lineInput =>
         Option(lineInput.getType).toSeq.flatMap { lineType =>
-          resolveCableType(lineType).toSeq.flatMap { cableType =>
+          lineType.getCableType.toScala.toSeq.flatMap { cableType =>
             val hasDeployment =
               deploymentsByLine
                 .get(lineInput.getUuid)
@@ -349,25 +360,14 @@ object ThermalSegmentBuilder extends LazyLogging {
         }
       }
 
-    if missingDeployments.nonEmpty then
+    if missingDeployments.nonEmpty then {
       throw new GridAgentInitializationException(
         s"Ampacity calculation is activated, but ${missingDeployments.size} line(s) reference a cable_type and do not have a cable deployment in cable_deployment_input.csv:\n" +
           missingDeployments.mkString("\n") +
           "\nPlease add a cable deployment entry for each of these lines."
       )
+    }
   }
-
-  /** Resolves the cable type directly attached to a line type.
-    *
-    * @param lineType
-    *   The line type input.
-    * @return
-    *   An optional [[CableTypeInput]].
-    */
-  private def resolveCableType(
-      lineType: LineTypeInput
-  ): Option[CableTypeInput] =
-    lineType.getCableType.toScala
 
   /** Unwraps an optional value and throws a
     * [[GridAgentInitializationException]] with the given message when the value
@@ -388,42 +388,25 @@ object ThermalSegmentBuilder extends LazyLogging {
   ): A =
     value.getOrElse(throw new GridAgentInitializationException(message))
 
-  /** Unwraps a squants quantity and throws a
-    * [[GridAgentInitializationException]] with the given message when the value
-    * is absent.
+  /** A line that qualifies for thermal segment generation: it has both a cable
+    * type and a single cable deployment.
     *
-    * @param value
-    *   The optional quantity.
-    * @param message
-    *   The exception message for the absent case.
-    * @tparam A
-    *   The squants quantity type.
-    * @return
-    *   The unwrapped quantity.
+    * @param lineInput
+    *   The candidate line.
+    * @param lineType
+    *   The line's type.
+    * @param cableTypeInput
+    *   The cable type referenced by the line type.
+    * @param firstDeployment
+    *   The line's single cable deployment.
     */
-  private[ampacity] def requireQuantity[A <: squants.Quantity[A]](
-      value: Option[A],
-      message: String,
-  ): A =
-    requireValue(value, message)
+  private final case class LineCandidate(
+      lineInput: LineInput,
+      lineType: LineTypeInput,
+      cableTypeInput: CableTypeInput,
+      firstDeployment: CableDeploymentInput,
+  )
 
-  /** Generates thermal line segments for all lines that have both a cable type
-    * and a cable deployment.
-    *
-    * @param subGridContainer
-    *   The subgrid container.
-    * @param soilLayers
-    *   The validated soil layers.
-    * @param soilTypes
-    *   The validated soil types.
-    * @param neighbourLines
-    *   Neighbour line geometries from all subgrids.
-    * @param ppThreshold
-    *   The parallel-proximity threshold in meters, if activated.
-    * @return
-    *   A tuple of the generated segments and the generated [[BuiltSegment]]s
-    *   with their start and end coordinates for output.
-    */
   private def generateThermalSegments(
       subGridContainer: SubGridContainer,
       soilLayers: Seq[SoilLayer],
@@ -437,97 +420,154 @@ object ThermalSegmentBuilder extends LazyLogging {
     val warnedPairs: MutableSet[(UUID, UUID)] = MutableSet.empty
     val thermalLineSegments: Set[LineSegmentThermalModel] =
       subGridContainer.getRawGrid.getLines.asScala.flatMap { lineInput =>
-        // Only build thermal segments if both a cable type and a cable deployment exist
-        Option(lineInput.getType).toSeq.flatMap { lineType =>
-          resolveCableType(lineType).toSeq.flatMap { cableTypeInput =>
-            val deploymentListOpt =
-              deploymentsByLine.get(lineInput.getUuid)
-            val firstDeploymentOpt = singleDeploymentFor(
-              lineInput,
-              deploymentListOpt,
+        resolveLineCandidate(lineInput, deploymentsByLine)
+          .fold(Set.empty[LineSegmentThermalModel]) { candidate =>
+            val context = buildSegmentContext(
+              candidate,
+              soilLayers,
+              soilTypes,
+              generatedSegments,
+              neighbourLines,
+              ppThreshold,
+              warnedPairs,
             )
-            // If no deployment, skip this line
-            firstDeploymentOpt.toSeq.flatMap { firstDeployment =>
-              // Extract line points from geoposition
-              val coordinates = Option(lineInput.getGeoPosition)
-                .map(_.getCoordinates.toSeq.map(c => (c.x, c.y)))
-                .getOrElse(Seq.empty)
-              val conductor = mapConductor(cableTypeInput.getConductor)
-              val isolation = layersList(cableTypeInput.getIsolation)
-              val screen = cableTypeInput.getScreen.toScala.map(mapScreen)
-              val filler = Option(cableTypeInput.getFiller)
-                .map(layersList)
-                .getOrElse(List.empty)
-              val armor = Option(cableTypeInput.getArmor)
-                .map(layersList)
-                .getOrElse(List.empty)
-              val jack = layersList(cableTypeInput.getJack)
-              val deploymentPattern = requireValue(
-                Option(firstDeployment.getLayoutFormation),
-                s"Ampacity build failed: No cable deployment pattern available for line ${lineInput.getUuid}",
-              ) match {
-                case formation =>
-                  try LayoutFormation.fromString(formation)
-                  catch
-                    case e: IllegalArgumentException =>
-                      throw new GridAgentInitializationException(
-                        s"Ampacity build failed: ${e.getMessage} for line ${lineInput.getUuid}"
-                      )
-              }
-              val cableDepth = requireQuantity(
-                Option(firstDeployment.getDepthCables).map(_.toSquants),
-                s"Ampacity build failed: No cable depth available for line ${lineInput.getUuid}",
-              )
-              val cableDistance = requireQuantity(
-                Option(firstDeployment.getDistanceCables).map(_.toSquants),
-                s"Ampacity build failed: No cable distance available for line ${lineInput.getUuid}",
-              )
-              val limitTemperature =
-                cableTypeInput.getLimitTemperature.toSquants
-              val cable = CableSetup(
-                cableTypeInput.getUuid,
-                cableTypeInput.getId,
-                conductor,
-                isolation,
-                screen,
-                filler,
-                armor,
-                jack,
-                deploymentPattern,
-                limitTemperature,
-                lineType.getvRated().toSquants,
-                cableTypeInput.getFrequency.toSquants,
-                lineType.getR.toResistancePerLength,
-                cableTypeInput.getSkinEffectCoefficient,
-                cableTypeInput.getProximityEffectCoefficient,
-                cableTypeInput.getElectricalCapacitance.toSquants,
-                cableTypeInput.getTanDelta,
-                cableTypeInput.getCirculatingLossFactor,
-                cableTypeInput.getEddyCurrentLossFactor,
-              )
-              val context = SegmentBuildContext(
-                lineInput,
-                cable,
-                coordinates,
-                cableDepth,
-                cableDistance,
-                soilLayers,
-                soilTypes,
-                limitTemperature,
-                generatedSegments,
-                neighbourLines,
-                ppThreshold,
-                warnedPairs,
-                cableBedForDeployment(firstDeployment, soilTypes),
-              )
-              splitAndAssignSegments(context)
-            }
+            splitAndAssignSegments(context)
           }
-        }
       }.toSet
     (
       thermalLineSegments,
       generatedSegments,
+    )
+  }
+
+  /** Resolves the candidate data for a line, if it has both a cable type and a
+    * single cable deployment.
+    *
+    * @param lineInput
+    *   The candidate line.
+    * @param deploymentsByLine
+    *   The cable deployments indexed by line UUID.
+    * @return
+    *   The resolved [[LineCandidate]], or `None` if the line has no line type,
+    *   no cable type, or no cable deployment.
+    */
+  private def resolveLineCandidate(
+      lineInput: LineInput,
+      deploymentsByLine: scala.collection.Map[UUID, JList[CableDeploymentInput]],
+  ): Option[LineCandidate] =
+    for {
+      lineType <- Option(lineInput.getType)
+      cableTypeInput <- lineType.getCableType.toScala
+      firstDeployment <- singleDeploymentFor(
+        lineInput,
+        deploymentsByLine.get(lineInput.getUuid),
+      )
+    } yield LineCandidate(lineInput, lineType, cableTypeInput, firstDeployment)
+
+  /** Builds the [[SegmentBuildContext]] for a resolved line candidate.
+    *
+    * @param candidate
+    *   The resolved line candidate.
+    * @param soilLayers
+    *   The validated soil layers.
+    * @param soilTypes
+    *   The validated soil types.
+    * @param generatedSegments
+    *   The buffer collecting the generated segments.
+    * @param neighbourLines
+    *   The neighbour lines for parallel-proximity detection.
+    * @param ppThreshold
+    *   The parallel-proximity threshold in meters, if activated.
+    * @param warnedPairs
+    *   The set of already-warned (candidate, neighbour) UUID pairs.
+    * @return
+    *   The segment build context for the candidate.
+    */
+  private def buildSegmentContext(
+      candidate: LineCandidate,
+      soilLayers: Seq[SoilLayer],
+      soilTypes: Seq[SoilType],
+      generatedSegments: ListBuffer[BuiltSegment],
+      neighbourLines: Seq[NeighbourLineInfo],
+      ppThreshold: Option[Double],
+      warnedPairs: MutableSet[(UUID, UUID)],
+  ): SegmentBuildContext = {
+    val LineCandidate(lineInput, lineType, cableTypeInput, firstDeployment) =
+      candidate
+    // Extract line points from geoposition
+    val coordinates = Option(lineInput.getGeoPosition)
+      .map(_.getCoordinates.toSeq.map(c => Coordinate(c.y, c.x)))
+      .getOrElse(Seq.empty)
+    // TODO DF: In case some information are missing in the provided input data, these might be filled by data in PSDM (Cable Material Data). Might worth an improvement in PSDM, noted here to keep track.
+    val conductor = mapConductor(cableTypeInput.getConductor)
+    val isolation = layersList(cableTypeInput.getIsolation)
+    val screen = cableTypeInput.getScreen.toScala.map(mapScreen)
+    val filler = Option(cableTypeInput.getFiller)
+      .map(layersList)
+      .getOrElse(List.empty)
+    val armor = Option(cableTypeInput.getArmor)
+      .map(layersList)
+      .getOrElse(List.empty)
+    val jack = layersList(cableTypeInput.getJack)
+    val deploymentPattern = requireValue(
+      Option(firstDeployment.getLayoutFormation),
+      s"Ampacity build failed: No cable deployment pattern available for line ${lineInput.getUuid}",
+    ) match {
+      case formation =>
+        try LayoutFormation.fromString(formation)
+        catch
+          case e: IllegalArgumentException =>
+            throw new GridAgentInitializationException(
+              s"Ampacity build failed: ${e.getMessage} for line ${lineInput.getUuid}"
+            )
+    }
+    val cableDepth = requireValue(
+      Option(firstDeployment.getDepthCables).map(_.toSquants),
+      s"Ampacity build failed: No cable depth available for line ${lineInput.getUuid}",
+    )
+    val cableDistance = requireValue(
+      Option(firstDeployment.getDistanceCables).map(_.toSquants),
+      s"Ampacity build failed: No cable distance available for line ${lineInput.getUuid}",
+    )
+    val limitTemperature =
+      cableTypeInput.getLimitTemperature.toSquants
+    val cable = CableSetup(
+      cableTypeInput.getUuid,
+      cableTypeInput.getId,
+      conductor,
+      isolation,
+      screen,
+      filler,
+      armor,
+      jack,
+      deploymentPattern,
+      limitTemperature,
+      lineType.getvRated().toSquants,
+      cableTypeInput.getFrequency.toSquants,
+      lineType.getR.toResistancePerLength,
+      cableTypeInput.getSkinEffectCoefficient,
+      cableTypeInput.getProximityEffectCoefficient,
+      cableTypeInput.getElectricalCapacitance.toSquants,
+      cableTypeInput.getTanDelta,
+      cableTypeInput.getCirculatingLossFactor,
+      cableTypeInput.getEddyCurrentLossFactor,
+    )
+    SegmentBuildContext(
+      lineInput,
+      cable,
+      coordinates,
+      cableDepth,
+      cableDistance,
+      soilLayers,
+      soilTypes,
+      limitTemperature,
+      generatedSegments,
+      neighbourLines,
+      ppThreshold,
+      warnedPairs,
+      cableBedForDeployment(firstDeployment, soilTypes),
+      MutableSet.empty,
+      calcCableThermalCapacities(cable),
     )
   }
 
@@ -552,9 +592,6 @@ object ThermalSegmentBuilder extends LazyLogging {
         bed,
       )
     )
-    // Per-unit-length thermal capacities of the four cable elements, identical
-    // for all segments of this line.
-    val cableCapacities = calcCableThermalCapacities(context.cable)
     // Pre-compute neighbour centerlines for parallel-proximity detection.
     // NOTE: The haversine-on-sampled-points approach is geodesically consistent
     // but still relies on planar (lon, lat) sampling and a coarse per-sample
@@ -571,22 +608,21 @@ object ThermalSegmentBuilder extends LazyLogging {
             val neighbourLine =
               GeoUtils.DEFAULT_GEOMETRY_FACTORY.createLineString(
                 neighbour.geoPosition
-                  .map(c => new JtsCoordinate(c._1, c._2))
+                  .map(c => new JtsCoordinate(c.longitude, c.latitude))
                   .toArray
               )
             neighbour -> neighbourLine
           }
       case None => Seq.empty
     }
-    val bedSoilTypeIds = MutableSet.empty[UUID]
     context.coordinates
       .sliding(2)
       .collect { case Seq(start, end) =>
         val jtsLine =
           GeoUtils.DEFAULT_GEOMETRY_FACTORY.createLineString(
             Array(
-              new JtsCoordinate(start._1, start._2),
-              new JtsCoordinate(end._1, end._2),
+              new JtsCoordinate(start.longitude, start.latitude),
+              new JtsCoordinate(end.longitude, end.latitude),
             )
           )
         val indexedLine = new LengthIndexedLine(jtsLine)
@@ -612,8 +648,6 @@ object ThermalSegmentBuilder extends LazyLogging {
           rejectedNeighbours,
           neighbourLineStrings,
           depthMeters,
-          bedSoilTypeIds,
-          cableCapacities,
         )
       }
       .flatten
@@ -707,10 +741,7 @@ object ThermalSegmentBuilder extends LazyLogging {
               val overlapStart = indexedLine.extractPoint(idxs.min)
               val overlapEnd = indexedLine.extractPoint(idxs.max)
               val overlapMeters =
-                overlapStart
-                  .haversineDistance(overlapEnd)
-                  .getValue
-                  .doubleValue()
+                haversineDistanceMeters(overlapStart, overlapEnd)
               if overlapMeters < minOverlapLengthMeters then
                 logger.warn(
                   s"Parallel stretch between line ${context.lineInput.getUuid} (id: ${context.lineInput.getId}) " +
@@ -724,6 +755,18 @@ object ThermalSegmentBuilder extends LazyLogging {
         }
       case None => Seq.empty
     }
+
+  /** The endpoints of a single subsegment.
+    *
+    * @param start
+    *   The subsegment start coordinate.
+    * @param end
+    *   The subsegment end coordinate.
+    */
+  private[ampacity] final case class SubsegmentGeometry(
+      start: Coordinate,
+      end: Coordinate,
+  )
 
   /** Builds the [[LineSegmentThermalModel]] instances of a straight line
     * segment from its split indices.
@@ -745,11 +788,6 @@ object ThermalSegmentBuilder extends LazyLogging {
     *   The pre-computed neighbour centerlines.
     * @param depthMeters
     *   The cable burial depth in meters.
-    * @param bedSoilTypeIds
-    *   The mutable set collecting the outer-soil type UUIDs of a cable bed
-    *   across all segments of the line.
-    * @param cableCapacities
-    *   The per-unit-length thermal capacities of the cable elements.
     * @return
     *   The generated thermal segments of the straight segment.
     */
@@ -762,164 +800,338 @@ object ThermalSegmentBuilder extends LazyLogging {
       rejectedNeighbours: MutableSet[UUID],
       neighbourLineStrings: Seq[(NeighbourLineInfo, Geometry)],
       depthMeters: Double,
-      bedSoilTypeIds: MutableSet[UUID],
-      cableCapacities: CableThermalCapacities,
-  ): Set[LineSegmentThermalModel] = {
-    val soilTypesById = context.soilTypes.map(t => t.getUuid -> t).toMap
-    def resolveSoilType(layer: SoilLayer): SoilType =
-      soilTypesById.getOrElse(
-        layer.getSoilType,
-        throw new GridAgentInitializationException(
-          s"Ampacity build failed: Soil layer ${layer.getUuid} references " +
-            s"unknown soil type ${layer.getSoilType} for line ${context.lineInput.getUuid}."
-        ),
-      )
+  ): Set[LineSegmentThermalModel] =
     (Seq(0.0, segLength) ++ soilIndices ++ ppIndices).distinct.sorted
       .sliding(2)
       .collect {
         case Seq(idxStart, idxEnd) if idxEnd - idxStart > 1e-9 =>
-          val p1 = indexedLine.extractPoint(idxStart)
-          val p2 = indexedLine.extractPoint(idxEnd)
-          val midIdx = (idxStart + idxEnd) / 2.0
-          val midCoord = indexedLine.extractPoint(midIdx)
-          val midPoint =
-            GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(midCoord)
-          val coveringLayers =
-            context.soilLayers.filter(layer =>
-              layer.getGeometry.contains(midPoint)
-            )
-          if coveringLayers.isEmpty then
-            throw new GridAgentInitializationException(
-              s"Ampacity build failed: No soil layer covers the subsegment midpoint " +
-                s"(${midCoord.x}, ${midCoord.y}) of line ${context.lineInput.getUuid} " +
-                s"between ${p1} and ${p2}."
-            )
-          val assignedLayer =
-            coveringLayers
-              .find { layer =>
-                val minZ =
-                  math.min(
-                    layer.getZFrom.toSquants.toMeters,
-                    layer.getZTo.toSquants.toMeters,
-                  )
-                val maxZ =
-                  math.max(
-                    layer.getZFrom.toSquants.toMeters,
-                    layer.getZTo.toSquants.toMeters,
-                  )
-                depthMeters >= minZ && depthMeters <= maxZ
-              }
-              .getOrElse(
-                throw new GridAgentInitializationException(
-                  s"Ampacity build failed: The cable depth of ${depthMeters} m is " +
-                    s"not covered by any soil layer spanning line ${context.lineInput.getUuid} " +
-                    s"at midpoint (${midCoord.x}, ${midCoord.y})."
-                )
-              )
-          if context.cableBed.nonEmpty && coveringLayers.size > 1 then {
-            throw new GridAgentInitializationException(
-              s"Ampacity build failed: Multiple outer-soil layers cover line ${context.lineInput.getUuid} " +
-                s"at midpoint (${midCoord.x}, ${midCoord.y}) with a cable bed."
-            )
-          }
-          val assignedSoilType = resolveSoilType(assignedLayer)
-          if context.cableBed.nonEmpty &&
-            bedSoilTypeIds.add(assignedSoilType.getUuid) &&
-            bedSoilTypeIds.size > 1
-          then {
-            throw new GridAgentInitializationException(
-              s"Ampacity build failed: Outer-soil layers with different soil types cover line ${context.lineInput.getUuid} " +
-                "with a cable bed."
-            )
-          }
-          val sCoord = toCoordinate(p1)
-          val eCoord = toCoordinate(p2)
-          val segmentUuid = UUID.randomUUID()
-          val calculationPoint = SegmentCalculationPoints.coordinateFor(
-            segmentUuid,
-            sCoord,
-            eCoord,
-            context.soilLayers.map(_.getGeometry.getBoundary),
+          buildSubsegment(
+            context,
+            indexedLine,
+            idxStart,
+            idxEnd,
+            rejectedNeighbours,
+            neighbourLineStrings,
+            depthMeters,
           )
-          // Build the ordered layer sequence (surface to depth) from
-          // covering layers.
-          val sortedCoveringLayers =
-            coveringLayers.sortBy { layer =>
-              val zFrom = layer.getZFrom.toSquants.toMeters
-              val zTo = layer.getZTo.toSquants.toMeters
-              // Sort by the upper (less negative) boundary first
-              math.max(zFrom, zTo)
-            }.reverse
-          val soilLayerInfos = sortedCoveringLayers.map { layer =>
-            val zFrom = layer.getZFrom.toSquants
-            val zTo = layer.getZTo.toSquants
-            val upper =
-              if zFrom <= zTo then zFrom else zTo
-            val lower =
-              if zFrom <= zTo then zTo else zFrom
-            LineSegmentThermalModel.SoilLayerInfo(
-              resolveSoilType(layer),
-              upper,
-              lower,
-            )
-          }
-          if soilLayerInfos.size > 3 then {
-            val message =
-              s"Ampacity build failed: Line ${context.lineInput.getUuid} " +
-                s"at midpoint (${midCoord.x}, ${midCoord.y}) is covered by " +
-                s"${soilLayerInfos.size} soil layers; at most 3 are supported."
-            logger.error(message)
-            throw new GridAgentInitializationException(message)
-          }
-          val influence: Seq[(UUID, Double)] =
-            context.ppThreshold match {
-              case Some(thresholdMeters) =>
-                neighbourLineStrings
-                  .filter(_._1.hasDeployment)
-                  .filterNot(n => rejectedNeighbours.contains(n._1.lineUuid))
-                  .flatMap { case (neighbour, neighbourLine) =>
-                    val distMeters =
-                      neighbourLineDistanceMeters(
-                        neighbourLine,
-                        midPoint,
-                      )
-                    if distMeters < thresholdMeters
-                    then Some((neighbour.lineUuid, distMeters))
-                    else None
-                  }
-              case None => Seq.empty
-            }
-          val segment = LineSegmentThermalModel(
-            segmentUuid,
-            s"LineTher_${context.lineInput.getId}_${sCoord.longitude}_${sCoord.latitude}_${eCoord.longitude}_${eCoord.latitude}",
-            context.lineInput.getUuid,
-            context.cable,
-            Coordinate3D(sCoord.latitude, sCoord.longitude, depthMeters),
-            Coordinate3D(eCoord.latitude, eCoord.longitude, depthMeters),
-            context.cableDepth,
-            context.cableDistance,
-            KelvinMetersPerWatt(1), // Placeholder
-            KelvinMetersPerWatt(1), // Placeholder
-            KelvinMetersPerWatt(1), // Placeholder
-            KelvinMetersPerWatt(1), // Placeholder
-            cableCapacities.cc,
-            cableCapacities.cd,
-            cableCapacities.cs,
-            cableCapacities.cj,
-            JoulesPerMeterKelvin(1), // Placeholder
-            JoulesPerMeterKelvin(1), // Placeholder
-            context.limitTemperature,
-            assignedSoilType,
-            calculationPoint,
-            influence,
-            context.cableBed,
-            soilLayerInfos,
-          )
-          context.generatedSegments +=
-            BuiltSegment(segment, sCoord, eCoord)
-          segment
       }
       .toSet
+
+  /** Builds a single [[LineSegmentThermalModel]] from its split indices by
+    * locating the covering soil layers, validating the cable bed, computing the
+    * parallel influence, and assembling the segment.
+    */
+  private def buildSubsegment(
+      context: SegmentBuildContext,
+      indexedLine: LengthIndexedLine,
+      idxStart: Double,
+      idxEnd: Double,
+      rejectedNeighbours: MutableSet[UUID],
+      neighbourLineStrings: Seq[(NeighbourLineInfo, Geometry)],
+      depthMeters: Double,
+  ): LineSegmentThermalModel = {
+    val p1 = indexedLine.extractPoint(idxStart)
+    val p2 = indexedLine.extractPoint(idxEnd)
+    val midCoord = indexedLine.extractPoint((idxStart + idxEnd) / 2.0)
+    val midPoint =
+      GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(midCoord)
+    val coveringLayers = findCoveringLayers(context, midPoint, p1, p2)
+    val assignedLayer =
+      assignSoilLayer(context, coveringLayers, depthMeters, midCoord)
+    validateCableBedCoverage(context, coveringLayers, assignedLayer, midCoord)
+    val assignedSoilType = resolveSoilType(context, assignedLayer)
+    val soilLayerInfos = buildSoilLayerInfos(context, coveringLayers, midCoord)
+    val influence = computeParallelInfluence(
+      context,
+      neighbourLineStrings,
+      rejectedNeighbours,
+      midPoint,
+    )
+    val geometry = SubsegmentGeometry(
+      toCoordinate(p1),
+      toCoordinate(p2),
+    )
+    buildThermalSegment(
+      context,
+      geometry,
+      assignedSoilType,
+      soilLayerInfos,
+      influence,
+      depthMeters,
+    )
+  }
+
+  /** Resolves the soil type referenced by a soil layer.
+    *
+    * @param context
+    *   The segment build context.
+    * @param layer
+    *   The soil layer.
+    * @return
+    *   The soil type of the layer.
+    */
+  private[ampacity] def resolveSoilType(
+      context: SegmentBuildContext,
+      layer: SoilLayer,
+  ): SoilType =
+    context.soilTypes
+      .find(_.getUuid == layer.getSoilType)
+      .getOrElse {
+        throw new GridAgentInitializationException(
+          s"Ampacity build failed: Soil layer ${layer.getUuid} references " +
+            s"unknown soil type ${layer.getSoilType} for line ${context.lineInput.getUuid}."
+        )
+      }
+
+  /** Determines the soil layers covering the midpoint of a subsegment.
+    *
+    * @param context
+    *   The segment build context.
+    * @param midPoint
+    *   The JTS point at the subsegment midpoint.
+    * @param p1
+    *   The subsegment start coordinate (for error messages).
+    * @param p2
+    *   The subsegment end coordinate (for error messages).
+    * @return
+    *   The soil layers covering the midpoint.
+    */
+  private[ampacity] def findCoveringLayers(
+      context: SegmentBuildContext,
+      midPoint: Point,
+      p1: JtsCoordinate,
+      p2: JtsCoordinate,
+  ): Seq[SoilLayer] = {
+    val coveringLayers =
+      context.soilLayers.filter(layer => layer.getGeometry.contains(midPoint))
+    if coveringLayers.isEmpty then {
+      throw new GridAgentInitializationException(
+        s"Ampacity build failed: No soil layer covers the subsegment midpoint " +
+          s"(${midPoint.getX}, ${midPoint.getY}) of line ${context.lineInput.getUuid} " +
+          s"between ${p1} and ${p2}."
+      )
+    }
+    coveringLayers
+  }
+
+  /** Assigns the soil layer whose depth range covers the cable burial depth.
+    *
+    * @param context
+    *   The segment build context.
+    * @param coveringLayers
+    *   The soil layers covering the midpoint.
+    * @param depthMeters
+    *   The cable burial depth in meters.
+    * @param midCoord
+    *   The midpoint coordinate (for error messages).
+    * @return
+    *   The assigned soil layer.
+    */
+  private[ampacity] def assignSoilLayer(
+      context: SegmentBuildContext,
+      coveringLayers: Seq[SoilLayer],
+      depthMeters: Double,
+      midCoord: JtsCoordinate,
+  ): SoilLayer =
+    coveringLayers
+      .find { layer =>
+        val minZ =
+          math.min(
+            layer.getZFrom.toSquants.toMeters,
+            layer.getZTo.toSquants.toMeters,
+          )
+        val maxZ =
+          math.max(
+            layer.getZFrom.toSquants.toMeters,
+            layer.getZTo.toSquants.toMeters,
+          )
+        depthMeters >= minZ && depthMeters <= maxZ
+      }
+      .getOrElse {
+        throw new GridAgentInitializationException(
+          s"Ampacity build failed: The cable depth of ${depthMeters} m is " +
+            s"not covered by any soil layer spanning line ${context.lineInput.getUuid} " +
+            s"at midpoint (${midCoord.x}, ${midCoord.y})."
+        )
+      }
+
+  /** Validates cable-bed coverage constraints for a subsegment.
+    *
+    * Ensures that only a single outer-soil layer covers the midpoint when a
+    * cable bed is present, and that all cable-bed segments of a line share the
+    * same outer-soil type.
+    */
+  private[ampacity] def validateCableBedCoverage(
+      context: SegmentBuildContext,
+      coveringLayers: Seq[SoilLayer],
+      assignedLayer: SoilLayer,
+      midCoord: JtsCoordinate,
+  ): Unit = {
+    if context.cableBed.nonEmpty && coveringLayers.size > 1 then {
+      throw new GridAgentInitializationException(
+        s"Ampacity build failed: Multiple outer-soil layers cover line ${context.lineInput.getUuid} " +
+          s"at midpoint (${midCoord.x}, ${midCoord.y}) with a cable bed."
+      )
+    }
+    val assignedSoilType = resolveSoilType(context, assignedLayer)
+    if context.cableBed.nonEmpty &&
+      context.bedSoilTypeIds.add(assignedSoilType.getUuid) &&
+      context.bedSoilTypeIds.size > 1
+    then {
+      throw new GridAgentInitializationException(
+        s"Ampacity build failed: Outer-soil layers with different soil types cover line ${context.lineInput.getUuid} " +
+          "with a cable bed."
+      )
+    }
+  }
+
+  /** Builds the ordered soil-layer information sequence (surface to depth) from
+    * the covering layers.
+    *
+    * @param context
+    *   The segment build context.
+    * @param coveringLayers
+    *   The soil layers covering the midpoint.
+    * @param midCoord
+    *   The midpoint coordinate (for error messages).
+    * @return
+    *   The ordered soil-layer information sequence.
+    */
+  private[ampacity] def buildSoilLayerInfos(
+      context: SegmentBuildContext,
+      coveringLayers: Seq[SoilLayer],
+      midCoord: JtsCoordinate,
+  ): Seq[LineSegmentThermalModel.SoilLayerInfo] = {
+    val sortedCoveringLayers =
+      coveringLayers.sortBy { layer =>
+        val zFrom = layer.getZFrom.toSquants.toMeters
+        val zTo = layer.getZTo.toSquants.toMeters
+        math.max(zFrom, zTo)
+      }.reverse
+    val soilLayerInfos = sortedCoveringLayers.map { layer =>
+      val zFrom = layer.getZFrom.toSquants
+      val zTo = layer.getZTo.toSquants
+      val upper =
+        if zFrom <= zTo then zFrom else zTo
+      val lower =
+        if zFrom <= zTo then zTo else zFrom
+      LineSegmentThermalModel.SoilLayerInfo(
+        resolveSoilType(context, layer),
+        upper,
+        lower,
+      )
+    }
+    if soilLayerInfos.size > 3 then {
+      throw new GridAgentInitializationException(
+        s"Ampacity build failed: Line ${context.lineInput.getUuid} " +
+          s"at midpoint (${midCoord.x}, ${midCoord.y}) is covered by " +
+          s"${soilLayerInfos.size} soil layers; at most 3 are supported."
+      )
+    }
+    soilLayerInfos
+  }
+
+  /** Computes the parallel-influence of neighbouring lines on a subsegment.
+    *
+    * @param context
+    *   The segment build context.
+    * @param neighbourLineStrings
+    *   The pre-computed neighbour centerlines.
+    * @param rejectedNeighbours
+    *   The neighbours with rejected (too short) parallel stretches.
+    * @param midPoint
+    *   The JTS point at the subsegment midpoint.
+    * @return
+    *   The parallel influence as a sequence of (neighbour UUID, distance).
+    */
+  private[ampacity] def computeParallelInfluence(
+      context: SegmentBuildContext,
+      neighbourLineStrings: Seq[(NeighbourLineInfo, Geometry)],
+      rejectedNeighbours: MutableSet[UUID],
+      midPoint: Point,
+  ): Seq[(UUID, Double)] =
+    context.ppThreshold match {
+      case Some(thresholdMeters) =>
+        neighbourLineStrings
+          .filter(_._1.hasDeployment)
+          .filterNot(n => rejectedNeighbours.contains(n._1.lineUuid))
+          .flatMap { case (neighbour, neighbourLine) =>
+            val distMeters =
+              neighbourLineDistanceMeters(
+                neighbourLine,
+                midPoint,
+              )
+            if distMeters < thresholdMeters
+            then Some((neighbour.lineUuid, distMeters))
+            else None
+          }
+      case None => Seq.empty
+    }
+
+  /** Assembles a [[LineSegmentThermalModel]] from the resolved subsegment
+    * geometry, soil information, and parallel influence.
+    *
+    * @param context
+    *   The segment build context.
+    * @param geometry
+    *   The resolved subsegment geometry.
+    * @param assignedSoilType
+    *   The assigned outer-soil type.
+    * @param soilLayerInfos
+    *   The ordered soil-layer information sequence.
+    * @param influence
+    *   The parallel influence of neighbouring lines.
+    * @param depthMeters
+    *   The cable burial depth in meters.
+    * @return
+    *   The assembled [[LineSegmentThermalModel]].
+    */
+  private[ampacity] def buildThermalSegment(
+      context: SegmentBuildContext,
+      geometry: SubsegmentGeometry,
+      assignedSoilType: SoilType,
+      soilLayerInfos: Seq[LineSegmentThermalModel.SoilLayerInfo],
+      influence: Seq[(UUID, Double)],
+      depthMeters: Double,
+  ): LineSegmentThermalModel = {
+    val sCoord = geometry.start
+    val eCoord = geometry.end
+    val segmentUuid = UUID.randomUUID()
+    val calculationPoint = SegmentCalculationPoints.coordinateFor(
+      segmentUuid,
+      sCoord,
+      eCoord,
+      context.soilLayers.map(_.getGeometry.getBoundary),
+    )
+    val segment = LineSegmentThermalModel(
+      segmentUuid,
+      s"LineTher_${context.lineInput.getId}_${sCoord.longitude}_${sCoord.latitude}_${eCoord.longitude}_${eCoord.latitude}",
+      context.lineInput.getUuid,
+      context.cable,
+      Coordinate3D(sCoord.latitude, sCoord.longitude, depthMeters),
+      Coordinate3D(eCoord.latitude, eCoord.longitude, depthMeters),
+      context.cableDepth,
+      context.cableDistance,
+      KelvinMetersPerWatt(1),
+      KelvinMetersPerWatt(1),
+      KelvinMetersPerWatt(1),
+      KelvinMetersPerWatt(1),
+      context.cableCapacities.cc,
+      context.cableCapacities.cd,
+      context.cableCapacities.cs,
+      context.cableCapacities.cj,
+      JoulesPerMeterKelvin(1),
+      JoulesPerMeterKelvin(1),
+      context.limitTemperature,
+      assignedSoilType,
+      calculationPoint,
+      influence,
+      context.cableBed,
+      soilLayerInfos,
+    )
+    context.generatedSegments +=
+      BuiltSegment(segment, sCoord, eCoord)
+    segment
   }
 
   /** Converts a JTS coordinate (x = longitude, y = latitude) to a
@@ -927,6 +1139,22 @@ object ThermalSegmentBuilder extends LazyLogging {
     */
   private[ampacity] def toCoordinate(c: JtsCoordinate): Coordinate =
     Coordinate(c.y, c.x)
+
+  /** Computes the geodesic distance in meters between two JTS coordinates (x =
+    * longitude, y = latitude) using the haversine formula.
+    *
+    * @param a
+    *   The first coordinate.
+    * @param b
+    *   The second coordinate.
+    * @return
+    *   The geodesic distance in meters.
+    */
+  private[ampacity] def haversineDistanceMeters(
+      a: JtsCoordinate,
+      b: JtsCoordinate,
+  ): Double =
+    a.haversineDistance(b).getValue.doubleValue()
 
   /** Computes the minimum geodesic distance in meters between a neighbour line
     * and a JTS geometry (line segment or point). The closest pair of points is
@@ -945,7 +1173,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       geom: Geometry,
   ): Double = {
     val nearest = DistanceOp.nearestPoints(neighbourLine, geom)
-    nearest(0).haversineDistance(nearest(1)).getValue.doubleValue()
+    haversineDistanceMeters(nearest(0), nearest(1))
   }
 
   /** Locates the parallel-proximity stretch boundaries of a straight segment
@@ -976,12 +1204,10 @@ object ThermalSegmentBuilder extends LazyLogging {
       neighbourLine: Geometry,
       thresholdMeters: Double,
   ): Seq[Double] = {
-    val segLengthMeters =
-      indexedLine
-        .extractPoint(0.0)
-        .haversineDistance(indexedLine.extractPoint(segLength))
-        .getValue
-        .doubleValue()
+    val segLengthMeters = haversineDistanceMeters(
+      indexedLine.extractPoint(0.0),
+      indexedLine.extractPoint(segLength),
+    )
     val targetSamples = (segLengthMeters / sampleStepMeters).toInt + 1
     if targetSamples > maxSamples then
       logger.warn(
@@ -1027,7 +1253,7 @@ object ThermalSegmentBuilder extends LazyLogging {
 
   /** Maps a list of PSDM layer inputs to cable layers.
     */
-  private def layersList(jl: java.util.List[JLayerInput]): List[Layer] =
+  private def layersList(jl: JList[JLayerInput]): List[Layer] =
     jl.asScala.map(mapLayer).toList
 
   private def mapLayer(jl: JLayerInput): Layer = {
@@ -1071,17 +1297,18 @@ object ThermalSegmentBuilder extends LazyLogging {
     */
   private[ampacity] def singleDeploymentFor(
       lineInput: LineInput,
-      deploymentListOpt: Option[java.util.List[CableDeploymentInput]],
+      deploymentListOpt: Option[JList[CableDeploymentInput]],
   ): Option[CableDeploymentInput] =
     deploymentListOpt match {
       case Some(deployments) =>
         val deploymentList = deployments.asScala.toSeq
-        if deploymentList.size > 1 then
+        if deploymentList.size > 1 then {
           throw new GridAgentInitializationException(
             s"Ampacity build failed: line ${lineInput.getUuid} (id: ${lineInput.getId}) " +
               s"has ${deploymentList.size} cable deployments. Only one cable deployment per line " +
               s"is supported. Please remove the surplus entries in cable_deployment_input.csv."
           )
+        }
         deploymentList.headOption
       case None => None
     }
@@ -1107,7 +1334,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     val runDirOpt: Option[Path] =
       try {
         val stream = Files.list(baseOutputDir)
-        try
+        try {
           val dirs = stream
             .filter(p =>
               Files.isDirectory(p) && p.getFileName.toString.startsWith(
@@ -1120,9 +1347,11 @@ object ThermalSegmentBuilder extends LazyLogging {
           if dirs.nonEmpty then
             Some(dirs.maxBy(p => Files.getLastModifiedTime(p).toMillis))
           else None
-        finally stream.close()
+        } finally stream.close()
       } catch {
-        case _: Exception => None
+        case e: Exception =>
+          logger.error("Failed to determine the run directory: ", e)
+          None
       }
     val runDir = runDirOpt.getOrElse(baseOutputDir.resolve(simulationName))
     val rawOutputDir = runDir.resolve("rawOutputData")
@@ -1149,7 +1378,6 @@ object ThermalSegmentBuilder extends LazyLogging {
       ).mkString(",")
     }.toSeq
     val content = rows.mkString("\n")
-    // Append if the file already exists, otherwise create it with the header.
     if Files.exists(outPath) then
       Files.write(
         outPath,
@@ -1185,63 +1413,6 @@ object ThermalSegmentBuilder extends LazyLogging {
       cj: ThermalCapacityPerLength,
   )
 
-  /** Determines the effective cross-sectional area of a layer in the 2-D cable
-    * cross-section.
-    *
-    * Uses the area provided with the layer when available. Otherwise, the
-    * annular area between the outer and the inner diameter is used: `pi / 4 *
-    * (dOuter^2 - dInner^2)`. For a solid conductor the inner diameter is zero,
-    * which yields the plain circular area.
-    *
-    * @param innerDiameter
-    *   The inner diameter of the layer.
-    * @param outerDiameter
-    *   The outer diameter of the layer.
-    * @param area
-    *   The optional cross-sectional area provided with the layer.
-    * @return
-    *   The effective cross-sectional area of the layer.
-    */
-  private[ampacity] def crossSectionArea(
-      innerDiameter: Length,
-      outerDiameter: Length,
-      area: Option[Area],
-  ): Area =
-    area.getOrElse {
-      val inner = innerDiameter.toMeters
-      val outer = outerDiameter.toMeters
-      SquareMeters(math.Pi / 4d * (outer * outer - inner * inner))
-    }
-
-  /** Converts the volumetric specific heat capacity of a layer into its thermal
-    * capacity per unit of length (J/(m·K)).
-    *
-    * Multiplies the specific heat capacity in J/(m³·K) by the layer's
-    * cross-sectional area in m² to yield J/(m·K).
-    *
-    * @param specificHeatCapacity
-    *   The volumetric specific heat capacity of the layer material.
-    * @param innerDiameter
-    *   The inner diameter of the layer.
-    * @param outerDiameter
-    *   The outer diameter of the layer.
-    * @param area
-    *   The optional cross-sectional area provided with the layer.
-    * @return
-    *   The thermal capacity of the layer per unit of length.
-    */
-  private[ampacity] def perLengthCapacity(
-      specificHeatCapacity: VolumetricHeatCapacity,
-      innerDiameter: Length,
-      outerDiameter: Length,
-      area: Option[Area],
-  ): ThermalCapacityPerLength = {
-    val crossSection = crossSectionArea(innerDiameter, outerDiameter, area)
-    JoulesPerMeterKelvin(
-      specificHeatCapacity.toJoulesPerCubicMeterKelvin * crossSection.toSquareMeters
-    )
-  }
-
   /** Computes the per-unit-length thermal capacities of the four cable elements
     * of a cable from its layers.
     *
@@ -1257,46 +1428,30 @@ object ThermalSegmentBuilder extends LazyLogging {
   private[ampacity] def calcCableThermalCapacities(
       cable: CableSetup
   ): CableThermalCapacities = {
-    val cc = perLengthCapacity(
+    val cc = calcThermalCapacityCylindrical(
       cable.conductor.volumetricHeatCapacity,
       cable.conductor.innerDiameter,
       cable.conductor.outerDiameter,
-      cable.conductor.area,
     )
-    val dielectricCapacity = JoulesPerMeterKelvin(
-      (cable.layersIsolationElements ++ cable.layersFillerElements)
-        .map(layer =>
-          perLengthCapacity(
-            layer.volumetricHeatCapacity,
-            layer.innerDiameter,
-            layer.outerDiameter,
-            layer.area,
-          ).toJoulesPerMeterKelvin
-        )
-        .sum
+    val dielectricCapacity =
+      sumCylindricalLayerThermalCapacities(
+        cable.layersIsolationElements
+      ) + sumCylindricalLayerThermalCapacities(
+        cable.layersFillerElements
+      )
+    val cs = cable.screenLayer.fold(JoulesPerMeterKelvin(0d))(screen =>
+      calcThermalCapacityCylindrical(
+        screen.volumetricHeatCapacity,
+        screen.innerDiameter,
+        screen.outerDiameter,
+      )
     )
-    val cs = cable.screenLayer match {
-      case Some(screen) =>
-        perLengthCapacity(
-          screen.volumetricHeatCapacity,
-          screen.innerDiameter,
-          screen.outerDiameter,
-          screen.area,
-        )
-      case None => JoulesPerMeterKelvin(0d)
-    }
-    val outerCapacity = JoulesPerMeterKelvin(
-      (cable.layersArmorElements ++ cable.layersJackElements)
-        .map(layer =>
-          perLengthCapacity(
-            layer.volumetricHeatCapacity,
-            layer.innerDiameter,
-            layer.outerDiameter,
-            layer.area,
-          ).toJoulesPerMeterKelvin
-        )
-        .sum
-    )
+    val outerCapacity =
+      sumCylindricalLayerThermalCapacities(
+        cable.layersArmorElements
+      ) + sumCylindricalLayerThermalCapacities(
+        cable.layersJackElements
+      )
     CableThermalCapacities(cc, dielectricCapacity, cs, outerCapacity)
   }
 

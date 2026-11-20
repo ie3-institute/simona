@@ -926,16 +926,12 @@ object ConfigFailFast extends LazyLogging {
   private def checkAmpacityCalculation(
       ampacityCalculation: AmpacityCalculation
   ): Unit = {
-    ampacityCalculation.parallelProximityThreshold match {
-      case Some(threshold) if threshold <= 0 =>
-        throw new InvalidConfigParameterException(
-          s"The parallelProximityThreshold must be a positive value in meters, but was $threshold."
-        )
-      case _ => // valid or not provided
-    }
-
     if ampacityCalculation.activateParallelProximitySplitting then
       ampacityCalculation.parallelProximityThreshold match {
+        case Some(threshold) if threshold <= 0 =>
+          throw new InvalidConfigParameterException(
+            s"The parallelProximityThreshold must be a positive value in meters, but was $threshold."
+          )
         case None =>
           throw new InvalidConfigParameterException(
             "Parallel proximity splitting is activated, but no parallelProximityThreshold is provided. " +

@@ -7,9 +7,14 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import com.typesafe.scalalogging.LazyLogging
-import edu.ie3.datamodel.models.input.SoilType
+import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.PI_OVER_FOUR
+import edu.ie3.util.quantities.thermal.{
+  JoulesPerMeterKelvin,
+  ThermalCapacityPerLength,
+  VolumetricHeatCapacity,
+}
 import squants.Meters
-import squants.space.Length
+import squants.space.{Length, SquareMeters}
 
 import scala.math.*
 
@@ -37,5 +42,46 @@ object SoilThermalResistanceCalculations extends LazyLogging {
       (x / (2 * y)) * (4 / Pi - x / y) * log(1 + (y * y) / (x * x)) + log(x / 2)
     Meters(exp(lnRb))
   }
+
+  /** Calculates the thermal capacity per length unit for a cylindrical area.
+    *
+    * @param volumetricHeatCapacityMaterial
+    *   The volumetric heat capacity of the material.
+    * @param innerDiameter
+    *   The inner diameter of the cylindrical layer.
+    * @param outerDiameter
+    *   The outer diameter of the cylindrical layer.
+    * @return
+    *   The thermal capacity per unit of length.
+    */
+  def calcThermalCapacityCylindrical(
+      volumetricHeatCapacityMaterial: VolumetricHeatCapacity,
+      innerDiameter: Length,
+      outerDiameter: Length,
+  ): ThermalCapacityPerLength = {
+    val areaDifference = SquareMeters(
+      (pow(outerDiameter.toMeters, 2) -
+        pow(innerDiameter.toMeters, 2)) * PI_OVER_FOUR
+    )
+    volumetricHeatCapacityMaterial * areaDifference
+  }
+
+  /** Sums the [[calcThermalCapacityCylindrical]] of a sequence of cable layers.
+    *
+    * @param layers
+    *   The sequence of cable layers.
+    * @return
+    *   The summed thermal capacity per unit of length.
+    */
+  def sumCylindricalLayerThermalCapacities(
+      layers: Iterable[Layer]
+  ): ThermalCapacityPerLength =
+    layers.foldLeft(JoulesPerMeterKelvin(0)) { (acc, layer) =>
+      acc + calcThermalCapacityCylindrical(
+        layer.volumetricHeatCapacity,
+        layer.innerDiameter,
+        layer.outerDiameter,
+      )
+    }
 
 }
