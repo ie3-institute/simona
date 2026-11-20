@@ -11,6 +11,7 @@ import edu.ie3.simona.test.common.DefaultTestData
 import edu.ie3.util.quantities.PowerSystemUnits.{
   KELVIN_METRE_PER_WATT,
   JOULE_PER_CUBIC_METRE_KELVIN,
+  KELVIN_METRE_PER_WATT,
 }
 import tech.units.indriya.quantity.Quantities
 import tech.units.indriya.unit.Units.CELSIUS
