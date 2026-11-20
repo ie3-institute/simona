@@ -6,14 +6,19 @@
 
 package edu.ie3.util.quantities
 
-import edu.ie3.util.quantities.energy.KilowattHoursPerCubicMeter
+import edu.ie3.util.quantities.electro.FaradsPerKilometer
+import edu.ie3.util.quantities.energy.{
+  KilowattHoursPerCubicMeter,
+  WattsPerMeter,
+}
 import edu.ie3.util.quantities.radio.WattHoursPerSquareMeter
+import edu.ie3.util.scala.quantities.DefaultQuantities.europeanSystemFrequency
 import edu.ie3.util.scala.quantities.SquantsUtils.*
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import squants.Each
-import squants.electro.Kilovolts
-import squants.energy.KilowattHours
+import squants.electro.{Farads, Kilovolts, Volts}
+import squants.energy.{KilowattHours, Watts}
 import squants.radio.WattsPerSquareMeter
 import squants.space.CubicMeters
 import squants.thermal.JoulesPerKelvin
@@ -44,4 +49,23 @@ class SquantsUtilsSpec extends AnyFlatSpec with Matchers {
   it should "return Irradiation when Irradiance is multiplied by Time" in {
     WattsPerSquareMeter(10) * Hours(2) should be(WattHoursPerSquareMeter(20.0))
   }
+
+  it should "calculate the dielectric losses of a capacitor" in {
+    val actual = Farads(1).calculateDielectricLosses(
+      Volts(10),
+      europeanSystemFrequency,
+      0.001,
+    )
+    actual.toWatts shouldBe (10 * math.Pi) +- 1e-9
+  }
+
+  it should "calculate the specific dielectric losses of a cable" in {
+    val actual = FaradsPerKilometer(1e-3).calculateSpecificDielectricLosses(
+      Kilovolts(10),
+      europeanSystemFrequency,
+      0.001,
+    )
+    actual.toWattsPerMeter shouldBe (10 * math.Pi) +- 1e-9
+  }
+
 }

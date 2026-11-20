@@ -9,6 +9,7 @@ package edu.ie3.simona.model.grid.ampacity
 import com.typesafe.scalalogging.LazyLogging
 import squants.Temperature
 import squants.thermal.Celsius
+import squants.{Meters, Temperature}
 
 import scala.math.*
 
@@ -23,6 +24,32 @@ object LineThermalModelCalculations extends LazyLogging {
   private[ampacity] val TREFOIL_COEFFICIENT: Double = 1.5
   private[ampacity] val TREFOIL_ADJUSTMENT: Double = 0.63
   private[ampacity] val REFERENCE_TEMPERATURE: Temperature = Celsius(20d)
+
+  /** Calculates the lay factor of the screen layer which is the ratio of the
+    * lay length to the external diameter of the corresponding layer of wires or
+    * members in the stranded conductor.
+    * @param screenLayer
+    *   Cable layer of the screen with type [[ScreenLayer]]
+    * @return
+    *   The lay factor.
+    */
+  private[ampacity] def calcLayFactor(
+      screenLayer: Option[ScreenLayer]
+  ): Double = {
+    screenLayer match {
+      case Some(layer) =>
+        sqrt(
+          1 + (pow(
+            (layer.innerDiameter.toMeters + layer.wireDiameter.toMeters) * Pi,
+            2,
+          ) / pow(
+            layer.lengthOfLay.getOrElse(Meters(999d)).toMeters,
+            2,
+          ))
+        )
+      case None => 1.0
+    }
+  }
 
   /** The temperatures of the line segment's thermal model nodes at the current
     * point in time.
