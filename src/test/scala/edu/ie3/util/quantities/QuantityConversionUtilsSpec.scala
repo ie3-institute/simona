@@ -116,11 +116,11 @@ class QuantityConversionUtilsSpec extends UnitSpec {
         Quantities.getQuantity(2.5, KILOMETRE)
       val specResistance = Quantities.getQuantity(0.2, OHM_PER_KILOMETRE)
       specResistance.toResistancePerLength shouldBe OhmsPerKilometer(0.2)
-      specResistance.toSquants shouldBe Ohms(0.5)
+      specResistance.toOhms shouldBe Ohms(0.5)
 
       val specResistance2 = Quantities.getQuantity(0.1, OHM_PER_KILOMETRE)
       specResistance2.toResistancePerLength shouldBe OhmsPerKilometer(0.1)
-      specResistance2.toSquants shouldBe Ohms(0.25)
+      specResistance2.toOhms shouldBe Ohms(0.25)
     }
 
     "properly convert electrical conductance quantities" in {
@@ -133,7 +133,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
         Quantities.getQuantity(10.0, KILOMETRE)
       val specConductance =
         Quantities.getQuantity(0.05, SIEMENS_PER_KILOMETRE)
-      specConductance.toSquants shouldBe Siemens(0.5)
+      specConductance.toSiemens shouldBe Siemens(0.5)
     }
 
     "properly convert length quantities from different units" in {
