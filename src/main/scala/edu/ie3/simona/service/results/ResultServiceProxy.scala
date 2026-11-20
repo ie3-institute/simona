@@ -32,6 +32,7 @@ import edu.ie3.simona.util.TickUtil.toTick
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.slf4j.Logger
+import squants.energy.EnergyConversions.EnergyNumeric
 
 import java.nio.file.Paths
 import java.time.ZonedDateTime
@@ -121,10 +122,10 @@ object ResultServiceProxy {
       lastUpdate: Map[UUID, Long] = Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
-      emTrajectoryWriter: BufferedCsvWriter = {
+      emTrajectoryWriter: BufferedCsvWriter =
         // FIXME very hacky
-        val writer = new BufferedCsvWriter(
-          Paths.get(".").resolve("em_trajectories.csv").toAbsolutePath,
+        initWriter(
+          "em_trajectories.csv",
           Array(
             "assetUuid",
             "currentTick",
@@ -135,12 +136,27 @@ object ResultServiceProxy {
             "tightEMin",
             "tightEMax",
           ),
-          ",",
-          false,
-        )
-        writer.writeFileHeader()
-        writer
-      },
+        ),
+      emMetricsWriter: BufferedCsvWriter =
+        // FIXME very hacky
+        initWriter(
+          "em_metrics.csv",
+          Array(
+            "variantId",
+            "currentTick",
+            "sampleTime",
+            "predictionHorizon",
+            "solver",
+            "tightenBoundaries",
+            "solutionStatus",
+            "objectiveValue",
+            "stateCalcError",
+            "timeVariables",
+            "timeObjectiveFunction",
+            "timeConstraints",
+            "timeSolution",
+          ),
+        ),
   ) extends ServiceBaseStateData {
 
     /** This method is used to forward results to all known listeners.
@@ -447,6 +463,51 @@ object ResultServiceProxy {
         ).asJava
       )
     }
+
+    def printEmMetricsRes(
+        res: EmOptMetricsResult
+    ): Unit = {
+      emMetricsWriter.write(
+        Map(
+          "variantId" -> res.variantId,
+          "currentTick" -> res.result.params.timeParams.currentTick.toString,
+          "sampleTime" -> res.result.params.timeParams.sampleTime.toHours.toString,
+          "predictionHorizon" -> res.result.params.timeParams.predictionHorizon.toHours.toString,
+          "solver" -> res.result.params.solverLib.getClass.getSimpleName
+            .replace("$", ""),
+          "tightenBoundaries" -> {
+            if res.result.params.tightenBoundaries then "1" else "0"
+          },
+          "solutionStatus" -> res.result.solutionStatus.getClass.getSimpleName
+            .replace("$", ""),
+          "objectiveValue" -> res.result.objectiveValue.getOrElse(-1d).toString,
+          "stateCalcError" -> res.result.assetSymbols
+            .flatMap(_.getStateCalcErrors)
+            .sum
+            .toKilowattHours
+            .toString,
+          "timeVariables" -> res.result.timeMeasurements.variables.toString,
+          "timeObjectiveFunction" -> res.result.timeMeasurements.objectiveFunction.toString,
+          "timeConstraints" -> res.result.timeMeasurements.constraints.toString,
+          "timeSolution" -> res.result.timeMeasurements.solution.toString,
+        ).asJava
+      )
+    }
+
+  }
+
+  private def initWriter(
+      fileName: String,
+      headers: Array[String],
+  ): BufferedCsvWriter = {
+    val writer = new BufferedCsvWriter(
+      Paths.get(".").resolve(fileName).toAbsolutePath,
+      headers,
+      ",",
+      false,
+    )
+    writer.writeFileHeader()
+    writer
   }
 
   /** Used to create a [[ResultServiceProxy]].
@@ -597,6 +658,11 @@ object ResultServiceProxy {
       case emTrajectoryRes: EmTrajectoryStepResult =>
         // notify listener
         stateData.printEmTrajectoryRes(emTrajectoryRes)
+        stateData
+
+      case emMetricsRes: EmOptMetricsResult =>
+        // notify listener
+        stateData.printEmMetricsRes(emMetricsRes)
         stateData
 
     }

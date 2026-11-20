@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.em.opt
 
 import edu.ie3.datamodel.models.input.AssetInput
+import edu.ie3.simona.event.ResultEvent.EmOptMetricsResult
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.em.EmModelStrat
 import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
@@ -87,6 +88,8 @@ final case class ComparativeOptimizingFlexStrat(
         )
 
         val result = FlexibilityOptimization.optimize(optimizationParams)
+
+        resultListener ! EmOptMetricsResult(id, result)
 
         id -> result
       }

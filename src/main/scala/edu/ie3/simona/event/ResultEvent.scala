@@ -24,6 +24,7 @@ import edu.ie3.datamodel.models.result.thermal.{
 }
 import edu.ie3.datamodel.models.result.{CongestionResult, NodeResult}
 import edu.ie3.simona.agent.grid.GridResultsSupport.PartialTransformer3wResult
+import edu.ie3.simona.model.em.opt.FlexibilityOptimization.OptimizationResult
 import tech.units.indriya.ComparableQuantity
 
 import java.time.ZonedDateTime
@@ -184,6 +185,18 @@ object ResultEvent {
       eMax: squants.Energy,
       tightEMin: squants.Energy,
       tightEMax: squants.Energy,
+  ) extends ResultEvent
+
+  /** @param variantId
+    *   Includes model, optionally variant, and objective function
+    * @param result
+    *   Includes parameters and result metrics
+    *
+    * todo also include state error metrics
+    */
+  final case class EmOptMetricsResult(
+      variantId: String,
+      result: OptimizationResult,
   ) extends ResultEvent
 
 }
