@@ -13,7 +13,11 @@ import edu.ie3.powerflow.math.Complex
 import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
-import edu.ie3.util.scala.quantities.QuantityConversionUtils.{toOhms, toSiemens, toSquants}
+import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
+  toOhms,
+  toSiemens,
+  toSquants,
+}
 import squants.{Dimensionless, Each, ElectricCurrent}
 import tech.units.indriya.ComparableQuantity
 import tech.units.indriya.quantity.Quantities

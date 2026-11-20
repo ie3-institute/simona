@@ -10,16 +10,16 @@ The losses per unit cable length, which act as the heat sources of the thermal m
 The ampacity functionality is located in `src/main/scala/edu/ie3/simona/model/grid/ampacity/`
 and consists of the following components:
 
-| Component                      | Role                                                                                       |
-| ------------------------------ | ------------------------------------------------------------------------------------------ |
-| `CableSetup`                   | Data model of the cable (layers, temperatures, electrical and loss parameters).            |
-| `LayoutFormation`              | Geometric arrangement of the cable axes; selects the loss and resistance formulas.         |
-| `LineSegmentThermalModel`      | Thermal model of one line segment (resistances, capacities, soil, depth, neighbours).      |
-| `LineThermalModelCalculations` | Shared constants and helpers, e.g. the lay factor of the screen layer.                     |
-| `CableLossCalculations`        | Loss engine: AC resistances and conductor, screen, armor and dielectric losses.            |
-| `SegmentCalculationPoints`     | Determines the calculation point (geometric midpoint) of a thermal segment for the weather registration. |
-| `SoilThermalResistanceCalculations` | Calculations of the external thermal resistance (T4) to soil, thermal capacitances, and cable bed related quantities (e.g. the equivalent radius of a cable bed). |
-| `ThermalSegmentBuilder`        | Builds [[LineSegmentThermalModel]] instances from a subgrid, including validation of soil layers, cable types, and cable deployments. |
+| Component                           | Role                                                                                  |
+| ----------------------------------- | --------------------------------------------------------------------------------------|
+| `CableSetup`                        | Data model of the cable (layers, temperatures, electrical and loss parameters).       |
+| `LayoutFormation`                   | Geometric arrangement of the cable axes; selects the loss and resistance formulas.    |
+| `LineSegmentThermalModel`           | Thermal model of one line segment (resistances, capacities, soil, depth, neighbours). |
+| `LineThermalModelCalculations`      | Shared constants and helpers, e.g. the lay factor of the screen layer.                |
+| `CableLossCalculations`             | Loss engine: AC resistances and conductor, screen, armor and dielectric losses.       |
+| `SegmentCalculationPoints`          | Determines the calculation point of a thermal segment for the weather registration.   |
+| `SoilThermalResistanceCalculations` | Calculations of the external thermal parameters.                                      |
+| `ThermalSegmentBuilder`             | Builds [[LineSegmentThermalModel]] instances from a subgrid.                          |
 
 
 ## LineSegmentThermalModel
@@ -72,15 +72,15 @@ centerline into sub-segments at
   segment. Stretches shorter than the minimum overlap length are skipped.
 
 For each resulting sub-segment the builder assigns the covering soil layer and
-soil type at the segment midpoint, resolves the parallel influence of
+soil type at the segment midpoint. It resolves the parallel influence of
 neighbouring lines, determines the calculation point for the weather
 registration, and computes the per-unit-length thermal capacities of the four
 cable elements.
 
 The builder also validates the input data required for the ampacity
-calculation and fails the simulation with a
+calculation. The simulation fails with a
 `GridAgentInitializationException` if, for example, no cable types or no cable
-deployments are available, a line references more than one deployment, the
+deployments are available. Other reasons can be a line references including more than one deployment, the
 cable depth is not covered by any soil layer, or the cable bed geometry does
 not enclose the cable formation.
 
