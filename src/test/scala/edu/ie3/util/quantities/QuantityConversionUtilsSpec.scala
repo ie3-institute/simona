@@ -11,7 +11,11 @@ import edu.ie3.util.quantities.PowerSystemUnits.*
 import edu.ie3.util.quantities.electro.{FaradsPerKilometer, OhmsPerKilometer}
 import edu.ie3.util.quantities.energy.Kilovoltamperes
 import edu.ie3.util.quantities.prices.EuroPerKilowattHours
-import edu.ie3.util.quantities.thermal.{JoulesPerCubicMeterKelvin, KelvinMetersPerWatt, KilowattHoursPerCubicMeterKelvin}
+import edu.ie3.util.quantities.thermal.{
+  JoulesPerCubicMeterKelvin,
+  KelvinMetersPerWatt,
+  KilowattHoursPerCubicMeterKelvin,
+}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.*
 import squants.electro.*
 import squants.energy.{Energy, KilowattHours, Kilowatts}
