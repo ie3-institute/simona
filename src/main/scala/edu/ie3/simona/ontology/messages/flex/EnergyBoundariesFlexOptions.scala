@@ -464,7 +464,7 @@ object EnergyBoundariesFlexOptions
             // assets constraints need to be created at least for two time steps
             // (including eventual tickDisconnect restrictions)
             throw new CriticalFailureException(
-              s"Asset energy boundaries need at least two steps (actual size: ${energyLimits.size})."
+              s"Asset energy boundaries need at least two steps (actual size: ${adaptedTicks.size})."
             )
         }
 
@@ -519,7 +519,7 @@ object EnergyBoundariesFlexOptions
               // assets constraints need to be created at least for two time steps
               // (including eventual tickDisconnect restrictions)
               throw new CriticalFailureException(
-                s"Asset energy boundaries need at least two steps (actual size: ${energyLimits.size})."
+                s"Asset energy boundaries need at least two steps (actual size: ${adaptedTicks.size})."
               )
           }
 
