@@ -171,7 +171,7 @@ object ComparativeOptimizingFlexStrat {
         "OPT_SPM_BIN_PS" -> SplitPowerVarsObjectiveFactory
           .PeakShavingObjectiveFactory(BinaryConstraint),
       ),
-      referenceModelId = "OPT_SPM_BIN_MINABS",
+      referenceModelId = "OPT_SPM_BIN_PS",
     )
   }
 
