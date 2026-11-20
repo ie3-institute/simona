@@ -104,8 +104,10 @@ final case class OptimizingFlexStrat(
 
     if errors.nonEmpty then {
       val meanError = errors.sum / errors.size
+      val totalSteps =
+        (optimizationParams.timeParams.predictionHorizon / optimizationParams.timeParams.sampleTime).toInt
       logger.warn(
-        s"${errors.size} of all state of energy calculation steps were inaccurate, with a mean error of $meanError"
+        s"${errors.size} of $totalSteps state of energy calculation steps were inaccurate, with a mean error of $meanError"
       )
     }
 
