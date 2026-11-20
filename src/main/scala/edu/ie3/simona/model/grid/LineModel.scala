@@ -14,8 +14,8 @@ import edu.ie3.simona.model.SystemComponent
 import edu.ie3.simona.util.SimonaConstants
 import edu.ie3.util.scala.OperationInterval
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
-  toOhms,
-  toSiemens,
+  toResistance,
+  toConductance,
   toSquants,
 }
 import squants.{Dimensionless, Each, ElectricCurrent}
@@ -154,10 +154,10 @@ case object LineModel extends LazyLogging {
 
     val lineType = lineInput.getType
     val (r, x, g, b) = (
-      refSystem.rInPu(lineType.getR.toOhms),
-      refSystem.xInPu(lineType.getX.toOhms),
-      refSystem.gInPu(lineType.getG.toSiemens),
-      refSystem.bInPu(lineType.getB.toSiemens),
+      refSystem.rInPu(lineType.getR.toResistance),
+      refSystem.xInPu(lineType.getX.toResistance),
+      refSystem.gInPu(lineType.getG.toConductance),
+      refSystem.bInPu(lineType.getB.toConductance),
     )
 
     val operationInterval =
