@@ -45,7 +45,7 @@ trait EmInputTestData
     "Dummy_EmModel",
     new OperatorInput(UUID.randomUUID(), "NO_OPERATOR"),
     OperationTime.notLimited(),
-    "PRIORITIZED",
+    "PROPORTIONAL",
     null,
   )
 
