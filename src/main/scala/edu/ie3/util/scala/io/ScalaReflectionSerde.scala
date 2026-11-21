@@ -6,14 +6,7 @@
 
 package edu.ie3.util.scala.io
 
-import com.sksamuel.avro4s.{
-  AvroSchema,
-  Decoder,
-  Encoder,
-  FromRecord,
-  SchemaFor,
-  ToRecord,
-}
+import com.sksamuel.avro4s.*
 import io.confluent.kafka.streams.serdes.avro.{
   GenericAvroDeserializer,
   GenericAvroSerializer,
@@ -26,7 +19,10 @@ import org.apache.kafka.common.serialization.{Deserializer, Serializer}
   */
 object ScalaReflectionSerde {
 
-  def reflectionSerializer4S[T >: Null: SchemaFor: Encoder]: Serializer[T] =
+  def reflectionSerializer4S[T >: Null](implicit
+      schemaFor: SchemaFor[T],
+      encoder: Encoder[T],
+  ): Serializer[T] =
     new Serializer[T] {
       val inner = new GenericAvroSerializer()
       val schema: Schema = AvroSchema[T]
