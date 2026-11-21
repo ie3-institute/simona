@@ -51,7 +51,7 @@ abstract class SplitPowerVarsObjectiveFactory
 
       case varPower: VariablePowerStepParameters =>
         val etaCh = varPower.etaCharge.toEach
-        val etaDis = varPower.etaCharge.toEach
+        val etaDis = varPower.etaDischarge.toEach
         val pChMax = varPower.pMax.toKilowatts
         val pDisMax = -varPower.pMin.toKilowatts
         val eMin = varPower.eMin.toKilowattHours
