@@ -498,7 +498,6 @@ object ThermalSegmentBuilder extends LazyLogging {
     val coordinates = Option(lineInput.getGeoPosition)
       .map(_.getCoordinates.toSeq.map(c => Coordinate(c.y, c.x)))
       .getOrElse(Seq.empty)
-    // TODO DF: In case some information are missing in the provided input data, these might be filled by data in PSDM (Cable Material Data). Might worth an improvement in PSDM, noted here to keep track.
     val conductor = mapConductor(cableTypeInput.getConductor)
     val isolation = layersList(cableTypeInput.getIsolation)
     val screen = cableTypeInput.getScreen.toScala.map(mapScreen)
@@ -908,7 +907,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       throw new GridAgentInitializationException(
         s"Ampacity build failed: No soil layer covers the subsegment midpoint " +
           s"(${midPoint.getX}, ${midPoint.getY}) of line ${context.lineInput.getUuid} " +
-          s"between ${p1} and ${p2}."
+          s"between $p1 and $p2."
       )
     }
     coveringLayers
@@ -949,7 +948,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       }
       .getOrElse {
         throw new GridAgentInitializationException(
-          s"Ampacity build failed: The cable depth of ${depthMeters} m is " +
+          s"Ampacity build failed: The cable depth of $depthMeters m is " +
             s"not covered by any soil layer spanning line ${context.lineInput.getUuid} " +
             s"at midpoint (${midCoord.x}, ${midCoord.y})."
         )
@@ -1211,7 +1210,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     val targetSamples = (segLengthMeters / sampleStepMeters).toInt + 1
     if targetSamples > maxSamples then
       logger.warn(
-        s"Segment of ${segLengthMeters}m exceeds the sampling cap of ${maxSamples} samples; " +
+        s"Segment of ${segLengthMeters}m exceeds the sampling cap of $maxSamples samples; " +
           s"parallel-proximity resolution degrades to ${segLengthMeters / maxSamples}m per sample."
       )
     val n = math.max(
