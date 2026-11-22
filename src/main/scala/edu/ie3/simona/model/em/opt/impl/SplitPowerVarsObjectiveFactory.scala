@@ -93,6 +93,13 @@ abstract class SplitPowerVarsObjectiveFactory
 
           additionalConstraints match {
             case RelaxedConstraints =>
+              val (prevEMin, prevEMax) = previousState match {
+                case constState: Const =>
+                  (constState.value, constState.value)
+                case varState: MPVar =>
+                  (varState.lowerBound, varState.upperBound)
+              }
+
               // additional constraints for tighter boundaries
               model.add(
                 pCharge * Const(1d / pChMax)
@@ -100,11 +107,11 @@ abstract class SplitPowerVarsObjectiveFactory
                   <:= Const(1d)
               )
               model.add(
-                previousState <:= Const(eMax)
+                previousState <:= Const(math.max(prevEMax, eMax))
                   - pCharge * Const(sampleHours * etaCh)
               )
               model.add(
-                previousState >:= Const(eMin)
+                previousState >:= Const(math.min(prevEMin, eMin))
                   + pDischarge * Const(sampleHours / etaDis)
               )
 
