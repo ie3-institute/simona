@@ -19,7 +19,7 @@ import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.{DataTimeType, ServiceRegistrationData}
-import optimus.optimization.enums.{SolutionStatus, SolverLib}
+import optimus.optimization.enums.SolverLib
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.EnergyConversions.EnergyNumeric
 import squants.energy.WattHours
@@ -88,14 +88,9 @@ final case class OptimizingFlexStrat(
 
     val result = FlexibilityOptimization.optimize(optimizationParams)
 
-    // FIXME debugging - remove this
-    println(
-      s"$currentTick - ${currentTick + predictionHorizon.toSeconds.toLong}: ${result.objectiveValue}"
-    )
-
-    if result.solutionStatus != SolutionStatus.OPTIMAL then
+    if !result.solutionFound then
       throw new CriticalFailureException(
-        s"Optimization ended with unexpected status ${result.solutionStatus}, ${SolutionStatus.OPTIMAL} was expected."
+        s"Optimization ended with unexpected status ${result.solutionStatus}, (optimal) solution was not found."
       )
 
     val errors = result.assetSymbols

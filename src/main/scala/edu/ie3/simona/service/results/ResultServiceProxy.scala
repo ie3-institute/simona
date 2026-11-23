@@ -29,7 +29,6 @@ import edu.ie3.simona.service.results.Transformer3wResultSupport.{
 }
 import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import edu.ie3.simona.util.TickUtil.toTick
-import optimus.optimization.enums.SolutionStatus
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.slf4j.Logger
@@ -471,7 +470,7 @@ object ResultServiceProxy {
       val stateCalcError =
         // we only calc the state calc error if optimisation succeeded,
         // otherwise some variables might not be set
-        if res.result.solutionStatus == SolutionStatus.OPTIMAL then
+        if res.result.solutionFound then
           res.result.assetSymbols
             .flatMap(_.getStateCalcErrors)
             .sum

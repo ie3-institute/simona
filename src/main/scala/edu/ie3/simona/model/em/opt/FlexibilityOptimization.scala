@@ -65,6 +65,14 @@ object FlexibilityOptimization {
       model: MPModel,
   ) {
 
+    /** Returns whether optimization provides a solution, whether it is optimal
+      * or suboptimal.
+      *
+      * @return
+      *   Whether optimization succeeded in calculating a solution.
+      */
+    def solutionFound: Boolean = solutionStatus.solutionFound
+
     // FIXME debugging - remove this
     def varSolutions: String = {
       assetSymbols
@@ -221,7 +229,7 @@ object FlexibilityOptimization {
     model.release()
 
     val actualObjectiveValue =
-      Option.when(model.getStatus == SolutionStatus.OPTIMAL)(
+      Option.when(model.getStatus.solutionFound)(
         params.objectiveFactory.getComparableObjectiveValue(
           allAssetSymbols.sortByTick(ticks),
           params.target,
@@ -581,4 +589,18 @@ object FlexibilityOptimization {
       }
 
   }
+
+  extension (stat: SolutionStatus) {
+
+    /** Returns whether optimization provides a solution, whether it is optimal
+      * or suboptimal.
+      *
+      * @return
+      *   Whether optimization succeeded in calculating a solution.
+      */
+    def solutionFound: Boolean =
+      Set(SolutionStatus.OPTIMAL, SolutionStatus.SUBOPTIMAL).contains(stat)
+
+  }
+
 }

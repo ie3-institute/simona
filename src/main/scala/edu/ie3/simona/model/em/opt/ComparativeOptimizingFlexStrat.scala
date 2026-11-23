@@ -102,6 +102,11 @@ final case class ComparativeOptimizingFlexStrat(
         throw new CriticalFailureException("Reference model not found.")
       )
 
+    if !referenceResult.solutionFound then
+      throw new CriticalFailureException(
+        s"Optimization ended with unexpected status ${referenceResult.solutionStatus}, (optimal) solution was not found."
+      )
+
     results.to(SortedMap).foreach { case (id, result) =>
       if result.solutionStatus != SolutionStatus.OPTIMAL then
         logger.warn(s"$id: Optimization ended with ${result.solutionStatus}")
