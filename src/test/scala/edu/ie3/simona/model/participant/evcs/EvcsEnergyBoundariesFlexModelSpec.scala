@@ -8,6 +8,7 @@ package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.config.RuntimeConfig.EvcsRuntimeConfig
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.evcs.EvcsEnergyBoundariesFlexModel.requiredPowerTolerance
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
@@ -15,11 +16,13 @@ import edu.ie3.simona.service.DataTimeType.{Current, CurrentAndForecast}
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.simona.test.common.input.EvcsInputTestData
 import edu.ie3.util.interval.ClosedInterval
+import edu.ie3.util.quantities.PowerSystemUnits.PU
 import edu.ie3.util.quantities.QuantityUtils.*
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
 import org.apache.pekko.actor.testkit.typed.scaladsl.ScalaTestWithActorTestKit
 import squants.Seconds
 import squants.energy.KilowattHours
+import squants.time.Hours
 
 import scala.collection.immutable.SortedMap
 
@@ -103,17 +106,22 @@ class EvcsEnergyBoundariesFlexModelSpec
 
       val flexModel = createModel()
 
-      val departureTick = currentTick + 7200L
+      val stayDuration = Hours(2)
+      val departureTick = currentTick + stayDuration.toSeconds.toLong
+
+      val etaCharging = ev5.getEtaCharging.to(PU).getValue.doubleValue
+      val tolerance =
+        (requiredPowerTolerance * stayDuration * etaCharging).toKilowattHours
 
       val cases = Table(
         ("storedEnergy", "expectedLowerLimit"),
         /* SOC target can not be achieved, thus reachable target is used */
-        (0.0, 10.0),
-        (1.0, 11.0),
-        (1.99, 11.99),
+        (0.0, 10.0 - tolerance),
+        (1.0, 11.0 - tolerance),
+        (1.99, 11.99 - tolerance),
 
         /* regular SOC target can be met */
-        (2.0, 12.0),
+        (2.0, 12.0 - tolerance),
         (2.01, 12.0),
         (10.0, 12.0),
         (15.0, 12.0),
