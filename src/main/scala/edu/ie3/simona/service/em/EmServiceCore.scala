@@ -680,14 +680,8 @@ case class EmServiceCore(
       tick: Long,
       flexRequests: Iterable[(UUID, FlexOptionRequest)],
   )(using log: Logger): Map[UUID, Int] = {
-    val agents = if tick == 0 then {
-      uuidToAgent
-    } else {
-      uuidToAgent.filter { case (uuid, _) => nextActivation(uuid) <= tick }
-    }
-
     flexRequests.flatMap { case (uuid, request) =>
-      handleExtFlexRequest(tick, uuid, request, agents)
+      handleExtFlexRequest(tick, uuid, request, uuidToAgent)
     }.toMap
   }
 
@@ -718,7 +712,7 @@ case class EmServiceCore(
         // update the em state
         emStates(receiver).setReceivedRequest(request.disaggregated)
 
-        ref ! FlexActivation(tick)
+        ref ! FlexActivation(tick, mode == EmMode.EM_COMMUNICATION)
 
         val count = uuidToInferior
           .get(receiver)

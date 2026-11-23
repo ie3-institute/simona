@@ -146,7 +146,7 @@ class EmServiceCoreSpec
       val (updatedCore, msgToExt) = core.handleExtMessage(0L, flexRequests)
 
       // the agent should receive a flex option request
-      emAgent.expectMessage(FlexActivation(0L))
+      emAgent.expectMessage(FlexActivation(0L, true))
 
       // we should have no message for the external simulation
       msgToExt shouldBe None
