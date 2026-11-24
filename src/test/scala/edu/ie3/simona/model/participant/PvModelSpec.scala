@@ -20,14 +20,14 @@ import edu.ie3.simona.service.Data.SecondaryData.WeatherData
 import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.test.common.{DefaultTestData, UnitSpec, WeatherTestData}
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
-import squants.radio.WattsPerSquareMeter
+import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
-import squants.energy.{Power, WattHours, Watts}
-import squants.time.Hours
 import squants.Energy
+import squants.energy.{Power, WattHours, Watts}
+import squants.radio.WattsPerSquareMeter
+import squants.time.Hours
 import tech.units.indriya.quantity.Quantities.getQuantity
 import tech.units.indriya.unit.Units.*
 
