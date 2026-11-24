@@ -33,31 +33,31 @@ if (project.hasProperty('mavenCentralUser') && project.hasProperty('mavenCentral
         pom {
           description = 'simona - an agent-based power system simulation'
           name = 'simona'
-          url = 'https:github.com/ie3-institute/simona'
+          url = 'https://github.com/ie3-institute/simona'
           organization {
             name = 'Institute of Energy Systems, Energy Efficiency and Energy Economics (ie3)/TU Dortmund University'
-            url = 'https:www.ie3.tu-dortmund.de/'
+            url = 'https://www.ie3.tu-dortmund.de/'
           }
           issueManagement {
             system = 'GitHub'
-            url = 'https:github.com/ie3-institute/simona/issues'
+            url = 'https://github.com/ie3-institute/simona/issues'
           }
           licenses {
             license {
               name = 'BSD 3-Clause License'
-              url = 'https:github.com/ie3-institute/simona/blob/master/LICENSE'
+              url = 'https://github.com/ie3-institute/simona/blob/master/LICENSE'
             }
           }
           developers {
             developer {
               organization = "Institute of Energy Systems, Energy Efficiency and Energy Economics (ie3)/TU Dortmund University"
-              organizationUrl = "https:ie3.etit.tu-dortmund.de"
+              organizationUrl = "https://ie3.etit.tu-dortmund.de"
             }
           }
           scm {
             connection = 'scm:git:git:github.com/ie3-institute/simona.git'
             developerConnection = 'scm:git:ssh:github.com:ie3-institute/simona.git'
-            url = 'https:github.com/ie3-institute/simona'
+            url = 'https://github.com/ie3-institute/simona'
           }
         }
 

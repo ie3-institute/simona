@@ -15,6 +15,7 @@ import edu.ie3.datamodel.models.input.connector.{
   Transformer2WInput,
 }
 import edu.ie3.powerflow.NewtonRaphsonPF
+import edu.ie3.powerflow.math.Complex
 import edu.ie3.powerflow.model.NodeData.{PresetData, StateData}
 import edu.ie3.powerflow.model.StartData.WithForcedStartVoltages
 import edu.ie3.powerflow.model.enums.NodeType
@@ -33,14 +34,15 @@ import edu.ie3.util.quantities.energy.{
   Kilovoltamperes,
   Voltamperes,
 }
-import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
-import squants.{Dimensionless, Each}
-import squants.electro.{Amperes, ElectricCurrent}
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.toSquants
+import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor4}
+import squants.electro.{Amperes, ElectricCurrent}
+import squants.{Dimensionless, Each}
 
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.UUID
+import scala.math.abs
 
 class TransformerModelSpec extends UnitSpec with TableDrivenPropertyChecks {
 
