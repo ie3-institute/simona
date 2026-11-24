@@ -109,6 +109,7 @@ object EmModelStrat {
   def parseOptimizingModel(
       sampleTime: Time,
       predictionHorizon: Time,
+      modelUuid: UUID,
   ): PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] =
     getSingleModelSafe.unlift
       .andThen(objFactory =>
@@ -122,6 +123,7 @@ object EmModelStrat {
         ComparativeOptimizingFlexStrat.apply(
           sampleTime = sampleTime,
           predictionHorizon = predictionHorizon,
+          modelUuid = modelUuid,
         )
       )
 

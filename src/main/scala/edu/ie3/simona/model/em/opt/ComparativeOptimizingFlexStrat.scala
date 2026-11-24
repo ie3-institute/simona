@@ -30,6 +30,7 @@ import scala.util.Random
 final case class ComparativeOptimizingFlexStrat(
     sampleTime: Time,
     predictionHorizon: Time,
+    modelUuid: UUID,
     objectiveFactories: Seq[(String, ObjectiveFactory[? <: AssetStepSymbols])],
     referenceModelId: String,
 ) extends EmModelStrat[EnergyBoundariesFlexOptions] {
@@ -64,7 +65,7 @@ final case class ComparativeOptimizingFlexStrat(
 
     val results = Random
       .shuffle(objectiveFactories)
-      .map { case (id, objectiveFactory) =>
+      .map { case (stratId, objectiveFactory) =>
         val optimizationParams = OptimizationParams(
           flexOptionsById = flexOptionsById,
           receivedData = receivedData,
@@ -81,9 +82,9 @@ final case class ComparativeOptimizingFlexStrat(
 
         val result = FlexibilityOptimization.optimize(optimizationParams)
 
-        resultListener ! EmOptMetricsResult(id, result)
+        resultListener ! EmOptMetricsResult(stratId, modelUuid, result)
 
-        id -> result
+        stratId -> result
       }
       .toMap
 
@@ -123,11 +124,13 @@ object ComparativeOptimizingFlexStrat {
   def apply(
       sampleTime: Time,
       predictionHorizon: Time,
+      modelUuid: UUID,
   ): PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
     case "COMP_PS" =>
       ComparativeOptimizingFlexStrat(
         sampleTime = sampleTime,
         predictionHorizon = predictionHorizon,
+        modelUuid = modelUuid,
         objectiveFactories = Seq(
           "OPT_CLM_NC_PS",
           "OPT_CLM_HC_PS",
@@ -142,6 +145,7 @@ object ComparativeOptimizingFlexStrat {
       ComparativeOptimizingFlexStrat(
         sampleTime = sampleTime,
         predictionHorizon = predictionHorizon,
+        modelUuid = modelUuid,
         objectiveFactories = Seq(
           "OPT_CLM_SC_QUAD",
           "OPT_CLM_SC_LINQUAD",
@@ -152,6 +156,7 @@ object ComparativeOptimizingFlexStrat {
       ComparativeOptimizingFlexStrat(
         sampleTime = sampleTime,
         predictionHorizon = predictionHorizon,
+        modelUuid = modelUuid,
         objectiveFactories = Seq(
           "OPT_CLM_NC_MINABS",
           "OPT_CLM_SC_MINABS",
@@ -164,6 +169,7 @@ object ComparativeOptimizingFlexStrat {
       ComparativeOptimizingFlexStrat(
         sampleTime = sampleTime,
         predictionHorizon = predictionHorizon,
+        modelUuid = modelUuid,
         objectiveFactories = Seq(
           "OPT_CLM_NC_PR",
           "OPT_CLM_SC_PR",

@@ -271,7 +271,7 @@ object EmModelShell {
         PowerLimitFlexOptions,
       ),
       StratFactoryWrapper(
-        EmModelStrat.parseOptimizingModel(sampleTime, predictionHorizon),
+        EmModelStrat.parseOptimizingModel(sampleTime, predictionHorizon, uuid),
         EmAggregateFlex.parseOptimizingModel,
         EnergyBoundariesFlexOptions,
       ),

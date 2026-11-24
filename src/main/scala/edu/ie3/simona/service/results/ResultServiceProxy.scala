@@ -144,6 +144,7 @@ object ResultServiceProxy {
           Array(
             "variantId",
             "currentTick",
+            "modelUuid",
             "sampleTime",
             "predictionHorizon",
             "solver",
@@ -481,6 +482,7 @@ object ResultServiceProxy {
         Map(
           "variantId" -> res.variantId,
           "currentTick" -> res.result.params.timeParams.currentTick.toString,
+          "modelUuid" -> res.modelUuid.toString,
           "sampleTime" -> res.result.params.timeParams.sampleTime.toHours.toString,
           "predictionHorizon" -> res.result.params.timeParams.predictionHorizon.toHours.toString,
           "solver" -> res.result.params.solverLib.getClass.getSimpleName

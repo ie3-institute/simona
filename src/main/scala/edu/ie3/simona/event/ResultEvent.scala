@@ -189,13 +189,14 @@ object ResultEvent {
 
   /** @param variantId
     *   Includes model, optionally variant, and objective function
+    * @param modelUuid
+    *   UUID of the EM model
     * @param result
     *   Includes parameters and result metrics
-    *
-    * todo also include state error metrics
     */
   final case class EmOptMetricsResult(
       variantId: String,
+      modelUuid: UUID,
       result: OptimizationResult,
   ) extends ResultEvent
 
