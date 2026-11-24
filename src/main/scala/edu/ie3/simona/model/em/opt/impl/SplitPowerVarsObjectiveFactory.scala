@@ -35,7 +35,7 @@ import squants.energy.Kilowatts
 abstract class SplitPowerVarsObjectiveFactory
     extends PowerVariableObjectiveFactory {
 
-  val additionalConstraints: SplitPowerVarsAdditionalConstraints
+  val variant: SplitPowerVarsAdditionalConstraints
 
   override def createAssetSymbols(
       assetParams: AssetStepParameters,
@@ -91,7 +91,7 @@ abstract class SplitPowerVarsObjectiveFactory
               * Const(sampleHours)
           )
 
-          additionalConstraints match {
+          variant match {
             case RelaxedConstraints =>
               val (prevEMin, prevEMax) = previousState match {
                 case constState: Const =>
@@ -163,6 +163,28 @@ abstract class SplitPowerVarsObjectiveFactory
 
 object SplitPowerVarsObjectiveFactory {
 
+  def apply(
+      variant: String,
+      objective: String,
+  ): Option[SplitPowerVarsObjectiveFactory] =
+    SplitPowerVarsAdditionalConstraints.apply.lift(variant).flatMap {
+      apply(_).lift(objective)
+    }
+
+  def apply(
+      variant: SplitPowerVarsAdditionalConstraints
+  ): PartialFunction[String, SplitPowerVarsObjectiveFactory] = {
+    case "PS" =>
+      SplitPowerVarsObjectiveFactory
+        .PeakShavingObjectiveFactory(variant = variant)
+    case "MINABS" =>
+      SplitPowerVarsObjectiveFactory
+        .MinAbsPowerObjectiveFactory(variant = variant)
+    case "PR" =>
+      SplitPowerVarsObjectiveFactory
+        .PriceObjectiveFactory(variant = variant)
+  }
+
   /** Enumeration that allows specification of additional constraints, which
     * will be added by [[SplitPowerVarsObjectiveFactory.createAssetSymbols]].
     */
@@ -181,8 +203,16 @@ object SplitPowerVarsObjectiveFactory {
         */
       NoAdditionalConstraints
 
+  object SplitPowerVarsAdditionalConstraints {
+    val apply: PartialFunction[String, SplitPowerVarsAdditionalConstraints] = {
+      case "NC" => SplitPowerVarsAdditionalConstraints.NoAdditionalConstraints
+      case "HC" => SplitPowerVarsAdditionalConstraints.RelaxedConstraints
+      case "BC" => SplitPowerVarsAdditionalConstraints.BinaryConstraint
+    }
+  }
+
   final case class PeakShavingObjectiveFactory(
-      override val additionalConstraints: SplitPowerVarsAdditionalConstraints
+      override val variant: SplitPowerVarsAdditionalConstraints
   ) extends SplitPowerVarsObjectiveFactory
       with PeakShavingObjective
 
@@ -190,12 +220,12 @@ object SplitPowerVarsObjectiveFactory {
     * of power by using an epigraph constraint.
     */
   final case class MinAbsPowerObjectiveFactory(
-      override val additionalConstraints: SplitPowerVarsAdditionalConstraints
+      override val variant: SplitPowerVarsAdditionalConstraints
   ) extends SplitPowerVarsObjectiveFactory
       with MinAbsPowerObjective
 
   final case class PriceObjectiveFactory(
-      override val additionalConstraints: SplitPowerVarsAdditionalConstraints
+      override val variant: SplitPowerVarsAdditionalConstraints
   ) extends SplitPowerVarsObjectiveFactory
       with PowerVariableObjectiveFactory.PriceObjective
 

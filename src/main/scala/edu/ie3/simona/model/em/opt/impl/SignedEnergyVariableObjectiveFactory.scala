@@ -109,6 +109,17 @@ abstract class SignedEnergyVariableObjectiveFactory
 
 object SignedEnergyVariableObjectiveFactory {
 
+  def apply(
+      objective: String
+  ): Option[SignedEnergyVariableObjectiveFactory] = apply.lift(objective)
+
+  def apply: PartialFunction[String, SignedEnergyVariableObjectiveFactory] = {
+    case "MINABS" =>
+      SignedEnergyVariableObjectiveFactory.MinAbsPowerObjectiveFactory
+    case "PR" =>
+      SignedEnergyVariableObjectiveFactory.PriceObjectiveFactory
+  }
+
   object MinAbsPowerObjectiveFactory
       extends SignedEnergyVariableObjectiveFactory
       with ObjectiveFactory.MinAbsPowerObjective[SignedEnergyStepSymbols] {

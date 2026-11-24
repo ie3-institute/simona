@@ -18,6 +18,7 @@ import edu.ie3.simona.ontology.messages.flex.*
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.DataTimeType
 import squants.Power
+import squants.time.Hours
 
 import java.time.ZonedDateTime
 import java.util.UUID
@@ -259,6 +260,10 @@ object EmModelShell {
         flexOptionsExtra: FlexOptionsExtra[FO],
     )
 
+    // FIXME these parameters should be configurable -> issue #1725
+    val sampleTime = Hours(1)
+    val predictionHorizon = Hours(24)
+
     val allFactories = Seq(
       StratFactoryWrapper(
         EmModelStrat.parsePowerLimitModel(modelConfig),
@@ -266,7 +271,7 @@ object EmModelShell {
         PowerLimitFlexOptions,
       ),
       StratFactoryWrapper(
-        EmModelStrat.parseOptimizingModel,
+        EmModelStrat.parseOptimizingModel(sampleTime, predictionHorizon),
         EmAggregateFlex.parseOptimizingModel,
         EnergyBoundariesFlexOptions,
       ),

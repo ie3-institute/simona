@@ -9,19 +9,15 @@ package edu.ie3.simona.model.em
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
 import edu.ie3.simona.event.ResultEvent
-import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant
 import edu.ie3.simona.model.em.opt.{
   ComparativeOptimizingFlexStrat,
   OptimizingFlexStrat,
 }
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
-import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.{
-  BinaryConstraint,
-  RelaxedConstraints,
-}
 import edu.ie3.simona.model.em.opt.impl.{
   CommonLossObjectiveFactory,
   ObjectiveFactory,
+  SignedEnergyVariableObjectiveFactory,
   SplitPowerVarsObjectiveFactory,
 }
 import edu.ie3.simona.ontology.messages.flex.{
@@ -31,10 +27,10 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.ServiceRegistrationData
+import edu.ie3.simona.util.OptionExtension.orFail
 import org.apache.pekko.actor.typed.ActorRef
-import squants.Power
+import squants.{Power, Time}
 import squants.energy.Kilowatts
-import squants.time.Hours
 
 import java.util.UUID
 
@@ -110,76 +106,54 @@ object EmModelStrat {
       PrioritizedFlexStrat(modelConfig.curtailRegenerative)
   }
 
-  def parseOptimizingModel
-      : PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
-    // todo a lot of these parameters should be configurable -> issue #1725
-
-    case "OPT_CLM_MINABS" =>
-      singleOpt(
-        CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory(variant =
-          CommonLossVariant.SoftConstraints
+  def parseOptimizingModel(
+      sampleTime: Time,
+      predictionHorizon: Time,
+  ): PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] =
+    getSingleModelSafe.unlift
+      .andThen(objFactory =>
+        new OptimizingFlexStrat(
+          sampleTime = sampleTime,
+          predictionHorizon = predictionHorizon,
+          objFactory,
         )
       )
-    case "OPT_SPM_REL_MINABS" =>
-      singleOpt(
-        SplitPowerVarsObjectiveFactory
-          .MinAbsPowerObjectiveFactory(RelaxedConstraints)
-      )
-    case "OPT_SPM_BIN_MINABS" =>
-      singleOpt(
-        SplitPowerVarsObjectiveFactory
-          .MinAbsPowerObjectiveFactory(BinaryConstraint)
-      )
-    case "OPT_LIN_QUAD_POWER" =>
-      singleOpt(
-        CommonLossObjectiveFactory
-          .LinearizedQuadraticPowerObjectiveFactory(
-            variant = CommonLossVariant.SoftConstraints,
-            segmentCount = 10,
-          )
-      )
-    case "OPT_SPM_BIN_PRICE" =>
-      singleOpt(
-        SplitPowerVarsObjectiveFactory.PriceObjectiveFactory(
-          BinaryConstraint
+      .orElse(
+        ComparativeOptimizingFlexStrat.apply(
+          sampleTime = sampleTime,
+          predictionHorizon = predictionHorizon,
         )
-      )
-    case "OPT_CLM_PRICE" =>
-      singleOpt(
-        CommonLossObjectiveFactory.PriceObjectiveFactory(variant =
-          CommonLossVariant.SoftConstraints
-        )
-      )
-    case "COMP_PS" =>
-      ComparativeOptimizingFlexStrat.createPeakShavingComp(
-        sampleTime = Hours(1),
-        predictionHorizon = Hours(12),
-      )
-    case "COMP_QUAD" =>
-      ComparativeOptimizingFlexStrat.createQuadraticComp(
-        sampleTime = Hours(1),
-        predictionHorizon = Hours(12),
-      )
-    case "COMP_MINABS" =>
-      ComparativeOptimizingFlexStrat.createMinAbsComp(
-        sampleTime = Hours(1),
-        predictionHorizon = Hours(12),
-      )
-    case "COMP_PRICE" =>
-      ComparativeOptimizingFlexStrat.createPriceObjComp(
-        sampleTime = Hours(1),
-        predictionHorizon = Hours(12),
       )
 
+  def getSingleModel(stratId: String): ObjectiveFactory[? <: AssetStepSymbols] =
+    getSingleModelSafe(stratId).orFail(s"Model strategy $stratId not available")
+
+  private def getSingleModelSafe(
+      stratId: String
+  ): Option[ObjectiveFactory[? <: AssetStepSymbols]] = {
+    val splitId = stratId.split("_")
+
+    if splitId.size < 3 || splitId(0) != "OPT" then None
+    else {
+      splitId(1) match {
+        case "CLM" =>
+          Option
+            .when(splitId.size == 4) {
+              CommonLossObjectiveFactory(splitId(2), splitId(3))
+            }
+            .flatten
+
+        case "SPM" =>
+          Option
+            .when(splitId.size == 4) {
+              SplitPowerVarsObjectiveFactory(splitId(2), splitId(3))
+            }
+            .flatten
+
+        case "SEM" =>
+          SignedEnergyVariableObjectiveFactory(splitId(2))
+      }
+    }
   }
-
-  private def singleOpt(
-      objectiveFactory: ObjectiveFactory[? <: AssetStepSymbols]
-  ): OptimizingFlexStrat =
-    new OptimizingFlexStrat(
-      sampleTime = Hours(1),
-      predictionHorizon = Hours(24),
-      objectiveFactory,
-    )
 
 }

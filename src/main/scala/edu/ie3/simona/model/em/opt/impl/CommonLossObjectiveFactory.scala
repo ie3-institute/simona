@@ -177,6 +177,37 @@ abstract class CommonLossObjectiveFactory
 
 object CommonLossObjectiveFactory {
 
+  def apply(
+      variant: String,
+      objective: String,
+  ): Option[CommonLossObjectiveFactory] =
+    CommonLossVariant.apply.lift(variant).flatMap {
+      apply(_).lift(objective)
+    }
+
+  def apply(
+      variant: CommonLossVariant
+  ): PartialFunction[String, CommonLossObjectiveFactory] = {
+    case "PS" =>
+      CommonLossObjectiveFactory
+        .PeakShavingObjectiveFactory(variant = variant)
+    case "MINABS" =>
+      CommonLossObjectiveFactory
+        .MinAbsPowerObjectiveFactory(variant = variant)
+    case "PR" =>
+      CommonLossObjectiveFactory
+        .PriceObjectiveFactory(variant = variant)
+    case "QUAD" =>
+      CommonLossObjectiveFactory
+        .QuadraticPowerObjectiveFactory(variant = variant)
+    case "LINQUAD" =>
+      CommonLossObjectiveFactory
+        .LinearizedQuadraticPowerObjectiveFactory(
+          variant = variant,
+          segmentCount = 10,
+        )
+  }
+
   /** Enumeration that allows specification of variants of
     * [[CommonLossObjectiveFactory]] objectives.
     */
@@ -195,6 +226,14 @@ object CommonLossObjectiveFactory {
       /** Using no soft constraints.
         */
       NoAdditionalConstraints
+
+  object CommonLossVariant {
+    val apply: PartialFunction[String, CommonLossVariant] = {
+      case "NC" => CommonLossVariant.NoAdditionalConstraints
+      case "HC" => CommonLossVariant.RelaxedConstraints
+      case "SC" => CommonLossVariant.SoftConstraints
+    }
+  }
 
   final case class PeakShavingObjectiveFactory(
       override val variant: CommonLossVariant

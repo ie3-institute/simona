@@ -14,15 +14,8 @@ import edu.ie3.simona.model.em.opt.FlexibilityOptimization.{
   OptimizationParams,
   TimeParams,
 }
-import edu.ie3.simona.model.em.opt.impl.CommonLossObjectiveFactory.CommonLossVariant
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory
 import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
-import edu.ie3.simona.model.em.opt.impl.SplitPowerVarsObjectiveFactory.SplitPowerVarsAdditionalConstraints.*
-import edu.ie3.simona.model.em.opt.impl.{
-  CommonLossObjectiveFactory,
-  ObjectiveFactory,
-  SignedEnergyVariableObjectiveFactory,
-  SplitPowerVarsObjectiveFactory,
-}
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.{DataTimeType, ServiceRegistrationData}
@@ -127,100 +120,59 @@ final case class ComparativeOptimizingFlexStrat(
 
 object ComparativeOptimizingFlexStrat {
 
-  def createPeakShavingComp(
+  def apply(
       sampleTime: Time,
       predictionHorizon: Time,
-  ): ComparativeOptimizingFlexStrat = {
-    ComparativeOptimizingFlexStrat(
-      sampleTime = sampleTime,
-      predictionHorizon = predictionHorizon,
-      objectiveFactories = Seq(
-        "OPT_CLM_SC_PS" -> CommonLossObjectiveFactory
-          .PeakShavingObjectiveFactory(variant =
-            CommonLossVariant.SoftConstraints
-          ),
-        "OPT_CLM_NSC_PS" -> CommonLossObjectiveFactory
-          .PeakShavingObjectiveFactory(variant =
-            CommonLossVariant.NoAdditionalConstraints
-          ),
-        "OPT_SPM_REL_PS" -> SplitPowerVarsObjectiveFactory
-          .PeakShavingObjectiveFactory(RelaxedConstraints),
-        "OPT_SPM_BIN_PS" -> SplitPowerVarsObjectiveFactory
-          .PeakShavingObjectiveFactory(BinaryConstraint),
-      ),
-      referenceModelId = "OPT_SPM_BIN_PS",
-    )
-  }
-
-  def createQuadraticComp(
-      sampleTime: Time,
-      predictionHorizon: Time,
-  ): ComparativeOptimizingFlexStrat = {
-    ComparativeOptimizingFlexStrat(
-      sampleTime = sampleTime,
-      predictionHorizon = predictionHorizon,
-      objectiveFactories = Seq(
-        "OPT_CLM_SC_QUAD" -> CommonLossObjectiveFactory
-          .QuadraticPowerObjectiveFactory(variant =
-            CommonLossVariant.SoftConstraints
-          ),
-        "OPT_CLM_SC_LINQUAD" -> CommonLossObjectiveFactory
-          .LinearizedQuadraticPowerObjectiveFactory(
-            variant = CommonLossVariant.SoftConstraints,
-            segmentCount = 10,
-          ),
-      ),
-      referenceModelId = "OPT_CLM_SC_QUAD",
-    )
-  }
-
-  def createMinAbsComp(
-      sampleTime: Time,
-      predictionHorizon: Time,
-  ): ComparativeOptimizingFlexStrat = {
-    ComparativeOptimizingFlexStrat(
-      sampleTime = sampleTime,
-      predictionHorizon = predictionHorizon,
-      objectiveFactories = Seq(
-        "OPT_CLM_SC_MINABS" -> CommonLossObjectiveFactory
-          .MinAbsPowerObjectiveFactory(variant =
-            CommonLossVariant.SoftConstraints
-          ),
-        "OPT_CLM_NSC_MINABS" -> CommonLossObjectiveFactory
-          .MinAbsPowerObjectiveFactory(variant =
-            CommonLossVariant.NoAdditionalConstraints
-          ),
-        "OPT_SPM_REL_MINABS" -> SplitPowerVarsObjectiveFactory
-          .MinAbsPowerObjectiveFactory(RelaxedConstraints),
-        "OPT_SPM_BIN_MINABS" -> SplitPowerVarsObjectiveFactory
-          .MinAbsPowerObjectiveFactory(BinaryConstraint),
-      ),
-      referenceModelId = "OPT_SPM_BIN_PS",
-    )
-  }
-
-  def createPriceObjComp(
-      sampleTime: Time,
-      predictionHorizon: Time,
-  ): ComparativeOptimizingFlexStrat = {
-    ComparativeOptimizingFlexStrat(
-      sampleTime = sampleTime,
-      predictionHorizon = predictionHorizon,
-      objectiveFactories = Seq(
-        "OPT_CLM_SC_PRICE" -> CommonLossObjectiveFactory
-          .PriceObjectiveFactory(variant = CommonLossVariant.SoftConstraints),
-        "OPT_CLM_NSC_PRICE" -> CommonLossObjectiveFactory
-          .PriceObjectiveFactory(variant =
-            CommonLossVariant.NoAdditionalConstraints
-          ),
-        "OPT_SEC_PRICE" -> SignedEnergyVariableObjectiveFactory.PriceObjectiveFactory,
-        "OPT_SPM_REL_PRICE" -> SplitPowerVarsObjectiveFactory
-          .PriceObjectiveFactory(RelaxedConstraints),
-        "OPT_SPM_BIN_PRICE" -> SplitPowerVarsObjectiveFactory
-          .PriceObjectiveFactory(BinaryConstraint),
-      ),
-      referenceModelId = "OPT_SPM_BIN_PRICE",
-    )
+  ): PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
+    case "COMP_PS" =>
+      ComparativeOptimizingFlexStrat(
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
+        objectiveFactories = Seq(
+          "OPT_CLM_NC_PS",
+          "OPT_CLM_HC_PS",
+          "OPT_CLM_SC_PS",
+          "OPT_SPM_NC_PS",
+          "OPT_SPM_HC_PS",
+          "OPT_SPM_BC_PS",
+        ).map(stratId => stratId -> EmModelStrat.getSingleModel(stratId)),
+        referenceModelId = "OPT_SPM_BC_PS",
+      )
+    case "COMP_QUAD" =>
+      ComparativeOptimizingFlexStrat(
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
+        objectiveFactories = Seq(
+          "OPT_CLM_SC_QUAD",
+          "OPT_CLM_SC_LINQUAD",
+        ).map(stratId => stratId -> EmModelStrat.getSingleModel(stratId)),
+        referenceModelId = "OPT_CLM_SC_QUAD",
+      )
+    case "COMP_MINABS" =>
+      ComparativeOptimizingFlexStrat(
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
+        objectiveFactories = Seq(
+          "OPT_CLM_NC_MINABS",
+          "OPT_CLM_SC_MINABS",
+          "OPT_SPM_HC_MINABS",
+          "OPT_SPM_BC_MINABS",
+        ).map(stratId => stratId -> EmModelStrat.getSingleModel(stratId)),
+        referenceModelId = "OPT_SPM_BC_MINABS",
+      )
+    case "COMP_PRICE" =>
+      ComparativeOptimizingFlexStrat(
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
+        objectiveFactories = Seq(
+          "OPT_CLM_NC_PR",
+          "OPT_CLM_SC_PR",
+          "OPT_SEM_PR",
+          "OPT_SPM_HC_PR",
+          "OPT_SPM_BC_PR",
+        ).map(stratId => stratId -> EmModelStrat.getSingleModel(stratId)),
+        referenceModelId = "OPT_SPM_BC_PR",
+      )
   }
 
 }
