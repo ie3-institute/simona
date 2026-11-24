@@ -7,58 +7,43 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.OperationTime
+import edu.ie3.datamodel.models.input.system.StorageInput
+import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
+import edu.ie3.datamodel.models.input.system.characteristic.CosPhiFixed
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.simona.agent.em.EmAgentInit
 import edu.ie3.simona.agent.participant.ParticipantAgentInit
-import edu.ie3.simona.agent.participant.ParticipantAgentInit.{
-  ParticipantRefs,
-  SimulationParameters,
-}
+import edu.ie3.simona.agent.participant.ParticipantAgentInit.{ParticipantRefs, SimulationParameters}
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{
-  EmCommunicationMessage,
-  EmData,
-  FlexOptionRequest,
-}
+import edu.ie3.simona.api.data.model.em.{EmCommunicationMessage, EmData, FlexOptionRequest}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.{EmCompletion, EmResultResponse}
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
 import edu.ie3.simona.config.RuntimeConfig.*
 import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.event.notifier.NotifierConfig
-import edu.ie3.simona.ontology.messages.SchedulerMessage.{
-  Completion,
-  ScheduleActivation,
-}
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  PrimaryServiceRegistrationMessage,
-  RegistrationFailedMessage,
-}
+import edu.ie3.simona.model.InputModelContainer.SimpleInputContainer
+import edu.ie3.simona.ontology.messages.SchedulerMessage.{Completion, ScheduleActivation}
+import edu.ie3.simona.ontology.messages.ServiceMessage.{PrimaryServiceRegistrationMessage, RegistrationFailedMessage}
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
 import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.service.primary.PrimaryServiceProxy
-import edu.ie3.simona.service.results.ResultServiceProxy.{
-  ExpectResult,
-  NoResult,
-}
+import edu.ie3.simona.service.results.ResultServiceProxy.{ExpectResult, NoResult}
 import edu.ie3.simona.test.common.TestSpawnerTyped
-import edu.ie3.simona.test.common.input.EmInputTestData
 import edu.ie3.simona.util.CollectionUtils.asJava
 import edu.ie3.simona.util.SimonaConstants.{INIT_SIM_TICK, PRE_INIT_TICK}
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.QuantityUtils.*
-import org.apache.pekko.actor.testkit.typed.scaladsl.{
-  ScalaTestWithActorTestKit,
-  TestProbe,
-}
+import org.apache.pekko.actor.testkit.typed.scaladsl.{ScalaTestWithActorTestKit, TestProbe}
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.Each
 import squants.energy.Kilowatts
+import tech.units.indriya.quantity.Quantities
 
 import java.time.ZonedDateTime
 import java.{util, util as ju}
@@ -70,7 +55,7 @@ import scala.jdk.CollectionConverters.*
 class EmServiceCommunicationIT
     extends ScalaTestWithActorTestKit
     with AnyWordSpecLike
-    with EmInputTestData
+    with EmServiceTestData
     with TestSpawnerTyped {
 
   // start a bit later so the sun is up
@@ -101,24 +86,6 @@ class EmServiceCommunicationIT
 
   private val modelConfig: EmRuntimeConfig = EmRuntimeConfig(
     aggregateFlex = "SELF_OPT"
-  )
-
-  protected val controlledEmInput = new EmInput(
-    UUID.randomUUID(),
-    "ControlledEmModel",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
-    "PROPORTIONAL",
-    emInput,
-  )
-
-  protected val controlledEmInput2 = new EmInput(
-    UUID.randomUUID(),
-    "ControlledEmModel2",
-    OperatorInput.NO_OPERATOR_ASSIGNED,
-    OperationTime.notLimited(),
-    "PROPORTIONAL",
-    emInput,
   )
 
   "An em service with external communication" should {
