@@ -29,15 +29,15 @@ import edu.ie3.simona.test.matchers.DoubleMatchers
 import edu.ie3.util.TimeUtil
 import edu.ie3.util.quantities.PowerSystemUnits
 import edu.ie3.util.quantities.QuantityUtils.asKiloWattHour
+import edu.ie3.util.quantities.energy.{ApparentPower, Voltamperes}
 import edu.ie3.util.scala.quantities.DefaultQuantities.onePU
 import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import edu.ie3.util.quantities.energy.{ApparentPower, Voltamperes}
-import squants.{Percent, Power}
-import squants.energy.{KilowattHours, Kilowatts, Watts}
+import squants.energy.*
 import squants.time.{Hours, Minutes}
+import squants.{Percent, Power}
 import tech.units.indriya.quantity.Quantities
 
 import scala.collection.immutable.SortedMap

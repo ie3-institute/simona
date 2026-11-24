@@ -13,6 +13,7 @@ import squants.energy.{KilowattHours, Kilowatts, MegawattHours, Megawatts}
 import squants.motion.MetersPerSecond
 import squants.radio.{Irradiance, WattsPerSquareMeter}
 import squants.thermal.Celsius
+import squants.time.Hertz
 
 object DefaultQuantities {
 
@@ -37,4 +38,5 @@ object DefaultQuantities {
 
   val zeroMPerS: Velocity = MetersPerSecond(0d)
 
+  val europeanSystemFrequency = Hertz(50)
 }
