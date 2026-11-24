@@ -45,28 +45,34 @@ final case class AddonSetupData(
 ) {
 
   private[setup] def update(
-                             @unused connection: ExtEmDataConnection,
-                             ref: ActorRef[ExtEmDataService.Message],
-                           ): AddonSetupData =
+      @unused connection: ExtEmDataConnection,
+      ref: ActorRef[ExtEmDataService.Message],
+  ): AddonSetupData =
     copy(emDataService = Some(ref))
 
   private[setup] def update(
-                             @unused connection: ExtEvDataConnection,
-                             ref: ActorRef[ExtEvDataService.Message],
-                           ): AddonSetupData =
+      @unused connection: ExtEvDataConnection,
+      ref: ActorRef[ExtEvDataService.Message],
+  ): AddonSetupData =
     copy(evDataService = Some(ref))
 
   private[setup] def update(
-                             @unused connection: ExtResultListener,
-                             ref: ActorRef[ResultListener.Message],
-                           ): AddonSetupData =
+      @unused connection: ExtResultListener,
+      ref: ActorRef[ResultListener.Message],
+  ): AddonSetupData =
     copy(resultListeners = resultListeners :+ ref)
 
   private[setup] def update(
-                             @unused connection: ExtResultDataConnection,
-                             ref: ActorRef[ExtResultProvider.Message],
-                           ): AddonSetupData =
+      @unused connection: ExtResultDataConnection,
+      ref: ActorRef[ExtResultProvider.Message],
+  ): AddonSetupData =
     copy(resultProviders = resultProviders :+ ref)
+
+  private[setup] def update(
+      connection: ExtPrimaryDataConnection,
+      ref: ActorRef[ExtPrimaryServiceWorker.Message],
+  ): AddonSetupData =
+    copy(primaryDataServices = primaryDataServices :+ (connection -> ref))
 
   private[setup] def updateAdapter(
       extSimAdapter: ActorRef[ExtSimAdapter.Request]

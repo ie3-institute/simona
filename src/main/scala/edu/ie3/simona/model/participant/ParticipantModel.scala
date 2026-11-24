@@ -10,12 +10,18 @@ import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.system.SystemParticipantResult
 import edu.ie3.simona.agent.participant.ParticipantAgent
 import edu.ie3.simona.exceptions.CriticalFailureException
-import edu.ie3.simona.model.participant.ParticipantModel.{ModelState, OperatingPoint}
+import edu.ie3.simona.model.participant.ParticipantModel.{
+  ModelState,
+  OperatingPoint,
+}
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.ParticipantFlexModel
 import edu.ie3.simona.ontology.messages.ServiceMessage.DirectAgentRequest
 import edu.ie3.simona.ontology.messages.flex.FlexType
-import edu.ie3.simona.service.Data.PrimaryData.{ComplexPower, PrimaryDataWithComplexPower}
+import edu.ie3.simona.service.Data.PrimaryData.{
+  ComplexPower,
+  PrimaryDataWithComplexPower,
+}
 import edu.ie3.simona.service.{Data, ServiceType}
 import edu.ie3.util.quantities.energy.{ApparentPower, ReactivePower}
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
