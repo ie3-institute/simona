@@ -29,8 +29,8 @@ class StorageEnergyBoundariesFlexModel(private val model: StorageModel)
         eStorage = model.eStorage,
         currentEnergy = state.storedEnergy,
         pMax = model.pMax,
-        etaCharge = model.eta,
-        etaDischarge = model.eta,
+        etaCharge = model.etaCharging,
+        etaDischarge = model.etaDischarging,
         currentTick = state.tick,
       )
     )
