@@ -290,11 +290,11 @@ case class EmServiceCore(
             val flexRequestRef =
               ref.asInstanceOf[ActorRef[FlexRequest]]
             if tick == INIT_SIM_TICK then {
-              ref ! flexRequest
+              flexRequestRef ! flexRequest
 
               (this, None)
             } else {
-              handleFlexRequest(flexRequest, ref)
+              handleFlexRequest(flexRequest, flexRequestRef)
             }
 
           case _ =>

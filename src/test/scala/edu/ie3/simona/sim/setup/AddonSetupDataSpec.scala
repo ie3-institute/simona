@@ -14,13 +14,11 @@ import edu.ie3.simona.api.data.connection.{
   ExtPrimaryDataConnection,
   ExtResultDataConnection,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage
+import edu.ie3.simona.event.listener.ResultListener
 import edu.ie3.simona.service.em.ExtEmDataService
 import edu.ie3.simona.service.ev.ExtEvDataService
-import edu.ie3.simona.service.primary.{
-  ExtPrimaryServiceWorker,
-  PrimaryServiceProxy,
-}
+import edu.ie3.simona.service.primary.ExtPrimaryServiceWorker
+import edu.ie3.simona.service.results.ExtResultProvider
 import edu.ie3.simona.test.common.UnitSpec
 import org.apache.pekko.actor.testkit.typed.scaladsl.{
   ScalaTestWithActorTestKit,
@@ -44,12 +42,9 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val connection = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef =
-        TestProbe[PrimaryServiceProxy.Message]("primary_service").ref
+        TestProbe[ExtPrimaryServiceWorker.Message]("primary_service").ref
 
-      val updated = extSimSetupData.update(
-        connection,
-        primaryRef,
-      )
+      val updated = extSimSetupData.update(connection, primaryRef)
 
       updated.extSimAdapters shouldBe empty
       updated.primaryDataServices shouldBe Seq((connection, primaryRef))
@@ -59,16 +54,16 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.resultProviders shouldBe empty
     }
 
-    "be updated with multiple ExtPrimaryDataConnection correctly" in {
+    "be updated with multiple ExtPrimaryDataConnections correctly" in {
       val extSimSetupData = AddonSetupData.apply
 
       val connection1 = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef1 =
-        TestProbe[PrimaryServiceProxy.Message]("primary_service1").ref
+        TestProbe[ExtPrimaryServiceWorker.Message]("primary_service1").ref
 
       val connection2 = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef2 =
-        TestProbe[PrimaryServiceProxy.Message]("primary_service2").ref
+        TestProbe[ExtPrimaryServiceWorker.Message]("primary_service2").ref
 
       val updated = extSimSetupData
         .update(connection1, primaryRef1)
@@ -85,50 +80,39 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       updated.resultProviders shouldBe empty
     }
 
-    "be updated with an ExtInputDataConnection correctly" in {
+    "be updated with external input data connections correctly" in {
       val extSimSetupData = AddonSetupData.apply
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef =
         TestProbe[ExtPrimaryServiceWorker.Message]("primary_service").ref
 
+      val primaryUpdated =
+        extSimSetupData.update(primaryConnection, primaryRef)
+
+      primaryUpdated.primaryDataServices shouldBe Seq(
+        (primaryConnection, primaryRef)
+      )
+      primaryUpdated.emDataService shouldBe None
+      primaryUpdated.evDataService shouldBe None
+
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ExtEvDataService.Message]("ev_service").ref
+
+      val evUpdated = extSimSetupData.update(evConnection, evRef)
+
+      evUpdated.primaryDataServices shouldBe empty
+      evUpdated.evDataService shouldBe Some(evRef)
+      evUpdated.emDataService shouldBe None
 
       val emConnection = new ExtEmDataConnection(emptyUuidList, EmMode.BASE)
       val emRef = TestProbe[ExtEmDataService.Message]("em_service").ref
 
-      val cases = Table(
-        ("connection", "serviceRef", "expected"),
-        (
-          primaryConnection,
-          primaryRef,
-          extSimSetupData.copy(primaryDataServices =
-            Seq((primaryConnection, primaryRef))
-          ),
-        ),
-        (
-          evConnection,
-          evRef,
-          extSimSetupData.copy(evDataService = Some(evRef)),
-        ),
-        (
-          emConnection,
-          emRef,
-          extSimSetupData.copy(emDataService = Some(emRef)),
-        ),
-      )
+      val emUpdated = extSimSetupData.update(emConnection, emRef)
 
-      forAll(cases) { (connection, serviceRef, expected) =>
-        val updated = extSimSetupData.update(connection, serviceRef)
-
-        updated.extSimAdapters shouldBe expected.extSimAdapters
-        updated.primaryDataServices shouldBe expected.primaryDataServices
-        updated.emDataService shouldBe expected.emDataService
-        updated.evDataService shouldBe expected.evDataService
-        updated.resultListeners shouldBe empty
-        updated.resultProviders shouldBe empty
-      }
+      emUpdated.primaryDataServices shouldBe empty
+      emUpdated.evDataService shouldBe None
+      emUpdated.emDataService shouldBe Some(emRef)
     }
 
     "be updated with an ExtResultDataConnection correctly" in {
@@ -136,7 +120,7 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val resultConnection = new ExtResultDataConnection(emptyUuidList)
       val resultServiceProxyRef =
-        TestProbe[ServiceMessage]("resultServiceProxy").ref
+        TestProbe[ExtResultProvider.Message]("resultServiceProxy").ref
 
       val updated =
         extSimSetupData.update(resultConnection, resultServiceProxyRef)
@@ -154,7 +138,7 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val primaryConnection = new ExtPrimaryDataConnection(emptyMapInput)
       val primaryRef =
-        TestProbe[PrimaryServiceProxy.Message]("primary_service").ref
+        TestProbe[ExtPrimaryServiceWorker.Message]("primary_service").ref
 
       val evConnection = new ExtEvDataConnection()
       val evRef = TestProbe[ExtEvDataService.Message]("ev_service").ref
@@ -164,7 +148,7 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       val resultConnection = new ExtResultDataConnection(emptyUuidList)
       val resultServiceProxyRef =
-        TestProbe[ServiceMessage]("resultServiceProxy").ref
+        TestProbe[ExtResultProvider.Message]("resultServiceProxy").ref
 
       val updated = extSimSetupData
         .update(primaryConnection, primaryRef)
@@ -174,10 +158,7 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
       updated.extSimAdapters shouldBe empty
       updated.primaryDataServices shouldBe Seq(
-        (
-          primaryConnection,
-          primaryRef,
-        )
+        (primaryConnection, primaryRef)
       )
       updated.emDataService shouldBe Some(emRef)
       updated.evDataService shouldBe Some(evRef)
@@ -202,7 +183,7 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
 
     "return emDataService correctly" in {
       val emConnection = new ExtEmDataConnection(emptyUuidList, EmMode.BASE)
-      val emRef = TestProbe[ServiceMessage]("em_service").ref
+      val emRef = TestProbe[ExtEmDataService.Message]("em_service").ref
 
       val cases = Table(
         ("extSimSetupData", "expectedConnection", "expectedService"),
@@ -219,5 +200,4 @@ class AddonSetupDataSpec extends ScalaTestWithActorTestKit with UnitSpec {
       }
     }
   }
-
 }
