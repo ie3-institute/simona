@@ -31,6 +31,7 @@ import squants.energy.Power
 
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.annotation.unused
 
 /** Abstract model of a system participant that provides methods for determining
   * state and operating point.
@@ -112,8 +113,8 @@ abstract class ParticipantModel[
     */
   def handleInput(
       state: S,
-      receivedData: Seq[Data],
-      nodalVoltage: Dimensionless,
+      @unused receivedData: Seq[Data],
+      @unused nodalVoltage: Dimensionless,
   ): S = state
 
   /** Returns a partial function that transfers the current nodal voltage and

@@ -11,10 +11,7 @@ import edu.ie3.simona.ontology.messages.SchedulerMessage.{
   Completion,
   ScheduleActivation,
 }
-import edu.ie3.simona.ontology.messages.ServiceMessage.{
-  ServiceRegistrationMessage,
-  ServiceResponseMessage,
-}
+import edu.ie3.simona.ontology.messages.ServiceMessage.ServiceRegistrationMessage
 import edu.ie3.simona.ontology.messages.{
   Activation,
   SchedulerMessage,
@@ -25,12 +22,12 @@ import edu.ie3.simona.service.ServiceStateData.{
   InitializeServiceStateData,
   ServiceBaseStateData,
 }
-import edu.ie3.simona.util.SimonaConstants.INIT_SIM_TICK
 import org.apache.pekko.actor.typed.scaladsl.{ActorContext, Behaviors}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior}
 import org.slf4j.Logger
 import squants.Time
 
+import scala.annotation.unused
 import scala.collection.immutable.SortedMap
 import scala.util.{Failure, Success, Try}
 
@@ -157,8 +154,8 @@ abstract class SimonaService {
     *   [[ExtDataSupport]].
     */
   protected def idleExternal(using
-      stateData: S,
-      scheduler: ActorRef[SchedulerMessage],
+      @unused stateData: S,
+      @unused _scheduler: ActorRef[SchedulerMessage],
   ): PartialFunction[(ActorContext[Message], Message), Behavior[
     Message
   ]] = PartialFunction.empty

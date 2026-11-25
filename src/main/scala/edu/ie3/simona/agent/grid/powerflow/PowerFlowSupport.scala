@@ -297,18 +297,23 @@ trait PowerFlowSupport {
     *   combined instance
     */
   private def combinePresetData(a: PresetData, b: PresetData): PresetData = {
-    require(
-      a.index == b.index,
-      "Preset Data should only be combined when they map to the same index.",
-    )
-    require(
-      a.nodeType == b.nodeType,
-      "Preset Data combination is only supported for the same node types for now.",
-    )
-    require(
-      math.abs(a.targetVoltage - b.targetVoltage) < 1e-6,
-      "Nodes to be combined have to be located in the same voltage level.",
-    )
+    if (a.index != b.index) {
+      throw new DBFSAlgorithmException(
+        "Preset Data should only be combined when they map to the same index."
+      )
+    }
+
+    if (a.nodeType != b.nodeType) {
+      throw new DBFSAlgorithmException(
+        "Preset Data combination is only supported for the same node types for now."
+      )
+    }
+
+    if (math.abs(a.targetVoltage - b.targetVoltage) >= 1e-6) {
+      throw new DBFSAlgorithmException(
+        "Nodes to be combined have to be located in the same voltage level."
+      )
+    }
 
     val index = a.index
     val nodeType = a.nodeType

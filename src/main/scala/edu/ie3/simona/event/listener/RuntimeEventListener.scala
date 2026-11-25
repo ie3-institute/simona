@@ -89,6 +89,10 @@ object RuntimeEventListener {
 
       case (ctx, msg: DelayedStopHelper.StoppingMsg) =>
         DelayedStopHelper.handleMsg((ctx, msg))
+
+      case (ctx, msg) =>
+        ctx.log.warn("Received unsupported message: {}", msg)
+        Behaviors.same
     }
     .receiveSignal { case (_, PostStop) =>
       listeners.foreach(_.close())

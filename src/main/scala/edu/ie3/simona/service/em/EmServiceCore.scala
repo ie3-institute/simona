@@ -42,7 +42,6 @@ import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import org.apache.pekko.actor.typed.ActorRef
 import org.slf4j.Logger
 
-import java.time.ZonedDateTime
 import java.util.{OptionalLong, UUID}
 import scala.collection.mutable
 import scala.jdk.CollectionConverters.MapHasAsScala
@@ -248,7 +247,7 @@ case class EmServiceCore(
 
       } else (updatedState, None)
 
-    case other =>
+    case _ =>
       throw new CriticalFailureException(
         s"The EmServiceBaseCore is not able to handle the message: $extMsg"
       )
@@ -288,12 +287,14 @@ case class EmServiceCore(
 
         receiver match {
           case ref: ActorRef[FlexRequest] =>
+            val flexRequestRef =
+              ref.asInstanceOf[ActorRef[FlexRequest]]
             if tick == INIT_SIM_TICK then {
-              ref ! flexRequest
+              flexRequestRef ! flexRequest
 
               (this, None)
             } else {
-              handleFlexRequest(flexRequest, ref)
+              handleFlexRequest(flexRequest, flexRequestRef)
             }
 
           case _ =>
@@ -317,6 +318,10 @@ case class EmServiceCore(
               handleFlexResponse(tick, flexResponse, Right(ref))
             }
         }
+      case other =>
+        throw new CriticalFailureException(
+          s"Unexpected service response in EMServiceCore: $other"
+        )
     }
 
   /** Method to handle the set points provided by the external simulation.
@@ -578,7 +583,7 @@ case class EmServiceCore(
           emDataStore.addData(modelUuid, result)
         } else emDataStore
 
-      case _ => emDataStore
+      case null => emDataStore
     }
 
     if updated.isComplete then {
@@ -790,7 +795,7 @@ object EmServiceCore {
     def clear(): Unit = {
       receivedActivation = false
       disaggregated = false
-      awaitedFlexOptions.clear
+      awaitedFlexOptions.clear()
       awaitedSetPoint = false
       waitingForInternal = false
     }
