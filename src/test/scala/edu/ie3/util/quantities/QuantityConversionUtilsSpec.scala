@@ -8,7 +8,7 @@ package edu.ie3.util.quantities
 
 import edu.ie3.simona.test.common.UnitSpec
 import edu.ie3.util.quantities.PowerSystemUnits.*
-import edu.ie3.util.quantities.electro.OhmsPerKilometer
+import edu.ie3.util.quantities.electro.{FaradsPerKilometer, OhmsPerKilometer}
 import edu.ie3.util.quantities.energy.Kilovoltamperes
 import edu.ie3.util.quantities.prices.EuroPerKilowattHours
 import edu.ie3.util.quantities.thermal.{
@@ -116,7 +116,11 @@ class QuantityConversionUtilsSpec extends UnitSpec {
         Quantities.getQuantity(2.5, KILOMETRE)
       val specResistance = Quantities.getQuantity(0.2, OHM_PER_KILOMETRE)
       specResistance.toResistancePerLength shouldBe OhmsPerKilometer(0.2)
-      specResistance.toSquants shouldBe Ohms(0.5)
+      specResistance.toResistance shouldBe Ohms(0.5)
+
+      val specResistance2 = Quantities.getQuantity(0.1, OHM_PER_KILOMETRE)
+      specResistance2.toResistancePerLength shouldBe OhmsPerKilometer(0.1)
+      specResistance2.toResistance shouldBe Ohms(0.25)
     }
 
     "properly convert electrical conductance quantities" in {
@@ -129,7 +133,7 @@ class QuantityConversionUtilsSpec extends UnitSpec {
         Quantities.getQuantity(10.0, KILOMETRE)
       val specConductance =
         Quantities.getQuantity(0.05, SIEMENS_PER_KILOMETRE)
-      specConductance.toSquants shouldBe Siemens(0.5)
+      specConductance.toConductance shouldBe Siemens(0.5)
     }
 
     "properly convert length quantities from different units" in {
@@ -172,6 +176,14 @@ class QuantityConversionUtilsSpec extends UnitSpec {
     "properly convert thermal resistivity quantities from different units" in {
       val thermalRes = Quantities.getQuantity(0.05, KELVIN_METRE_PER_WATT)
       thermalRes.toSquants shouldBe KelvinMetersPerWatt(0.05)
+    }
+
+    "properly convert specific capacitance quantities" in {
+      val specCapacitance = Quantities.getQuantity(0.5, FARAD_PER_KILOMETRE)
+      specCapacitance.toSquants shouldBe FaradsPerKilometer(0.5)
+
+      val specCapacitance2 = Quantities.getQuantity(2.0, FARAD_PER_KILOMETRE)
+      specCapacitance2.toSquants shouldBe FaradsPerKilometer(2.0)
     }
 
     "properly convert thermal capacitance quantities from different units" in {

@@ -18,7 +18,7 @@ trait ThermalStorageCalculations {
     * @param volume
     *   needed/available volume
     * @param c
-    *   Volumetric heat capacity (volumetric heat capacity)
+    *   Volumetric heat capacity
     * @param inletTemp
     *   Inlet temperature
     * @param returnTemp
@@ -40,7 +40,7 @@ trait ThermalStorageCalculations {
     * @param energy
     *   available energy
     * @param c
-    *   Thermal capacitance (volumetric heat capacity)
+    *   Volumetric heat capacity
     * @param inletTemp
     *   Inlet temperature
     * @param returnTemp

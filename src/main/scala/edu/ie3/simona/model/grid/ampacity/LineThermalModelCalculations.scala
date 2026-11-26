@@ -20,6 +20,8 @@ object LineThermalModelCalculations extends LazyLogging {
   // Constants for thermal calculations
   private[ampacity] val TWO_PI: Double = 2 * Pi
   private[ampacity] val PI_OVER_FOUR: Double = Pi / 4
+  private[ampacity] val TREFOIL_COEFFICIENT: Double = 1.5
+  private[ampacity] val TREFOIL_ADJUSTMENT: Double = 0.63
   private[ampacity] val REFERENCE_TEMPERATURE: Temperature = Celsius(20d)
 
   /** Calculates the lay factor of the screen layer which is the ratio of the

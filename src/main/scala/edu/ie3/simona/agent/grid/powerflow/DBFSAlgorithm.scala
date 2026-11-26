@@ -6,8 +6,7 @@
 
 package edu.ie3.simona.agent.grid.powerflow
 
-import edu.ie3.powerflow.math.DenseVector
-import edu.ie3.powerflow.math.Complex
+import edu.ie3.powerflow.math.{Complex, DenseVector}
 import edu.ie3.powerflow.model.FailureCause.CalculationFailed
 import edu.ie3.powerflow.model.NodeData.StateData
 import edu.ie3.powerflow.model.PowerFlowResult

@@ -505,14 +505,14 @@ object GridModel {
       nodeInput => NodeModel(nodeInput, startDate, endDate)
     }
 
-    // / lines
+    // lines
     val lines: Set[LineModel] =
       subGridContainer.getRawGrid.getLines.asScala.map { lineInput =>
         getConnectedNodes(lineInput, nodes)
         LineModel(lineInput, refSystem, startDate, endDate)
       }.toSet
 
-    // / transformers
+    // transformers
     val transformers: Set[TransformerModel] =
       subGridContainer.getRawGrid.getTransformer2Ws.asScala.map {
         transformer2wInput =>
@@ -531,7 +531,7 @@ object GridModel {
           }
       }.toSet
 
-    // / transformers3w
+    // transformers3w
     val transformer3ws: Set[Transformer3wModel] =
       subGridContainer.getRawGrid.getTransformer3Ws.asScala.map {
         transformer3wInput =>
@@ -560,7 +560,7 @@ object GridModel {
     val relevantNodes =
       nodes.filterNot(node => nodesToNeglect.contains(node.uuid))
 
-    // / switches
+    // switches
     val switches: Set[SwitchModel] =
       subGridContainer.getRawGrid.getSwitches.asScala.map { switchInput =>
         getConnectedNodes(switchInput, nodes)

@@ -10,6 +10,7 @@ import edu.ie3.datamodel.models.input.SoilType
 import edu.ie3.simona.model.grid.ampacity.LineSegmentThermalModel.SoilLayerInfo
 import edu.ie3.simona.model.grid.ampacity.LineThermalModelCalculations.LineTemperatures
 import edu.ie3.simona.model.participant.ParticipantModel.ModelState
+import edu.ie3.simona.model.thermal.ThermalThreshold
 import edu.ie3.simona.util.{Coordinate, Coordinate3D}
 import edu.ie3.util.quantities.thermal.{
   JoulesPerMeterKelvin,
@@ -166,4 +167,5 @@ object LineSegmentThermalModel {
       currentVoltage: ElectricPotential,
       dryZoneActive: Boolean,
   ) extends ModelState
+
 }
