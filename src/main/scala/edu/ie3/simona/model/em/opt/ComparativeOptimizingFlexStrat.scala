@@ -109,9 +109,6 @@ final case class ComparativeOptimizingFlexStrat(
     FlexibilityOptimization.extractSetPoints(flexOptionsById, referenceResult)
   }
 
-  private def aape(value: Double, reference: Double): Double =
-    math.atan(math.abs((value - reference) / reference))
-
   override def adaptFlexOptions(
       assetInput: AssetInput,
       flexOptions: EnergyBoundariesFlexOptions,
