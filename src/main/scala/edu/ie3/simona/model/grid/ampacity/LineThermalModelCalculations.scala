@@ -7,7 +7,6 @@
 package edu.ie3.simona.model.grid.ampacity
 
 import com.typesafe.scalalogging.LazyLogging
-import squants.Temperature
 import squants.thermal.Celsius
 import squants.{Meters, Temperature}
 

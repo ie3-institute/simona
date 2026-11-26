@@ -145,6 +145,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param bedSoilTypeIds
     *   A set collecting the outer-soil type UUIDs of a cable bed across all
     *   segments of the line.
+    *
     * @param cableCapacities
     *   The per-unit-length thermal capacities of the cable elements, identical
     *   for all segments of the line.
@@ -178,7 +179,8 @@ object ThermalSegmentBuilder extends LazyLogging {
   ): Option[CableBed] = {
     val bedWidth = Option(deployment.getCableBedWidth)
     val bedHeight = Option(deployment.getCableBedHeight)
-    (bedWidth, bedHeight, Option(deployment.getCableBedSoilType)) match {
+    val bedSoilType = Option(deployment.getCableBedSoilType)
+    (bedWidth, bedHeight, bedSoilType) match {
       case (None, None, None) => None
       case (Some(width), Some(height), Some(soilTypeId)) =>
         soilTypes.find(_.getUuid == soilTypeId) match {
@@ -267,6 +269,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param neighbourLines
     *   Neighbour line geometries from all subgrids, used for parallel-proximity
     *   detection. Empty when the feature is not activated.
+    *
     * @return
     *   A [[BuildResult]] containing the soil layers and thermal line segments.
     */
@@ -276,11 +279,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       neighbourLines: Seq[NeighbourLineInfo] = Seq.empty,
   ): BuildResult = {
     // 1. Extract soil types and layers from the SubGridContainer
-    val soilLayers = subGridContainer
-      .allEntitiesAsList()
-      .asScala
-      .collect { case l: SoilLayer => l }
-      .toSeq
+    val soilLayers = subGridContainer.getSoilData.getSoilLayers.asScala.toSeq
 
     val soilTypes = Option(subGridContainer.getSoilData)
       .map(_.getSoilTypes.asScala.toSeq)
@@ -320,9 +319,7 @@ object ThermalSegmentBuilder extends LazyLogging {
   ): Unit = {
     val hasCableType =
       subGridContainer.getRawGrid.getLines.asScala.toSeq
-        .exists(line =>
-          Option(line.getType).exists(_.getCableType.toScala.isDefined)
-        )
+        .exists(line => line.getType.getCableType.toScala.isDefined)
     if !hasCableType then {
       throw new GridAgentInitializationException(
         "Ampacity calculation is activated, but no cable types are available. Please provide at least one cable type."
@@ -345,18 +342,16 @@ object ThermalSegmentBuilder extends LazyLogging {
 
     val missingDeployments =
       subGridContainer.getRawGrid.getLines.asScala.toSeq.flatMap { lineInput =>
-        Option(lineInput.getType).toSeq.flatMap { lineType =>
-          lineType.getCableType.toScala.toSeq.flatMap { cableType =>
-            val hasDeployment =
-              deploymentsByLine
-                .get(lineInput.getUuid)
-                .exists(_.asScala.nonEmpty)
-            if hasDeployment then None
-            else
-              Some(
-                s"line ${lineInput.getUuid} (id: ${lineInput.getId}, lineType=${lineType.getUuid}, cableType=${cableType.getUuid})"
-              )
-          }
+        lineInput.getType.getCableType.toScala.toSeq.flatMap { cableType =>
+          val hasDeployment =
+            deploymentsByLine
+              .get(lineInput.getUuid)
+              .exists(_.asScala.nonEmpty)
+          if hasDeployment then None
+          else
+            Some(
+              s"line ${lineInput.getUuid} (id: ${lineInput.getId}, lineType=${lineType.getUuid}, cableType=${cableType.getUuid})"
+            )
         }
       }
 
@@ -415,7 +410,7 @@ object ThermalSegmentBuilder extends LazyLogging {
       ppThreshold: Option[Double],
   ): (Set[LineSegmentThermalModel], ListBuffer[BuiltSegment]) = {
     val deploymentsByLine =
-      subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala
+      subGridContainer.getRawGrid.getCableDeploymentsByLine.asScala.toMap
     val generatedSegments: ListBuffer[BuiltSegment] = ListBuffer.empty
     val warnedPairs: MutableSet[(UUID, UUID)] = MutableSet.empty
     val thermalLineSegments: Set[LineSegmentThermalModel] =
@@ -448,21 +443,22 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param deploymentsByLine
     *   The cable deployments indexed by line UUID.
     * @return
-    *   The resolved [[LineCandidate]], or `None` if the line has no line type,
-    *   no cable type, or no cable deployment.
+    *   The resolved [[LineCandidate]], or `None` if the line has no cable type,
+    *   or no cable deployment.
     */
   private def resolveLineCandidate(
       lineInput: LineInput,
-      deploymentsByLine: scala.collection.Map[UUID, JList[CableDeploymentInput]],
-  ): Option[LineCandidate] =
+      deploymentsByLine: Map[UUID, JList[CableDeploymentInput]],
+  ): Option[LineCandidate] = {
+    val lineType = lineInput.getType
     for {
-      lineType <- Option(lineInput.getType)
       cableTypeInput <- lineType.getCableType.toScala
       firstDeployment <- singleDeploymentFor(
         lineInput,
         deploymentsByLine.get(lineInput.getUuid),
       )
     } yield LineCandidate(lineInput, lineType, cableTypeInput, firstDeployment)
+  }
 
   /** Builds the [[SegmentBuildContext]] for a resolved line candidate.
     *
@@ -495,9 +491,8 @@ object ThermalSegmentBuilder extends LazyLogging {
     val LineCandidate(lineInput, lineType, cableTypeInput, firstDeployment) =
       candidate
     // Extract line points from geoposition
-    val coordinates = Option(lineInput.getGeoPosition)
-      .map(_.getCoordinates.toSeq.map(c => Coordinate(c.y, c.x)))
-      .getOrElse(Seq.empty)
+    val coordinates = lineInput.getGeoPosition.getCoordinates.toSeq
+      .map(c => Coordinate(c.y, c.x))
     val conductor = mapConductor(cableTypeInput.getConductor)
     val isolation = layersList(cableTypeInput.getIsolation)
     val screen = cableTypeInput.getScreen.toScala.map(mapScreen)

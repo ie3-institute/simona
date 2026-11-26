@@ -168,9 +168,4 @@ object LineSegmentThermalModel {
       dryZoneActive: Boolean,
   ) extends ModelState
 
-  object LineModelThreshold {
-    final case class LineModelTemperatureUpperBoundaryReached(
-        override val tick: Long
-    ) extends ThermalThreshold
-  }
 }

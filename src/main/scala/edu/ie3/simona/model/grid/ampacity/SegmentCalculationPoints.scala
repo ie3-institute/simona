@@ -51,16 +51,9 @@ object SegmentCalculationPoints {
           s"the segment geometry from (${start.longitude}, ${start.latitude}) to (${end.longitude}, ${end.latitude}) is invalid."
       )
 
-    val centroid =
-      GeoUtils.DEFAULT_GEOMETRY_FACTORY.createPoint(
-        new JtsCoordinate(
-          (start.longitude + end.longitude) / 2.0,
-          (start.latitude + end.latitude) / 2.0,
-        )
-      )
-
-    val calculationPoint: Point = centroid
-
-    Coordinate(calculationPoint.getY, calculationPoint.getX)
+    Coordinate(
+      (start.latitude + end.latitude) / 2.0,
+      (start.longitude + end.longitude) / 2.0,
+    )
   }
 }
