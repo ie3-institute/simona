@@ -19,7 +19,7 @@ import org.apache.kafka.common.serialization.{Deserializer, Serializer}
   */
 object ScalaReflectionSerde {
 
-  def reflectionSerializer4S[T >: Null](implicit
+  def reflectionSerializer4S[T >: Null](using
       schemaFor: SchemaFor[T],
       encoder: Encoder[T],
   ): Serializer[T] =

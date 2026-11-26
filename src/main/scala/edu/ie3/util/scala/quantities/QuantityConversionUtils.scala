@@ -204,7 +204,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Ohms]].
       */
-    def toResistance(implicit
+    def toResistance(using
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalResistance = Ohms(
       quantity
@@ -243,7 +243,7 @@ object QuantityConversionUtils {
       * @return
       *   a quantity with unit [[Siemens]].
       */
-    def toConductance(implicit
+    def toConductance(using
         length: ComparableQuantity[Length]
     ): squants.electro.ElectricalConductance = Siemens(
       quantity
