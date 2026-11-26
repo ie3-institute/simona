@@ -6,6 +6,7 @@
 
 package edu.ie3.simona.service.results
 
+import edu.ie3.datamodel.io.csv.BufferedCsvWriter
 import edu.ie3.datamodel.models.result.ResultEntity
 import edu.ie3.datamodel.models.result.connector.Transformer3WResult
 import edu.ie3.datamodel.models.result.system.{
@@ -31,9 +32,12 @@ import edu.ie3.simona.util.TickUtil.toTick
 import org.apache.pekko.actor.typed.scaladsl.{Behaviors, StashBuffer}
 import org.apache.pekko.actor.typed.{ActorRef, Behavior, PostStop}
 import org.slf4j.Logger
+import squants.energy.EnergyConversions.EnergyNumeric
 
+import java.nio.file.Paths
 import java.time.ZonedDateTime
 import java.util.UUID
+import scala.jdk.CollectionConverters.*
 import scala.util.{Failure, Success}
 
 object ResultServiceProxy {
@@ -118,6 +122,42 @@ object ResultServiceProxy {
       lastUpdate: Map[UUID, Long] = Map.empty,
       waitingForResults: Map[UUID, Long] = Map.empty,
       requiresSetPoint: Set[UUID] = Set.empty,
+      emTrajectoryWriter: BufferedCsvWriter =
+        // FIXME very hacky
+        initWriter(
+          "em_trajectories.csv",
+          Array(
+            "assetUuid",
+            "currentTick",
+            "tick",
+            "state",
+            "eMin",
+            "eMax",
+            "tightEMin",
+            "tightEMax",
+          ),
+        ),
+      emMetricsWriter: BufferedCsvWriter =
+        // FIXME very hacky
+        initWriter(
+          "em_metrics.csv",
+          Array(
+            "variantId",
+            "currentTick",
+            "modelUuid",
+            "sampleTime",
+            "predictionHorizon",
+            "solver",
+            "tightenBoundaries",
+            "solutionStatus",
+            "objectiveValue",
+            "stateCalcError",
+            "timeVariables",
+            "timeObjectiveFunction",
+            "timeConstraints",
+            "timeSolution",
+          ),
+        ),
   ) extends ServiceBaseStateData {
 
     /** This method is used to forward results to all known listeners.
@@ -407,6 +447,77 @@ object ResultServiceProxy {
 
       equal
     }
+
+    def printEmTrajectoryRes(
+        res: EmTrajectoryStepResult
+    ): Unit = {
+      emTrajectoryWriter.write(
+        Map(
+          "assetUuid" -> res.assetUuid.toString,
+          "currentTick" -> res.currentTick.toString,
+          "tick" -> res.tick.toString,
+          "state" -> res.state.toKilowattHours.toString,
+          "eMin" -> res.eMin.toKilowattHours.toString,
+          "eMax" -> res.eMax.toKilowattHours.toString,
+          "tightEMin" -> res.tightEMin.toKilowattHours.toString,
+          "tightEMax" -> res.tightEMax.toKilowattHours.toString,
+        ).asJava
+      )
+    }
+
+    def printEmMetricsRes(
+        res: EmOptMetricsResult
+    ): Unit = {
+      val stateCalcError =
+        // we only calc the state calc error if optimisation succeeded,
+        // otherwise some variables might not be set
+        if res.result.solutionFound then
+          res.result.assetSymbols
+            .flatMap(_.getStateCalcErrors)
+            .sum
+            .toKilowattHours
+        else Double.NaN
+
+      emMetricsWriter.write(
+        Map(
+          "variantId" -> res.variantId,
+          "currentTick" -> res.result.params.timeParams.currentTick.toString,
+          "modelUuid" -> res.modelUuid.toString,
+          "sampleTime" -> res.result.params.timeParams.sampleTime.toHours.toString,
+          "predictionHorizon" -> res.result.params.timeParams.predictionHorizon.toHours.toString,
+          "solver" -> res.result.params.solverLib.getClass.getSimpleName
+            .replace("$", ""),
+          "tightenBoundaries" -> {
+            if res.result.params.tightenBoundaries then "1" else "0"
+          },
+          "solutionStatus" -> res.result.solutionStatus.getClass.getSimpleName
+            .replace("$", ""),
+          "objectiveValue" -> res.result.objectiveValue
+            .getOrElse(Double.NaN)
+            .toString,
+          "stateCalcError" -> stateCalcError.toString,
+          "timeVariables" -> res.result.timeMeasurements.variables.toString,
+          "timeObjectiveFunction" -> res.result.timeMeasurements.objectiveFunction.toString,
+          "timeConstraints" -> res.result.timeMeasurements.constraints.toString,
+          "timeSolution" -> res.result.timeMeasurements.solution.toString,
+        ).asJava
+      )
+    }
+
+  }
+
+  private def initWriter(
+      fileName: String,
+      headers: Array[String],
+  ): BufferedCsvWriter = {
+    val writer = new BufferedCsvWriter(
+      Paths.get(".").resolve(fileName).toAbsolutePath,
+      headers,
+      ",",
+      false,
+    )
+    writer.writeFileHeader()
+    writer
   }
 
   /** Used to create a [[ResultServiceProxy]].
@@ -553,6 +664,17 @@ object ResultServiceProxy {
         stateData.notifyListener(flexOptionsResult)
 
         stateData.addResult(flexOptionsResult)
+
+      case emTrajectoryRes: EmTrajectoryStepResult =>
+        // notify listener
+        stateData.printEmTrajectoryRes(emTrajectoryRes)
+        stateData
+
+      case emMetricsRes: EmOptMetricsResult =>
+        // notify listener
+        stateData.printEmMetricsRes(emMetricsRes)
+        stateData
+
     }
 
   /** Method for handling three-winding results. This is necessary, since a

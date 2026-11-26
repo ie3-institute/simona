@@ -24,8 +24,7 @@ import edu.ie3.util.quantities.energy.{ApparentPower, Kilovoltamperes}
 import edu.ie3.util.scala.quantities.DefaultQuantities.{onePU, zeroKW, zeroKWh}
 import org.locationtech.jts.geom.{Coordinate, GeometryFactory, Point}
 import org.scalatest.GivenWhenThen
-import squants.Energy
-import squants.energy.{Power, WattHours, Watts}
+import squants.energy.{Energy, Power, WattHours, Watts}
 import squants.radio.WattsPerSquareMeter
 import squants.time.Hours
 import tech.units.indriya.quantity.Quantities.getQuantity
@@ -190,18 +189,33 @@ class PvModelSpec
       flexOptions match {
         case EnergyBoundariesFlexOptions(boundaries) =>
           boundaries should have size 1
+          val assetBoundaries = boundaries.headOption.value
 
-          val energyLimits = boundaries.headOption.value.energyLimits
-          energyLimits should have size expectedResults.size + 1
+          assetBoundaries.energyLimits should have size 5
+          assetBoundaries.powerLimits should have size 4
 
           expectedResults
             // adding dummy value so that last energy is tested
             .appended(14400L -> zeroKW)
             .foldLeft(zeroKWh) { case (expectedEnergy, (tick, expectedPower)) =>
-              energyLimits(tick).getUpper should approximate(expectedEnergy)
-              energyLimits(tick).getLower should approximate(expectedEnergy)
+              assetBoundaries.energyLimits(tick).getUpper should approximate(
+                zeroKWh
+              )
+              assetBoundaries.energyLimits(tick).getLower should approximate(
+                expectedEnergy
+              )
 
               expectedEnergy + expectedPower * Hours(1)
+            }
+
+          expectedResults
+            .foreach { case (tick, expectedPower) =>
+              assetBoundaries.powerLimits(tick).getUpper should approximate(
+                zeroKW
+              )
+              assetBoundaries.powerLimits(tick).getLower should approximate(
+                expectedPower
+              )
             }
         case unexpected => fail(s"Received unexpected flex options $unexpected")
       }

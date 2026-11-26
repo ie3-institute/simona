@@ -7,7 +7,10 @@
 package edu.ie3.simona.agent
 
 import edu.ie3.datamodel.models.input.AssetInput
-import edu.ie3.datamodel.models.input.system.{LoadInput, SystemParticipantInput}
+import edu.ie3.datamodel.models.input.system.{
+  ExtendedSystemParticipantInput,
+  LoadInput,
+}
 import edu.ie3.simona.exceptions.CriticalFailureException
 import edu.ie3.simona.model.participant.ParticipantModel.AdditionalFactoryData
 import edu.ie3.simona.ontology.messages.ServiceMessage
@@ -186,7 +189,7 @@ trait SecondaryServiceRegistration[Msg >: ServiceMessage.Response, CR] {
     serviceType match {
       case ServiceType.WeatherService =>
         val participantInput = assetInput match {
-          case spInput: SystemParticipantInput =>
+          case spInput: ExtendedSystemParticipantInput =>
             spInput
           case _ =>
             throw new CriticalFailureException(

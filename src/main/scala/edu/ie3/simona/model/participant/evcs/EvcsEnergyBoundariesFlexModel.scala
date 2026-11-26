@@ -7,6 +7,7 @@
 package edu.ie3.simona.model.participant.evcs
 
 import edu.ie3.simona.exceptions.CriticalFailureException
+import edu.ie3.simona.model.participant.evcs.EvcsEnergyBoundariesFlexModel.requiredPowerTolerance
 import edu.ie3.simona.model.participant.evcs.EvcsModel.EvcsState
 import edu.ie3.simona.model.participant.flex.AbstractEnergyBoundariesFlexModel
 import edu.ie3.simona.ontology.messages.flex.EnergyBoundariesFlexOptions.AssetEnergyBoundaries
@@ -18,15 +19,16 @@ import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.DataTimeType.CurrentAndForecast
 import edu.ie3.util.interval.ClosedInterval
 import edu.ie3.util.scala.quantities.DefaultQuantities.{zeroKW, zeroKWh}
-import squants.Energy
+import squants.energy.Watts
 import squants.time.Seconds
+import squants.{Energy, Power}
 
 import scala.collection.immutable.SortedMap
 
 class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
     extends AbstractEnergyBoundariesFlexModel[EvcsState] {
 
-  override val hasEnergyFlexibility: Boolean = true
+  override val hasEnergyState: Boolean = true
 
   override def determineFlexOptions(
       state: EvcsState,
@@ -97,16 +99,19 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
         val timeToDeparture = Seconds(disconnectTick - currentTick)
 
         // required power to reach the regular lower limit
-        val requiredPower = requiredEnergy / timeToDeparture
+        val requiredPower =
+          requiredEnergy / timeToDeparture / ev.etaCharging.toEach
+
+        val maxPowerWithTolerance = maxPower - requiredPowerTolerance
 
         // since reaching the lower limit needs to be feasible,
         // we have to adapt the limit if the regular limit is
         // not reachable with max power
         val adaptedRequiredEnergy =
-          if requiredPower > maxPower then
+          if requiredPower > maxPowerWithTolerance then
             // we cannot reach regular lower limit,
             // thus we do the most we can
-            maxPower * timeToDeparture
+            maxPowerWithTolerance * timeToDeparture * ev.etaCharging.toEach
           else
             // we can reach the regular lower limit
             requiredEnergy
@@ -128,8 +133,19 @@ class EvcsEnergyBoundariesFlexModel(private val model: EvcsModel)
           ev.eStorage,
         )
       ) ++ disconnectingLimits,
-      powerLimits = ClosedInterval(minPower, maxPower),
+      powerLimits =
+        SortedMap(currentTick -> ClosedInterval(minPower, maxPower)),
+      etaCharge = ev.etaCharging,
+      etaDischarge = ev.etaDischarging,
       tickDisconnect = adaptedDisconnectTick,
     )
   }
+}
+
+object EvcsEnergyBoundariesFlexModel {
+
+  /** Tolerance applied to required energy at departure for numerical reasons
+    */
+  val requiredPowerTolerance: Power = Watts(1e-6)
+
 }

@@ -8,13 +8,17 @@ package edu.ie3.simona.model.em
 
 import edu.ie3.datamodel.models.input.AssetInput
 import edu.ie3.simona.config.RuntimeConfig.EmRuntimeConfig
+import edu.ie3.simona.event.ResultEvent
 import edu.ie3.simona.model.em.opt.{
-  CommonLossObjectiveFactory,
+  ComparativeOptimizingFlexStrat,
   OptimizingFlexStrat,
 }
-import edu.ie3.simona.model.em.opt.OptimizingFlexStrat.{
-  AssetStepSymbols,
+import edu.ie3.simona.model.em.opt.impl.ObjectiveFactory.AssetStepSymbols
+import edu.ie3.simona.model.em.opt.impl.{
+  CommonLossObjectiveFactory,
   ObjectiveFactory,
+  SignedEnergyVariableObjectiveFactory,
+  SplitPowerVarsObjectiveFactory,
 }
 import edu.ie3.simona.ontology.messages.flex.{
   EnergyBoundariesFlexOptions,
@@ -23,9 +27,10 @@ import edu.ie3.simona.ontology.messages.flex.{
 }
 import edu.ie3.simona.service.Data.SecondaryData
 import edu.ie3.simona.service.ServiceRegistrationData
-import squants.Power
+import edu.ie3.simona.util.OptionExtension.orFail
+import org.apache.pekko.actor.typed.ActorRef
+import squants.{Power, Time}
 import squants.energy.Kilowatts
-import squants.time.Hours
 
 import java.util.UUID
 
@@ -34,6 +39,9 @@ import java.util.UUID
   * connected agents
   */
 trait EmModelStrat[FO <: FlexOptions] {
+
+  // FIXME very hacky
+  var resultListener: ActorRef[ResultEvent] = null
 
   /** Returns the service registration data specifying the data provision
     * required for running for this model strategy. To be overridden by
@@ -98,27 +106,56 @@ object EmModelStrat {
       PrioritizedFlexStrat(modelConfig.curtailRegenerative)
   }
 
-  def parseOptimizingModel
-      : PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] = {
-    // todo a lot of these parameters should be configurable -> issue #1725
-
-    val objectiveFunction
-        : PartialFunction[String, ObjectiveFactory[? <: AssetStepSymbols]] = {
-      case "OPT_MIN_ABS_POWER" =>
-        CommonLossObjectiveFactory.MinAbsPowerObjectiveFactory
-      case "OPT_LIN_QUAD_POWER" =>
-        CommonLossObjectiveFactory
-          .LinearizedQuadraticPowerObjectiveFactory(segmentCount = 10)
-      case "OPT_PRICE" => CommonLossObjectiveFactory.PriceObjectiveFactory
-    }
-
-    objectiveFunction.andThen(objectiveFactory =>
-      new OptimizingFlexStrat(
-        sampleTime = Hours(1),
-        predictionHorizon = Hours(12),
-        objectiveFactory,
+  def parseOptimizingModel(
+      sampleTime: Time,
+      predictionHorizon: Time,
+      modelUuid: UUID,
+  ): PartialFunction[String, EmModelStrat[EnergyBoundariesFlexOptions]] =
+    getSingleModelSafe.unlift
+      .andThen(objFactory =>
+        new OptimizingFlexStrat(
+          sampleTime = sampleTime,
+          predictionHorizon = predictionHorizon,
+          objFactory,
+        )
       )
-    )
+      .orElse(
+        ComparativeOptimizingFlexStrat.apply(
+          sampleTime = sampleTime,
+          predictionHorizon = predictionHorizon,
+          modelUuid = modelUuid,
+        )
+      )
+
+  def getSingleModel(stratId: String): ObjectiveFactory[? <: AssetStepSymbols] =
+    getSingleModelSafe(stratId).orFail(s"Model strategy $stratId not available")
+
+  private def getSingleModelSafe(
+      stratId: String
+  ): Option[ObjectiveFactory[? <: AssetStepSymbols]] = {
+    val splitId = stratId.split("_")
+
+    if splitId.size < 3 || splitId(0) != "OPT" then None
+    else {
+      splitId(1) match {
+        case "CLM" =>
+          Option
+            .when(splitId.size == 4) {
+              CommonLossObjectiveFactory(splitId(2), splitId(3))
+            }
+            .flatten
+
+        case "SPM" =>
+          Option
+            .when(splitId.size == 4) {
+              SplitPowerVarsObjectiveFactory(splitId(2), splitId(3))
+            }
+            .flatten
+
+        case "SEM" =>
+          SignedEnergyVariableObjectiveFactory(splitId(2))
+      }
+    }
   }
 
 }

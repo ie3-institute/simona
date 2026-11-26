@@ -21,8 +21,8 @@ import squants.time.Hours
 
 class AbstractEnergyBoundariesFlexModelSpec extends UnitSpec {
 
-  val flexModel = TestEnergyBoundariesFlexModel(hasEnergyFlexibility = true)
-  val noFlexModel = TestEnergyBoundariesFlexModel(hasEnergyFlexibility = false)
+  val flexModel = TestEnergyBoundariesFlexModel(hasEnergyState = true)
+  val noFlexModel = TestEnergyBoundariesFlexModel(hasEnergyState = false)
 
   "Flex models for EnergyBoundariesFlexOptions" should {
 
@@ -45,7 +45,7 @@ class AbstractEnergyBoundariesFlexModelSpec extends UnitSpec {
             setPower = Kilowatts(1),
             dataTimeType = DataTimeType.CurrentAndForecast(Hours(12), Hours(1)),
           ) shouldEqual OperationChangeIndicator(
-            changesAtNextActivation = model.hasEnergyFlexibility,
+            changesAtNextActivation = model.hasEnergyState,
             changesAtTick = Some(expNextTick),
           )
         }
@@ -75,7 +75,7 @@ class AbstractEnergyBoundariesFlexModelSpec extends UnitSpec {
 object AbstractEnergyBoundariesFlexModelSpec {
 
   class TestEnergyBoundariesFlexModel(
-      override val hasEnergyFlexibility: Boolean
+      override val hasEnergyState: Boolean
   ) extends AbstractEnergyBoundariesFlexModel[StorageState] {
 
     override def determineFlexOptions(

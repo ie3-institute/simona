@@ -99,10 +99,10 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
 
   "Tightening energy boundaries should result in proper energy limits" when {
 
-    val ticks = {
-      val sampleTime = Hours(0.5)
-      val predictionHorizon = Hours(4)
+    val sampleTime = Hours(0.5)
+    val predictionHorizon = Hours(4)
 
+    val ticks = {
       val startTick = 3600L
       val sampleTicks = sampleTime.toSeconds.toLong
       val lastPredictedTick = startTick + predictionHorizon.toSeconds.toLong
@@ -121,7 +121,8 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
           etaDischarge = Each(0.8),
           currentTick = ticks(0),
         ),
-        ticks = ticks,
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
@@ -149,7 +150,8 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
           etaDischarge = Each(0.8),
           currentTick = ticks(0),
         ),
-        ticks = ticks,
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
@@ -175,10 +177,12 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
             ticks(0) -> limits(0, 50),
             ticks(8) -> limits(40, 50),
           ),
-          powerLimits = ClosedInterval(zeroKW, Kilowatts(10)),
+          powerLimits =
+            SortedMap(ticks(0) -> ClosedInterval(zeroKW, Kilowatts(10))),
           tickDisconnect = Some(ticks(8)),
         ),
-        ticks = ticks,
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
@@ -211,11 +215,13 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
             ticks(7) -> limits(0, 20),
             ticks(8) -> limits(25, 50),
           ),
-          powerLimits = ClosedInterval(Kilowatts(-6), Kilowatts(16)),
+          powerLimits =
+            SortedMap(ticks(0) -> ClosedInterval(Kilowatts(-6), Kilowatts(16))),
           etaCharge = Each(0.625),
           etaDischarge = Each(0.6),
         ),
-        ticks = ticks,
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
       )
 
       adaptedBoundaries.energyLimits shouldBe SortedMap(
@@ -240,10 +246,13 @@ class EnergyBoundariesFlexOptionsSpec extends UnitSpec with DefaultTestData {
             ticks(0) -> limits(0, 60),
             ticks(2) -> limits(29.700000000000003, 60),
           ),
-          powerLimits = ClosedInterval(Kilowatts(-19.8), Kilowatts(19.8)),
+          powerLimits = SortedMap(
+            ticks(0) -> ClosedInterval(Kilowatts(-19.8), Kilowatts(19.8))
+          ),
           tickDisconnect = Some(ticks(2)),
         ),
-        ticks = ticks,
+        sampleTime = sampleTime,
+        predictionHorizon = predictionHorizon,
       )
 
       adaptedBoundaries.energyLimits should contain allOf (

@@ -14,8 +14,9 @@ import edu.ie3.util.scala.quantities.QuantityConversionUtils.{
   toApparent,
   toSquants,
 }
-import squants.energy.{Power, Energy, KilowattHours}
-import squants.time.{Time, Seconds}
+import squants.Dimensionless
+import squants.energy.{Energy, KilowattHours, Power}
+import squants.time.{Seconds, Time}
 
 import java.util.UUID
 
@@ -44,6 +45,8 @@ final case class EvModelWrapper(
   lazy val pRatedAc: Power = sRatedAc.toActivePower(cosPhi)
   lazy val pRatedDc: Power = original.getPRatedDC.toSquants
   lazy val eStorage: Energy = original.getEStorage.toSquants
+  lazy val etaCharging: Dimensionless = original.getEtaCharging.toSquants
+  lazy val etaDischarging: Dimensionless = original.getEtaDischarging.toSquants
 
   def departureTick: Long = original.getDepartureTick
 

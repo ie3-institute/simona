@@ -20,7 +20,7 @@ import edu.ie3.simona.model.participant.ParticipantModel.{
 import edu.ie3.simona.model.participant.control.QControl
 import edu.ie3.simona.model.participant.flex.{
   ParticipantFlexModel,
-  ParticipantInflexibleEnergyLimitFlexModel,
+  ParticipantInflexibleEnergyBoundariesFlexModel,
   ParticipantInflexiblePowerLimitFlexModel,
 }
 import edu.ie3.simona.model.participant.load.ProfileLoadModel.LoadModelState
@@ -56,7 +56,7 @@ class ProfileLoadModel(
   ]] =
     Map(
       FlexType.PowerLimit -> ParticipantInflexiblePowerLimitFlexModel(this),
-      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyLimitFlexModel(
+      FlexType.EnergyBoundaries -> ParticipantInflexibleEnergyBoundariesFlexModel(
         this,
         _.toStateSeries,
       ),
