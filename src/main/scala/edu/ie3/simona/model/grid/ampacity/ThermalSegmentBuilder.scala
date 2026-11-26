@@ -269,7 +269,6 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param neighbourLines
     *   Neighbour line geometries from all subgrids, used for parallel-proximity
     *   detection. Empty when the feature is not activated.
-    *
     * @return
     *   A [[BuildResult]] containing the soil layers and thermal line segments.
     */
@@ -320,11 +319,10 @@ object ThermalSegmentBuilder extends LazyLogging {
     val hasCableType =
       subGridContainer.getRawGrid.getLines.asScala.toSeq
         .exists(line => line.getType.getCableType.toScala.isDefined)
-    if !hasCableType then {
+    if !hasCableType then
       throw new GridAgentInitializationException(
         "Ampacity calculation is activated, but no cable types are available. Please provide at least one cable type."
       )
-    }
   }
 
   /** Validates that cable deployment entries exist and that every line with a
@@ -334,11 +332,10 @@ object ThermalSegmentBuilder extends LazyLogging {
       subGridContainer: SubGridContainer,
       deploymentsByLine: Map[UUID, JList[CableDeploymentInput]],
   ): Unit = {
-    if deploymentsByLine.isEmpty then {
+    if deploymentsByLine.isEmpty then
       throw new GridAgentInitializationException(
         "Ampacity calculation is activated, but no cable deployment entries were provided. Please add a cable deployment entry for each line."
       )
-    }
 
     val missingDeployments =
       subGridContainer.getRawGrid.getLines.asScala.toSeq.flatMap { lineInput =>
@@ -350,18 +347,17 @@ object ThermalSegmentBuilder extends LazyLogging {
           if hasDeployment then None
           else
             Some(
-              s"line ${lineInput.getUuid} (id: ${lineInput.getId}, lineType=${lineType.getUuid}, cableType=${cableType.getUuid})"
+              s"line ${lineInput.getUuid} (id: ${lineInput.getId}, lineType=${lineInput.getType.getUuid}, cableType=${cableType.getUuid})"
             )
         }
       }
 
-    if missingDeployments.nonEmpty then {
+    if missingDeployments.nonEmpty then
       throw new GridAgentInitializationException(
         s"Ampacity calculation is activated, but ${missingDeployments.size} line(s) reference a cable_type and do not have a cable deployment in cable_deployment_input.csv:\n" +
           missingDeployments.mkString("\n") +
           "\nPlease add a cable deployment entry for each of these lines."
       )
-    }
   }
 
   /** Unwraps an optional value and throws a
@@ -443,7 +439,7 @@ object ThermalSegmentBuilder extends LazyLogging {
     * @param deploymentsByLine
     *   The cable deployments indexed by line UUID.
     * @return
-    *   The resolved [[LineCandidate]], or `None` if the line has no cable type,
+    *   The resolved [[LineCandidate]], or `None` if the line has no cable type
     *   or no cable deployment.
     */
   private def resolveLineCandidate(
