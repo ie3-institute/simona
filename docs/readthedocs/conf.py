@@ -27,7 +27,7 @@ myst_heading_anchors = 3
 
 templates_path = ['_templates']
 exclude_trees = ['.build']
-source_suffix = ['.md']
+source_suffix = {'.md': 'markdown'}
 source_encoding = 'utf-8-sig'
 
 
