@@ -48,9 +48,11 @@ trait CongestionTestBaseData
     with TestSpawnerTyped {
   this: ActorTestKitBase =>
 
-  override protected lazy val typesafeConfig = ConfigFactory
+  override protected val typesafeConfig = ConfigFactory
     .parseString(
       """
+      |simona.congestionManagement.enableDetection = true
+      |
       |simona.simulationName = "CongestionTest"
       |
       |simona.time.startDateTime = "2011-05-01T00:00:00Z"
@@ -69,11 +71,11 @@ trait CongestionTestBaseData
     )
     .resolve()
 
-  override protected lazy val simonaConfig: SimonaConfig = SimonaConfig(
+  override protected val simonaConfig: SimonaConfig = SimonaConfig(
     typesafeConfig
   )
-  override protected lazy val startTime = simonaConfig.time.simStartTime
-  override protected lazy val endTime = simonaConfig.time.simEndTime
+  override protected val startTime = simonaConfig.time.simStartTime
+  override protected val endTime = simonaConfig.time.simEndTime
 
   protected val refSystem: RefSystem = RefSystem(
     Megawatts(600d),
