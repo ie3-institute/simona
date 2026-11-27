@@ -88,76 +88,44 @@ class ConfigFailFastSpec extends UnitSpec {
       |
       |simona.runtime.participant.requestVoltageDeviationThreshold = 1E-14
       |simona.runtime.participant.load = {
-      |  defaultConfig = {
-      |    calculateMissingReactivePowerWithModel = false
-      |    uuids = ["default"]
-      |    scaling = 1.0
-      |    modelBehaviour = "fix"
-      |    reference = "power"
-      |  }
-      |  individualConfigs = []
+      |  calculateMissingReactivePowerWithModel = false
+      |  scaling = 1.0
+      |  modelBehaviour = "fix"
+      |  reference = "power"
       |}
       |simona.runtime.participant.fixedFeedIn = {
-      |  defaultConfig = {
-      |       calculateMissingReactivePowerWithModel = false
-      |       uuids = ["default"]
-      |       scaling = 1.0
-      |  }
-      |  individualConfigs = []
+      |  calculateMissingReactivePowerWithModel = false
+      |  scaling = 1.0
       |}
       |
       |simona.runtime.participant.pv = {
-      |  defaultConfig = {
-      |       calculateMissingReactivePowerWithModel = false
-      |       uuids = ["default"]
-      |       scaling = 1.0
-      |  }
-      |  individualConfigs = []
+      |  calculateMissingReactivePowerWithModel = false
+      |  scaling = 1.0
       |}
       |
       |simona.runtime.participant.wec = {
-      |  defaultConfig = {
-      |       calculateMissingReactivePowerWithModel = false
-      |       uuids = ["default"]
-      |       scaling = 1.0
-      |  }
-      |  individualConfigs = []
+      |  calculateMissingReactivePowerWithModel = false
+      |  scaling = 1.0
       |}
       |
       |simona.runtime.participant.evcs = {
-      |  defaultConfig = {
-      |       calculateMissingReactivePowerWithModel = false
-      |       uuids = ["default"]
-      |       scaling = 1.0
-      |  }
-      |  individualConfigs = []
+      |  calculateMissingReactivePowerWithModel = false
+      |  scaling = 1.0
       |}
       |
       |simona.runtime.participant.hp = {
-      |  defaultConfig = {
       |       calculateMissingReactivePowerWithModel = false
-      |       uuids = ["default"]
       |       scaling = 1.0
-      |  }
-      |  individualConfigs = []
       |}
       |
       |simona.runtime.participant.storage = {
-      |  defaultConfig = {
-      |       calculateMissingReactivePowerWithModel = false
-      |       uuids = ["default"]
-      |       scaling = 1.0
-      |  }
-      |  individualConfigs = []
+      |  calculateMissingReactivePowerWithModel = false
+      |  scaling = 1.0
       |}
       |
       |simona.runtime.participant.em = {
-      |  defaultConfig = {
-      |       calculateMissingReactivePowerWithModel = false
-      |       uuids = ["default"]
-      |       scaling = 1.0
-      |  }
-      |  individualConfigs = []
+      |  calculateMissingReactivePowerWithModel = false
+      |  scaling = 1.0
       |}
       |
       |simona.powerflow.maxSweepPowerDeviation = 1E-5
