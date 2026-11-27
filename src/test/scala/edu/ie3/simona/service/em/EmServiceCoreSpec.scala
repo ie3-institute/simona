@@ -22,7 +22,10 @@ import edu.ie3.simona.ontology.messages.flex.{
   FlexibilityMessage,
   PowerLimitFlexOptions,
 }
-import edu.ie3.simona.test.common.{ConfigTestData, UnitSpec}
+import edu.ie3.simona.test.common.UnitSpec
+import edu.ie3.simona.config.InputConfig.{Grid, GridDatasource}
+import edu.ie3.simona.config.OutputConfig.Base
+import edu.ie3.simona.config.{InputConfig, OutputConfig, SimonaConfig}
 import edu.ie3.simona.util.{ReceiveDataMap, ReceiveMultiDataMap}
 import edu.ie3.util.quantities.QuantityUtils.asKiloWatt
 import edu.ie3.util.scala.quantities.DefaultQuantities.zeroKW
@@ -33,13 +36,45 @@ import org.apache.pekko.actor.testkit.typed.scaladsl.{
 import org.slf4j.{Logger, LoggerFactory}
 import squants.energy.{Kilowatts, Power, Watts}
 
+import java.time.ZonedDateTime
 import java.util.UUID
 import scala.jdk.CollectionConverters.MapHasAsJava
 
-class EmServiceCoreSpec
-    extends ScalaTestWithActorTestKit
-    with UnitSpec
-    with ConfigTestData {
+class EmServiceCoreSpec extends ScalaTestWithActorTestKit with UnitSpec {
+
+  private val simonaConfig: SimonaConfig = SimonaConfig(
+    input = InputConfig(
+      grid = Grid(
+        datasource = GridDatasource(
+          id = "csv"
+        )
+      )
+    ),
+    output = OutputConfig(
+      base = Base(
+        addTimestampToOutputDir = false,
+        dir = "testOutput/",
+      )
+    ),
+    powerflow = Some(
+      SimonaConfig.Powerflow(
+        maxSweepPowerDeviation = 1e-5,
+        newtonraphson = SimonaConfig.Powerflow.Newtonraphson(
+          epsilon = List(1e-12),
+          iterations = 50,
+        ),
+        stopOnFailure = true,
+      )
+    ),
+    simulationName = "EmServiceCoreSpec",
+    time = SimonaConfig.Time(
+      startDateTime = "2011-05-01T00:00:00Z",
+      endDateTime = "2011-05-01T01:00:00Z",
+    ),
+  )
+
+  private val startTime: ZonedDateTime = simonaConfig.time.simStartTime
+  private val endTime: ZonedDateTime = simonaConfig.time.simEndTime
 
   "An EmServiceCore" should {
     // logger used by some methods
