@@ -31,7 +31,7 @@ import java.util.UUID
 
 trait CongestedComponentsTestData extends NodeInputTestData with DbfsTestGrid {
 
-  protected lazy typesafeConfig = ConfigFactory
+  protected typesafeConfig = ConfigFactory
     .parseString(
       """
       |simona.simulationName = "CongestedComponentsTest"
