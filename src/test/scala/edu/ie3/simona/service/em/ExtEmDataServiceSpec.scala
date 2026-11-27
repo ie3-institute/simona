@@ -10,7 +10,7 @@ import edu.ie3.simona.agent.em.EmAgent
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection
 import edu.ie3.simona.api.data.connection.ExtEmDataConnection.EmMode
 import edu.ie3.simona.api.data.model.em
-import edu.ie3.simona.api.data.model.em.{SetPoint, FlexOptionRequest}
+import edu.ie3.simona.api.data.model.em.{FlexOptionRequest, SetPoint}
 import edu.ie3.simona.api.ontology.ScheduleDataServiceMessage
 import edu.ie3.simona.api.ontology.em.*
 import edu.ie3.simona.api.ontology.simulation.ControlResponseMessageFromExt
@@ -23,10 +23,9 @@ import edu.ie3.simona.ontology.messages.ServiceMessage.{
   EmServiceRegistration,
 }
 import edu.ie3.simona.ontology.messages.flex.FlexibilityMessage.*
-import edu.ie3.simona.ontology.messages.flex.{FlexType, PowerLimitFlexOptions}
+import edu.ie3.simona.ontology.messages.flex.PowerLimitFlexOptions
 import edu.ie3.simona.ontology.messages.{Activation, SchedulerMessage}
 import edu.ie3.simona.scheduler.ScheduleLock
-import edu.ie3.simona.service.DataTimeType
 import edu.ie3.simona.service.em.ExtEmDataService.InitExtEmData
 import edu.ie3.simona.test.common.TestSpawnerTyped
 import edu.ie3.simona.test.common.input.EmInputTestData
@@ -42,7 +41,6 @@ import org.apache.pekko.testkit.TestKit.awaitCond
 import org.scalatest.wordspec.AnyWordSpecLike
 import squants.energy.Kilowatts
 
-import java.time.ZonedDateTime
 import java.util.UUID
 import scala.concurrent.duration.DurationInt
 import scala.jdk.CollectionConverters.*

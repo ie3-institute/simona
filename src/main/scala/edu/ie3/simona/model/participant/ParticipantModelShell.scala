@@ -109,6 +109,8 @@ final case class ParticipantModelShell[
     */
   def operationStart: Long = operationInterval.start
 
+  def hasFlexOptions: Boolean = getFlexModelShell.flexOptions.isDefined
+
   /** Returns the current flex options, if present, or throws a
     * [[CriticalFailureException]]. Only call this if you are certain the flex
     * options have been set.
