@@ -153,7 +153,7 @@ class EmServiceCoreSpec
 
       // check updated state of the core
       updatedCore.uuidToAgent shouldBe Map(emUuid -> emAgent.ref)
-      updatedCore.emDataStore shouldBe ReceiveMultiDataMap(Set.empty)
+      updatedCore.emDataStore shouldBe ReceiveMultiDataMap(Set(emUuid))
       updatedCore.completions shouldBe ReceiveDataMap(Set(emUuid))
       updatedCore.uuidToInferior shouldBe Map.empty
       updatedCore.sendDataToExt shouldBe false

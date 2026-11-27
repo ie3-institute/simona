@@ -7,7 +7,10 @@
 package edu.ie3.simona.service.em
 
 import edu.ie3.datamodel.models.input.system.`type`.StorageTypeInput
-import edu.ie3.datamodel.models.input.system.characteristic.{CosPhiFixed, ReactivePowerCharacteristic}
+import edu.ie3.datamodel.models.input.system.characteristic.{
+  CosPhiFixed,
+  ReactivePowerCharacteristic,
+}
 import edu.ie3.datamodel.models.input.system.{LoadInput, StorageInput}
 import edu.ie3.datamodel.models.input.{EmInput, OperatorInput}
 import edu.ie3.datamodel.models.profile.BdewStandardLoadProfile
@@ -64,7 +67,7 @@ trait EmServiceTestData extends NodeInputTestData {
 
   protected val loadInputContainer: SimpleInputContainer[LoadInput] =
     SimpleInputContainer(loadInput)
-  
+
   protected val storageTypeInput = new StorageTypeInput(
     UUID.randomUUID(),
     "Dummy_StorageTypeInput",

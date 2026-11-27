@@ -200,7 +200,15 @@ case class EmServiceCore(
 
       // handling of requests
       val requestMapping =
-        handleExtFlexRequests(tick, provideEmData.flexRequests.asScala)
+        handleExtFlexRequests(
+          tick,
+          provideEmData.flexRequests.asScala,
+          r =>
+            uuidToInferior
+              .get(r)
+              .map(_.count(id => nextActivation(id) <= tick))
+              .getOrElse(1),
+        )
 
       // handling of set points
       val setPointMapping =
@@ -230,7 +238,11 @@ case class EmServiceCore(
 
       // we only need the keys here
       val flexRequests =
-        handleExtFlexRequests(tick, provideEmData.flexRequests.asScala).keySet
+        handleExtFlexRequests(
+          tick,
+          provideEmData.flexRequests.asScala,
+          _ => 0,
+        ).keySet
 
       val updatedState = copy(
         emDataStore = emDataStore.addExpectedKeys(flexRequests),
@@ -284,7 +296,7 @@ case class EmServiceCore(
         completions = completions.addExpectedKeys(mapping.keySet),
       )
 
-      log.warn(s"Open messages: $openMsg")
+      log.info(s"Open messages: $openMsg")
 
       (newState, None)
 
@@ -671,6 +683,8 @@ case class EmServiceCore(
     *   For which the request should be handled.
     * @param flexRequests
     *   The requests to handle.
+    * @param countFcn
+    *   A function that determines the minimum amount of expected messages.
     * @param log
     *   Logger for logging messages.
     * @return
@@ -679,9 +693,10 @@ case class EmServiceCore(
   private def handleExtFlexRequests(
       tick: Long,
       flexRequests: Iterable[(UUID, FlexOptionRequest)],
+      countFcn: UUID => Int,
   )(using log: Logger): Map[UUID, Int] = {
     flexRequests.flatMap { case (uuid, request) =>
-      handleExtFlexRequest(tick, uuid, request, uuidToAgent)
+      handleExtFlexRequest(tick, uuid, request, uuidToAgent, countFcn)
     }.toMap
   }
 
@@ -695,6 +710,8 @@ case class EmServiceCore(
     *   The request to handle.
     * @param agents
     *   A map: uuid to activatable em agents.
+    * @param countFcn
+    *   A function that determines the minimum amount of expected messages.
     * @param log
     *   Logger for logging messages.
     * @return
@@ -706,6 +723,7 @@ case class EmServiceCore(
       receiver: UUID,
       request: FlexOptionRequest,
       agents: Map[UUID, ActorRef[EmAgent.Message]],
+      countFcn: UUID => Int,
   )(using log: Logger): Option[(UUID, Int)] =
     if emStates(receiver).isWaitingForActivation then {
       agents.get(receiver).map { ref =>
@@ -714,12 +732,7 @@ case class EmServiceCore(
 
         ref ! FlexActivation(tick, mode == EmMode.EM_COMMUNICATION)
 
-        val count = uuidToInferior
-          .get(receiver)
-          .map(_.count(id => nextActivation(id) <= tick))
-          .getOrElse(0)
-
-        receiver -> count
+        receiver -> countFcn(receiver)
       }
 
     } else {
@@ -747,7 +760,7 @@ case class EmServiceCore(
 
     msg.content match {
       case request: FlexOptionRequest =>
-        handleExtFlexRequests(tick, Iterable(receiver -> request))
+        handleExtFlexRequests(tick, Iterable(receiver -> request), _ => 1)
 
       case flexOption: ExtFlexOptions =>
         val agent = uuidToAgent(receiver)
